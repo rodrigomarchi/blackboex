@@ -54,6 +54,9 @@ config :logger, :default_formatter,
   format: "$time $metadata[$level] $message\n",
   metadata: [:request_id]
 
+# SaladUI configuration
+config :salad_ui, web_module: BlackboexWeb
+
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 

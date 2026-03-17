@@ -13,10 +13,10 @@ defmodule Blackboex.LLM.PromptsTest do
       assert prompt =~ "System"
     end
 
-    test "instructs to return only handler function body" do
+    test "instructs to return only function definitions" do
       prompt = Prompts.system_prompt()
       assert prompt =~ "handler"
-      assert prompt =~ "body"
+      assert prompt =~ "function definitions"
     end
 
     test "contains allowed modules list" do

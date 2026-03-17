@@ -10,7 +10,7 @@ defmodule Blackboex.Apis.Api do
 
   @valid_template_types ~w(computation crud webhook)
   @valid_methods ~w(GET POST PUT PATCH DELETE)
-  @valid_statuses ~w(draft active archived)
+  @valid_statuses ~w(draft compiled published archived)
 
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id

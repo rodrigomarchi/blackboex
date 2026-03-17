@@ -10,7 +10,9 @@ defmodule Blackboex.Application do
     children = [
       Blackboex.Repo,
       {DNSCluster, query: Application.get_env(:blackboex, :dns_cluster_query) || :ignore},
-      {Phoenix.PubSub, name: Blackboex.PubSub}
+      {Phoenix.PubSub, name: Blackboex.PubSub},
+      {Task.Supervisor, name: Blackboex.SandboxTaskSupervisor},
+      Blackboex.Apis.Registry
     ]
 
     Supervisor.start_link(children, strategy: :one_for_one, name: Blackboex.Supervisor)

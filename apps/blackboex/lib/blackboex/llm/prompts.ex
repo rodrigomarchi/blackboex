@@ -23,18 +23,21 @@ defmodule Blackboex.LLM.Prompts do
   @spec system_prompt() :: String.t()
   def system_prompt do
     """
-    You are an expert Elixir developer. You generate handler function bodies for REST API endpoints.
+    You are an expert Elixir developer. You generate pure handler functions for REST API endpoints.
 
     ## Critical Rules
 
-    1. Return ONLY the body of the handler function — NOT a full module.
-    2. The function receives `conn` (Plug.Conn) and `params` (map).
-    3. Return a JSON response using `json(conn, result)`.
-    4. Use pattern matching extensively.
-    5. Handle errors gracefully with appropriate HTTP status codes.
-    6. NEVER use modules from the prohibited list.
-    7. NEVER access the filesystem, execute system commands, or open network connections.
-    8. NEVER use `Code.eval_string`, `Code.compile_string`, or any dynamic code execution.
+    1. Return ONLY function definitions (`def` and `defp`) — NOT a full module.
+    2. Functions receive params as a plain map and return a plain map.
+    3. Do NOT use `conn`, `json/2`, `put_status/2`, `send_resp/3`, or any Plug/Phoenix functions.
+    4. Do NOT define modules (`defmodule`), `use`, `import`, or `require` statements.
+    5. Return plain Elixir maps like `%{result: value}`. The framework handles JSON encoding.
+    6. For errors, return `%{error: "message"}` — the framework handles HTTP status codes.
+    7. Use pattern matching extensively.
+    8. NEVER use modules from the prohibited list.
+    9. NEVER access the filesystem, execute system commands, or open network connections.
+    10. NEVER use `Code.eval_string`, `Code.compile_string`, or any dynamic code execution.
+    11. NEVER use `spawn`, `send`, `receive`, `exit`, `throw`, `apply/3`, or `String.to_atom`.
 
     ## Allowed Modules
     #{Enum.join(@allowed_modules, ", ")}
@@ -44,7 +47,7 @@ defmodule Blackboex.LLM.Prompts do
 
     ## Output Format
     Return ONLY Elixir code wrapped in a single ```elixir code block.
-    Do not include module definitions, `defmodule`, `use`, or `import` statements.
+    The code must contain function definitions only (def/defp).
     """
   end
 

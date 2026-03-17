@@ -103,7 +103,7 @@ defmodule Blackboex.Apis.ApiTest do
     end
 
     test "accepts valid statuses" do
-      for status <- ~w(draft active archived) do
+      for status <- ~w(draft compiled published archived) do
         changeset = Api.changeset(%Api{}, Map.put(@valid_attrs, :status, status))
         assert changeset.valid?, "Expected #{status} to be valid"
       end

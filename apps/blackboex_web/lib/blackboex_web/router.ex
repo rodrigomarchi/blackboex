@@ -23,10 +23,11 @@ defmodule BlackboexWeb.Router do
     get "/", PageController, :home
   end
 
-  # Other scopes may use custom stacks.
-  # scope "/api", BlackboexWeb do
-  #   pipe_through :api
-  # end
+  # Dynamic API routing — forwards all /api/* requests to the DynamicApiRouter
+  scope "/api" do
+    pipe_through :api
+    forward "/", BlackboexWeb.Plugs.DynamicApiRouter
+  end
 
   # Enable LiveDashboard in development
   if Application.compile_env(:blackboex_web, :dev_routes) do
@@ -58,6 +59,7 @@ defmodule BlackboexWeb.Router do
       live "/dashboard", DashboardLive, :index
       live "/apis", ApiLive.Index, :index
       live "/apis/new", ApiLive.New, :new
+      live "/apis/:id", ApiLive.Show, :show
       live "/users/settings", UserLive.Settings, :edit
       live "/users/settings/confirm-email/:token", UserLive.Settings, :confirm_email
     end

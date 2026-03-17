@@ -10,7 +10,8 @@ defmodule Blackboex.LLM.TemplatesTest do
       template = Templates.get(:computation)
       assert template =~ "computation"
       assert template =~ "params"
-      assert template =~ "json"
+      assert template =~ "def handle(params)"
+      assert template =~ "Return a plain map"
     end
 
     test "crud template returns wrapper with CRUD operations" do

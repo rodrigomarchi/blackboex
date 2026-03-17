@@ -56,10 +56,10 @@ defmodule BlackboexWeb.ApiLive.Index do
               class="rounded-lg border bg-card p-4 text-card-foreground shadow-sm"
             >
               <div class="flex items-center justify-between">
-                <div>
-                  <h3 class="font-semibold">{api.name}</h3>
+                <.link navigate={~p"/apis/#{api.id}"} class="block">
+                  <h3 class="font-semibold hover:underline">{api.name}</h3>
                   <p class="text-sm text-muted-foreground">{api.description}</p>
-                </div>
+                </.link>
                 <div class="flex items-center gap-3">
                   <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold">
                     {api.status}

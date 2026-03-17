@@ -9,19 +9,24 @@ defmodule Blackboex.LLM.Templates do
     """
     ## Template: computation (pure function)
 
-    Generate the body of a handler function that receives `params` (a map) and
-    returns a result map. The function should be a pure computation — no side effects,
+    Generate a `def handle(params)` function that receives a map of params and
+    returns a result map. The function must be a pure computation — no side effects,
     no database, no external calls.
 
-    The handler receives `conn` and `params`, processes the params, and returns
-    a JSON response via `json(conn, result)`.
+    IMPORTANT RULES:
+    - Define `def handle(params)` that receives a map and returns a map.
+    - Do NOT use `conn`, `json/2`, `put_status/2`, or any Plug/Phoenix functions.
+    - Do NOT define a module — only define functions.
+    - You may define helper functions with `defp`.
+    - Return a plain map like `%{result: value}` — the framework handles JSON encoding.
+    - For errors, return `%{error: "message"}`.
 
-    Example structure:
+    Example:
     ```elixir
-    def call(conn, params) do
-      # Extract and validate params
-      # Perform computation
-      # Return json(conn, %{result: ...})
+    def handle(params) do
+      x = Map.get(params, "x", 0)
+      y = Map.get(params, "y", 0)
+      %{result: x + y, operation: "addition"}
     end
     ```
     """
@@ -31,24 +36,29 @@ defmodule Blackboex.LLM.Templates do
     """
     ## Template: CRUD (data operations)
 
-    Generate the body of a handler function that performs CRUD operations.
-    The handler should support create, read, list, update, and delete operations
-    using only maps and lists for in-memory data manipulation.
-    Do NOT use Agent, GenServer, ETS, or any process-based storage.
+    Generate handler functions for CRUD operations. You MUST define all five functions:
 
-    The handler receives `conn` and `params`, and should route based on the
-    `action` parameter. Return JSON responses via `json(conn, result)`.
+    - `def handle_list(params)` — returns `%{items: [...]}`
+    - `def handle_get(id, params)` — returns `%{id: id, ...}`
+    - `def handle_create(params)` — returns `%{created: true, data: ...}`
+    - `def handle_update(id, params)` — returns `%{id: id, updated: true, ...}`
+    - `def handle_delete(id)` — returns `%{id: id, deleted: true}`
 
-    Example structure:
+    IMPORTANT RULES:
+    - Each function receives params (a map) and returns a map.
+    - Do NOT use `conn`, `json/2`, `put_status/2`, or any Plug/Phoenix functions.
+    - Do NOT define a module — only define functions.
+    - You may define helper functions with `defp`.
+    - Return plain maps — the framework handles JSON encoding and HTTP status codes.
+    - For errors, return `%{error: "message"}`.
+
+    Example:
     ```elixir
-    def call(conn, %{"action" => "create", "data" => data}) do
-      # Validate data using Map and String functions
-      # Return json(conn, %{status: "created", data: data})
-    end
-
-    def call(conn, %{"action" => "list"}) do
-      # Return json(conn, %{items: []})
-    end
+    def handle_list(_params), do: %{items: []}
+    def handle_get(id, _params), do: %{id: id, name: "Item"}
+    def handle_create(params), do: %{created: true, data: params}
+    def handle_update(id, params), do: %{id: id, updated: true, data: params}
+    def handle_delete(id), do: %{id: id, deleted: true}
     ```
     """
   end
@@ -57,19 +67,25 @@ defmodule Blackboex.LLM.Templates do
     """
     ## Template: webhook (payload processing)
 
-    Generate the body of a handler function that receives and processes a webhook payload.
-    The handler should validate the incoming payload structure, extract relevant data,
-    and return an acknowledgment response.
+    Generate a `def handle_webhook(payload)` function that receives and processes
+    a webhook payload (decoded JSON as a map). Return an acknowledgment map.
 
-    The handler receives `conn` and `params` (the decoded JSON payload).
-    Return a JSON response via `json(conn, result)`.
+    IMPORTANT RULES:
+    - Define `def handle_webhook(payload)` that receives a map and returns a map.
+    - Do NOT use `conn`, `json/2`, `put_status/2`, or any Plug/Phoenix functions.
+    - Do NOT define a module — only define functions.
+    - You may define helper functions with `defp`.
+    - Return a plain map — the framework handles JSON encoding.
+    - For errors, return `%{error: "message"}`.
 
-    Example structure:
+    Example:
     ```elixir
-    def call(conn, %{"event" => event, "payload" => payload}) do
-      # Validate event type
-      # Process payload
-      # Return json(conn, %{status: "received", event: event})
+    def handle_webhook(%{"event" => event, "data" => data}) do
+      %{status: "received", event: event, processed: true}
+    end
+
+    def handle_webhook(_payload) do
+      %{error: "invalid payload format"}
     end
     ```
     """

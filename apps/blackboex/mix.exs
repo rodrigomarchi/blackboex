@@ -46,6 +46,7 @@ defmodule Blackboex.MixProject do
       {:let_me, "~> 1.2"},
       {:req_llm, "~> 1.7"},
       {:instructor_lite, "~> 1.2"},
+      {:plug, "~> 1.16"},
       {:ex_rated, "~> 2.1"},
       {:mox, "~> 1.0", only: :test},
       {:ex_machina, "~> 2.8", only: :test}

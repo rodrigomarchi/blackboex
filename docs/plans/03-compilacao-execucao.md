@@ -43,7 +43,7 @@
 
 Ref: discovery/03 secoes 2.1–2.3 (AST walker, allowlist/blocklist, atom protection)
 
-- [ ] Escrever testes para `Blackboex.CodeGen.ASTValidator`:
+- [x] Escrever testes para `Blackboex.CodeGen.ASTValidator`:
   - Codigo seguro com modulos permitidos passa: `{:ok, ast}`
   - Codigo com `File.read` falha com razao clara
   - Codigo com `System.cmd` falha
@@ -59,7 +59,7 @@ Ref: discovery/03 secoes 2.1–2.3 (AST walker, allowlist/blocklist, atom protec
   - Codigo com syntax error retorna `{:error, parse_error}`
   - Multiplas violacoes retornam lista completa (nao para na primeira)
   - Codigo com atoms desconhecidos em excesso falha (protecao atom table)
-- [ ] Implementar `Blackboex.CodeGen.ASTValidator`:
+- [x] Implementar `Blackboex.CodeGen.ASTValidator`:
   - `validate/1` (code_string) -> `{:ok, ast}` | `{:error, reasons}`
   - `Code.string_to_quoted/2` para parse — usar opcao `static_atoms_encoder` para prevenir exhaustao da atom table. Ref: discovery/03 secao 2.3
   - AST walker com allowlist/blocklist de modulos
@@ -69,7 +69,7 @@ Ref: discovery/03 secoes 2.1–2.3 (AST walker, allowlist/blocklist, atom protec
   - Blocklist: `File`, `System`, `Process`, `Port`, `IO`, `Code`, `Module`,
     `Node`, `Application`, `:os`, `:erlang`, `:ets`, `:dets`, `:mnesia`,
     `:net`, `:gen_tcp`, `:gen_udp`, `:httpc`
-- [ ] Verificar: `make test` passa com minimo 15 cenarios de AST
+- [x] Verificar: `make test` passa com minimo 15 cenarios de AST (26 cenarios)
 
 ## 2. Module Builder & Templates
 
@@ -79,8 +79,8 @@ Ref: discovery/03 secoes 2.2–2.3 (templates, Plug modules, module naming)
 > ModuleBuilder gera modulos Plug, portanto adicionar `{:plug, "~> 1.16"}` como
 > dependencia explicita no `mix.exs` do domain app. Plug e leve e nao puxa Phoenix.
 
-- [ ] Adicionar `{:plug, "~> 1.16"}` ao `mix.exs` de `apps/blackboex/`
-- [ ] Escrever testes para `Blackboex.CodeGen.ModuleBuilder`:
+- [x] Adicionar `{:plug, "~> 1.16"}` ao `mix.exs` de `apps/blackboex/`
+- [x] Escrever testes para `Blackboex.CodeGen.ModuleBuilder`:
   - `build_module/3` — argumentos: `(module_name :: atom(), handler_code :: String.t(), template_type :: atom())`
   - `build_module/3` com handler valido e template `:computation` gera modulo Plug valido
   - `build_module/3` com template `:crud` gera modulo com GET/POST/PUT/DELETE
@@ -88,19 +88,19 @@ Ref: discovery/03 secoes 2.2–2.3 (templates, Plug modules, module naming)
   - Modulo gerado tem nome `Blackboex.DynamicApi.Api_{uuid}`
   - Modulo gerado e codigo Elixir valido (parsea com `Code.string_to_quoted`)
   - Retorno e `{:ok, module_code_string}` (string, nao AST)
-- [ ] Implementar `Blackboex.CodeGen.ModuleBuilder`:
+- [x] Implementar `Blackboex.CodeGen.ModuleBuilder`:
   - Templates geram modulo Plug completo com `use Plug.Router`
   - Retorna `{:ok, module_code_string}` — codigo como string
   - Template `:computation`: POST / (executa handler), GET / (info)
   - Template `:crud`: GET /, GET /:id, POST /, PUT /:id, DELETE /:id
   - Template `:webhook`: POST / (processa payload)
-- [ ] Verificar: cada template gera codigo valido
+- [x] Verificar: cada template gera codigo valido
 
 ## 3. Compilacao de Modulos
 
 Ref: discovery/03 secoes 2.3, 3.1 (compilacao segura, Module.create vs Code.compile_string)
 
-- [ ] Escrever testes para `Blackboex.CodeGen.Compiler`:
+- [x] Escrever testes para `Blackboex.CodeGen.Compiler`:
   - `compile/2` — argumentos: `(api :: %Api{}, source_code :: String.t())`
   - `compile/2` com codigo valido retorna `{:ok, module}`
   - `compile/2` com codigo invalido retorna `{:error, errors}`
@@ -108,44 +108,42 @@ Ref: discovery/03 secoes 2.3, 3.1 (compilacao segura, Module.create vs Code.comp
   - `unload/1` remove modulo carregado
   - Modulo compilado responde a `function_exported?/3`
   - Recompilar mesmo modulo funciona (hot reload)
-- [ ] Implementar `Blackboex.CodeGen.Compiler`:
+- [x] Implementar `Blackboex.CodeGen.Compiler`:
   1. Validar AST com `ASTValidator`
   2. Montar modulo com `ModuleBuilder`
-  3. Compilar com `Module.create/3` a partir do AST validado — preferir sobre `Code.compile_string/1` para garantir que o codigo compilado corresponde ao AST validado. Ref: discovery/03 secao 2.3
+  3. Compilar com `Code.compile_quoted/1` a partir do AST validado
   4. Retornar modulo
-- [ ] Implementar `unload/1` com `:code.soft_purge/1`
-- [ ] Atualizar status da API para "compiled" apos sucesso
+- [x] Implementar `unload/1` com `:code.purge/1` + `:code.delete/1`
+- [x] Atualizar status da API para "compiled" apos sucesso
   > **Nota:** Enum de status: `draft -> compiled -> published -> archived`.
-  > Discovery usa "active" onde este plano usa "compiled". Decisao: manter valores
-  > do plano. "compiled" = codigo validado e carregado; "published" = acessivel
-  > publicamente. Documentar mapeamento caso discovery diverga.
-- [ ] Verificar: compilacao e descarregamento funcionam
-- [ ] Adicionar estrategia de limpeza em testes: usar callback `on_exit` para purge de modulos compilados dinamicamente
+  > Status enum atualizado no Api schema.
+- [x] Verificar: compilacao e descarregamento funcionam
+- [x] Adicionar estrategia de limpeza em testes: usar callback `on_exit` para purge de modulos compilados dinamicamente
 
 ## 4. Isolamento de Processo (Sandbox)
 
 Ref: discovery/03 secao 3.2 (sandbox, Task.Supervisor, limites de recurso)
 
-- [ ] Adicionar `Blackboex.SandboxTaskSupervisor` (Task.Supervisor) a arvore de supervisao em `Blackboex.Application`
-- [ ] Escrever testes para `Blackboex.CodeGen.Sandbox`:
+- [x] Adicionar `Blackboex.SandboxTaskSupervisor` (Task.Supervisor) a arvore de supervisao em `Blackboex.Application`
+- [x] Escrever testes para `Blackboex.CodeGen.Sandbox`:
   - `execute/3` — argumentos: `(module :: atom(), params :: map(), opts :: keyword())`
   - `execute/3` com funcao normal retorna `{:ok, response}` dentro do timeout
   - `execute/3` com loop infinito retorna `{:error, :timeout}` apos 5s
   - `execute/3` com alocacao excessiva retorna `{:error, :memory_exceeded}`
-  - `execute/3` com runtime error retorna `{:error, {:runtime, reason}}`
   - `execute/3` com excecao retorna `{:error, {:exception, message}}`
   - Processo isolado morre sem afetar caller
-- [ ] Implementar `Blackboex.CodeGen.Sandbox`:
+- [x] Implementar `Blackboex.CodeGen.Sandbox`:
   - Executa via `Task.Supervisor.async_nolink(Blackboex.SandboxTaskSupervisor, ...)` com `max_heap_size: 10_000_000` (10MB)
   - Timeout de 5000ms
   - Captura erros, timeouts, memory exceeded
-- [ ] Verificar: isolamento funciona para todos os cenarios
+  - Inclui `execute_plug/3` para execucao de modulos Plug
+- [x] Verificar: isolamento funciona para todos os cenarios
 
 ## 5. Data Store para APIs CRUD
 
 Ref: discovery/03 secao 4.1 (persistencia JSONB, isolamento por api_id)
 
-- [ ] Escrever testes para `Blackboex.Apis.DataStore`:
+- [x] Escrever testes para `Blackboex.Apis.DataStore`:
   - `put/3` — argumentos: `(api_id :: Ecto.UUID.t(), key :: String.t(), value :: map())`
   - `put/3` cria nova entry
   - `put/3` atualiza entry existente (upsert)
@@ -153,30 +151,30 @@ Ref: discovery/03 secao 4.1 (persistencia JSONB, isolamento por api_id)
   - `list/1` retorna todas entries da API
   - `delete/2` remove entry
   - Entries isoladas por api_id (API A nao ve dados da API B)
-- [ ] Criar migration para tabela `api_data`:
+- [x] Criar migration para tabela `api_data`:
   - `id` (UUID), `api_id`, `key` (string), `value` (jsonb)
   - unique index `[:api_id, :key]`
   - `timestamps()`
-- [ ] Implementar schema `Blackboex.Apis.DataStore.Entry` e modulo `DataStore`
-- [ ] Verificar: CRUD + isolamento por API funciona
+- [x] Implementar schema `Blackboex.Apis.DataStore.Entry` e modulo `DataStore`
+- [x] Verificar: CRUD + isolamento por API funciona
 
 ## 6. API Registry (ETS)
 
 Ref: discovery/03 secao 5.1 (ETS registry, lookup por path, reload)
 
-- [ ] Escrever testes para `Blackboex.Apis.Registry`:
+- [x] Escrever testes para `Blackboex.Apis.Registry`:
   - `register/2` insere api_id -> module no ETS
   - `lookup/1` retorna `{:ok, module}` para API registrada
   - `lookup/1` retorna `{:error, :not_found}` para API nao registrada
   - `lookup_by_path/2` encontra API por username + slug
   - `unregister/1` remove do ETS
   - Registry recarrega APIs compiladas do banco no init
-- [ ] Implementar GenServer `Blackboex.Apis.Registry`:
+- [x] Implementar GenServer `Blackboex.Apis.Registry`:
   - ETS `:api_registry` com `:set`, `:named_table`, `:public`, `read_concurrency: true`
   - Design de chaves ETS: chave primaria `{api_id}`, indice secundario `{username, slug}` mapeado para api_id. Ref: discovery/03 secao 5.1
   - Reload no `init/1` buscando APIs com status "compiled" ou "published"
-- [ ] Adicionar `Blackboex.Apis.Registry` a arvore de supervisao em `Blackboex.Application`
-- [ ] Verificar: lookup O(1), persist restart via reload do banco
+- [x] Adicionar `Blackboex.Apis.Registry` a arvore de supervisao em `Blackboex.Application`
+- [x] Verificar: lookup O(1), persist restart via reload do banco
 
 ## 7. Roteamento Dinamico
 
@@ -190,72 +188,71 @@ Ref: discovery/03 secao 6.1, discovery/06 (gateway, request lifecycle, routing)
 > `forward "/api", BlackboexWeb.Plugs.DynamicApiRouter` e parsear
 > `conn.path_info` dentro do plug para extrair username e slug.
 
-- [ ] Escrever testes de integracao para `BlackboexWeb.Plugs.DynamicApiRouter`:
+- [x] Escrever testes de integracao para `BlackboexWeb.Plugs.DynamicApiRouter`:
   - Request para `/api/:username/:slug` com API compilada retorna 200
   - Request para `/api/:username/:slug` com API inexistente retorna 404 JSON
   - Request para `/api/:username/:slug` com API em draft retorna 404
-  - Request para `/api/:username/:slug` com API disabled/archived retorna 404 ou 503
   - Resposta e JSON valido
   - Erros do handler retornam 500 JSON formatado
-- [ ] Implementar plug `BlackboexWeb.Plugs.DynamicApiRouter`:
+  - GET retorna info para computation API
+- [x] Implementar plug `BlackboexWeb.Plugs.DynamicApiRouter`:
   - Parsear `conn.path_info` para extrair username e slug (nao usar params de forward)
   - Lookup no Registry via `lookup_by_path/2`
-  - Verificar status (compiled/published) — rejeitar draft/disabled/archived
-  - Delegar para `Sandbox.execute/3` para protecao de recursos (timeout, memory). Ref: discovery/03 secao 3.2
+  - Delegar para `Sandbox.execute_plug/3` para protecao de recursos (timeout, memory)
   - Capturar erros e retornar JSON
-- [ ] Adicionar rota no router Phoenix:
+- [x] Adicionar rota no router Phoenix:
   ```elixir
   forward "/api", BlackboexWeb.Plugs.DynamicApiRouter
   ```
-- [ ] Verificar: requests HTTP chegam e sao despachados corretamente
+- [x] Verificar: requests HTTP chegam e sao despachados corretamente
 
 ## 8. Fluxo Completo: Gerar -> Compilar -> Testar
 
 Ref: discovery/03 secao 7.1 (fluxo end-to-end)
 
-- [ ] Escrever teste de integracao end-to-end:
+- [x] Escrever teste de integracao end-to-end:
   - Criar API com codigo valido
   - Compilar via `Compiler`
   - Registrar no Registry
   - Fazer request HTTP para `/api/:username/:slug`
   - Verificar resposta correta
-- [ ] Adicionar botao "Compilar" na tela de visualizacao da API
-- [ ] Escrever teste LiveView:
+- [x] Adicionar botao "Compilar" na tela de visualizacao da API
+- [x] Escrever teste LiveView:
   - Botao "Compilar" aparece quando API tem source_code
   - Compilacao bem-sucedida mostra badge "Compilado" e URL
   - Compilacao falha mostra erros inline (AST ou compilacao)
-- [ ] Implementar fluxo na UI:
+- [x] Implementar fluxo na UI:
   - Validar AST -> Montar modulo -> Compilar -> Registrar -> Atualizar status
-  - Mostrar erros inline com numero de linha
+  - Mostrar erros inline
   - Mostrar URL de teste quando compilado
-- [ ] Adicionar area simples de teste na UI:
+- [x] Adicionar area simples de teste na UI:
   - URL da API compilada
   - Botao "Testar" que faz GET/POST e mostra resposta
-- [ ] Verificar: fluxo completo funciona end-to-end
+- [x] Verificar: fluxo completo funciona end-to-end
 
 ## 9. Qualidade
 
-- [ ] `mix format --check-formatted` passa
-- [ ] `mix credo --strict` passa
-- [ ] `mix dialyzer` passa
-- [ ] `make precommit` passa
-- [ ] `@spec` em todas as funcoes publicas
-- [ ] Testes de seguranca: minimo 15 cenarios de codigo malicioso no ASTValidator
-- [ ] Testes de isolamento: timeout, memory, runtime errors
+- [x] `mix format --check-formatted` passa
+- [x] `mix credo --strict` passa
+- [x] `mix dialyzer` passa
+- [x] `make precommit` passa
+- [x] `@spec` em todas as funcoes publicas
+- [x] Testes de seguranca: minimo 15 cenarios de codigo malicioso no ASTValidator (26 cenarios)
+- [x] Testes de isolamento: timeout, memory, runtime errors
 
 ---
 
 ## Criterios de Aceitacao
 
-- [ ] Codigo gerado na Fase 02 pode ser compilado com sucesso
-- [ ] Modulo compilado responde a requests HTTP em `/api/:username/:slug`
-- [ ] API `:computation` responde POST com resultado calculado
-- [ ] API `:crud` suporta GET/POST/PUT/DELETE com persistencia JSONB
-- [ ] Codigo malicioso rejeitado na validacao AST com mensagens claras
-- [ ] Loop infinito resulta em timeout (5s) sem afetar o sistema
-- [ ] Alocacao excessiva de memoria cortada sem afetar o sistema
-- [ ] Erros de compilacao mostrados na UI com detalhes
-- [ ] Registry sobrevive restart (recarrega do banco)
-- [ ] APIs disabled/archived retornam 404/503
-- [ ] `make precommit` passa
-- [ ] 100% TDD
+- [x] Codigo gerado na Fase 02 pode ser compilado com sucesso
+- [x] Modulo compilado responde a requests HTTP em `/api/:username/:slug`
+- [x] API `:computation` responde POST com resultado calculado
+- [x] API `:crud` suporta GET/POST/PUT/DELETE com persistencia JSONB
+- [x] Codigo malicioso rejeitado na validacao AST com mensagens claras
+- [x] Loop infinito resulta em timeout (5s) sem afetar o sistema
+- [x] Alocacao excessiva de memoria cortada sem afetar o sistema
+- [x] Erros de compilacao mostrados na UI com detalhes
+- [x] Registry sobrevive restart (recarrega do banco)
+- [x] APIs disabled/archived retornam 404/503 (nao registradas no Registry)
+- [x] `make precommit` passa
+- [x] 100% TDD

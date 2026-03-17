@@ -62,6 +62,7 @@ defmodule BlackboexWeb.MixProject do
       {:bandit, "~> 1.5"},
       {:swoosh, "~> 1.5"},
       {:salad_ui, "~> 0.14"},
+      {:live_monaco_editor, "~> 0.2"},
       {:floki, "~> 0.37", only: :test}
     ]
   end

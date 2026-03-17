@@ -52,6 +52,12 @@ defmodule BlackboexWeb.ApiLive.Show do
               {@api.status}
             </span>
             <.link
+              navigate={~p"/apis/#{@api.id}/edit"}
+              class="inline-flex items-center rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-accent"
+            >
+              Edit
+            </.link>
+            <.link
               navigate={~p"/apis"}
               class="text-sm text-muted-foreground hover:text-foreground"
             >

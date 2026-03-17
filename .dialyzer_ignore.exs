@@ -6,5 +6,9 @@
   # ReqLLM uses defdelegate with default args — Dialyzer can't resolve delegated functions
   {"lib/blackboex/llm/req_llm_client.ex", :unknown_function},
   # ExRated is an OTP app started at runtime — not visible to Dialyzer at compile time
-  {"lib/blackboex/llm/rate_limiter.ex", :unknown_function}
+  {"lib/blackboex/llm/rate_limiter.ex", :unknown_function},
+  # Ecto.Multi opaque type false positive in versioning
+  {"lib/blackboex/apis.ex", :call_without_opaque},
+  # LiveMonacoEditor is an external dep — Dialyzer can't resolve HEEx component calls
+  {"lib/blackboex_web/live/api_live/edit.ex", :unknown_function}
 ]

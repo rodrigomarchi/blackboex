@@ -60,6 +60,7 @@ defmodule BlackboexWeb.Router do
       live "/apis", ApiLive.Index, :index
       live "/apis/new", ApiLive.New, :new
       live "/apis/:id", ApiLive.Show, :show
+      live "/apis/:id/edit", ApiLive.Edit, :edit
       live "/users/settings", UserLive.Settings, :edit
       live "/users/settings/confirm-email/:token", UserLive.Settings, :confirm_email
     end

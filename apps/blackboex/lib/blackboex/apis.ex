@@ -6,6 +6,8 @@ defmodule Blackboex.Apis do
   import Ecto.Query, warn: false
 
   alias Blackboex.Apis.Api
+  alias Blackboex.Apis.ApiVersion
+  alias Blackboex.Apis.DiffEngine
   alias Blackboex.CodeGen.GenerationResult
   alias Blackboex.Repo
 
@@ -37,6 +39,104 @@ defmodule Blackboex.Apis do
     |> Api.changeset(attrs)
     |> Repo.update()
   end
+
+  # --- Versioning ---
+
+  @spec create_version(Api.t(), map()) :: {:ok, ApiVersion.t()} | {:error, Ecto.Changeset.t()}
+  def create_version(%Api{} = api, attrs) do
+    code = attrs[:code] || attrs["code"] || ""
+
+    Ecto.Multi.new()
+    |> Ecto.Multi.run(:next_number, fn repo, _changes ->
+      # Calculate version number inside transaction to avoid race conditions
+      result =
+        ApiVersion
+        |> where([v], v.api_id == ^api.id)
+        |> select([v], max(v.version_number))
+        |> repo.one()
+
+      {:ok, (result || 0) + 1}
+    end)
+    |> Ecto.Multi.run(:diff_summary, fn repo, _changes ->
+      latest =
+        ApiVersion
+        |> where([v], v.api_id == ^api.id)
+        |> order_by([v], desc: v.version_number)
+        |> limit(1)
+        |> repo.one()
+
+      summary =
+        if latest do
+          diff = DiffEngine.compute_diff(latest.code, code)
+          DiffEngine.format_diff_summary(diff)
+        else
+          nil
+        end
+
+      {:ok, summary}
+    end)
+    |> Ecto.Multi.insert(:version, fn %{next_number: number, diff_summary: summary} ->
+      ApiVersion.changeset(
+        %ApiVersion{},
+        Map.merge(attrs, %{
+          api_id: api.id,
+          version_number: number,
+          diff_summary: summary
+        })
+      )
+    end)
+    |> Ecto.Multi.update(:api, Api.changeset(api, %{source_code: code}))
+    |> Repo.transaction()
+    |> case do
+      {:ok, %{version: version}} -> {:ok, version}
+      {:error, :version, changeset, _} -> {:error, changeset}
+      {:error, :api, changeset, _} -> {:error, changeset}
+      {:error, _step, reason, _} -> {:error, reason}
+    end
+  end
+
+  @spec list_versions(Ecto.UUID.t()) :: [ApiVersion.t()]
+  def list_versions(api_id) do
+    ApiVersion
+    |> where([v], v.api_id == ^api_id)
+    |> order_by([v], desc: v.version_number)
+    |> Repo.all()
+  end
+
+  @spec get_version(Ecto.UUID.t(), integer()) :: ApiVersion.t() | nil
+  def get_version(api_id, version_number) do
+    ApiVersion
+    |> where([v], v.api_id == ^api_id and v.version_number == ^version_number)
+    |> Repo.one()
+  end
+
+  @spec get_latest_version(Api.t()) :: ApiVersion.t() | nil
+  def get_latest_version(%Api{id: api_id}) do
+    ApiVersion
+    |> where([v], v.api_id == ^api_id)
+    |> order_by([v], desc: v.version_number)
+    |> limit(1)
+    |> Repo.one()
+  end
+
+  @spec rollback_to_version(Api.t(), integer(), integer() | nil) ::
+          {:ok, ApiVersion.t()} | {:error, :version_not_found | Ecto.Changeset.t()}
+  def rollback_to_version(%Api{} = api, target_version_number, created_by_id \\ nil) do
+    case get_version(api.id, target_version_number) do
+      nil ->
+        {:error, :version_not_found}
+
+      target ->
+        create_version(api, %{
+          code: target.code,
+          source: "rollback",
+          prompt: "Rollback to version #{target_version_number}",
+          created_by_id: created_by_id
+        })
+    end
+  end
+
+  # --- API from generation ---
 
   @spec create_api_from_generation(GenerationResult.t(), Ecto.UUID.t(), integer(), String.t()) ::
           {:ok, Api.t()} | {:error, Ecto.Changeset.t()}

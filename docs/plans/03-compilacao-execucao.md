@@ -13,6 +13,19 @@
 > - Nunca usar `Repo.get!` com dados de sessao/URL params — usar `Repo.get` + pattern match
 > - Rodar todos os linters apos cada bloco de implementacao
 > - Atualizar `.dialyzer_ignore.exs` para falsos positivos de Ecto.Multi se necessario
+>
+> **CHECKLIST PRE-EXECUCAO (Licoes Fase 02):**
+> - Versoes de deps no discovery podem estar desatualizadas — sempre `mix hex.search <pkg>` antes de adicionar
+> - Deps que usam `defdelegate` com default args (ex: ReqLLM, ExRated) geram `unknown_function` no Dialyzer — adicionar ao `.dialyzer_ignore.exs` proativamente
+> - Nao usar `%__MODULE__{}` em module attributes (`@providers [%__MODULE__{...}]`) — struct nao existe nesse ponto. Usar keyword lists + `struct!/2` em runtime
+> - Trabalho async em LiveView DEVE usar `Task.async` + `handle_info({ref, result})` + `handle_info({:DOWN, ...})`. NUNCA `send(self(), :do_work)` — isso bloqueia o processo LiveView inteiro
+> - Rate limiting, autorizacao e tracking de uso DEVEM ser chamados no fluxo real, nao apenas implementados como modulos soltos — auditar se cada modulo criado esta wired in
+> - Templates e prompts NÃO podem contradizer regras de seguranca (ex: template mencionando Agent/ETS quando estao na lista proibida)
+> - Filtrar opts internos (`user_id`, etc) antes de passar a libs externas — `Keyword.drop([:user_id])` para nao vazar
+> - `%{@module_attr | key: val}` falha se `key` nao existe no map original — usar `Map.put/3`
+> - `defp` entre clausulas `def` do mesmo nome gera warning "clauses should be grouped" — agrupar todas as clausulas publicas primeiro, helpers privados depois
+> - `@module_attr` em templates HEEx resolve para `assigns`, NAO para module attribute — hardcode ou passar como assign
+> - Testes LiveView com `Task.async` + Mox precisam `async: false` — Mox expects sao per-process e Task roda em processo separado
 
 ## Fontes de Discovery
 - `docs/discovery/03-api-creation.md` (AST validation, sandbox, routing, templates)

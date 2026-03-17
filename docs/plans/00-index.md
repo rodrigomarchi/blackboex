@@ -95,3 +95,33 @@ Regras praticas validadas durante a implementacao. **Ler antes de comecar qualqu
 
 - **Dados da sessao sao input nao-confiavel** — org_id, user_id podem referenciar entidades deletadas ou revogadas. Sempre re-verificar membership a cada request
 - **Nomes derivados de email** podem colidir (john@a.com e john@b.com) — adicionar sufixo aleatorio para uniqueness
+
+---
+
+## Licoes Aprendidas (Fase 02)
+
+Regras praticas validadas durante a implementacao da integracao LLM. **Ler antes de comecar qualquer fase.**
+
+### Dependencias & Compilacao
+
+- **Versoes no discovery estao desatualizadas** — sempre `mix hex.search <pkg>` para confirmar versao real antes de adicionar ao `mix.exs`
+- **`defdelegate` com default args** (ex: ReqLLM, ExRated) gera `unknown_function` no Dialyzer — adicionar ao `.dialyzer_ignore.exs` proativamente
+- **Nao usar `%__MODULE__{}` em module attributes** — struct nao esta definida nesse ponto do compile. Usar keyword lists + `struct!/2` em funcoes
+
+### LiveView & Async
+
+- **Trabalho async em LiveView: SEMPRE `Task.async`** + `handle_info({ref, result})` + `handle_info({:DOWN, ...})`. NUNCA `send(self(), :do_work)` pois executa dentro do processo LiveView e bloqueia a UI inteira
+- **`defp` entre clausulas `def` do mesmo nome** gera warning "clauses should be grouped together" — agrupar TODAS as clausulas publicas de cada callback primeiro, helpers privados no final do modulo
+- **`@module_attr` em templates HEEx** resolve para `assigns`, NAO para module attribute — usar valor hardcoded ou passar como assign no mount
+- **Testes LiveView com `Task.async` + Mox** precisam `async: false` — Mox expects sao per-process e Task roda em processo separado
+
+### Integracao com Libs Externas
+
+- **Filtrar opts internos antes de passar a libs externas** — opts como `user_id` vazam para ReqLLM se nao removidos. Usar `Keyword.drop([:user_id, ...])` antes da chamada
+- **Templates/prompts NAO podem contradizer regras de seguranca** — ex: template CRUD mencionava Agent/ETS que estavam na lista de modulos proibidos. Auditar consistencia entre prompts e regras
+
+### Validacao & Integridade
+
+- **`%{@module_attr | key: val}` falha se `key` nao existe** no map original — usar `Map.put(@attr, :key, val)` que funciona sempre
+- **Campos com default no schema precisam de `validate_inclusion`** — `status` era string livre sem validacao, `name` sem max length, `description` sem max length. Adicionar validacoes de boundary em TODOS os campos string
+- **Rate limiting e tracking de uso DEVEM estar wired in** — modulo existir sem ser chamado no fluxo real e pior que nao existir (falsa seguranca). Na auditoria, RateLimiter e Usage existiam mas nenhum era invocado

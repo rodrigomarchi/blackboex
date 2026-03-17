@@ -13,6 +13,17 @@
 > - Testar LiveView hooks unitariamente: socket precisa de `__changed__` no assigns
 > - Dados de sessao sao input nao-confiavel — sempre re-verificar existencia de entidades
 > - Rodar todos os linters apos cada bloco de implementacao
+>
+> **CHECKLIST PRE-EXECUCAO (Licoes Fase 02):**
+> - Versoes de deps no discovery podem estar desatualizadas — sempre `mix hex.search <pkg>` antes de adicionar
+> - Deps que usam `defdelegate` com default args geram `unknown_function` no Dialyzer — adicionar ao `.dialyzer_ignore.exs` proativamente
+> - Trabalho async em LiveView DEVE usar `Task.async` + `handle_info({ref, result})` + `handle_info({:DOWN, ...})`. NUNCA `send(self(), :do_work)`
+> - Rate limiting, autorizacao e tracking de uso DEVEM ser chamados no fluxo real, nao apenas implementados como modulos soltos
+> - Templates e prompts NAO podem contradizer regras de seguranca (listas de modulos permitidos/proibidos)
+> - Filtrar opts internos (`user_id`, etc) antes de passar a libs externas — `Keyword.drop([:user_id])`
+> - `defp` entre clausulas `def` do mesmo nome gera warning — agrupar clausulas publicas primeiro, helpers privados depois
+> - `@module_attr` em HEEx resolve para `assigns`, NAO module attribute — hardcode ou passar como assign
+> - Testes LiveView com `Task.async` + Mox precisam `async: false`
 
 ## Fontes de Discovery
 - `docs/discovery/04-api-editing.md` (conversational editing, diff, chat panel)

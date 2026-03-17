@@ -4,13 +4,15 @@ defmodule Blackboex.CodeGen.Pipeline do
   calls the LLM, and extracts code from the response.
   """
 
+  require Logger
+
   alias Blackboex.CodeGen.GenerationResult
   alias Blackboex.LLM.{Config, Prompts}
 
   @crud_keywords ~w(crud store database banco armazenar listar persist persistir save salvar)
   @webhook_keywords ~w(webhook receive callback receber notificacao notificação)
 
-  @spec generate(String.t(), keyword()) :: {:ok, GenerationResult.t()} | {:error, atom()}
+  @spec generate(String.t(), keyword()) :: {:ok, GenerationResult.t()} | {:error, term()}
   def generate(description, opts \\ []) do
     client = Config.client()
     provider = Config.default_provider()
@@ -42,8 +44,9 @@ defmodule Blackboex.CodeGen.Pipeline do
             {:error, reason}
         end
 
-      {:error, _reason} ->
-        {:error, :llm_failed}
+      {:error, reason} ->
+        Logger.error("LLM generation failed: #{inspect(reason)}")
+        {:error, extract_error_message(reason)}
     end
   end
 
@@ -57,6 +60,11 @@ defmodule Blackboex.CodeGen.Pipeline do
       true -> :computation
     end
   end
+
+  defp extract_error_message(%{reason: reason}) when is_binary(reason), do: reason
+  defp extract_error_message(reason) when is_binary(reason), do: reason
+  defp extract_error_message(reason) when is_atom(reason), do: reason
+  defp extract_error_message(reason), do: inspect(reason)
 
   @spec extract_code(String.t()) :: {:ok, String.t()} | {:error, :no_code_in_response}
   def extract_code(response) do

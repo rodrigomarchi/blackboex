@@ -43,7 +43,7 @@ defmodule Blackboex.CodeGen.PipelineTest do
         {:error, :api_error}
       end)
 
-      assert {:error, :llm_failed} =
+      assert {:error, :api_error} =
                Pipeline.generate("Some description", user_id: "user-1")
     end
 

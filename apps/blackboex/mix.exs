@@ -13,7 +13,8 @@ defmodule Blackboex.MixProject do
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
-      deps: deps()
+      deps: deps(),
+      xref: [exclude: [ExRated]]
     ]
   end
 

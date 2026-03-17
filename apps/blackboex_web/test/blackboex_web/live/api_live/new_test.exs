@@ -88,6 +88,7 @@ defmodule BlackboexWeb.ApiLive.NewTest do
       assert html =~ "Slug"
     end
 
+    @tag :capture_log
     test "shows error when generation fails", %{conn: conn} do
       Blackboex.LLM.ClientMock
       |> expect(:generate_text, fn _prompt, _opts ->

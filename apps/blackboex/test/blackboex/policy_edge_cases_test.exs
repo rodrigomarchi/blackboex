@@ -51,6 +51,7 @@ defmodule Blackboex.PolicyEdgeCasesTest do
   end
 
   describe "non-existent action" do
+    @tag :capture_log
     test "undefined action returns false" do
       user = user_fixture()
       [org] = Organizations.list_user_organizations(user)

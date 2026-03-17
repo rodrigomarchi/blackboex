@@ -37,6 +37,7 @@ defmodule Blackboex.CodeGen.PipelineTest do
       assert result.tokens_used > 0
     end
 
+    @tag :capture_log
     test "returns error when LLM fails" do
       Blackboex.LLM.ClientMock
       |> expect(:generate_text, fn _prompt, _opts ->

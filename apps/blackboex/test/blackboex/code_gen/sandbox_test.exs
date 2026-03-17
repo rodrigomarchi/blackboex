@@ -53,6 +53,7 @@ defmodule Blackboex.CodeGen.SandboxTest do
       assert {:error, :timeout} = Sandbox.execute(InfiniteLoopHandler, %{}, timeout: 1000)
     end
 
+    @tag :capture_log
     test "returns :memory_exceeded for excessive allocation" do
       assert {:error, :memory_exceeded} = Sandbox.execute(MemoryHogHandler, %{})
     end

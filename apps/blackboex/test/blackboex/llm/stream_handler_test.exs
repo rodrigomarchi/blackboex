@@ -30,6 +30,7 @@ defmodule Blackboex.LLM.StreamHandlerTest do
       assert result == "Hello World"
     end
 
+    @tag :capture_log
     test "sends error event on LLM failure" do
       Blackboex.LLM.ClientMock
       |> expect(:stream_text, fn _prompt, _opts ->

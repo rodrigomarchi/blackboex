@@ -29,8 +29,8 @@ defmodule Blackboex.LLM.ReqLLMClient do
       {:ok, response} ->
         {:ok,
          %{
-           content: response.content,
-           usage: Map.from_struct(response.usage)
+           content: ReqLLM.Response.text(response),
+           usage: response.usage || %{}
          }}
 
       {:error, reason} ->

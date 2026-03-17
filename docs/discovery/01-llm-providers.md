@@ -4,6 +4,15 @@
 > **Context**: BlackBoex -- platform where users describe APIs in natural language, an LLM generates Elixir code, and users publish it as a REST endpoint.
 > **Goal**: Choose the right library/architecture for LLM integration in an Elixir/Phoenix umbrella app.
 
+> **ERRATA (Fase 02):** Os exemplos de codigo neste doc usavam a API errada do ReqLLM.
+> A struct `ReqLLM.Response` NAO tem campo `.content`. A API correta e:
+> - `ReqLLM.Response.text(response)` — extrai texto da resposta
+> - `ReqLLM.Response.usage(response)` — retorna map de uso (ja e map, NAO struct)
+> - `ReqLLM.Response.text_stream(response)` — stream de tokens para streaming
+> - `response.stream` — stream raw de `ReqLLM.StreamChunk`
+> - NAO existe `ReqLLM.StreamResponse` — o modulo correto e `ReqLLM.Response`
+> Sempre verificar a API real com `mix docs` ou lendo o source em `deps/req_llm/lib/`.
+
 ---
 
 ## Table of Contents
@@ -84,9 +93,11 @@ end
 
 ```elixir
 # Simple text generation
+# NOTE: ReqLLM.Response does NOT have .content — use ReqLLM.Response.text(response)
+# response.usage is a plain map, NOT a struct
 model = "anthropic:claude-sonnet-4-20250514"
 {:ok, response} = ReqLLM.generate_text(model, "Explain pattern matching in Elixir")
-IO.puts(response.content)
+IO.puts(ReqLLM.Response.text(response))
 
 # Streaming
 {:ok, stream_response} = ReqLLM.stream_text(

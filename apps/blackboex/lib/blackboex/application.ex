@@ -11,8 +11,6 @@ defmodule Blackboex.Application do
       Blackboex.Repo,
       {DNSCluster, query: Application.get_env(:blackboex, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Blackboex.PubSub}
-      # Start a worker by calling: Blackboex.Worker.start_link(arg)
-      # {Blackboex.Worker, arg}
     ]
 
     Supervisor.start_link(children, strategy: :one_for_one, name: Blackboex.Supervisor)

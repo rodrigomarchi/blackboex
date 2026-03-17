@@ -125,3 +125,9 @@ Regras praticas validadas durante a implementacao da integracao LLM. **Ler antes
 - **`%{@module_attr | key: val}` falha se `key` nao existe** no map original — usar `Map.put(@attr, :key, val)` que funciona sempre
 - **Campos com default no schema precisam de `validate_inclusion`** — `status` era string livre sem validacao, `name` sem max length, `description` sem max length. Adicionar validacoes de boundary em TODOS os campos string
 - **Rate limiting e tracking de uso DEVEM estar wired in** — modulo existir sem ser chamado no fluxo real e pior que nao existir (falsa seguranca). Na auditoria, RateLimiter e Usage existiam mas nenhum era invocado
+
+### APIs Externas & Discovery Docs
+
+- **Discovery docs tem exemplos de API ERRADOS** — ReqLLM.Response nao tem `.content`; a API real e `ReqLLM.Response.text(response)`. NUNCA confiar nos exemplos do discovery doc. Sempre verificar a API real com `deps/<pkg>/lib/` ou `mix docs`
+- **Deps OTP que precisam de supervision tree** (ex: ExRated com ETS tables) devem ser listados em `extra_applications` no `mix.exs`, senao nao iniciam e causam crash em runtime
+- **Erros de libs externas NAO devem ser engolidos** — `{:error, _reason} -> {:error, :llm_failed}` esconde a mensagem real (ex: "credit balance too low"). Sempre logar o erro original e propagar mensagem legivel ao usuario

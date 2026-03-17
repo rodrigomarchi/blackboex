@@ -26,6 +26,9 @@
 > - `defp` entre clausulas `def` do mesmo nome gera warning — agrupar clausulas publicas primeiro, helpers privados depois
 > - `@module_attr` em HEEx resolve para `assigns`, NAO module attribute
 > - Testes LiveView com `Task.async` + Mox precisam `async: false`
+> - Discovery docs tem exemplos de API ERRADOS — NUNCA confiar nos exemplos. Sempre verificar a API real em `deps/<pkg>/lib/`
+> - Deps OTP que precisam de supervision tree (ex: ExRated) devem ser listados em `extra_applications` no `mix.exs`
+> - Erros de libs externas NAO devem ser engolidos — sempre logar o erro original e propagar mensagem legivel ao usuario
 
 ## Fontes de Discovery
 - `docs/discovery/02-backoffice-config.md` (Backpex, billing, audit, feature flags)

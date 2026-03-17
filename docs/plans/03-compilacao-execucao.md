@@ -26,6 +26,9 @@
 > - `defp` entre clausulas `def` do mesmo nome gera warning "clauses should be grouped" — agrupar todas as clausulas publicas primeiro, helpers privados depois
 > - `@module_attr` em templates HEEx resolve para `assigns`, NAO para module attribute — hardcode ou passar como assign
 > - Testes LiveView com `Task.async` + Mox precisam `async: false` — Mox expects sao per-process e Task roda em processo separado
+> - Discovery docs tem exemplos de API ERRADOS — NUNCA confiar nos exemplos. Sempre verificar a API real em `deps/<pkg>/lib/`
+> - Deps OTP que precisam de supervision tree (ex: ExRated) devem ser listados em `extra_applications` no `mix.exs`
+> - Erros de libs externas NAO devem ser engolidos — sempre logar o erro original e propagar mensagem legivel ao usuario
 
 ## Fontes de Discovery
 - `docs/discovery/03-api-creation.md` (AST validation, sandbox, routing, templates)

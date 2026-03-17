@@ -1,0 +1,157 @@
+defmodule Blackboex.ApisTest do
+  use Blackboex.DataCase, async: true
+
+  @moduletag :unit
+
+  alias Blackboex.Apis
+  alias Blackboex.Apis.Api
+  alias Blackboex.CodeGen.GenerationResult
+
+  import Blackboex.AccountsFixtures
+
+  setup do
+    user = user_fixture()
+
+    {:ok, %{organization: org}} =
+      Blackboex.Organizations.create_organization(user, %{name: "Test Org"})
+
+    %{user: user, org: org}
+  end
+
+  describe "create_api/2" do
+    test "creates API in draft status", %{user: user, org: org} do
+      attrs = %{
+        name: "My API",
+        description: "A test API",
+        template_type: "computation",
+        organization_id: org.id,
+        user_id: user.id
+      }
+
+      assert {:ok, %Api{} = api} = Apis.create_api(attrs)
+      assert api.name == "My API"
+      assert api.status == "draft"
+      assert api.slug == "my-api"
+      assert api.organization_id == org.id
+      assert api.user_id == user.id
+    end
+
+    test "returns error with invalid attrs" do
+      assert {:error, %Ecto.Changeset{}} = Apis.create_api(%{})
+    end
+  end
+
+  describe "list_apis/1" do
+    test "returns APIs for the given org", %{user: user, org: org} do
+      {:ok, _api} =
+        Apis.create_api(%{
+          name: "API 1",
+          template_type: "computation",
+          organization_id: org.id,
+          user_id: user.id
+        })
+
+      apis = Apis.list_apis(org.id)
+      assert length(apis) == 1
+      assert hd(apis).name == "API 1"
+    end
+
+    test "does not return APIs from other orgs", %{org: org} do
+      other_user = user_fixture()
+
+      {:ok, %{organization: other_org}} =
+        Blackboex.Organizations.create_organization(other_user, %{name: "Other Org"})
+
+      {:ok, _api} =
+        Apis.create_api(%{
+          name: "Other API",
+          template_type: "computation",
+          organization_id: other_org.id,
+          user_id: other_user.id
+        })
+
+      apis = Apis.list_apis(org.id)
+      assert apis == []
+    end
+  end
+
+  describe "get_api/2" do
+    test "returns API by id within org", %{user: user, org: org} do
+      {:ok, api} =
+        Apis.create_api(%{
+          name: "My API",
+          template_type: "computation",
+          organization_id: org.id,
+          user_id: user.id
+        })
+
+      assert %Api{} = Apis.get_api(org.id, api.id)
+    end
+
+    test "returns nil for non-existent API", %{org: org} do
+      assert Apis.get_api(org.id, Ecto.UUID.generate()) == nil
+    end
+
+    test "returns nil for API in different org", %{org: org} do
+      other_user = user_fixture()
+
+      {:ok, %{organization: other_org}} =
+        Blackboex.Organizations.create_organization(other_user, %{name: "Other Org"})
+
+      {:ok, api} =
+        Apis.create_api(%{
+          name: "Other API",
+          template_type: "computation",
+          organization_id: other_org.id,
+          user_id: other_user.id
+        })
+
+      assert Apis.get_api(org.id, api.id) == nil
+    end
+  end
+
+  describe "update_api/2" do
+    test "updates API fields", %{user: user, org: org} do
+      {:ok, api} =
+        Apis.create_api(%{
+          name: "My API",
+          template_type: "computation",
+          organization_id: org.id,
+          user_id: user.id
+        })
+
+      assert {:ok, updated} = Apis.update_api(api, %{name: "Updated API"})
+      assert updated.name == "Updated API"
+    end
+  end
+
+  describe "create_api_from_generation/3" do
+    test "creates Api from GenerationResult", %{user: user, org: org} do
+      result = %GenerationResult{
+        code: "def call(conn, params), do: json(conn, %{ok: true})",
+        template: :computation,
+        description: "A simple API",
+        provider: "anthropic",
+        model: "anthropic:claude-sonnet-4-20250514",
+        tokens_used: 300,
+        duration_ms: 1500,
+        method: "POST",
+        example_request: %{"key" => "value"},
+        example_response: %{"ok" => true},
+        param_schema: %{"type" => "object"}
+      }
+
+      assert {:ok, %Api{} = api} =
+               Apis.create_api_from_generation(result, org.id, user.id, "simple-api")
+
+      assert api.source_code == result.code
+      assert api.template_type == "computation"
+      assert api.description == "A simple API"
+      assert api.method == "POST"
+      assert api.status == "draft"
+      assert api.example_request == %{"key" => "value"}
+      assert api.example_response == %{"ok" => true}
+      assert api.param_schema == %{"type" => "object"}
+    end
+  end
+end

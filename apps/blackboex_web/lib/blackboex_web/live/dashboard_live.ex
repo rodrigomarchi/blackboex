@@ -27,9 +27,12 @@ defmodule BlackboexWeb.DashboardLive do
                 Get started by creating your first API endpoint.
               </p>
             </div>
-            <button class="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90">
+            <.link
+              navigate={~p"/apis/new"}
+              class="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90"
+            >
               Create API
-            </button>
+            </.link>
           </div>
         </div>
       </div>

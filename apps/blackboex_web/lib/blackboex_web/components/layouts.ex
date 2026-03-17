@@ -50,9 +50,12 @@ defmodule BlackboexWeb.Layouts do
           >
             <.icon name="hero-home" class="size-4" /> Dashboard
           </.link>
-          <span class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground cursor-not-allowed">
+          <.link
+            navigate={~p"/apis"}
+            class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+          >
             <.icon name="hero-bolt" class="size-4" /> APIs
-          </span>
+          </.link>
           <.link
             navigate={~p"/users/settings"}
             class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"

@@ -10,6 +10,11 @@ import Config
 config :blackboex_web, BlackboexWeb.Endpoint,
   http: [port: String.to_integer(System.get_env("PORT", "4000"))]
 
+# ReqLLM API keys (all environments — loaded from env vars when present)
+config :req_llm,
+  anthropic_api_key: System.get_env("ANTHROPIC_API_KEY"),
+  openai_api_key: System.get_env("OPENAI_API_KEY")
+
 if config_env() == :prod do
   database_url =
     System.get_env("DATABASE_URL") ||
@@ -47,6 +52,9 @@ if config_env() == :prod do
     secret_key_base: secret_key_base
 
   config :blackboex, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
+
+  # Use real LLM client in production
+  config :blackboex, :llm_client, Blackboex.LLM.ReqLLMClient
 
   # Swoosh mailer - requires SMTP or API-based adapter in production.
   # Override with env vars for your provider (e.g., Postmark, SendGrid, AWS SES).

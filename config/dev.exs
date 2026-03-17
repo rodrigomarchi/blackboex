@@ -69,3 +69,6 @@ config :phoenix, :stacktrace_depth, 20
 # SaladUI components path
 config :salad_ui,
   components_path: Path.join(File.cwd!(), "apps/blackboex_web/lib/blackboex_web/components/ui")
+
+# Use real LLM client in dev
+config :blackboex, :llm_client, Blackboex.LLM.ReqLLMClient

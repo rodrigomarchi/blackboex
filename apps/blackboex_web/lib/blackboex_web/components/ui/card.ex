@@ -1,8 +1,8 @@
-defmodule NilWeb.Components.Card do
+defmodule BlackboexWeb.Components.Card do
   @moduledoc """
   Implement of card components from https://ui.shadcn.com/docs/components/card
   """
-  use NilWeb.Component
+  use BlackboexWeb.Component
 
   @doc """
   Card component

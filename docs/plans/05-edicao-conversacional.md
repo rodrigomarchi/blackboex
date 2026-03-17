@@ -9,6 +9,11 @@
 
 > **METODOLOGIA:** TDD — todo codigo comeca pelo teste. Red -> Green -> Refactor.
 
+> **CHECKLIST PRE-EXECUCAO (Licoes Fase 01):**
+> - Testar LiveView hooks unitariamente: socket precisa de `__changed__` no assigns
+> - Dados de sessao sao input nao-confiavel — sempre re-verificar existencia de entidades
+> - Rodar todos os linters apos cada bloco de implementacao
+
 ## Fontes de Discovery
 - `docs/discovery/04-api-editing.md` (conversational editing, diff, chat panel)
 - `docs/discovery/01-llm-providers.md` (streaming, structured output)
@@ -62,14 +67,14 @@ Ref: discovery/04 section 2.4 (prompt construction), discovery/04 section 2.5 (f
 
 Ref: discovery/04 section 4.1 (chat panel design)
 
-- [ ] Escrever testes LiveView para componente `ChatPanel` (`@tag :liveview`):
+- [ ] Escrever testes LiveView para componente `ChatPanel` (`@moduletag :liveview`):
   - `ChatPanel` e um `Phoenix.LiveComponent` com assigns `messages`, `input`, `loading`, `api_id`
   - Renderiza lista de mensagens vazia
   - Renderiza mensagens existentes (user a direita, assistant a esquerda)
   - Input de texto presente com botao enviar
   - Mensagens carregadas do banco ao montar
 - [ ] Implementar `BlackboexWeb.Components.ChatPanel` como `Phoenix.LiveComponent`
-- [ ] Escrever testes LiveView para layout 3 paineis (`@tag :liveview`):
+- [ ] Escrever testes LiveView para layout 3 paineis (`@moduletag :liveview`):
   - Layout: Chat (25%, colapsavel) | Editor (50%) | Info/Versoes (25%). Ref: reestruturacao do layout 2-panel da Fase 04 para 3-panel
   - Quando chat colapsado, editor expande para 75%
 - [ ] Integrar chat panel ao layout do editor (3 paineis)
@@ -83,13 +88,13 @@ Ref: discovery/04 section 3.1 (edit flow), discovery/04 section 8.3 (compilation
 
 > **Nota:** Diff inline nesta secao usa diff basico em texto. O componente `ChatDiff` estilizado e criado na Secao 5.
 
-- [ ] Escrever testes LiveView para fluxo completo (`@tag :liveview`):
+- [ ] Escrever testes LiveView para fluxo completo (`@moduletag :liveview`):
   - Enviar mensagem adiciona ao chat (user message)
   - Resposta do LLM (mock via `Blackboex.LLM.ClientBehaviour.stream_text/2` com Mox) aparece como assistant message
   - Diff e calculado entre codigo atual e proposta usando `Blackboex.Apis.DiffEngine.compute_diff/2` (da Fase 04)
   - Diff inline mostrado na mensagem (basico em texto, estilizado na Secao 5)
   - Botoes "Aceitar" e "Rejeitar" presentes na mensagem com diff
-- [ ] Escrever testes para acao "Aceitar" (`@tag :liveview`):
+- [ ] Escrever testes para acao "Aceitar" (`@moduletag :liveview`):
   - "Aceitar" executa `compile_check` no codigo proposto antes de criar versao. Ref: discovery/04 section 8.3
   - Se `compile_check` falha, mostra erros de compilacao no chat e NAO cria versao
   - Se `compile_check` passa, codigo no editor atualiza para versao nova
@@ -112,7 +117,7 @@ Ref: discovery/04 section 3.1 (edit flow), discovery/04 section 8.3 (compilation
 
 Ref: discovery/04 section 6 (diff viewer component)
 
-- [ ] Escrever testes para componente `ChatDiff` (`@tag :liveview`):
+- [ ] Escrever testes para componente `ChatDiff` (`@moduletag :liveview`):
   - Renderiza linhas adicionadas em verde
   - Renderiza linhas removidas em vermelho
   - Limita a ~20 linhas com "ver mais" se necessario
@@ -127,7 +132,7 @@ Ref: discovery/01 section 3.1 (streaming), plan 02 (StreamHandler)
 
 > **Nota:** Reutiliza `Blackboex.LLM.StreamHandler` da Fase 02. PubSub topic: `"api_chat:#{api_id}"`. Eventos: `{:chat_token, token}`, `{:chat_done, full_response}`, `{:chat_error, reason}`.
 
-- [ ] Escrever testes (`@tag :integration`):
+- [ ] Escrever testes (`@moduletag :integration`):
   - Indicador "Pensando..." aparece durante streaming
   - Chunks da resposta aparecem progressivamente na mensagem
   - Apos stream completo, diff e calculado e botoes aparecem
@@ -144,7 +149,7 @@ Ref: discovery/01 section 3.1 (streaming), plan 02 (StreamHandler)
 
 Ref: discovery/01 section 3.3 (error handling)
 
-- [ ] Escrever testes (`@tag :unit`):
+- [ ] Escrever testes (`@moduletag :unit`):
   - LLM timeout mostra mensagem de erro no chat ("A requisicao demorou demais, tente novamente")
   - Rate limit mostra mensagem amigavel ("Muitas requisicoes, aguarde um momento")
   - Falha de rede permite retry (botao "Tentar novamente" na mensagem de erro)
@@ -155,7 +160,7 @@ Ref: discovery/01 section 3.3 (error handling)
 
 Ref: discovery/04 section 5.1 (quick actions)
 
-- [ ] Escrever testes LiveView (`@tag :liveview`):
+- [ ] Escrever testes LiveView (`@moduletag :liveview`):
   - Botoes de acao rapida renderizam acima do input
   - Clicar acao rapida preenche input com texto pre-definido
   - Acoes contextuais ao template type (CRUD vs Computation vs Webhook)
@@ -170,7 +175,7 @@ Ref: discovery/04 section 5.1 (quick actions)
 
 Ref: discovery/04 section 7.1 (conversation management)
 
-- [ ] Escrever testes (`@tag :unit` para contexto, `@tag :liveview` para UI):
+- [ ] Escrever testes (`@moduletag :unit` para contexto, `@moduletag :liveview` para UI):
   - "Nova conversa" limpa messages no banco
   - Codigo atual permanece intacto apos limpar
   - Confirmacao exigida antes de limpar
@@ -184,7 +189,7 @@ Ref: discovery/04 section 7.1 (conversation management)
 - [ ] `mix dialyzer` passa
 - [ ] `make precommit` passa
 - [ ] `@spec` em todas as funcoes publicas
-- [ ] Testes com tags corretas: `@tag :unit` para schema/contexto, `@tag :liveview` para LiveView, `@tag :integration` para PubSub/streaming
+- [ ] Testes com tags corretas: `@moduletag :unit` para schema/contexto, `@moduletag :liveview` para LiveView, `@moduletag :integration` para PubSub/streaming
 
 ---
 

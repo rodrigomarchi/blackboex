@@ -9,6 +9,11 @@
 
 > **METODOLOGIA:** TDD — todo codigo comeca pelo teste. Red -> Green -> Refactor.
 
+> **CHECKLIST PRE-EXECUCAO (Licoes Fase 01):**
+> - `prom_ex`, `opentelemetry`, `logger_json`, `sentry` — verificar `.formatter.exs` e `import_deps` para cada dep com macros
+> - Rodar todos os linters apos cada bloco de implementacao
+> - Atualizar `.dialyzer_ignore.exs` para falsos positivos se necessario
+
 ## Fontes de Discovery
 - `docs/discovery/07-observability.md` (OpenTelemetry, PromEx, Loki, Grafana, Sentry)
 

@@ -60,6 +60,7 @@ defmodule BlackboexWeb.MixProject do
       {:blackboex, in_umbrella: true},
       {:jason, "~> 1.2"},
       {:bandit, "~> 1.5"},
+      {:swoosh, "~> 1.5"},
       {:salad_ui, "~> 0.14"},
       {:floki, "~> 0.37", only: :test}
     ]

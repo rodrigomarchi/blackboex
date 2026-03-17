@@ -36,11 +36,14 @@ defmodule Blackboex.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      {:bcrypt_elixir, "~> 3.0"},
       {:dns_cluster, "~> 0.2.0"},
       {:phoenix_pubsub, "~> 2.1"},
       {:ecto_sql, "~> 3.13"},
       {:postgrex, ">= 0.0.0"},
       {:jason, "~> 1.2"},
+      {:swoosh, "~> 1.5"},
+      {:let_me, "~> 1.2"},
       {:mox, "~> 1.0", only: :test},
       {:ex_machina, "~> 2.8", only: :test}
     ]

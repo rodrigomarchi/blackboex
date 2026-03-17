@@ -1,4 +1,4 @@
-defmodule NilWeb.Components.Sheet do
+defmodule BlackboexWeb.Components.Sheet do
   @moduledoc """
   Implement Sheet componet https://ui.shadcn.com/docs/components/sheet
 
@@ -37,7 +37,7 @@ defmodule NilWeb.Components.Sheet do
         </.sheet_content>
       </.sheet>
   """
-  use NilWeb.Component
+  use BlackboexWeb.Component
 
   attr :class, :string, default: "inline-block"
   slot :inner_block, required: true
@@ -81,7 +81,12 @@ defmodule NilWeb.Components.Sheet do
 
   attr :id, :string, default: nil, doc: "The id of the sheet, this is the target of sheet_trigger"
   attr :class, :string, default: nil
-  attr :side, :string, default: "right", values: ~w(left right top bottom), doc: "The side of the sheet"
+
+  attr :side, :string,
+    default: "right",
+    values: ~w(left right top bottom),
+    doc: "The side of the sheet"
+
   attr :rest, :global
   slot :inner_block, required: true
   slot :custom_close_btn, required: false

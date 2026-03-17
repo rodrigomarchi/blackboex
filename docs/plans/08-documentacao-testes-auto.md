@@ -8,6 +8,10 @@
 
 > **METODOLOGIA:** TDD — todo codigo comeca pelo teste. Red -> Green -> Refactor.
 
+> **CHECKLIST PRE-EXECUCAO (Licoes Fase 01):**
+> - `open_api_spex` e `ex_json_schema` provavelmente tem macros — verificar `.formatter.exs` e `import_deps`
+> - Rodar todos os linters apos cada bloco de implementacao
+
 ## Fontes de Discovery
 - `docs/discovery/05-api-testing.md` (auto-generated tests, contract testing, test execution)
 - `docs/discovery/06-api-publishing.md` (OpenAPI, Swagger UI)

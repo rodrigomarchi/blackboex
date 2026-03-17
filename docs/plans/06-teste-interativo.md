@@ -9,6 +9,10 @@
 
 > **METODOLOGIA:** TDD — todo codigo comeca pelo teste. Red -> Green -> Refactor.
 
+> **CHECKLIST PRE-EXECUCAO (Licoes Fase 01):**
+> - Dados de sessao/URL params sao input nao-confiavel — sempre `Repo.get` com fallback, nunca `Repo.get!`
+> - Rodar todos os linters apos cada bloco de implementacao
+
 ## Fontes de Discovery
 - `docs/discovery/05-api-testing.md` (test UI, mock data, snippets, contract testing)
 
@@ -22,7 +26,7 @@
 
 Ref: discovery/05 section 1.3 (request builder design)
 
-- [ ] Escrever testes LiveView para componente `RequestBuilder` (`@tag :liveview`):
+- [ ] Escrever testes LiveView para componente `RequestBuilder` (`@moduletag :liveview`):
   - `RequestBuilder` e um `Phoenix.LiveComponent`
   - Renderiza selector de metodo HTTP (GET, POST, PUT, PATCH, DELETE)
   - Campo de URL pre-preenchido com URL da API
@@ -40,7 +44,7 @@ Ref: discovery/05 section 1.3 (request builder design)
 
 Ref: discovery/05 section 1.4 (response viewer design)
 
-- [ ] Escrever testes LiveView para componente `ResponseViewer` (`@tag :liveview`):
+- [ ] Escrever testes LiveView para componente `ResponseViewer` (`@moduletag :liveview`):
   - Mostra status badge colorido (2xx verde, 4xx amarelo, 5xx vermelho)
   - Mostra tempo de resposta
   - Aba Body: JSON formatado em Monaco read-only
@@ -54,7 +58,7 @@ Ref: discovery/05 section 1.4 (response viewer design)
 
 Ref: discovery/05 section 2.1 (request execution, SSRF prevention)
 
-- [ ] Escrever testes para `Blackboex.Testing.RequestExecutor` (`@tag :unit`):
+- [ ] Escrever testes para `Blackboex.Testing.RequestExecutor` (`@moduletag :unit`):
   - `execute/1` com request valida retorna response completa (status, headers, body, duration)
   - `execute/1` com timeout retorna `{:error, :timeout}`
   - Protecao SSRF: URL deve corresponder ao pattern `/api/{username}/{slug}/*` em localhost. Qualquer outra URL retorna `{:error, :forbidden}`
@@ -73,7 +77,7 @@ Ref: discovery/05 section 2.1 (request execution, SSRF prevention)
 
 Ref: discovery/05 section 3.1 (request history)
 
-- [ ] Escrever testes para schema `Blackboex.Testing.TestRequest` (`@tag :unit`):
+- [ ] Escrever testes para schema `Blackboex.Testing.TestRequest` (`@moduletag :unit`):
   - Changeset valido com api_id, method, path, status, duration
   - Headers sensiveis (Authorization, Cookie, X-Api-Key) sao redactados antes de salvar
 - [ ] Criar migration para tabela `test_requests`:
@@ -86,7 +90,7 @@ Ref: discovery/05 section 3.1 (request history)
 - [ ] Implementar schema e salvar cada request/response automaticamente:
   - Redactar valores de headers Authorization, Cookie, X-Api-Key antes de persistir
   - Truncar `response_body` a 64KB
-- [ ] Escrever testes LiveView para historico (`@tag :liveview`):
+- [ ] Escrever testes LiveView para historico (`@moduletag :liveview`):
   - Lista ultimos 50 requests
   - Cada item: metodo + path + status + tempo
   - Clicar em item carrega request no builder e response no viewer
@@ -99,7 +103,7 @@ Ref: discovery/05 section 3.1 (request history)
 
 Ref: discovery/05 section 4.1 (sample data generation)
 
-- [ ] Escrever testes para `Blackboex.Testing.SampleData` (`@tag :unit`):
+- [ ] Escrever testes para `Blackboex.Testing.SampleData` (`@moduletag :unit`):
   - `generate/1` com API que tem param_schema gera dados conforme schema
   - `generate/1` sem param_schema gera dados via heuristica/descricao
   - Gera variantes: happy path, edge case, dados invalidos
@@ -113,7 +117,7 @@ Ref: discovery/05 section 4.1 (sample data generation)
 
 Ref: discovery/05 section 5.1 (test screen layout)
 
-- [ ] Escrever teste LiveView para tela completa (`@tag :liveview`):
+- [ ] Escrever teste LiveView para tela completa (`@moduletag :liveview`):
   - Request builder no topo
   - Response viewer no meio
   - Historico na lateral (colapsavel)
@@ -126,7 +130,7 @@ Ref: discovery/05 section 5.1 (test screen layout)
 
 Ref: discovery/05 section 8 (code snippet generation)
 
-- [ ] Escrever testes para `Blackboex.Testing.SnippetGenerator` (`@tag :unit`):
+- [ ] Escrever testes para `Blackboex.Testing.SnippetGenerator` (`@moduletag :unit`):
   - `generate/3` recebe `(api :: %Api{}, language :: atom(), request :: map())` e gera snippet
   - `generate/3` com `:curl` gera cURL valido
   - `generate/3` com `:python` gera Python (requests) valido
@@ -144,7 +148,7 @@ Ref: discovery/05 section 8 (code snippet generation)
 
 Ref: discovery/05 section 6.1 (response validation)
 
-- [ ] Escrever testes para `Blackboex.Testing.ResponseValidator` (`@tag :unit`):
+- [ ] Escrever testes para `Blackboex.Testing.ResponseValidator` (`@moduletag :unit`):
   - `validate/2` recebe response e `param_schema` da Api (NAO OpenAPI spec — isso sera Fase 08)
   - `validate/2` com resposta valida retorna []
   - `validate/2` detecta status code inesperado
@@ -161,7 +165,7 @@ Ref: discovery/05 section 6.1 (response validation)
 - [ ] `mix dialyzer` passa
 - [ ] `make precommit` passa
 - [ ] `@spec` em todas as funcoes publicas
-- [ ] Testes com tags corretas: `@tag :unit` para schema/contexto/executor, `@tag :liveview` para LiveView, `@tag :integration` para fluxos completos
+- [ ] Testes com tags corretas: `@moduletag :unit` para schema/contexto/executor, `@moduletag :liveview` para LiveView, `@moduletag :integration` para fluxos completos
 
 ---
 

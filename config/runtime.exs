@@ -47,4 +47,10 @@ if config_env() == :prod do
     secret_key_base: secret_key_base
 
   config :blackboex, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
+
+  # Swoosh mailer - requires SMTP or API-based adapter in production.
+  # Override with env vars for your provider (e.g., Postmark, SendGrid, AWS SES).
+  config :blackboex, Blackboex.Mailer,
+    adapter: Swoosh.Adapters.Postmark,
+    api_key: System.get_env("MAILER_API_KEY") || raise("missing MAILER_API_KEY env var")
 end

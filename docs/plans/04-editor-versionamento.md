@@ -8,6 +8,12 @@
 
 > **METODOLOGIA:** TDD — todo codigo comeca pelo teste. Red -> Green -> Refactor.
 
+> **CHECKLIST PRE-EXECUCAO (Licoes Fase 01):**
+> - `live_monaco_editor` — verificar se precisa de `import_deps` no `.formatter.exs`
+> - Testar LiveView hooks unitariamente: socket precisa de `__changed__` no assigns
+> - Mudancas em rotas/layout quebram testes existentes — rodar suite completa a cada mudanca
+> - Rodar todos os linters apos cada bloco de implementacao
+
 ## Fontes de Discovery
 - `docs/discovery/04-api-editing.md` (Monaco, versionamento, hot reload, diffs)
 

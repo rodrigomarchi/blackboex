@@ -9,6 +9,12 @@
 
 > **METODOLOGIA:** TDD — todo codigo comeca pelo teste. Red -> Green -> Refactor.
 
+> **CHECKLIST PRE-EXECUCAO (Licoes Fase 01):**
+> - Slugs em URLs publicas: validar formato, comprimento, edge cases (unicode, vazio, especiais)
+> - API keys/tokens: nunca usar `Repo.get!` para lookup — entidade pode ter sido revogada/deletada
+> - Rodar todos os linters apos cada bloco de implementacao
+> - Atualizar `.dialyzer_ignore.exs` para falsos positivos se necessario
+
 ## Fontes de Discovery
 - `docs/discovery/06-api-publishing.md` (gateway, auth, rate limiting, deploy)
 

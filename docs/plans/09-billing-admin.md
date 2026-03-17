@@ -9,6 +9,12 @@
 
 > **METODOLOGIA:** TDD — todo codigo comeca pelo teste. Red -> Green -> Refactor.
 
+> **CHECKLIST PRE-EXECUCAO (Licoes Fase 01):**
+> - `backpex`, `ex_audit`, `fun_with_flags`, `oban`, `stripity_stripe` — TODAS usam macros/DSL. Adicionar cada uma a `import_deps` no `.formatter.exs` do app correspondente
+> - Stripe webhooks usam IDs externos — nunca `Repo.get!` com dados de webhook, sempre `Repo.get` + pattern match
+> - Rodar todos os linters apos cada bloco de implementacao
+> - Atualizar `.dialyzer_ignore.exs` para falsos positivos se necessario
+
 ## Fontes de Discovery
 - `docs/discovery/02-backoffice-config.md` (Backpex, billing, audit, feature flags)
 

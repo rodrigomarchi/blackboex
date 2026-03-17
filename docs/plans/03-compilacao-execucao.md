@@ -8,6 +8,12 @@
 
 > **METODOLOGIA:** TDD — todo codigo comeca pelo teste. Red -> Green -> Refactor.
 
+> **CHECKLIST PRE-EXECUCAO (Licoes Fase 01):**
+> - Ao adicionar `{:plug, "~> 1.16"}` ao app dominio, verificar `.formatter.exs` se `plug` tem macros DSL
+> - Nunca usar `Repo.get!` com dados de sessao/URL params — usar `Repo.get` + pattern match
+> - Rodar todos os linters apos cada bloco de implementacao
+> - Atualizar `.dialyzer_ignore.exs` para falsos positivos de Ecto.Multi se necessario
+
 ## Fontes de Discovery
 - `docs/discovery/03-api-creation.md` (AST validation, sandbox, routing, templates)
 - `docs/discovery/06-api-publishing.md` (gateway, request lifecycle)

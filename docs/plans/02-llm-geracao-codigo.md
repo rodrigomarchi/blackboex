@@ -10,6 +10,15 @@
 
 > **PREREQUISITO:** Se Fase 01 NAO estiver implementada, este plano NAO pode ser executado.
 
+> **CHECKLIST PRE-EXECUCAO (Licoes Fase 01):**
+> - Ao adicionar deps com DSL/macros (ex: `req_llm`, `instructor_lite`, `ex_rated`), verificar se precisam de `import_deps` no `.formatter.exs` do app
+> - Usar `@moduletag :unit` (nao `@tag :unit`) para tags de teste no modulo
+> - Usar `System.unique_integer([:positive])` em fixtures (negativos geram hyphens em slugs)
+> - Slug da API: validar formato, comprimento, e edge cases (unicode, vazio, especiais) — mesma abordagem da Organization
+> - Nunca usar `Repo.get!` com dados vindos da sessao ou params do usuario — usar `Repo.get` + pattern match
+> - Rodar `mix format`, `mix credo --strict`, `mix dialyzer`, `make test` apos cada bloco de implementacao
+> - Atualizar `.dialyzer_ignore.exs` se Ecto.Multi gerar falso positivo `call_without_opaque`
+
 ## Fontes de Discovery
 - `docs/discovery/01-llm-providers.md` (ReqLLM, InstructorLite, pipeline)
 - `docs/discovery/03-api-creation.md` (templates, prompt engineering)
@@ -48,7 +57,7 @@ Ref: `docs/discovery/01-llm-providers.md` (ReqLLM, behaviours, rate limiting)
 
 Ref: `docs/discovery/01-llm-providers.md` (providers, config, fallback)
 
-- [ ] Escrever testes para `Blackboex.LLM.Config`: `@tag :unit`
+- [ ] Escrever testes para `Blackboex.LLM.Config`: `@moduletag :unit`
   - `default_provider/0` retorna provider configurado
   - `providers/0` lista providers disponiveis
   - `get_provider/1` retorna config de provider especifico
@@ -66,19 +75,19 @@ Ref: `docs/discovery/01-llm-providers.md` (providers, config, fallback)
 
 Ref: `docs/discovery/03-api-creation.md` (templates, prompt engineering); `docs/discovery/01-llm-providers.md` (InstructorLite)
 
-- [ ] Escrever testes para `Blackboex.LLM.Prompts`: `@tag :unit`
+- [ ] Escrever testes para `Blackboex.LLM.Prompts`: `@moduletag :unit`
   - `system_prompt/0` contem instrucoes de seguranca (sem File, System, etc)
   - `system_prompt/0` instrui retornar APENAS corpo da funcao handler (nao modulo completo). Ref: `docs/discovery/03-api-creation.md` Section 6.1
   - `system_prompt/0` contem lista de modulos permitidos e lista de modulos proibidos (mesmas listas usadas pelo ASTValidator na Fase 03)
   - `build_generation_prompt/2` (description, template_type) inclui descricao do usuario
   - `build_generation_prompt/2` inclui template correto para cada tipo
 - [ ] Implementar `Blackboex.LLM.Prompts`
-- [ ] Escrever testes para `Blackboex.LLM.Templates`: `@tag :unit`
+- [ ] Escrever testes para `Blackboex.LLM.Templates`: `@moduletag :unit`
   - Template `:computation` gera wrapper para funcao pura
   - Template `:crud` gera wrapper com operacoes CRUD
   - Template `:webhook` gera wrapper para processar payload
 - [ ] Implementar `Blackboex.LLM.Templates`
-- [ ] Escrever testes para embedded schema `Blackboex.LLM.Schemas.GeneratedEndpoint`: `@tag :unit`
+- [ ] Escrever testes para embedded schema `Blackboex.LLM.Schemas.GeneratedEndpoint`: `@moduletag :unit`
   - Campos: handler_code, method, description, example_request, example_response, param_schema
   - Validacao via InstructorLite das respostas LLM
 - [ ] Implementar `Blackboex.LLM.Schemas.GeneratedEndpoint` com InstructorLite
@@ -88,7 +97,7 @@ Ref: `docs/discovery/03-api-creation.md` (templates, prompt engineering); `docs/
 
 Ref: `docs/discovery/03-api-creation.md` (pipeline, classificacao); `docs/discovery/01-llm-providers.md` Section 8.3
 
-- [ ] Escrever testes para `Blackboex.CodeGen.Pipeline`: `@tag :unit`
+- [ ] Escrever testes para `Blackboex.CodeGen.Pipeline`: `@moduletag :unit`
   - `generate/2` com mock retorna `{:ok, %GenerationResult{}}`
   - `GenerationResult` tem: code, template, description, provider, tokens_used, duration_ms, method, model, example_request, example_response, param_schema
   - Pipeline classifica tipo corretamente:
@@ -113,9 +122,9 @@ Ref: `docs/discovery/03-api-creation.md` (pipeline, classificacao); `docs/discov
 
 Ref: `docs/discovery/03-api-creation.md` (schema Api, campos)
 
-- [ ] Escrever testes para schema `Blackboex.Apis.Api`: `@tag :unit`
+- [ ] Escrever testes para schema `Blackboex.Apis.Api`: `@moduletag :unit`
   - Changeset valido com name, slug, description, template_type
-  - Slug unique scoped por organization
+  - Slug unique scoped por organization, com `validate_format` e `validate_length` (mesma abordagem de Organization)
   - Status default "draft"
   - template_type valido: "computation", "crud", "webhook"
   - method default "POST"
@@ -125,13 +134,13 @@ Ref: `docs/discovery/03-api-creation.md` (schema Api, campos)
     `method` (string, default "POST"), `example_request` (jsonb), `example_response` (jsonb)
   - unique index `[:organization_id, :slug]`
 - [ ] Implementar schema `Blackboex.Apis.Api`
-- [ ] Escrever testes para contexto `Blackboex.Apis`: `@tag :unit`
+- [ ] Escrever testes para contexto `Blackboex.Apis`: `@moduletag :unit`
   - `create_api/2` cria API em status draft
   - `list_apis/1` retorna APIs da org
-  - `get_api!/2` retorna API por id na org
+  - `get_api!/2` retorna API por id na org (NOTA: usar `get_api/2` retornando nil para dados de sessao/params; `get_api!` apenas em controllers com id validado)
   - `update_api/2` atualiza campos
 - [ ] Implementar contexto `Blackboex.Apis`
-- [ ] Escrever testes para `create_api_from_generation/3`: `@tag :unit`
+- [ ] Escrever testes para `create_api_from_generation/3`: `@moduletag :unit`
   - Cria Api a partir de um GenerationResult + org + user
   - Mapeia campos do GenerationResult para campos do schema Api
 - [ ] Implementar `create_api_from_generation/3` que cria Api a partir de GenerationResult
@@ -142,13 +151,13 @@ Ref: `docs/discovery/03-api-creation.md` (schema Api, campos)
 
 Ref: `docs/discovery/01-llm-providers.md` Section 5.3 (streaming, Task + send)
 
-- [ ] Escrever teste para `Blackboex.LLM.StreamHandler`: `@tag :unit`
+- [ ] Escrever teste para `Blackboex.LLM.StreamHandler`: `@moduletag :unit`
   - Usa Task + send pattern (envia mensagens para pid, NAO PubSub)
   - Eventos: `{:llm_token, token}`, `{:llm_done, result}`, `{:llm_error, reason}`
   - Acumula resposta completa
   - Emite evento final `{:llm_done, result}` com resposta completa
 - [ ] Implementar `Blackboex.LLM.StreamHandler`
-- [ ] Escrever testes LiveView para `BlackboexWeb.ApiLive.New`: `@tag :liveview`
+- [ ] Escrever testes LiveView para `BlackboexWeb.ApiLive.New`: `@moduletag :liveview`
   - Renderiza formulario com textarea e botao "Gerar"
   - Usuario nao logado e redirecionado
   - Apos submit, mostra area de preview (mock do LLM)
@@ -158,7 +167,7 @@ Ref: `docs/discovery/01-llm-providers.md` Section 5.3 (streaming, Task + send)
   - Botao "Gerar API"
   - Area de preview com streaming
   - Campos nome/slug + "Salvar como Rascunho"
-- [ ] Escrever teste LiveView para `BlackboexWeb.ApiLive.Index`: `@tag :liveview`
+- [ ] Escrever teste LiveView para `BlackboexWeb.ApiLive.Index`: `@moduletag :liveview`
   - Lista APIs do usuario
   - Mostra nome, status, data de criacao
   - Link para editar cada API
@@ -171,14 +180,14 @@ Ref: `docs/discovery/01-llm-providers.md` Section 5.3 (streaming, Task + send)
 
 Ref: `docs/discovery/01-llm-providers.md` (rate limiting, telemetry); Section 7.2
 
-- [ ] Escrever testes para `Blackboex.LLM.RateLimiter`: `@tag :unit`
+- [ ] Escrever testes para `Blackboex.LLM.RateLimiter`: `@moduletag :unit`
   - Input: `%{user_id: uuid, plan: :free}`
   - Bucket key format: `"llm:#{user_id}"`
   - Permite geracoes dentro do limite
   - Bloqueia apos exceder limite
   - Limites diferentes por plano (free: 10/h, pro: 100/h)
 - [ ] Implementar `Blackboex.LLM.RateLimiter`
-- [ ] Escrever testes para schema `Blackboex.LLM.Usage`: `@tag :unit`
+- [ ] Escrever testes para schema `Blackboex.LLM.Usage`: `@moduletag :unit`
   - Changeset valido com provider, model, tokens, cost, operation
 - [ ] Criar migration para tabela `llm_usage`:
   - `id` (UUID), `user_id`, `organization_id`, `provider`, `model`,

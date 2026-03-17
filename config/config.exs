@@ -9,6 +9,19 @@
 # move said applications out of the umbrella.
 import Config
 
+config :blackboex, :scopes,
+  user: [
+    default: true,
+    module: Blackboex.Accounts.Scope,
+    assign_key: :current_scope,
+    access_path: [:user, :id],
+    schema_key: :user_id,
+    schema_type: :id,
+    schema_table: :users,
+    test_data_fixture: Blackboex.AccountsFixtures,
+    test_setup_helper: :register_and_log_in_user
+  ]
+
 # Configure Mix tasks and generators
 config :blackboex,
   ecto_repos: [Blackboex.Repo]
@@ -55,7 +68,15 @@ config :logger, :default_formatter,
   metadata: [:request_id]
 
 # SaladUI configuration
-config :salad_ui, web_module: BlackboexWeb
+config :salad_ui,
+  web_module: BlackboexWeb,
+  component_module_prefix: "BlackboexWeb.Components"
+
+# Swoosh mailer configuration
+config :blackboex, Blackboex.Mailer, adapter: Swoosh.Adapters.Local
+
+# Disable Swoosh API client (not needed for Local/Test adapters)
+config :swoosh, :api_client, false
 
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason

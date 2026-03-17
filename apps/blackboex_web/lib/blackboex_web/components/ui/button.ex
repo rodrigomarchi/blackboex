@@ -1,6 +1,6 @@
-defmodule NilWeb.Components.Button do
+defmodule BlackboexWeb.Components.Button do
   @moduledoc false
-  use NilWeb.Component
+  use BlackboexWeb.Component
 
   @doc """
   Renders a button.

@@ -1,6 +1,6 @@
-defmodule NilWeb.Components.Avatar do
+defmodule BlackboexWeb.Components.Avatar do
   @moduledoc false
-  use NilWeb.Component
+  use BlackboexWeb.Component
 
   attr :class, :string, default: nil
   attr :rest, :global

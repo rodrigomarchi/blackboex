@@ -1,6 +1,6 @@
-defmodule NilWeb.Components.Separator do
+defmodule BlackboexWeb.Components.Separator do
   @moduledoc false
-  use NilWeb.Component
+  use BlackboexWeb.Component
 
   @doc """
   Renders a separator

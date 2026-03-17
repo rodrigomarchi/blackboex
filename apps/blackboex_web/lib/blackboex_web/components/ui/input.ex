@@ -1,6 +1,6 @@
-defmodule NilWeb.Components.Input do
+defmodule BlackboexWeb.Components.Input do
   @moduledoc false
-  use NilWeb.Component
+  use BlackboexWeb.Component
 
   @doc """
   Displays a form input field or a component that looks like an input field.
@@ -21,10 +21,13 @@ defmodule NilWeb.Components.Input do
 
   attr :"default-value", :any
 
-  attr :field, Phoenix.HTML.FormField, doc: "a form field struct retrieved from the form, for example: @form[:email]"
+  attr :field, Phoenix.HTML.FormField,
+    doc: "a form field struct retrieved from the form, for example: @form[:email]"
 
   attr :class, :any, default: nil
-  attr :rest, :global, include: ~w(accept autocomplete capture cols disabled form list max maxlength min minlength
+
+  attr :rest, :global,
+    include: ~w(accept autocomplete capture cols disabled form list max maxlength min minlength
                 multiple pattern placeholder readonly required rows size step)
 
   def input(assigns) do

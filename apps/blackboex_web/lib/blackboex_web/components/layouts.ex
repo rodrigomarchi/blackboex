@@ -35,40 +35,72 @@ defmodule BlackboexWeb.Layouts do
 
   def app(assigns) do
     ~H"""
-    <header class="navbar px-4 sm:px-6 lg:px-8">
-      <div class="flex-1">
-        <a href="/" class="flex-1 flex w-fit items-center gap-2">
-          <img src={~p"/images/logo.svg"} width="36" />
-          <span class="text-sm font-semibold">v{Application.spec(:phoenix, :vsn)}</span>
-        </a>
-      </div>
-      <div class="flex-none">
-        <ul class="flex flex-column px-1 space-x-4 items-center">
-          <li>
-            <a href="https://phoenixframework.org/" class="btn btn-ghost">Website</a>
-          </li>
-          <li>
-            <a href="https://github.com/phoenixframework/phoenix" class="btn btn-ghost">GitHub</a>
-          </li>
-          <li>
-            <.theme_toggle />
-          </li>
-          <li>
-            <a href="https://hexdocs.pm/phoenix/overview.html" class="btn btn-primary">
-              Get Started <span aria-hidden="true">&rarr;</span>
-            </a>
-          </li>
-        </ul>
-      </div>
-    </header>
+    <div class="flex h-screen">
+      <aside class="hidden w-64 shrink-0 border-r bg-card md:flex md:flex-col">
+        <div class="flex h-14 items-center border-b px-4">
+          <a href="/" class="flex items-center gap-2 font-semibold">
+            <.icon name="hero-cube" class="size-5" />
+            <span>BlackBoex</span>
+          </a>
+        </div>
+        <nav class="flex-1 space-y-1 px-3 py-4">
+          <.link
+            navigate={~p"/dashboard"}
+            class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+          >
+            <.icon name="hero-home" class="size-4" /> Dashboard
+          </.link>
+          <span class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground cursor-not-allowed">
+            <.icon name="hero-bolt" class="size-4" /> APIs
+          </span>
+          <.link
+            navigate={~p"/users/settings"}
+            class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+          >
+            <.icon name="hero-cog-6-tooth" class="size-4" /> Settings
+          </.link>
+        </nav>
+      </aside>
 
-    <main class="px-4 py-20 sm:px-6 lg:px-8">
-      <div class="mx-auto max-w-2xl space-y-4">
-        {render_slot(@inner_block)}
+      <div class="flex flex-1 flex-col">
+        <header class="flex h-14 items-center gap-4 border-b bg-card px-6">
+          <div class="flex-1">
+            <.org_switcher current_scope={@current_scope} />
+          </div>
+          <div class="flex items-center gap-4">
+            <.theme_toggle />
+            <%= if @current_scope && @current_scope.user do %>
+              <span class="text-sm text-muted-foreground">{@current_scope.user.email}</span>
+              <.link
+                href={~p"/users/log-out"}
+                method="delete"
+                class="text-sm font-medium hover:underline"
+              >
+                Log out
+              </.link>
+            <% end %>
+          </div>
+        </header>
+
+        <main class="flex-1 overflow-y-auto p-6">
+          <div class="mx-auto max-w-5xl">
+            {render_slot(@inner_block)}
+          </div>
+        </main>
       </div>
-    </main>
+    </div>
 
     <.flash_group flash={@flash} />
+    """
+  end
+
+  attr :current_scope, :map, default: nil
+
+  defp org_switcher(assigns) do
+    ~H"""
+    <%= if @current_scope && @current_scope.organization do %>
+      <span class="text-sm font-medium">{@current_scope.organization.name}</span>
+    <% end %>
     """
   end
 

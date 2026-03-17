@@ -1,6 +1,6 @@
-defmodule NilWeb.Components.Label do
+defmodule BlackboexWeb.Components.Label do
   @moduledoc false
-  use NilWeb.Component
+  use BlackboexWeb.Component
 
   @doc """
   Renders a label.

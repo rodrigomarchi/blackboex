@@ -1,6 +1,6 @@
-defmodule NilWeb.Components.DropdownMenu do
+defmodule BlackboexWeb.Components.DropdownMenu do
   @moduledoc false
-  use NilWeb.Component
+  use BlackboexWeb.Component
 
   alias Phoenix.LiveView.JS
 

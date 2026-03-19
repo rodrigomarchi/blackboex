@@ -161,3 +161,45 @@ Regras praticas validadas durante a implementacao da edicao conversacional. **Le
 - **XSS em conteudo dinamico: Phoenix HEEx escapa por padrao** — mas DEVE ser testado explicitamente com payload `<script>alert('xss')</script>` e verificar que renderiza como `&lt;script&gt;`
 - **Cascade delete (`on_delete: :delete_all`) deve ser testado** — criar entidade filha, deletar pai, verificar que filha foi removida. Migration correta nao garante que o teste passa
 - **Auditar apos implementacao, nao apenas testar** — apos cada secao, revisar: validacao de input, race conditions, erros silenciados, XSS, cascade delete, limites de crescimento
+
+---
+
+## Licoes Aprendidas (Fase 06)
+
+Regras praticas validadas durante a implementacao do teste interativo de APIs. **Ler antes de comecar qualquer fase.**
+
+### Geracao de Codigo/Snippets
+
+- **Interpolacao de valores do usuario em strings de codigo e INJECTION** — NUNCA fazer `"curl -X #{method} '#{url}'"`. Usar funcoes de escaping por linguagem: `shell_escape()` (single-quote wrap + `'\''`), `python_string()` (backslash escape), `js_string()` (backslash + newline), `go_string()` (double-quote escape), `inspect()` para Elixir. Cada linguagem tem seus chars perigosos
+- **Backticks em Go raw strings** — Go nao permite backtick dentro de backtick-delimited strings. Escapar via concat: `` ` + "`" + ` ``
+- **Testar injection em CADA linguagem gerada** — criar testes com payloads maliciosos (`'; rm -rf /`, `"break`, backticks) e verificar que o escaping funciona
+
+### Autorizacao & IDOR
+
+- **Buscar por ID sem verificar ownership e IDOR** — `Repo.get(TestRequest, id)` retorna qualquer registro. SEMPRE verificar que o recurso pertence ao usuario/org/API corrente via pin match: `{:ok, %{api_id: ^api_id} = item}`. Isso vale para TODA funcao que aceita ID externo
+- **Context modules nao tem auth built-in** — funcoes como `get_test_request/1`, `list_test_requests/1` sao abertas. A verificacao DEVE acontecer no LiveView/Controller chamador, nao no context
+
+### SSRF & URLs
+
+- **`URI.parse("//evil.com")` retorna `scheme: nil`** — checar `scheme != nil` sozinho NAO bloqueia protocol-relative URLs. Verificar TAMBEM `host != nil` para rejeitar URLs com host externo
+- **SSRF regex deve ancorar no padrao completo** — `~r|^/api/[^/]+/[^/]+|` sem `$` permite subpaths (correto neste caso), mas path traversal (`../`) e neutralizado pelo routing do Plug. Documentar decisao
+
+### LiveView Events & Concorrencia
+
+- **Eventos LiveView vem do cliente — NUNCA confiar** — todo `handle_event` deve validar params com guard clauses: `when method in @valid_methods`. Definir modulo attrs com valores validos: `@valid_methods ~w(GET POST PUT PATCH DELETE)`
+- **Task.async concorrente: guardar contra double-submit** — se o usuario clica "Enviar" duas vezes, a segunda Task sobrescreve `test_ref` e a primeira fica orfao. Guard no handler: `def handle_event("send", _, %{assigns: %{loading: true}} = socket), do: {:noreply, socket}`
+- **Limpar refs de Task em TODOS os paths de saida** — `test_ref: nil` no handle_info de sucesso, erro E `:DOWN`. Ref stale causa pattern match failure em mensagens futuras
+- **`String.to_existing_atom` vs whitelist** — `String.to_existing_atom(user_input)` pode crashar com `ArgumentError`. Preferir whitelist guard: `when lang in @valid_languages` + `String.to_atom(lang)` (seguro porque whitelist impede atom exhaustion)
+
+### Mensagens de Erro
+
+- **`inspect(reason)` em mensagens ao usuario expoe internals** — NUNCA mostrar `inspect()` de erros ao usuario. Usar mensagens amigaveis fixas: "Erro de conexão. Verifique se a API está compilada." Logger.warning com o erro real para debugging
+
+### Schemas & Validacao
+
+- **Todo campo string DEVE ter `validate_length` com max** — `path` sem max permite 1MB+ de dados. `body` sem max permite payloads gigantes. Definir limites: path (2048), body (1MB), response_body (64KB via truncate)
+- **Lista de headers sensiveis deve ser abrangente** — Authorization, Cookie, X-Api-Key sao o minimo. Adicionar: X-Auth-Token, X-Access-Token, X-Csrf-Token, Proxy-Authorization, Set-Cookie. Testar cada um
+
+### XSS — Falsos Positivos Comuns
+
+- **Phoenix HEEx `{}` auto-escapa por padrao** — `{@variable}` SEMPRE escapa HTML. `<script>` vira `&lt;script&gt;`. Apenas `raw()` ou `{:safe, ...}` bypassa. NAO gastar tempo corrigindo XSS em HEEx a menos que use `raw()`. MAS: sempre testar explicitamente com payload `<script>` para confirmar

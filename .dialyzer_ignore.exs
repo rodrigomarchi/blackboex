@@ -9,6 +9,8 @@
   {"lib/blackboex/llm/rate_limiter.ex", :unknown_function},
   # Ecto.Multi opaque type false positive in versioning
   {"lib/blackboex/apis.ex", :call_without_opaque},
+  # Ecto.Multi opaque type false positive in conversations
+  {"lib/blackboex/apis/conversations.ex", :call_without_opaque},
   # LiveMonacoEditor is an external dep — Dialyzer can't resolve HEEx component calls
   {"lib/blackboex_web/live/api_live/edit.ex", :unknown_function}
 ]

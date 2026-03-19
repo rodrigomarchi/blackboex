@@ -39,6 +39,18 @@
 > - XSS em conteudo dinamico: Phoenix HEEx escapa por padrao, mas DEVE ser testado explicitamente com payload `<script>`
 > - Cascade delete (`on_delete: :delete_all`) deve ser testado — criar filho, deletar pai, verificar remocao
 > - Auditar apos implementacao: validacao de input, race conditions, erros silenciados, XSS, cascade delete, limites de crescimento
+>
+> **CHECKLIST PRE-EXECUCAO (Licoes Fase 06):**
+> - Valores do usuario interpolados em strings de codigo sao INJECTION — usar funcoes de escaping por linguagem-alvo (shell, Python, JS, Go, Ruby). Testar com payloads maliciosos (`'`, `"`, backtick, `$(...)`)
+> - Buscar por ID externo sem verificar ownership e IDOR — SEMPRE pin match: `%{api_id: ^api_id}` ou `%{org_id: ^org_id}`. Context modules NAO tem auth built-in; verificacao no LiveView/Controller
+> - `URI.parse("//evil.com")` retorna `scheme: nil` mas `host: "evil.com"` — checar `scheme` E `host` para SSRF protection
+> - Eventos LiveView vem do cliente — validar TODOS os params com guard clauses (`when method in @valid_methods`). Definir whitelists em module attrs
+> - Task.async concorrente: guardar contra double-submit com `%{loading: true}` pattern match. Limpar refs em TODOS os paths de saida (sucesso, erro, `:DOWN`)
+> - `String.to_existing_atom(user_input)` pode crashar — preferir whitelist guard + `String.to_atom` (seguro porque whitelist impede atom exhaustion)
+> - `inspect(reason)` em mensagens ao usuario expoe internals — usar mensagens amigaveis fixas, logar erro real com `Logger.warning`
+> - Todo campo string em schemas DEVE ter `validate_length` com max (path: 2048, body: 1MB)
+> - Lista de headers sensiveis deve incluir: Authorization, Cookie, X-Api-Key, X-Auth-Token, X-Access-Token, X-Csrf-Token, Proxy-Authorization, Set-Cookie
+> - Phoenix HEEx `{}` auto-escapa HTML — NAO gastar tempo com XSS a menos que use `raw()`. MAS: sempre testar com payload `<script>` para confirmar
 
 ## Fontes de Discovery
 - `docs/discovery/07-observability.md` (OpenTelemetry, PromEx, Loki, Grafana, Sentry)

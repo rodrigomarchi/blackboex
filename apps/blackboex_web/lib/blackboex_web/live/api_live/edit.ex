@@ -8,8 +8,10 @@ defmodule BlackboexWeb.ApiLive.Edit do
   require Logger
 
   alias Blackboex.Apis
+  alias Blackboex.Apis.Analytics
   alias Blackboex.Apis.Conversations
   alias Blackboex.Apis.DiffEngine
+  alias Blackboex.Apis.Keys
   alias Blackboex.Apis.Registry
   alias Blackboex.CodeGen.Compiler
   alias Blackboex.LLM.Config
@@ -74,7 +76,12 @@ defmodule BlackboexWeb.ApiLive.Edit do
            history_loaded: false,
            request_tab: "body",
            response_tab: "body",
-           test_ref: nil
+           test_ref: nil,
+           # Publish assigns
+           api_keys: [],
+           keys_loaded: false,
+           plain_key_flash: nil,
+           metrics: nil
          )}
     end
   end
@@ -198,7 +205,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
             <div class="rounded-lg border bg-card text-card-foreground shadow-sm">
               <div class="flex border-b">
                 <button
-                  :for={t <- ["info", "versions", "test"]}
+                  :for={t <- ["info", "versions", "test", "keys", "publish"]}
                   phx-click="switch_tab"
                   phx-value-tab={t}
                   class={[
@@ -412,6 +419,148 @@ defmodule BlackboexWeb.ApiLive.Edit do
     """
   end
 
+  defp render_tab(%{tab: "keys"} = assigns) do
+    ~H"""
+    <div class="space-y-3">
+      <div class="flex items-center justify-between">
+        <h3 class="text-xs font-semibold text-muted-foreground uppercase">API Keys</h3>
+        <button
+          phx-click="create_key"
+          class="rounded bg-primary px-2 py-1 text-xs text-primary-foreground hover:bg-primary/90"
+        >
+          New Key
+        </button>
+      </div>
+
+      <%= if @plain_key_flash do %>
+        <div class="rounded border border-amber-500 bg-amber-50 p-2 text-xs space-y-1">
+          <p class="font-semibold text-amber-800">Copy this key now — it won't be shown again:</p>
+          <code class="block bg-white p-1 rounded font-mono text-xs break-all select-all">
+            {@plain_key_flash}
+          </code>
+          <button
+            phx-click="dismiss_key_flash"
+            class="text-amber-600 hover:underline text-[10px]"
+          >
+            Dismiss
+          </button>
+        </div>
+      <% end %>
+
+      <%= if @api_keys == [] do %>
+        <p class="text-xs text-muted-foreground">No keys yet</p>
+      <% else %>
+        <div class="space-y-1">
+          <div :for={key <- @api_keys} class="rounded border p-2 text-xs space-y-1">
+            <div class="flex items-center justify-between">
+              <code class="font-mono text-muted-foreground">{key.key_prefix}...</code>
+              <span class={[
+                "rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
+                if(key.revoked_at, do: "bg-red-100 text-red-700", else: "bg-green-100 text-green-700")
+              ]}>
+                {if key.revoked_at, do: "Revoked", else: "Active"}
+              </span>
+            </div>
+            <p :if={key.label} class="text-muted-foreground">{key.label}</p>
+            <div class="flex gap-2">
+              <button
+                :if={!key.revoked_at}
+                phx-click="revoke_key"
+                phx-value-key-id={key.id}
+                data-confirm="Revoke this key? This cannot be undone."
+                class="text-destructive hover:underline text-[10px]"
+              >
+                Revoke
+              </button>
+              <button
+                :if={!key.revoked_at}
+                phx-click="rotate_key"
+                phx-value-key-id={key.id}
+                data-confirm="Rotate this key? The old key will be revoked immediately."
+                class="text-blue-600 hover:underline text-[10px]"
+              >
+                Rotate
+              </button>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    </div>
+    """
+  end
+
+  defp render_tab(%{tab: "publish"} = assigns) do
+    ~H"""
+    <div class="space-y-4">
+      <h3 class="text-xs font-semibold text-muted-foreground uppercase">Publishing</h3>
+
+      <div class="space-y-2 text-xs">
+        <div>
+          <span class="text-muted-foreground">Status:</span>
+          <span class={[
+            "inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ml-1",
+            status_color(@api.status)
+          ]}>
+            {@api.status}
+          </span>
+        </div>
+        <div>
+          <span class="text-muted-foreground">URL:</span>
+          <code class="ml-1 font-mono">/api/{@org.slug}/{@api.slug}</code>
+        </div>
+      </div>
+
+      <%= if @api.status == "compiled" do %>
+        <button
+          phx-click="publish"
+          class="w-full rounded bg-blue-600 px-3 py-2 text-xs font-medium text-white hover:bg-blue-700"
+        >
+          Publish API
+        </button>
+      <% end %>
+
+      <%= if @api.status == "published" do %>
+        <div class="space-y-2">
+          <div class="rounded border border-green-200 bg-green-50 p-2 text-xs text-green-700">
+            API is live at <code class="font-mono">/api/{@org.slug}/{@api.slug}</code>
+          </div>
+
+          <%= if @metrics do %>
+            <div class="grid grid-cols-3 gap-2">
+              <div class="rounded border p-2 text-center">
+                <p class="text-lg font-bold">{@metrics.count_24h}</p>
+                <p class="text-[10px] text-muted-foreground">24h calls</p>
+              </div>
+              <div class="rounded border p-2 text-center">
+                <p class="text-lg font-bold">{@metrics.success_rate}%</p>
+                <p class="text-[10px] text-muted-foreground">Success</p>
+              </div>
+              <div class="rounded border p-2 text-center">
+                <p class="text-lg font-bold">{@metrics.avg_latency}ms</p>
+                <p class="text-[10px] text-muted-foreground">Avg latency</p>
+              </div>
+            </div>
+          <% end %>
+
+          <button
+            phx-click="unpublish"
+            data-confirm="Unpublish this API? It will no longer be accessible."
+            class="w-full rounded border border-destructive px-3 py-2 text-xs font-medium text-destructive hover:bg-destructive/10"
+          >
+            Unpublish
+          </button>
+        </div>
+      <% end %>
+
+      <%= if @api.status == "draft" do %>
+        <p class="text-xs text-muted-foreground">
+          Compile the API first before publishing.
+        </p>
+      <% end %>
+    </div>
+    """
+  end
+
   # --- Events ---
 
   @impl true
@@ -428,11 +577,28 @@ defmodule BlackboexWeb.ApiLive.Edit do
   @impl true
   def handle_event("switch_tab", %{"tab" => tab}, socket) do
     socket =
-      if tab == "test" and not socket.assigns.history_loaded do
-        history = Testing.list_test_requests(socket.assigns.api.id)
-        assign(socket, test_history: history, history_loaded: true)
-      else
-        socket
+      cond do
+        tab == "test" and not socket.assigns.history_loaded ->
+          history = Testing.list_test_requests(socket.assigns.api.id)
+          assign(socket, test_history: history, history_loaded: true)
+
+        tab == "keys" and not socket.assigns.keys_loaded ->
+          keys = Keys.list_keys(socket.assigns.api.id)
+          assign(socket, api_keys: keys, keys_loaded: true)
+
+        tab == "publish" ->
+          api_id = socket.assigns.api.id
+
+          metrics = %{
+            count_24h: Analytics.invocations_count(api_id, period: :day),
+            success_rate: Analytics.success_rate(api_id, period: :day),
+            avg_latency: Analytics.avg_latency(api_id, period: :day)
+          }
+
+          assign(socket, metrics: metrics)
+
+        true ->
+          socket
       end
 
     {:noreply, assign(socket, tab: tab)}
@@ -446,6 +612,102 @@ defmodule BlackboexWeb.ApiLive.Edit do
   @impl true
   def handle_event("save_and_compile", _params, socket) do
     save_version(socket, true)
+  end
+
+  @impl true
+  def handle_event("publish", _params, socket) do
+    %{api: api, org: org} = socket.assigns
+
+    case Apis.publish(api, org) do
+      {:ok, published_api, plain_key} ->
+        {:noreply,
+         socket
+         |> assign(api: published_api, plain_key_flash: plain_key, tab: "keys")
+         |> assign(api_keys: Keys.list_keys(published_api.id), keys_loaded: true)
+         |> put_flash(:info, "API published successfully")}
+
+      {:error, :not_compiled} ->
+        {:noreply, put_flash(socket, :error, "API must be compiled before publishing")}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Failed to publish API")}
+    end
+  end
+
+  @impl true
+  def handle_event("unpublish", _params, socket) do
+    case Apis.unpublish(socket.assigns.api) do
+      {:ok, updated_api} ->
+        {:noreply,
+         socket
+         |> assign(api: updated_api)
+         |> put_flash(:info, "API unpublished")}
+
+      {:error, :not_published} ->
+        {:noreply, put_flash(socket, :error, "API is not published")}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Failed to unpublish API")}
+    end
+  end
+
+  @impl true
+  def handle_event("create_key", _params, socket) do
+    %{api: api, org: org} = socket.assigns
+
+    case Keys.create_key(api, %{label: "API Key", organization_id: org.id}) do
+      {:ok, plain_key, _api_key} ->
+        keys = Keys.list_keys(api.id)
+        {:noreply, assign(socket, api_keys: keys, plain_key_flash: plain_key)}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Failed to create key")}
+    end
+  end
+
+  @impl true
+  def handle_event("revoke_key", %{"key-id" => key_id}, socket) do
+    %{api: api, api_keys: api_keys} = socket.assigns
+    # IDOR protection: verify key belongs to this API by matching api_id
+    key = Enum.find(api_keys, &(&1.id == key_id and &1.api_id == api.id))
+
+    if key do
+      case Keys.revoke_key(key) do
+        {:ok, _} ->
+          keys = Keys.list_keys(api.id)
+          {:noreply, assign(socket, api_keys: keys)}
+
+        {:error, _} ->
+          {:noreply, put_flash(socket, :error, "Failed to revoke key")}
+      end
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_event("rotate_key", %{"key-id" => key_id}, socket) do
+    %{api: api, api_keys: api_keys} = socket.assigns
+    # IDOR protection: verify key belongs to this API by matching api_id
+    key = Enum.find(api_keys, &(&1.id == key_id and &1.api_id == api.id))
+
+    if key do
+      case Keys.rotate_key(key) do
+        {:ok, plain_key, _new_key} ->
+          keys = Keys.list_keys(api.id)
+          {:noreply, assign(socket, api_keys: keys, plain_key_flash: plain_key)}
+
+        {:error, _} ->
+          {:noreply, put_flash(socket, :error, "Failed to rotate key")}
+      end
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_event("dismiss_key_flash", _params, socket) do
+    {:noreply, assign(socket, plain_key_flash: nil)}
   end
 
   @impl true
@@ -912,7 +1174,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
         Apis.update_api(api, %{status: "compiled"})
 
         try do
-          Registry.register(api.id, module, username: org.slug, slug: api.slug)
+          Registry.register(api.id, module, org_slug: org.slug, slug: api.slug)
         rescue
           _ -> :ok
         catch
@@ -1088,6 +1350,8 @@ defmodule BlackboexWeb.ApiLive.Edit do
   defp tab_label("info"), do: "Info"
   defp tab_label("versions"), do: "Versions"
   defp tab_label("test"), do: "Test"
+  defp tab_label("keys"), do: "Keys"
+  defp tab_label("publish"), do: "Publish"
 
   defp status_color("draft"), do: "border bg-muted text-muted-foreground"
   defp status_color("compiled"), do: "border-green-500 bg-green-50 text-green-700"

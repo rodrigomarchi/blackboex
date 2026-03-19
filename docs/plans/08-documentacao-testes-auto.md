@@ -76,6 +76,21 @@
 > - Lista de headers sensiveis deve incluir: Authorization, Cookie, X-Api-Key, X-Auth-Token, X-Access-Token, X-Csrf-Token, Proxy-Authorization, Set-Cookie
 > - Phoenix HEEx `{}` auto-escapa HTML — NAO gastar tempo com XSS a menos que use `raw()`. MAS: sempre testar com payload `<script>` para confirmar
 
+> **CHECKLIST PRE-EXECUCAO (Licoes Fase 07):**
+> - Comparacao de segredos (API keys, tokens, hashes) DEVE usar `Plug.Crypto.secure_compare/2` — NUNCA comparacao direta. Buscar por campo nao-secreto (prefix), depois comparar hash constant-time
+> - LiveView event handlers que recebem IDs do cliente DEVEM verificar ownership: `Enum.find(list, &(&1.id == id and &1.api_id == api.id))`. Assigns podem estar stale; DOM pode ser manipulado
+> - Toda acao pareada (publish/unpublish, activate/deactivate) precisa de AMBAS entradas no Policy — nao assumir que uma cobre a outra
+> - Funcoes de dominio com dois structs relacionados DEVEM pin match FK no function head: `def f(%Child{parent_id: pid}, %Parent{id: pid})` — previne IDOR
+> - `Plug.Conn.fetch_query_params/1` DEVE ser chamado antes de acessar `conn.query_params` fora do pipeline padrao
+> - `Task.Supervisor` DEVE ter `max_children` configurado — default e `:infinity`, causa OOM sob carga
+> - Retorno de `Task.Supervisor.start_child/2` DEVE ser verificado — pode falhar silenciosamente se supervisor esta down ou max_children atingido
+> - Todo campo numerico em schemas DEVE ter `validate_number` com range — nunca confiar que caller passa valores validos
+> - Smoke test de deploy deve aceitar APENAS 2xx (200-299) — 4xx/5xx nao e deploy bem-sucedido
+> - Antes de chamar `module.init/1` em modulos dinamicos, validar `function_exported?(module, :init, 1)`
+> - Hammer 7.x `use Hammer` gera defdelegate — Dialyzer precisa de DOIS ignores: `:unknown_function` E `:callback_info_missing`
+> - `Ecto.Multi.run` callback DEVE retornar 2-tupla `{:ok, value}` — nunca 3-tupla. Wrap: `{:ok, {a, b}}`
+> - Auditoria pos-implementacao: timing attacks, IDOR em eventos LiveView, Policy actions completas, ownership validation, Task.Supervisor limites, XSS tests explicitos
+
 ## Fontes de Discovery
 - `docs/discovery/05-api-testing.md` (auto-generated tests, contract testing, test execution)
 - `docs/discovery/06-api-publishing.md` (OpenAPI, Swagger UI)

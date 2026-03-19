@@ -51,6 +51,16 @@ defmodule Blackboex.Policy do
       allow role: :owner
       allow role: :admin
     end
+
+    action :publish do
+      allow role: :owner
+      allow role: :admin
+    end
+
+    action :unpublish do
+      allow role: :owner
+      allow role: :admin
+    end
   end
 
   object :membership do

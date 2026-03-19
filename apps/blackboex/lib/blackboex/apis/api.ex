@@ -11,6 +11,7 @@ defmodule Blackboex.Apis.Api do
   @valid_template_types ~w(computation crud webhook)
   @valid_methods ~w(GET POST PUT PATCH DELETE)
   @valid_statuses ~w(draft compiled published archived)
+  @valid_visibilities ~w(private public)
 
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
@@ -25,6 +26,8 @@ defmodule Blackboex.Apis.Api do
     field :param_schema, :map
     field :example_request, :map
     field :example_response, :map
+    field :visibility, :string, default: "private"
+    field :requires_auth, :boolean, default: true
 
     belongs_to :organization, Blackboex.Organizations.Organization
     belongs_to :user, Blackboex.Accounts.User, type: :id
@@ -46,6 +49,8 @@ defmodule Blackboex.Apis.Api do
       :param_schema,
       :example_request,
       :example_response,
+      :visibility,
+      :requires_auth,
       :organization_id,
       :user_id
     ])
@@ -62,6 +67,7 @@ defmodule Blackboex.Apis.Api do
     |> validate_inclusion(:template_type, @valid_template_types)
     |> validate_inclusion(:method, @valid_methods)
     |> validate_inclusion(:status, @valid_statuses)
+    |> validate_inclusion(:visibility, @valid_visibilities)
     |> unique_constraint([:organization_id, :slug])
   end
 

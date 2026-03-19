@@ -49,11 +49,11 @@ defmodule Blackboex.CodeGen.EndToEndTest do
       assert api.status == "compiled"
 
       # 4. Register
-      :ok = Registry.register(api.id, module, username: org.slug, slug: api.slug)
+      :ok = Registry.register(api.id, module, org_slug: org.slug, slug: api.slug)
 
       # 5. Verify lookup works
-      assert {:ok, ^module} = Registry.lookup(api.id)
-      assert {:ok, ^module} = Registry.lookup_by_path("e2eorg", "calculator")
+      assert {:ok, ^module, _metadata} = Registry.lookup(api.id)
+      assert {:ok, ^module, _metadata} = Registry.lookup_by_path("e2eorg", "calculator")
 
       # 6. Execute via sandbox with a conn-like test
       conn =

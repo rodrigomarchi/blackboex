@@ -167,7 +167,7 @@ defmodule BlackboexWeb.ApiLive.Show do
         {:ok, updated_api} = Apis.update_api(api, %{status: "compiled"})
 
         Registry.register(api.id, module,
-          username: org.slug,
+          org_slug: org.slug,
           slug: api.slug
         )
 
@@ -231,13 +231,13 @@ defmodule BlackboexWeb.ApiLive.Show do
 
   defp ensure_registered(api, org) do
     case Registry.lookup(api.id) do
-      {:ok, module} ->
+      {:ok, module, _metadata} ->
         {:ok, module}
 
       {:error, :not_found} ->
         # Module lost (server restart / hot reload) — recompile from source
         with {:ok, module} <- Compiler.compile(api, api.source_code) do
-          Registry.register(api.id, module, username: org.slug, slug: api.slug)
+          Registry.register(api.id, module, org_slug: org.slug, slug: api.slug)
           {:ok, module}
         end
     end

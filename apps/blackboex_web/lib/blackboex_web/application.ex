@@ -9,8 +9,7 @@ defmodule BlackboexWeb.Application do
   def start(_type, _args) do
     children = [
       BlackboexWeb.Telemetry,
-      # Start a worker by calling: BlackboexWeb.Worker.start_link(arg)
-      # {BlackboexWeb.Worker, arg},
+      {BlackboexWeb.RateLimiterBackend, clean_period: :timer.minutes(10)},
       # Start to serve requests, typically the last entry
       BlackboexWeb.Endpoint
     ]

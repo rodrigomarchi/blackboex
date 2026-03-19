@@ -42,7 +42,7 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouterTest do
     {:ok, api} = Apis.update_api(api, %{status: "compiled"})
 
     Registry.register(api.id, module,
-      username: org.slug,
+      org_slug: org.slug,
       slug: api.slug
     )
 

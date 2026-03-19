@@ -36,7 +36,7 @@ defmodule Blackboex.CodeGen.HotReloadTest do
 
       # Compile v1
       {:ok, module} = Compiler.compile(api, api.source_code)
-      Registry.register(api.id, module, username: org.slug, slug: api.slug)
+      Registry.register(api.id, module, org_slug: org.slug, slug: api.slug)
 
       # Verify v1 behavior
       conn =

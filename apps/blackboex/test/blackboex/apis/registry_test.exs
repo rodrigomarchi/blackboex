@@ -20,24 +20,43 @@ defmodule Blackboex.Apis.RegistryTest do
       module = SomeModule
 
       assert :ok = Registry.register(api_id, module)
-      assert {:ok, ^module} = Registry.lookup(api_id)
+      assert {:ok, ^module, _metadata} = Registry.lookup(api_id)
     end
 
     test "registers with path lookup" do
       api_id = Ecto.UUID.generate()
       module = SomeModule
 
-      assert :ok = Registry.register(api_id, module, username: "testorg", slug: "my-api")
-      assert {:ok, ^module} = Registry.lookup_by_path("testorg", "my-api")
+      assert :ok = Registry.register(api_id, module, org_slug: "testorg", slug: "my-api")
+      assert {:ok, ^module, _metadata} = Registry.lookup_by_path("testorg", "my-api")
+    end
+
+    test "stores metadata from opts" do
+      api_id = Ecto.UUID.generate()
+      module = SomeModule
+
+      assert :ok =
+               Registry.register(api_id, module,
+                 org_slug: "testorg",
+                 slug: "my-api",
+                 requires_auth: false,
+                 visibility: "public"
+               )
+
+      assert {:ok, ^module, metadata} = Registry.lookup(api_id)
+      assert metadata.requires_auth == false
+      assert metadata.visibility == "public"
+      assert metadata.api_id == api_id
     end
   end
 
   describe "lookup/1" do
-    test "returns {:ok, module} for registered API" do
+    test "returns {:ok, module, metadata} for registered API" do
       api_id = Ecto.UUID.generate()
       Registry.register(api_id, MyModule)
 
-      assert {:ok, MyModule} = Registry.lookup(api_id)
+      assert {:ok, MyModule, metadata} = Registry.lookup(api_id)
+      assert metadata.api_id == api_id
     end
 
     test "returns {:error, :not_found} for unregistered API" do
@@ -46,11 +65,11 @@ defmodule Blackboex.Apis.RegistryTest do
   end
 
   describe "lookup_by_path/2" do
-    test "finds API by username and slug" do
+    test "finds API by org_slug and slug" do
       api_id = Ecto.UUID.generate()
-      Registry.register(api_id, PathModule, username: "acme", slug: "calculator")
+      Registry.register(api_id, PathModule, org_slug: "acme", slug: "calculator")
 
-      assert {:ok, PathModule} = Registry.lookup_by_path("acme", "calculator")
+      assert {:ok, PathModule, _metadata} = Registry.lookup_by_path("acme", "calculator")
     end
 
     test "returns {:error, :not_found} for unknown path" do
@@ -61,7 +80,7 @@ defmodule Blackboex.Apis.RegistryTest do
   describe "unregister/1" do
     test "removes API from registry" do
       api_id = Ecto.UUID.generate()
-      Registry.register(api_id, UnregModule, username: "org", slug: "test")
+      Registry.register(api_id, UnregModule, org_slug: "org", slug: "test")
 
       assert :ok = Registry.unregister(api_id)
       assert {:error, :not_found} = Registry.lookup(api_id)

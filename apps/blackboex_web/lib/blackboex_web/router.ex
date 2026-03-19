@@ -23,6 +23,12 @@ defmodule BlackboexWeb.Router do
     get "/", PageController, :home
   end
 
+  # Public API landing pages — no auth required
+  scope "/p", BlackboexWeb do
+    pipe_through :browser
+    get "/:org_slug/:api_slug", PublicApiController, :show
+  end
+
   # Dynamic API routing — forwards all /api/* requests to the DynamicApiRouter
   scope "/api" do
     pipe_through :api

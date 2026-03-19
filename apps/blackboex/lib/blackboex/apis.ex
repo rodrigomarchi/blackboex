@@ -8,8 +8,14 @@ defmodule Blackboex.Apis do
   alias Blackboex.Apis.Api
   alias Blackboex.Apis.ApiVersion
   alias Blackboex.Apis.DiffEngine
+  alias Blackboex.Apis.Keys
+  alias Blackboex.Apis.Registry
+  alias Blackboex.CodeGen.Compiler
   alias Blackboex.CodeGen.GenerationResult
+  alias Blackboex.Organizations.Organization
   alias Blackboex.Repo
+
+  require Logger
 
   @spec create_api(map()) :: {:ok, Api.t()} | {:error, Ecto.Changeset.t()}
   def create_api(attrs) do
@@ -153,5 +159,72 @@ defmodule Blackboex.Apis do
       example_response: result.example_response,
       param_schema: result.param_schema
     })
+  end
+
+  # --- Publishing ---
+
+  @spec publish(Api.t(), Organization.t()) ::
+          {:ok, Api.t(), String.t()}
+          | {:error, :not_compiled | :org_mismatch | Ecto.Changeset.t()}
+  def publish(
+        %Api{status: "compiled", organization_id: org_id} = api,
+        %Organization{id: org_id} = org
+      ) do
+    Ecto.Multi.new()
+    |> Ecto.Multi.update(:api, Api.changeset(api, %{status: "published"}))
+    |> Ecto.Multi.run(:key, fn _repo, %{api: published_api} ->
+      case Keys.create_key(published_api, %{
+             label: "Default key",
+             organization_id: org.id
+           }) do
+        {:ok, plain_key, api_key} -> {:ok, {plain_key, api_key}}
+        {:error, changeset} -> {:error, changeset}
+      end
+    end)
+    |> Repo.transaction()
+    |> case do
+      {:ok, %{api: published_api, key: {plain_key, _api_key}}} ->
+        register_published_api(published_api, org)
+        {:ok, published_api, plain_key}
+
+      {:error, :api, changeset, _} ->
+        {:error, changeset}
+
+      {:error, :key, changeset, _} ->
+        {:error, changeset}
+    end
+  end
+
+  def publish(%Api{status: "compiled"}, %Organization{}), do: {:error, :org_mismatch}
+  def publish(%Api{}, _org), do: {:error, :not_compiled}
+
+  @spec unpublish(Api.t()) :: {:ok, Api.t()} | {:error, :not_published | Ecto.Changeset.t()}
+  def unpublish(%Api{status: "published"} = api) do
+    case update_api(api, %{status: "compiled"}) do
+      {:ok, updated_api} ->
+        Registry.unregister(api.id)
+
+        module_name = Compiler.module_name_for(api)
+        Compiler.unload(module_name)
+
+        {:ok, updated_api}
+
+      {:error, changeset} ->
+        {:error, changeset}
+    end
+  end
+
+  def unpublish(%Api{}), do: {:error, :not_published}
+
+  defp register_published_api(api, org) do
+    Registry.register(api.id, Compiler.module_name_for(api),
+      org_slug: org.slug,
+      slug: api.slug,
+      requires_auth: api.requires_auth,
+      visibility: api.visibility
+    )
+  rescue
+    error ->
+      Logger.warning("Failed to register published API #{api.id}: #{inspect(error)}")
   end
 end

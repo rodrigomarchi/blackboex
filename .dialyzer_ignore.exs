@@ -11,6 +11,11 @@
   {"lib/blackboex/apis.ex", :call_without_opaque},
   # Ecto.Multi opaque type false positive in conversations
   {"lib/blackboex/apis/conversations.ex", :call_without_opaque},
+  # Ecto.Multi opaque type false positive in key rotation
+  {"lib/blackboex/apis/keys.ex", :call_without_opaque},
   # LiveMonacoEditor is an external dep — Dialyzer can't resolve HEEx component calls
-  {"lib/blackboex_web/live/api_live/edit.ex", :unknown_function}
+  {"lib/blackboex_web/live/api_live/edit.ex", :unknown_function},
+  # Hammer uses `use Hammer` macro with defdelegate — Dialyzer can't resolve delegated functions
+  {"lib/blackboex_web/rate_limiter_backend.ex", :unknown_function},
+  {"lib/blackboex_web/rate_limiter_backend.ex", :callback_info_missing}
 ]

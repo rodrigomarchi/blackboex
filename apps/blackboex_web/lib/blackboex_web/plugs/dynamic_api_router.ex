@@ -2,15 +2,19 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
   @moduledoc """
   Plug that routes dynamic API requests to compiled user modules.
 
-  Parses `conn.path_info` to extract username and slug, looks up the
-  module in the Registry, and delegates execution to the Sandbox.
-  Falls back to compiling from DB if not found in Registry (e.g., after restart).
+  Pipeline: resolve → rate_limit → auth → execute → log
+
+  Rate limiting and auth only apply to published APIs.
+  Compiled (non-published) APIs are served for internal testing only.
   """
 
   @behaviour Plug
 
+  alias Blackboex.Apis.Analytics
   alias Blackboex.Apis.Registry
   alias Blackboex.CodeGen.Compiler
+  alias BlackboexWeb.Plugs.ApiAuth
+  alias BlackboexWeb.Plugs.RateLimiter
 
   require Logger
 
@@ -22,33 +26,109 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
   @spec call(Plug.Conn.t(), keyword()) :: Plug.Conn.t()
   def call(conn, _opts) do
     case conn.path_info do
-      [username, slug | rest] ->
-        dispatch(conn, username, slug, rest)
+      [org_slug, slug | rest] ->
+        dispatch(conn, org_slug, slug, rest)
 
       _ ->
         send_json(conn, 404, %{error: "API not found"})
     end
   end
 
-  defp dispatch(conn, username, slug, rest) do
-    case resolve_module(username, slug) do
-      {:ok, module} ->
-        execute_module(conn, module, rest)
+  defp dispatch(conn, org_slug, slug, rest) do
+    case resolve_api(org_slug, slug) do
+      {:ok, module, metadata, api} ->
+        run_pipeline(conn, module, metadata, api, rest)
 
       {:error, :not_found} ->
         send_json(conn, 404, %{error: "API not found"})
     end
   end
 
-  defp resolve_module(username, slug) do
-    case Registry.lookup_by_path(username, slug) do
-      {:ok, _module} = found ->
-        found
+  defp run_pipeline(conn, module, metadata, api, rest) do
+    start_time = System.monotonic_time(:millisecond)
+
+    result =
+      with {:ok, conn} <- maybe_rate_limit(conn, api, metadata),
+           {:ok, conn} <- maybe_authenticate(conn, api, metadata) do
+        {:ok, execute_module(conn, module, rest)}
+      end
+
+    duration_ms = System.monotonic_time(:millisecond) - start_time
+
+    case result do
+      {:ok, result_conn} ->
+        log_request(conn, result_conn, metadata, duration_ms)
+        result_conn
+
+      {:error, :rate_limited, retry_after} ->
+        resp_conn =
+          conn
+          |> Plug.Conn.put_resp_header("retry-after", to_string(retry_after))
+          |> send_json(429, %{error: "Rate limit exceeded", retry_after: retry_after})
+
+        log_request(conn, resp_conn, metadata, duration_ms)
+        resp_conn
+
+      {:error, auth_reason} ->
+        resp_conn = send_auth_error(conn, auth_reason)
+        log_request(conn, resp_conn, metadata, duration_ms)
+        resp_conn
+    end
+  end
+
+  defp maybe_rate_limit(conn, api, metadata) do
+    if api.status == "published" do
+      RateLimiter.check_rate(conn, metadata)
+    else
+      {:ok, conn}
+    end
+  end
+
+  defp maybe_authenticate(conn, api, metadata) do
+    if api.status == "published" do
+      ApiAuth.authenticate(conn, api, metadata)
+    else
+      {:ok, conn}
+    end
+  end
+
+  defp send_auth_error(conn, :missing_key) do
+    send_json(conn, 401, %{
+      error: "API key required",
+      hint: "Pass via Authorization: Bearer bb_live_... header"
+    })
+  end
+
+  defp send_auth_error(conn, :invalid) do
+    send_json(conn, 401, %{error: "Invalid API key"})
+  end
+
+  defp send_auth_error(conn, :revoked) do
+    send_json(conn, 401, %{error: "API key has been revoked"})
+  end
+
+  defp send_auth_error(conn, :expired) do
+    send_json(conn, 401, %{error: "API key has expired"})
+  end
+
+  defp resolve_api(org_slug, slug) do
+    case Registry.lookup_by_path(org_slug, slug) do
+      {:ok, module, metadata} ->
+        api = load_api_struct(metadata.api_id)
+
+        if api do
+          {:ok, module, metadata, api}
+        else
+          {:error, :not_found}
+        end
 
       {:error, :not_found} ->
-        # Not in Registry — try to find and compile from DB (happens after restart)
-        compile_from_db(username, slug)
+        compile_from_db(org_slug, slug)
     end
+  end
+
+  defp load_api_struct(api_id) do
+    Blackboex.Repo.get(Blackboex.Apis.Api, api_id)
   end
 
   defp compile_from_db(org_slug, api_slug) do
@@ -62,8 +142,19 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
          %Api{status: status} = api when status in ["compiled", "published"] <-
            Repo.get_by(Api, slug: api_slug, organization_id: org_id),
          {:ok, module} <- Compiler.compile(api, api.source_code) do
+      metadata = %{
+        requires_auth: api.requires_auth,
+        visibility: api.visibility,
+        api_id: api.id
+      }
+
       try do
-        Registry.register(api.id, module, username: org_slug, slug: api_slug)
+        Registry.register(api.id, module,
+          org_slug: org_slug,
+          slug: api_slug,
+          requires_auth: api.requires_auth,
+          visibility: api.visibility
+        )
       rescue
         _ -> :ok
       catch
@@ -71,7 +162,7 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
       end
 
       Logger.info("Compiled API on-demand: #{org_slug}/#{api_slug}")
-      {:ok, module}
+      {:ok, module, metadata, api}
     else
       nil -> {:error, :not_found}
       %{status: _} -> {:error, :not_found}
@@ -82,15 +173,11 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
   defp execute_module(conn, module, rest) do
     conn = %{conn | path_info: rest, script_name: conn.script_name}
 
-    # Execute Plug in the SAME process — conn is tied to the socket owner.
-    # Timeout protection via Process.send_after + receive.
-    # Memory protection via max_heap_size on current process (temporarily).
     old_heap = Process.flag(:max_heap_size, %{size: 10_000_000, kill: false, error_logger: true})
 
     try do
       plug_opts = module.init([])
-      result_conn = module.call(conn, plug_opts)
-      result_conn
+      module.call(conn, plug_opts)
     rescue
       error ->
         Logger.error("API execution error: #{Exception.message(error)}")
@@ -98,6 +185,22 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
     after
       Process.flag(:max_heap_size, old_heap)
     end
+  end
+
+  defp log_request(conn, result_conn, metadata, duration_ms) do
+    ip = conn.remote_ip |> :inet.ntoa() |> to_string()
+
+    Analytics.log_invocation(%{
+      api_id: metadata.api_id,
+      api_key_id: get_in(result_conn.assigns, [:api_key, :id]),
+      method: conn.method,
+      path: "/" <> Enum.join(conn.path_info, "/"),
+      status_code: result_conn.status,
+      duration_ms: duration_ms,
+      request_body_size: byte_size(conn.assigns[:raw_body] || ""),
+      response_body_size: byte_size(result_conn.resp_body || ""),
+      ip_address: ip
+    })
   end
 
   defp send_json(conn, status, body) do

@@ -2,7 +2,8 @@ defmodule Blackboex.Apis.Registry do
   @moduledoc """
   ETS-based registry for compiled API modules.
 
-  Provides O(1) lookup by api_id or by {username, slug} path.
+  Provides O(1) lookup by api_id or by {org_slug, api_slug} path.
+  Stores module and metadata (requires_auth, visibility) for each API.
   Reloads compiled/published APIs from the database on init.
   """
 
@@ -12,6 +13,12 @@ defmodule Blackboex.Apis.Registry do
 
   @table :api_registry
   @path_table :api_registry_paths
+
+  @type metadata :: %{
+          requires_auth: boolean(),
+          visibility: String.t(),
+          api_id: Ecto.UUID.t()
+        }
 
   # Client API
 
@@ -25,20 +32,23 @@ defmodule Blackboex.Apis.Registry do
     GenServer.call(__MODULE__, {:register, api_id, module, opts})
   end
 
-  @spec lookup(Ecto.UUID.t()) :: {:ok, module()} | {:error, :not_found}
+  @spec lookup(Ecto.UUID.t()) :: {:ok, module(), metadata()} | {:error, :not_found}
   def lookup(api_id) do
     case :ets.lookup(@table, api_id) do
-      [{^api_id, module}] -> {:ok, module}
+      [{^api_id, {module, metadata}}] -> {:ok, module, metadata}
+      # Legacy format compatibility (module without metadata)
+      [{^api_id, module}] when is_atom(module) -> {:ok, module, default_metadata(api_id)}
       [] -> {:error, :not_found}
     end
   rescue
     ArgumentError -> {:error, :not_found}
   end
 
-  @spec lookup_by_path(String.t(), String.t()) :: {:ok, module()} | {:error, :not_found}
-  def lookup_by_path(username, slug) do
-    case :ets.lookup(@path_table, {username, slug}) do
-      [{{^username, ^slug}, api_id}] ->
+  @spec lookup_by_path(String.t(), String.t()) ::
+          {:ok, module(), metadata()} | {:error, :not_found}
+  def lookup_by_path(org_slug, slug) do
+    case :ets.lookup(@path_table, {org_slug, slug}) do
+      [{{^org_slug, ^slug}, api_id}] ->
         lookup(api_id)
 
       [] ->
@@ -73,13 +83,20 @@ defmodule Blackboex.Apis.Registry do
 
   @impl true
   def handle_call({:register, api_id, module, opts}, _from, state) do
-    :ets.insert(@table, {api_id, module})
-
-    username = Keyword.get(opts, :username)
+    org_slug = Keyword.get(opts, :org_slug)
     slug = Keyword.get(opts, :slug)
 
-    if username && slug do
-      :ets.insert(@path_table, {{username, slug}, api_id})
+    metadata =
+      %{
+        requires_auth: Keyword.get(opts, :requires_auth, true),
+        visibility: Keyword.get(opts, :visibility, "private"),
+        api_id: api_id
+      }
+
+    :ets.insert(@table, {api_id, {module, metadata}})
+
+    if org_slug && slug do
+      :ets.insert(@path_table, {{org_slug, slug}, api_id})
     end
 
     {:reply, :ok, state}
@@ -137,7 +154,13 @@ defmodule Blackboex.Apis.Registry do
 
     case result do
       {:ok, mod} ->
-        :ets.insert(@table, {api.id, mod})
+        metadata = %{
+          requires_auth: api.requires_auth,
+          visibility: api.visibility,
+          api_id: api.id
+        }
+
+        :ets.insert(@table, {api.id, {mod, metadata}})
         maybe_register_path(api, mod)
 
       {:error, reason} ->
@@ -157,4 +180,8 @@ defmodule Blackboex.Apis.Registry do
   end
 
   defp maybe_register_path(_api, _module_name), do: :ok
+
+  defp default_metadata(api_id) do
+    %{requires_auth: true, visibility: "private", api_id: api_id}
+  end
 end

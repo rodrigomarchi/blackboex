@@ -125,6 +125,160 @@ defmodule Blackboex.ApisTest do
     end
   end
 
+  describe "publishing fields" do
+    test "defaults visibility to private and requires_auth to true", %{user: user, org: org} do
+      {:ok, api} =
+        Apis.create_api(%{
+          name: "My API",
+          organization_id: org.id,
+          user_id: user.id
+        })
+
+      assert api.visibility == "private"
+      assert api.requires_auth == true
+    end
+
+    test "accepts visibility and requires_auth in changeset", %{user: user, org: org} do
+      {:ok, api} =
+        Apis.create_api(%{
+          name: "Public API",
+          organization_id: org.id,
+          user_id: user.id,
+          visibility: "public",
+          requires_auth: false
+        })
+
+      assert api.visibility == "public"
+      assert api.requires_auth == false
+    end
+
+    test "rejects invalid visibility", %{user: user, org: org} do
+      assert {:error, changeset} =
+               Apis.create_api(%{
+                 name: "Bad API",
+                 organization_id: org.id,
+                 user_id: user.id,
+                 visibility: "unlisted"
+               })
+
+      assert errors_on(changeset).visibility
+    end
+  end
+
+  describe "publish/2" do
+    @tag :capture_log
+    test "publishes a compiled API and generates key", %{user: user, org: org} do
+      {:ok, api} =
+        Apis.create_api(%{
+          name: "Compiled API",
+          status: "compiled",
+          source_code: "def handle(params), do: %{ok: true}",
+          organization_id: org.id,
+          user_id: user.id
+        })
+
+      assert {:ok, published, plain_key} = Apis.publish(api, org)
+      assert published.status == "published"
+      assert String.starts_with?(plain_key, "bb_live_")
+    end
+
+    @tag :capture_log
+    test "rejects publishing a draft API", %{user: user, org: org} do
+      {:ok, api} =
+        Apis.create_api(%{
+          name: "Draft API",
+          organization_id: org.id,
+          user_id: user.id
+        })
+
+      assert {:error, :not_compiled} = Apis.publish(api, org)
+    end
+
+    @tag :capture_log
+    test "rejects publishing an already published API", %{user: user, org: org} do
+      {:ok, api} =
+        Apis.create_api(%{
+          name: "Published API",
+          status: "published",
+          source_code: "def handle(params), do: %{ok: true}",
+          organization_id: org.id,
+          user_id: user.id
+        })
+
+      assert {:error, :not_compiled} = Apis.publish(api, org)
+    end
+
+    @tag :capture_log
+    test "rejects publishing API with wrong organization", %{user: user, org: org} do
+      other_user = user_fixture()
+
+      {:ok, %{organization: other_org}} =
+        Blackboex.Organizations.create_organization(other_user, %{name: "Other Org"})
+
+      {:ok, api} =
+        Apis.create_api(%{
+          name: "Wrong Org API",
+          status: "compiled",
+          source_code: "def handle(params), do: %{ok: true}",
+          organization_id: org.id,
+          user_id: user.id
+        })
+
+      # Attempting to publish with wrong org should fail
+      assert {:error, :org_mismatch} = Apis.publish(api, other_org)
+    end
+
+    @tag :capture_log
+    test "publish then unpublish cycle works", %{user: user, org: org} do
+      {:ok, api} =
+        Apis.create_api(%{
+          name: "Cycle API",
+          status: "compiled",
+          source_code: "def handle(params), do: %{ok: true}",
+          organization_id: org.id,
+          user_id: user.id
+        })
+
+      assert {:ok, published, _key} = Apis.publish(api, org)
+      assert published.status == "published"
+
+      assert {:ok, unpublished} = Apis.unpublish(published)
+      assert unpublished.status == "compiled"
+
+      # Should not be able to unpublish again
+      assert {:error, :not_published} = Apis.unpublish(unpublished)
+    end
+  end
+
+  describe "unpublish/1" do
+    @tag :capture_log
+    test "unpublishes a published API", %{user: user, org: org} do
+      {:ok, api} =
+        Apis.create_api(%{
+          name: "Published API",
+          status: "published",
+          source_code: "def handle(params), do: %{ok: true}",
+          organization_id: org.id,
+          user_id: user.id
+        })
+
+      assert {:ok, unpublished} = Apis.unpublish(api)
+      assert unpublished.status == "compiled"
+    end
+
+    @tag :capture_log
+    test "rejects unpublishing a non-published API", %{user: user, org: org} do
+      {:ok, api} =
+        Apis.create_api(%{
+          name: "Draft API",
+          organization_id: org.id,
+          user_id: user.id
+        })
+
+      assert {:error, :not_published} = Apis.unpublish(api)
+    end
+  end
+
   describe "create_api_from_generation/3" do
     test "creates Api from GenerationResult", %{user: user, org: org} do
       result = %GenerationResult{

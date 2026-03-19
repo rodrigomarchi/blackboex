@@ -1,0 +1,45 @@
+<div class="max-w-3xl mx-auto py-12 px-4">
+  <div class="mb-8">
+    <span class="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-800">
+      Published
+    </span>
+  </div>
+
+  <h1 class="text-3xl font-bold text-gray-900 mb-4">{@api.name}</h1>
+
+  <p :if={@api.description} class="text-lg text-gray-600 mb-8">
+    {@api.description}
+  </p>
+
+  <div class="bg-gray-50 rounded-lg p-6 mb-8">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3">Usage</h2>
+    <div class="bg-gray-900 rounded-md p-4">
+      <code class="text-sm text-green-400 whitespace-pre-wrap">
+        curl -X {@api.method} "{@api_url}" \
+        -H "Content-Type: application/json" \<%= if @api.requires_auth do %>
+          -H "Authorization: Bearer YOUR_API_KEY" \
+        <% end %>
+        -d '{}'
+      </code>
+    </div>
+  </div>
+
+  <div class="border-t border-gray-200 pt-6">
+    <dl class="grid grid-cols-2 gap-4 text-sm">
+      <div>
+        <dt class="text-gray-500">Method</dt>
+        <dd class="font-medium text-gray-900">{@api.method}</dd>
+      </div>
+      <div>
+        <dt class="text-gray-500">Authentication</dt>
+        <dd class="font-medium text-gray-900">
+          {if @api.requires_auth, do: "API Key required", else: "None"}
+        </dd>
+      </div>
+      <div>
+        <dt class="text-gray-500">Created by</dt>
+        <dd class="font-medium text-gray-900">{@org.name}</dd>
+      </div>
+    </dl>
+  </div>
+</div>

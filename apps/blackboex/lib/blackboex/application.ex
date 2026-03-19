@@ -12,6 +12,7 @@ defmodule Blackboex.Application do
       {DNSCluster, query: Application.get_env(:blackboex, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Blackboex.PubSub},
       {Task.Supervisor, name: Blackboex.SandboxTaskSupervisor},
+      {Task.Supervisor, name: Blackboex.LoggingSupervisor, max_children: 1000},
       Blackboex.Apis.Registry
     ]
 

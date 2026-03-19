@@ -1,0 +1,147 @@
+defmodule BlackboexWeb.Components.ChatPanel do
+  @moduledoc """
+  LiveComponent for the chat panel used in conversational API editing.
+  Displays message history and provides input for sending instructions to the LLM.
+  """
+
+  use BlackboexWeb, :live_component
+
+  alias Blackboex.Apis.DiffEngine
+
+  @impl true
+  def render(assigns) do
+    ~H"""
+    <div class="flex flex-col h-full">
+      <div class="flex items-center justify-between border-b px-4 py-2">
+        <h2 class="text-sm font-semibold">Chat</h2>
+        <button
+          phx-click="clear_conversation"
+          class="text-xs text-muted-foreground hover:text-foreground"
+          data-confirm="Limpar conversa? O código não será afetado."
+        >
+          Nova conversa
+        </button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-3 space-y-3" id="chat-messages">
+        <%= if @messages == [] and @pending_edit == nil do %>
+          <p class="text-xs text-muted-foreground text-center py-8">
+            Descreva as mudanças que deseja no código.
+          </p>
+        <% else %>
+          <%= for msg <- @messages do %>
+            <div class={[
+              "flex",
+              if(msg["role"] == "user", do: "justify-end", else: "justify-start")
+            ]}>
+              <div class={[
+                "max-w-[85%] rounded-lg px-3 py-2 text-xs",
+                if(msg["role"] == "user",
+                  do: "bg-primary text-primary-foreground",
+                  else: "bg-muted"
+                )
+              ]}>
+                {msg["content"]}
+              </div>
+            </div>
+          <% end %>
+        <% end %>
+
+        <%= if @loading do %>
+          <div class="flex justify-start">
+            <div class="bg-muted rounded-lg px-3 py-2 text-xs text-muted-foreground animate-pulse">
+              Pensando...
+            </div>
+          </div>
+        <% end %>
+
+        <%= if @pending_edit do %>
+          <div class="rounded-lg border border-blue-200 bg-blue-50 p-3 space-y-2">
+            <p class="text-xs text-blue-700 font-medium">Mudança proposta:</p>
+            <p class="text-xs text-blue-600">{@pending_edit.explanation}</p>
+            <div class="rounded border bg-background p-2 text-xs font-mono overflow-x-auto max-h-60 overflow-y-auto">
+              <%= for {op, lines} <- @pending_edit.diff, line <- lines do %>
+                <div class={diff_line_class(op)}>
+                  <span class="select-none text-muted-foreground mr-1">{diff_prefix(op)}</span>{line}
+                </div>
+              <% end %>
+            </div>
+            <p class="text-xs text-muted-foreground">
+              {format_diff_summary(@pending_edit.diff)}
+            </p>
+            <div class="flex gap-2">
+              <button
+                phx-click="accept_edit"
+                class="rounded-md bg-green-600 px-3 py-1 text-xs font-medium text-white hover:bg-green-700"
+              >
+                Aceitar
+              </button>
+              <button
+                phx-click="reject_edit"
+                class="rounded-md border border-red-300 px-3 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
+              >
+                Rejeitar
+              </button>
+            </div>
+          </div>
+        <% end %>
+      </div>
+
+      <div class="border-t p-3 space-y-2">
+        <div class="flex flex-wrap gap-1">
+          <%= for action <- quick_actions(@template_type) do %>
+            <button
+              type="button"
+              phx-click="quick_action"
+              phx-value-text={action}
+              class="rounded-full border px-2 py-0.5 text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+            >
+              {action}
+            </button>
+          <% end %>
+        </div>
+        <form phx-submit="send_chat" class="flex gap-2">
+          <input
+            type="text"
+            name="chat_input"
+            value={@input}
+            placeholder="Descreva as mudanças..."
+            class="flex-1 rounded-md border bg-background px-3 py-1.5 text-xs"
+            autocomplete="off"
+            disabled={@loading}
+          />
+          <button
+            type="submit"
+            disabled={@loading}
+            class="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          >
+            Enviar
+          </button>
+        </form>
+      </div>
+    </div>
+    """
+  end
+
+  defp diff_line_class(:ins), do: "bg-green-100 text-green-800"
+  defp diff_line_class(:del), do: "bg-red-100 text-red-800"
+  defp diff_line_class(:eq), do: ""
+
+  defp diff_prefix(:ins), do: "+"
+  defp diff_prefix(:del), do: "-"
+  defp diff_prefix(:eq), do: " "
+
+  defp format_diff_summary(diff), do: DiffEngine.format_diff_summary(diff)
+
+  defp quick_actions("crud") do
+    ["Adicionar validação", "Adicionar filtro", "Adicionar paginação", "Adicionar error handling"]
+  end
+
+  defp quick_actions("webhook") do
+    ["Adicionar validação", "Validar assinatura", "Adicionar error handling"]
+  end
+
+  defp quick_actions(_template_type) do
+    ["Adicionar validação", "Otimizar performance", "Adicionar error handling"]
+  end
+end

@@ -26,6 +26,19 @@
 > - Discovery docs tem exemplos de API ERRADOS — NUNCA confiar nos exemplos. Sempre verificar a API real em `deps/<pkg>/lib/`
 > - Deps OTP que precisam de supervision tree (ex: ExRated) devem ser listados em `extra_applications` no `mix.exs`
 > - Erros de libs externas NAO devem ser engolidos — sempre logar o erro original e propagar mensagem legivel ao usuario
+>
+> **CHECKLIST PRE-EXECUCAO (Licoes Fase 05):**
+> - JSONB array read-modify-write tem race condition TOCTOU — usar `Ecto.Multi` com `SELECT ... FOR UPDATE` para serializar writes concorrentes. Testar com `Task.async`
+> - JSONB `{:array, :map}` nao tem validacao de schema — adicionar validacao custom no changeset para estrutura dos maps (enum de valores, campos obrigatorios)
+> - JSONB arrays crescem sem limite — adicionar validacao `max_items` no changeset (ex: `@max_messages 500`)
+> - Pin operator `^` nao funciona em `Repo.update_all` com `fragment` — usar `Ecto.Multi` com lock + `Repo.update`
+> - LiveComponent em testes: usar `render(lv)`, NAO o `html` de `live/3` — HTML estatico nao inclui conteudo de LiveComponents
+> - LiveComponent NAO herda assigns do parent — passar todo assign necessario explicitamente via atributos no template
+> - Erros de LLM/libs devem ser mapeados para mensagens amigaveis via helper `friendly_error/1` — SEMPRE `Logger.warning` o erro original
+> - Erros de changeset devem ser logados antes de mostrar mensagem generica ao usuario
+> - XSS em conteudo dinamico: Phoenix HEEx escapa por padrao, mas DEVE ser testado explicitamente com payload `<script>`
+> - Cascade delete (`on_delete: :delete_all`) deve ser testado — criar filho, deletar pai, verificar remocao
+> - Auditar apos implementacao: validacao de input, race conditions, erros silenciados, XSS, cascade delete, limites de crescimento
 
 ## Fontes de Discovery
 - `docs/discovery/07-observability.md` (OpenTelemetry, PromEx, Loki, Grafana, Sentry)

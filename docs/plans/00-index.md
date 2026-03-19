@@ -131,3 +131,33 @@ Regras praticas validadas durante a implementacao da integracao LLM. **Ler antes
 - **Discovery docs tem exemplos de API ERRADOS** — ReqLLM.Response nao tem `.content`; a API real e `ReqLLM.Response.text(response)`. NUNCA confiar nos exemplos do discovery doc. Sempre verificar a API real com `deps/<pkg>/lib/` ou `mix docs`
 - **Deps OTP que precisam de supervision tree** (ex: ExRated com ETS tables) devem ser listados em `extra_applications` no `mix.exs`, senao nao iniciam e causam crash em runtime
 - **Erros de libs externas NAO devem ser engolidos** — `{:error, _reason} -> {:error, :llm_failed}` esconde a mensagem real (ex: "credit balance too low"). Sempre logar o erro original e propagar mensagem legivel ao usuario
+
+---
+
+## Licoes Aprendidas (Fase 05)
+
+Regras praticas validadas durante a implementacao da edicao conversacional. **Ler antes de comecar qualquer fase.**
+
+### JSONB & Concorrencia
+
+- **JSONB array read-modify-write tem race condition TOCTOU** — ler array, append em memoria, salvar de volta perde writes concorrentes. Usar `Ecto.Multi` com `SELECT ... FOR UPDATE` para serializar writes. Testar com `Task.async` concorrente
+- **JSONB `{:array, :map}` nao tem validacao de schema** — adicionar validacao custom no changeset para estrutura dos maps (ex: enum de roles validos, campos obrigatorios dentro de cada map)
+- **JSONB arrays crescem sem limite** — adicionar validacao `max_items` no changeset. Sem isso, memoria do LiveView e tamanho da query crescem indefinidamente. Ex: `@max_messages 500`
+- **Pin operator `^` nao funciona em `Repo.update_all` com `fragment`** — usar `Ecto.Multi` com `SELECT FOR UPDATE` + `Repo.update` em vez de tentar SQL inline com fragments pinados
+
+### LiveView & LiveComponent
+
+- **LiveComponent em testes: usar `render(lv)`, NAO o `html` de `live/3`** — o HTML estatico retornado por `live/3` nao inclui conteudo renderizado por LiveComponents. Sempre `render(lv)` para obter HTML conectado
+- **LiveComponent NAO herda assigns do parent** — todo assign necessario deve ser passado explicitamente via atributos no template HEEx (ex: `pending_edit={@pending_edit}`, `template_type={@api.template_type}`)
+- **Variaveis descartadas `_conv` nao encadeiam** — `{:ok, _conv} = f(conv)` seguido de `{:ok, _conv} = f(conv)` usa o `conv` original nas duas chamadas. Sempre encadear: `{:ok, conv} = f(conv)` quando o resultado e usado adiante
+
+### Erros & UX
+
+- **Erros de LLM/libs devem ser mapeados para mensagens amigaveis** — criar helper `friendly_error/1` que mapeia atomos (`:timeout`, `:rate_limited`, `:econnrefused`) para texto legivel. SEMPRE `Logger.warning` o erro original antes de mostrar mensagem ao usuario
+- **Erros de changeset devem ser logados** — `Logger.error("contexto: #{inspect(changeset)}")` antes de `put_flash(:error, "mensagem amigavel")`. Sem logs, debugging em producao e impossivel
+
+### Seguranca & Testes
+
+- **XSS em conteudo dinamico: Phoenix HEEx escapa por padrao** — mas DEVE ser testado explicitamente com payload `<script>alert('xss')</script>` e verificar que renderiza como `&lt;script&gt;`
+- **Cascade delete (`on_delete: :delete_all`) deve ser testado** — criar entidade filha, deletar pai, verificar que filha foi removida. Migration correta nao garante que o teste passa
+- **Auditar apos implementacao, nao apenas testar** — apos cada secao, revisar: validacao de input, race conditions, erros silenciados, XSS, cascade delete, limites de crescimento

@@ -5,9 +5,15 @@ defmodule BlackboexWeb.ApiLive.Edit do
 
   use BlackboexWeb, :live_view
 
+  require Logger
+
   alias Blackboex.Apis
+  alias Blackboex.Apis.Conversations
+  alias Blackboex.Apis.DiffEngine
   alias Blackboex.Apis.Registry
   alias Blackboex.CodeGen.Compiler
+  alias Blackboex.LLM.Config
+  alias Blackboex.LLM.EditPrompts
 
   @impl true
   def mount(%{"id" => id} = params, _session, socket) do
@@ -24,6 +30,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
         # Authorization: resolve_organization already verified membership.
         # org is nil if user has no membership → api lookup returns nil → redirected above.
         versions = Apis.list_versions(api.id)
+        {:ok, conversation} = Conversations.get_or_create_conversation(api.id)
 
         {:ok,
          assign(socket,
@@ -40,7 +47,12 @@ defmodule BlackboexWeb.ApiLive.Edit do
            diff_old: nil,
            diff_new: nil,
            test_body: ~s({"n": 5}),
-           test_result: nil
+           test_result: nil,
+           chat_messages: conversation.messages,
+           chat_input: "",
+           chat_loading: false,
+           chat_conversation: conversation,
+           pending_edit: nil
          )}
     end
   end
@@ -71,9 +83,23 @@ defmodule BlackboexWeb.ApiLive.Edit do
           </div>
         </div>
 
-        <div class="grid grid-cols-5 gap-4">
-          <%!-- Editor Panel (60%) --%>
-          <div class="col-span-3 rounded-lg border bg-card text-card-foreground shadow-sm">
+        <div class="grid grid-cols-12 gap-4">
+          <%!-- Chat Panel (25%) --%>
+          <div class="col-span-3 rounded-lg border bg-card text-card-foreground shadow-sm max-h-[700px]">
+            <.live_component
+              module={BlackboexWeb.Components.ChatPanel}
+              id="chat-panel"
+              messages={@chat_messages}
+              input={@chat_input}
+              loading={@chat_loading}
+              api_id={@api.id}
+              pending_edit={@pending_edit}
+              template_type={@api.template_type}
+            />
+          </div>
+
+          <%!-- Editor Panel (50%) --%>
+          <div class="col-span-6 rounded-lg border bg-card text-card-foreground shadow-sm">
             <div class="flex items-center justify-between border-b px-4 py-2">
               <h2 class="text-sm font-semibold">Code Editor</h2>
               <div class="flex items-center gap-2">
@@ -112,8 +138,8 @@ defmodule BlackboexWeb.ApiLive.Edit do
             </div>
           </div>
 
-          <%!-- Side Panel (40%) --%>
-          <div class="col-span-2 space-y-4">
+          <%!-- Side Panel (25%) --%>
+          <div class="col-span-3 space-y-4">
             <%!-- Tabs --%>
             <div class="rounded-lg border bg-card text-card-foreground shadow-sm">
               <div class="flex border-b">
@@ -391,7 +417,135 @@ defmodule BlackboexWeb.ApiLive.Edit do
     {:noreply, assign(socket, test_body: body)}
   end
 
+  # --- Chat Events ---
+
+  @impl true
+  def handle_event("send_chat", %{"chat_input" => ""}, socket) do
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("send_chat", %{"chat_input" => message}, socket) do
+    conversation = socket.assigns.chat_conversation
+
+    # Persist user message
+    case Conversations.append_message(conversation, "user", message) do
+      {:ok, conversation} ->
+        do_chat_request(socket, conversation, message)
+
+      {:error, :too_many_messages} ->
+        {:noreply, put_flash(socket, :error, friendly_llm_error(:too_many_messages))}
+
+      {:error, reason} ->
+        Logger.warning("Failed to append user message: #{inspect(reason)}")
+        {:noreply, put_flash(socket, :error, "Falha ao enviar mensagem")}
+    end
+  end
+
+  @impl true
+  def handle_event("accept_edit", _params, socket) do
+    case socket.assigns.pending_edit do
+      nil ->
+        {:noreply, socket}
+
+      %{code: proposed_code, instruction: instruction} ->
+        scope = socket.assigns.current_scope
+
+        case Apis.create_version(socket.assigns.api, %{
+               code: proposed_code,
+               source: "chat_edit",
+               prompt: instruction,
+               created_by_id: scope.user.id
+             }) do
+          {:ok, _version} ->
+            api = Apis.get_api(socket.assigns.org.id, socket.assigns.api.id)
+
+            {:noreply,
+             socket
+             |> assign(
+               api: api,
+               code: proposed_code,
+               versions: Apis.list_versions(api.id),
+               pending_edit: nil
+             )
+             |> push_editor_value(proposed_code)
+             |> put_flash(:info, "Mudança aceita e versão criada")}
+
+          {:error, changeset} ->
+            Logger.error("Failed to create chat_edit version: #{inspect(changeset)}")
+            {:noreply, put_flash(socket, :error, "Falha ao criar versão")}
+        end
+    end
+  end
+
+  @impl true
+  def handle_event("reject_edit", _params, socket) do
+    {:noreply, assign(socket, pending_edit: nil)}
+  end
+
+  @impl true
+  def handle_event("quick_action", %{"text" => text}, socket) do
+    {:noreply, assign(socket, chat_input: text)}
+  end
+
+  @impl true
+  def handle_event("clear_conversation", _params, socket) do
+    conversation = socket.assigns.chat_conversation
+
+    case Conversations.clear_conversation(conversation) do
+      {:ok, cleared} ->
+        {:noreply,
+         assign(socket,
+           chat_conversation: cleared,
+           chat_messages: [],
+           pending_edit: nil
+         )}
+
+      {:error, changeset} ->
+        Logger.error("Failed to clear conversation: #{inspect(changeset)}")
+        {:noreply, put_flash(socket, :error, "Falha ao limpar conversa")}
+    end
+  end
+
   # --- Helpers ---
+
+  defp do_chat_request(socket, conversation, message) do
+    socket =
+      socket
+      |> assign(
+        chat_conversation: conversation,
+        chat_messages: conversation.messages,
+        chat_loading: true,
+        chat_input: ""
+      )
+
+    prompt =
+      EditPrompts.build_edit_prompt(
+        socket.assigns.code,
+        message,
+        conversation.messages
+      )
+
+    case Config.client().generate_text(prompt, system: EditPrompts.system_prompt()) do
+      {:ok, %{content: response}} ->
+        handle_llm_response(socket, conversation, response, message)
+
+      {:error, reason} ->
+        Logger.warning("LLM chat error for API #{socket.assigns.api.id}: #{inspect(reason)}")
+
+        error_msg = friendly_llm_error(reason)
+
+        {:ok, conversation} =
+          Conversations.append_message(conversation, "assistant", error_msg)
+
+        {:noreply,
+         assign(socket,
+           chat_conversation: conversation,
+           chat_messages: conversation.messages,
+           chat_loading: false
+         )}
+    end
+  end
 
   defp save_version(socket, compile?) do
     api = socket.assigns.api
@@ -573,4 +727,56 @@ defmodule BlackboexWeb.ApiLive.Edit do
   defp status_color("published"), do: "border-blue-500 bg-blue-50 text-blue-700"
   defp status_color("archived"), do: "border-gray-500 bg-gray-50 text-gray-500"
   defp status_color(_), do: "border bg-muted text-muted-foreground"
+
+  defp friendly_llm_error(:timeout), do: "A requisição demorou demais. Tente novamente."
+
+  defp friendly_llm_error(:rate_limited),
+    do: "Muitas requisições. Aguarde um momento e tente novamente."
+
+  defp friendly_llm_error(:econnrefused),
+    do: "Não foi possível conectar ao serviço de IA. Tente novamente mais tarde."
+
+  defp friendly_llm_error(:too_many_messages),
+    do: "Conversa muito longa. Use 'Nova conversa' para recomeçar."
+
+  defp friendly_llm_error(reason) when is_binary(reason), do: "Erro: #{reason}"
+  defp friendly_llm_error(reason), do: "Erro inesperado: #{inspect(reason)}"
+
+  defp handle_llm_response(socket, conversation, response, instruction) do
+    case EditPrompts.parse_response(response) do
+      {:ok, proposed_code, explanation} ->
+        # Persist assistant message
+        {:ok, conversation} = Conversations.append_message(conversation, "assistant", explanation)
+
+        diff = DiffEngine.compute_diff(socket.assigns.code, proposed_code)
+
+        {:noreply,
+         assign(socket,
+           chat_conversation: conversation,
+           chat_messages: conversation.messages,
+           chat_loading: false,
+           pending_edit: %{
+             code: proposed_code,
+             diff: diff,
+             explanation: explanation,
+             instruction: instruction
+           }
+         )}
+
+      {:error, :no_code_found} ->
+        {:ok, conversation} =
+          Conversations.append_message(
+            conversation,
+            "assistant",
+            response
+          )
+
+        {:noreply,
+         assign(socket,
+           chat_conversation: conversation,
+           chat_messages: conversation.messages,
+           chat_loading: false
+         )}
+    end
+  end
 end

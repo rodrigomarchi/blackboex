@@ -53,7 +53,9 @@ defmodule Blackboex.Umbrella.MixProject do
       # Required to run "mix format" on ~H/.heex files from the umbrella root
       {:phoenix_live_view, ">= 0.0.0"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
-      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false}
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
+      {:recon, "~> 2.5", only: :dev, runtime: false},
+      {:observer_cli, "~> 1.8", only: :dev, runtime: false}
     ]
   end
 

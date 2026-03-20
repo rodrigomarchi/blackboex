@@ -91,13 +91,25 @@ config :fun_with_flags, :cache_bust_notifications,
 # Oban job processing
 config :blackboex, Oban,
   repo: Blackboex.Repo,
-  queues: [billing: 10],
-  plugins: [Oban.Plugins.Pruner]
+  queues: [billing: 10, analytics: 5],
+  plugins: [
+    Oban.Plugins.Pruner,
+    {Oban.Plugins.Cron,
+     crontab: [
+       {"0 * * * *", Blackboex.Apis.MetricRollupWorker}
+     ]}
+  ]
 
 # Configure Elixir's Logger
 config :logger, :default_formatter,
   format: "$time $metadata[$level] $message\n",
-  metadata: [:request_id]
+  metadata: [:request_id, :trace_id, :span_id, :api_id, :user_id]
+
+# PromEx metrics
+config :blackboex_web, BlackboexWeb.PromEx,
+  disabled: false,
+  manual_metrics_start_delay: :no_delay,
+  drop_metrics_groups: []
 
 # SaladUI configuration
 config :salad_ui,

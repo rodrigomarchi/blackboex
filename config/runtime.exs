@@ -24,6 +24,29 @@ config :req_llm,
   anthropic_api_key: System.get_env("ANTHROPIC_API_KEY"),
   openai_api_key: System.get_env("OPENAI_API_KEY")
 
+# Structured JSON logging in production
+if config_env() == :prod do
+  config :logger, :default_handler, formatter: {LoggerJSON.Formatters.Basic, []}
+
+  config :phoenix, :logger, false
+end
+
+# OpenTelemetry configuration
+if config_env() == :prod do
+  config :opentelemetry,
+    resource: %{
+      "service.name" => "blackboex",
+      "deployment.environment" => "production"
+    },
+    span_processor: :batch,
+    traces_exporter: :otlp,
+    sampler: {:parent_based, %{root: {:trace_id_ratio_based, 0.1}}}
+
+  config :opentelemetry_exporter,
+    otlp_protocol: :http_protobuf,
+    otlp_endpoint: System.get_env("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4318")
+end
+
 if config_env() == :prod do
   database_url =
     System.get_env("DATABASE_URL") ||

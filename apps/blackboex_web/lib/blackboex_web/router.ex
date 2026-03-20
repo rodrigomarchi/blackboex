@@ -107,6 +107,7 @@ defmodule BlackboexWeb.Router do
       live "/apis/new", ApiLive.New, :new
       live "/apis/:id", ApiLive.Show, :show
       live "/apis/:id/edit", ApiLive.Edit, :edit
+      live "/apis/:id/analytics", ApiLive.Analytics, :analytics
       live "/billing", BillingLive.Plans, :index
       live "/billing/manage", BillingLive.Manage, :manage
       live "/settings", SettingsLive, :index

@@ -1,0 +1,60 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "panels": [
+    {
+      "title": "Top 10 APIs by Invocations",
+      "type": "bargauge",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "topk(10, sum by (api_id) (increase(blackboex_web_prom_ex_api_invocations_total[1h])))",
+          "legendFormat": "{{api_id}}",
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        }
+      ]
+    },
+    {
+      "title": "API Latency by API",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (api_id, le) (rate(blackboex_web_prom_ex_api_invocation_duration_milliseconds_bucket[5m])))",
+          "legendFormat": "{{api_id}} P95",
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ms" } }
+    },
+    {
+      "title": "API Errors",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "sum by (api_id, status) (rate(blackboex_web_prom_ex_api_invocations_total{status=~\"4..|5..\"}[5m]))",
+          "legendFormat": "{{api_id}} {{status}}",
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        }
+      ]
+    },
+    {
+      "title": "Invocations per Method",
+      "type": "piechart",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        {
+          "expr": "sum by (method) (increase(blackboex_web_prom_ex_api_invocations_total[1h]))",
+          "legendFormat": "{{method}}",
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["blackboex", "api"],
+  "time": { "from": "now-1h", "to": "now" },
+  "title": "API Gateway",
+  "uid": "blackboex-api-gateway"
+}

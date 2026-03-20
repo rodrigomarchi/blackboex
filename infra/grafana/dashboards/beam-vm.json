@@ -1,0 +1,70 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "panels": [
+    {
+      "title": "BEAM Memory",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "blackboex_web_prom_ex_beam_memory_total_bytes",
+          "legendFormat": "Total",
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "expr": "blackboex_web_prom_ex_beam_memory_processes_bytes",
+          "legendFormat": "Processes",
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "expr": "blackboex_web_prom_ex_beam_memory_ets_bytes",
+          "legendFormat": "ETS",
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" } }
+    },
+    {
+      "title": "Process Count",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "blackboex_web_prom_ex_beam_stats_process_count",
+          "legendFormat": "Processes",
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        }
+      ]
+    },
+    {
+      "title": "Scheduler Utilization",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "blackboex_web_prom_ex_beam_stats_run_queue_length_total",
+          "legendFormat": "Run Queue",
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        }
+      ]
+    },
+    {
+      "title": "GC Runs",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        {
+          "expr": "rate(blackboex_web_prom_ex_beam_stats_garbage_collection_runs_total[5m])",
+          "legendFormat": "GC runs/sec",
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["blackboex", "beam"],
+  "time": { "from": "now-1h", "to": "now" },
+  "title": "BEAM VM",
+  "uid": "blackboex-beam-vm"
+}

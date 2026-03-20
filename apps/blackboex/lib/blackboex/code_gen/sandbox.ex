@@ -6,7 +6,10 @@ defmodule Blackboex.CodeGen.Sandbox do
   max_heap_size enforcement and timeout protection.
   """
 
+  alias Blackboex.Telemetry.Events
+
   require Logger
+  require OpenTelemetry.Tracer, as: Tracer
 
   @default_timeout 5_000
   @default_max_heap_size 10_000_000
@@ -33,39 +36,52 @@ defmodule Blackboex.CodeGen.Sandbox do
   end
 
   defp run_sandboxed(fun, opts) do
-    timeout = Keyword.get(opts, :timeout, @default_timeout)
-    max_heap = Keyword.get(opts, :max_heap_size, @default_max_heap_size)
+    Tracer.with_span "blackboex.sandbox.execute" do
+      start_time = System.monotonic_time(:millisecond)
+      timeout = Keyword.get(opts, :timeout, @default_timeout)
+      max_heap = Keyword.get(opts, :max_heap_size, @default_max_heap_size)
 
-    task =
-      Task.Supervisor.async_nolink(
-        Blackboex.SandboxTaskSupervisor,
-        fn ->
-          Process.flag(:max_heap_size, %{size: max_heap, kill: true, error_logger: true})
+      task =
+        Task.Supervisor.async_nolink(
+          Blackboex.SandboxTaskSupervisor,
+          fn ->
+            Process.flag(:max_heap_size, %{size: max_heap, kill: true, error_logger: true})
 
-          try do
-            {:ok, fun.()}
-          rescue
-            error ->
-              {:exception, Exception.message(error)}
+            try do
+              {:ok, fun.()}
+            rescue
+              error ->
+                {:exception, Exception.message(error)}
+            end
           end
+        )
+
+      result =
+        case Task.yield(task, timeout) || Task.shutdown(task, :brutal_kill) do
+          {:ok, {:ok, result}} ->
+            {:ok, result}
+
+          {:ok, {:exception, message}} ->
+            {:error, {:exception, message}}
+
+          {:exit, :killed} ->
+            {:error, :memory_exceeded}
+
+          {:exit, reason} ->
+            {:error, {:runtime, reason}}
+
+          nil ->
+            {:error, :timeout}
         end
-      )
 
-    case Task.yield(task, timeout) || Task.shutdown(task, :brutal_kill) do
-      {:ok, {:ok, result}} ->
-        {:ok, result}
+      duration_ms = System.monotonic_time(:millisecond) - start_time
+      api_id = Keyword.get(opts, :api_id)
 
-      {:ok, {:exception, message}} ->
-        {:error, {:exception, message}}
+      Tracer.set_attributes([{"blackboex.api_id", api_id || "unknown"}])
 
-      {:exit, :killed} ->
-        {:error, :memory_exceeded}
+      Events.emit_sandbox_execute(%{duration_ms: duration_ms, api_id: api_id})
 
-      {:exit, reason} ->
-        {:error, {:runtime, reason}}
-
-      nil ->
-        {:error, :timeout}
+      result
     end
   end
 end

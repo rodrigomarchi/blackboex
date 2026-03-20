@@ -85,9 +85,30 @@ defmodule BlackboexWeb.Telemetry do
 
   defp periodic_measurements do
     [
-      # A module, function and arguments to be invoked periodically.
-      # This function must call :telemetry.execute/3 and a metric must be added above.
-      # {BlackboexWeb, :count_users, []}
+      {__MODULE__, :measure_beam_stats, []}
     ]
+  end
+
+  @doc false
+  @spec measure_beam_stats() :: :ok
+  def measure_beam_stats do
+    process_count = :erlang.system_info(:process_count)
+    {_, memory_bytes} = :erlang.memory() |> List.keyfind(:total, 0)
+    run_queue = :erlang.statistics(:total_run_queue_lengths_all)
+
+    :telemetry.execute(
+      [:blackboex, :beam, :stats],
+      %{
+        process_count: process_count,
+        memory_bytes: memory_bytes,
+        run_queue_length: run_queue
+      },
+      %{}
+    )
+  rescue
+    error ->
+      require Logger
+      Logger.warning("BEAM stats measurement failed: #{Exception.message(error)}")
+      :ok
   end
 end

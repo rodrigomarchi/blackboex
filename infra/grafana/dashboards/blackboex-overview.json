@@ -1,0 +1,87 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "title": "Request Rate",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "rate(blackboex_web_prom_ex_phoenix_http_requests_total[5m])",
+          "legendFormat": "{{method}} {{status}}",
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        }
+      ]
+    },
+    {
+      "title": "Error Rate",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(rate(blackboex_web_prom_ex_phoenix_http_requests_total{status=~\"5..\"}[5m])) / sum(rate(blackboex_web_prom_ex_phoenix_http_requests_total[5m])) * 100",
+          "legendFormat": "Error %",
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percent", "thresholds": { "steps": [{ "value": 0, "color": "green" }, { "value": 5, "color": "yellow" }, { "value": 10, "color": "red" }] } } }
+    },
+    {
+      "title": "Latency P50 / P95 / P99",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 0 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.5, rate(blackboex_web_prom_ex_phoenix_http_request_duration_milliseconds_bucket[5m]))",
+          "legendFormat": "P50",
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "expr": "histogram_quantile(0.95, rate(blackboex_web_prom_ex_phoenix_http_request_duration_milliseconds_bucket[5m]))",
+          "legendFormat": "P95",
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "expr": "histogram_quantile(0.99, rate(blackboex_web_prom_ex_phoenix_http_request_duration_milliseconds_bucket[5m]))",
+          "legendFormat": "P99",
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ms" } }
+    },
+    {
+      "title": "API Invocations",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "rate(blackboex_web_prom_ex_api_invocations_total[5m])",
+          "legendFormat": "{{api_id}}",
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        }
+      ]
+    },
+    {
+      "title": "LLM Requests",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        {
+          "expr": "rate(blackboex_web_prom_ex_llm_requests_total[5m])",
+          "legendFormat": "{{provider}}/{{model}}",
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["blackboex"],
+  "templating": { "list": [] },
+  "time": { "from": "now-1h", "to": "now" },
+  "title": "BlackBoex Overview",
+  "uid": "blackboex-overview"
+}

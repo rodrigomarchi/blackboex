@@ -7,7 +7,14 @@ defmodule BlackboexWeb.Application do
 
   @impl true
   def start(_type, _args) do
+    # OpenTelemetry instrumentation MUST be set up before the supervision tree starts
+    OpentelemetryBandit.setup()
+    OpentelemetryPhoenix.setup(adapter: :bandit)
+    OpentelemetryEcto.setup([:blackboex, :repo], db_statement: :enabled)
+    :ok = OpentelemetryLoggerMetadata.setup()
+
     children = [
+      BlackboexWeb.PromEx,
       BlackboexWeb.Telemetry,
       {BlackboexWeb.RateLimiterBackend, clean_period: :timer.minutes(10)},
       # Start to serve requests, typically the last entry

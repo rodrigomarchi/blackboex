@@ -6,7 +6,8 @@
        clean clean.deps clean.build clean.all \
        deps.tree deps.update deps.unlock \
        db.setup db.create db.migrate db.rollback db.reset db.seed db.gen.migration \
-       docker.up docker.down docker.ps docker.logs docker.reset docker.stop
+       docker.up docker.down docker.ps docker.logs docker.reset docker.stop \
+       observability observability.down
 
 DOMAIN_APP = apps/blackboex
 WEB_APP    = apps/blackboex_web
@@ -33,6 +34,13 @@ docker.logs: ## Tail PostgreSQL container logs
 
 docker.reset: ## Destroy containers and volumes (fresh start)
 	docker compose down -v
+
+# ── Observability ─────────────────────────────────────────────────────
+observability: ## Start observability stack (Prometheus, Grafana, Loki, Tempo)
+	docker compose -f docker-compose.observability.yml up -d
+
+observability.down: ## Stop observability stack
+	docker compose -f docker-compose.observability.yml down
 
 # ── Setup ──────────────────────────────────────────────────────────────
 setup: docker.up deps db.setup ## First-time project setup (docker + deps + db + assets)

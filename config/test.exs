@@ -52,3 +52,6 @@ config :blackboex, :stripe_client, Blackboex.Billing.StripeClientMock
 
 # FunWithFlags: disable ETS cache in tests for determinism
 config :fun_with_flags, :cache, enabled: false
+
+# OpenTelemetry: disable export in tests
+config :opentelemetry, traces_exporter: :none

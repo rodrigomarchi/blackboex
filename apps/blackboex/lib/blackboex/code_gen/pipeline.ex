@@ -5,11 +5,13 @@ defmodule Blackboex.CodeGen.Pipeline do
   """
 
   require Logger
+  require OpenTelemetry.Tracer, as: Tracer
 
   alias Blackboex.Billing.Enforcement
   alias Blackboex.CodeGen.GenerationResult
   alias Blackboex.LLM.{Config, Prompts}
   alias Blackboex.Organizations
+  alias Blackboex.Telemetry.Events
 
   @crud_keywords ~w(crud store database banco armazenar listar persist persistir save salvar)
   @webhook_keywords ~w(webhook receive callback receber notificacao notificação)
@@ -35,6 +37,12 @@ defmodule Blackboex.CodeGen.Pipeline do
   end
 
   defp do_generate(description, opts) do
+    Tracer.with_span "blackboex.codegen.generate" do
+      do_generate_inner(description, opts)
+    end
+  end
+
+  defp do_generate_inner(description, opts) do
     client = Config.client()
     provider = Config.default_provider()
     start_time = System.monotonic_time(:millisecond)
@@ -49,6 +57,27 @@ defmodule Blackboex.CodeGen.Pipeline do
           {:ok, code} ->
             duration_ms = System.monotonic_time(:millisecond) - start_time
             total_tokens = Map.get(usage, :input_tokens, 0) + Map.get(usage, :output_tokens, 0)
+
+            Tracer.set_attributes([
+              {"blackboex.template_type", to_string(template)},
+              {"blackboex.description_length", String.length(description)},
+              {"gen_ai.usage.input_tokens", Map.get(usage, :input_tokens, 0)},
+              {"gen_ai.usage.output_tokens", Map.get(usage, :output_tokens, 0)}
+            ])
+
+            Events.emit_llm_call(%{
+              duration_ms: duration_ms,
+              input_tokens: Map.get(usage, :input_tokens, 0),
+              output_tokens: Map.get(usage, :output_tokens, 0),
+              provider: to_string(provider.name),
+              model: provider.model
+            })
+
+            Events.emit_codegen(%{
+              duration_ms: duration_ms,
+              template_type: template,
+              description_length: String.length(description)
+            })
 
             {:ok,
              %GenerationResult{

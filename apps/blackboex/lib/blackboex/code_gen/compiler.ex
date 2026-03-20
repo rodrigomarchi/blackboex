@@ -9,21 +9,44 @@ defmodule Blackboex.CodeGen.Compiler do
   alias Blackboex.Apis.Api
   alias Blackboex.CodeGen.ASTValidator
   alias Blackboex.CodeGen.ModuleBuilder
+  alias Blackboex.Telemetry.Events
 
   require Logger
+  require OpenTelemetry.Tracer, as: Tracer
 
   @spec compile(Api.t(), String.t()) ::
           {:ok, module()} | {:error, {:validation, [String.t()]} | {:compilation, term()}}
   def compile(%Api{} = api, source_code) do
-    module_name = module_name_for(api)
-    template_type = String.to_atom(api.template_type)
+    Tracer.with_span "blackboex.codegen.compile" do
+      start_time = System.monotonic_time(:millisecond)
+      module_name = module_name_for(api)
+      template_type = String.to_atom(api.template_type)
 
-    with :ok <- check_handler_style(source_code),
-         {:ok, _ast} <- validate(source_code),
-         {:ok, full_code} <- ModuleBuilder.build_module(module_name, source_code, template_type),
-         {:ok, full_ast} <- validate_full(full_code),
-         {:ok, module} <- do_compile(module_name, full_ast) do
-      {:ok, module}
+      result =
+        with :ok <- check_handler_style(source_code),
+             {:ok, _ast} <- validate(source_code),
+             {:ok, full_code} <-
+               ModuleBuilder.build_module(module_name, source_code, template_type),
+             {:ok, full_ast} <- validate_full(full_code),
+             {:ok, module} <- do_compile(module_name, full_ast) do
+          {:ok, module}
+        end
+
+      duration_ms = System.monotonic_time(:millisecond) - start_time
+      success = match?({:ok, _}, result)
+
+      Tracer.set_attributes([
+        {"blackboex.api_id", api.id},
+        {"blackboex.success", success}
+      ])
+
+      Events.emit_compile(%{
+        duration_ms: duration_ms,
+        api_id: api.id,
+        success: success
+      })
+
+      result
     end
   end
 

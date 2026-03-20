@@ -14,6 +14,7 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
   alias Blackboex.Apis.Registry
   alias Blackboex.Billing.Enforcement
   alias Blackboex.CodeGen.Compiler
+  alias Blackboex.Telemetry.Events
   alias BlackboexWeb.Plugs.ApiAuth
   alias BlackboexWeb.Plugs.ApiDocsPlug
   alias BlackboexWeb.Plugs.RateLimiter
@@ -238,6 +239,13 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
   end
 
   defp log_request(conn, result_conn, metadata, duration_ms) do
+    Events.emit_api_request(%{
+      duration_ms: duration_ms,
+      api_id: metadata.api_id,
+      method: conn.method,
+      status_code: result_conn.status
+    })
+
     ip = conn.remote_ip |> :inet.ntoa() |> to_string()
 
     Analytics.log_invocation(%{

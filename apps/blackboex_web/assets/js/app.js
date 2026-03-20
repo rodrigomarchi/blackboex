@@ -24,7 +24,7 @@ import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 import {hooks as colocatedHooks} from "phoenix-colocated/blackboex_web"
 import { CodeEditorHook } from "live_monaco_editor/priv/static/live_monaco_editor.esm"
-import { Hooks as BackpexHooks } from "backpex/priv/static/js/backpex.esm"
+import { Hooks as BackpexHooks } from "backpex"
 import topbar from "../vendor/topbar"
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")

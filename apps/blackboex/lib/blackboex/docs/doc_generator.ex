@@ -10,7 +10,7 @@ defmodule Blackboex.Docs.DocGenerator do
   alias Blackboex.Docs.OpenApiGenerator
   alias Blackboex.LLM.Config
 
-  @spec generate(Api.t(), keyword()) :: {:ok, String.t()} | {:error, term()}
+  @spec generate(Api.t(), keyword()) :: {:ok, %{doc: String.t(), usage: map()}} | {:error, term()}
   def generate(%Api{} = api, opts \\ []) do
     openapi_spec = OpenApiGenerator.generate(api, opts)
     prompt = DocPrompts.build_doc_prompt(api, openapi_spec)
@@ -18,8 +18,8 @@ defmodule Blackboex.Docs.DocGenerator do
     client = Keyword.get_lazy(opts, :client, &Config.client/0)
 
     case client.generate_text(prompt, system: system) do
-      {:ok, %{content: content}} ->
-        {:ok, String.trim(content)}
+      {:ok, %{content: content} = response} ->
+        {:ok, %{doc: String.trim(content), usage: Map.get(response, :usage, %{})}}
 
       {:error, reason} ->
         Logger.warning("Doc generation failed: #{inspect(reason)}")

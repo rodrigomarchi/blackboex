@@ -1,15 +1,19 @@
 defmodule BlackboexWeb.ApiLive.New do
   @moduledoc """
   LiveView for creating a new API from a natural language description.
-  Generates code via LLM (in async Task) and allows saving as a draft.
+  Generates code via LLM (streaming to UI) and allows saving as a draft.
   """
 
   use BlackboexWeb, :live_view
 
+  require Logger
+
   alias Blackboex.Apis
-  alias Blackboex.CodeGen.Pipeline
+  alias Blackboex.Billing.Enforcement
+  alias Blackboex.CodeGen.{GenerationResult, Pipeline}
   alias Blackboex.LLM
-  alias Blackboex.LLM.RateLimiter
+  alias Blackboex.LLM.{Config, Prompts, RateLimiter, StreamHandler}
+  alias Blackboex.Telemetry.Events
 
   @max_description_length 10_000
 
@@ -22,9 +26,11 @@ defmodule BlackboexWeb.ApiLive.New do
        generated_code: nil,
        generation_result: nil,
        generating: false,
+       streaming_tokens: "",
        error: nil,
+       show_billing_link: false,
        save_form: to_form(%{"name" => "", "slug" => ""}),
-       task_ref: nil
+       generation_meta: nil
      )}
   end
 
@@ -68,7 +74,21 @@ defmodule BlackboexWeb.ApiLive.New do
 
         <%= if @error do %>
           <div class="rounded-lg border border-destructive bg-destructive/10 p-4 text-sm text-destructive">
-            {@error}
+            <p>{@error}</p>
+            <%= if @show_billing_link do %>
+              <.link navigate={~p"/billing"} class="mt-2 inline-block font-medium underline">
+                Upgrade your plan
+              </.link>
+            <% end %>
+          </div>
+        <% end %>
+
+        <%= if @generating && @streaming_tokens != "" do %>
+          <div class="rounded-lg border bg-card p-6 text-card-foreground shadow-sm space-y-4">
+            <h2 class="text-lg font-semibold flex items-center gap-2">
+              <.icon name="hero-arrow-path" class="size-4 animate-spin" /> Generating code...
+            </h2>
+            <pre class="overflow-x-auto rounded-md bg-muted p-4 text-sm"><code>{@streaming_tokens}</code></pre>
           </div>
         <% end %>
 
@@ -151,7 +171,7 @@ defmodule BlackboexWeb.ApiLive.New do
            slug: slug,
            description: socket.assigns.description,
            source_code: socket.assigns.generated_code,
-           template_type: to_string(Pipeline.classify_type(socket.assigns.description)),
+           template_type: to_string(socket.assigns.generation_result.template),
            organization_id: org.id,
            user_id: user.id
          }) do
@@ -169,39 +189,69 @@ defmodule BlackboexWeb.ApiLive.New do
     end
   end
 
-  @impl true
-  def handle_info({ref, {:ok, result}}, %{assigns: %{task_ref: ref}} = socket) do
-    Process.demonitor(ref, [:flush])
+  # --- Streaming handlers ---
 
-    {:noreply,
-     assign(socket,
-       generating: false,
-       generated_code: result.code,
-       generation_result: result,
-       save_form: to_form(%{"name" => "", "slug" => ""}),
-       task_ref: nil
-     )}
+  @impl true
+  def handle_info({:llm_token, token}, %{assigns: %{generating: true}} = socket) do
+    {:noreply, assign(socket, streaming_tokens: socket.assigns.streaming_tokens <> token)}
   end
 
   @impl true
-  def handle_info({ref, {:error, reason}}, %{assigns: %{task_ref: ref}} = socket) do
-    Process.demonitor(ref, [:flush])
+  def handle_info({:llm_done, full_response}, %{assigns: %{generating: true}} = socket) do
+    meta = socket.assigns.generation_meta
 
-    {:noreply,
-     assign(socket,
-       generating: false,
-       error: "Generation failed: #{reason}",
-       task_ref: nil
-     )}
+    case Pipeline.extract_code(full_response) do
+      {:ok, code} ->
+        duration_ms = System.monotonic_time(:millisecond) - meta.start_time
+
+        Events.emit_codegen(%{
+          duration_ms: duration_ms,
+          template_type: meta.template,
+          description_length: String.length(socket.assigns.description)
+        })
+
+        result = %GenerationResult{
+          code: code,
+          template: meta.template,
+          description: socket.assigns.description,
+          provider: meta.provider,
+          model: meta.model,
+          tokens_used: String.length(full_response),
+          output_tokens: String.length(full_response),
+          duration_ms: duration_ms
+        }
+
+        {:noreply,
+         assign(socket,
+           generating: false,
+           generated_code: code,
+           generation_result: result,
+           streaming_tokens: "",
+           save_form: to_form(%{"name" => "", "slug" => ""}),
+           generation_meta: nil
+         )}
+
+      {:error, _} ->
+        {:noreply,
+         assign(socket,
+           generating: false,
+           error: "Could not extract code from LLM response. Please try again.",
+           streaming_tokens: "",
+           generation_meta: nil
+         )}
+    end
   end
 
   @impl true
-  def handle_info({:DOWN, ref, :process, _pid, _reason}, %{assigns: %{task_ref: ref}} = socket) do
+  def handle_info({:llm_error, reason}, %{assigns: %{generating: true}} = socket) do
+    Logger.warning("LLM streaming error: #{inspect(reason)}")
+
     {:noreply,
      assign(socket,
        generating: false,
-       error: "Generation process crashed unexpectedly. Please try again.",
-       task_ref: nil
+       error: "Generation failed. Please try again.",
+       streaming_tokens: "",
+       generation_meta: nil
      )}
   end
 
@@ -210,30 +260,70 @@ defmodule BlackboexWeb.ApiLive.New do
     {:noreply, socket}
   end
 
+  # --- Private ---
+
   defp start_generation(socket, description) do
     scope = socket.assigns.current_scope
-    plan = (scope.organization && scope.organization.plan) || :free
+    org = scope.organization
+    plan = (org && org.plan) || :free
 
-    case RateLimiter.check_rate(to_string(scope.user.id), plan) do
-      :ok ->
-        task = Task.async(fn -> Pipeline.generate(description, user_id: scope.user.id) end)
-
-        {:noreply,
-         assign(socket,
-           generating: true,
-           error: nil,
-           description: description,
-           generated_code: nil,
-           generation_result: nil,
-           task_ref: task.ref
-         )}
-
+    with :ok <- check_rate_limit(scope, plan),
+         :ok <- check_billing_limit(org) do
+      start_streaming(socket, description)
+    else
       {:error, :rate_limited} ->
         {:noreply,
          assign(socket,
-           error: "Rate limit exceeded. Please wait before generating again."
+           error: "Rate limit exceeded. Please wait before generating again.",
+           show_billing_link: false
+         )}
+
+      {:error, :limit_exceeded, details} ->
+        {:noreply,
+         assign(socket,
+           error:
+             "You've reached the #{details.plan} plan limit of #{details.limit} LLM generations per month.",
+           show_billing_link: true
          )}
     end
+  end
+
+  defp check_rate_limit(scope, plan) do
+    RateLimiter.check_rate(to_string(scope.user.id), plan)
+  end
+
+  defp check_billing_limit(org) do
+    case Enforcement.check_limit(org, :llm_generation) do
+      {:ok, _remaining} -> :ok
+      {:error, :limit_exceeded, details} -> {:error, :limit_exceeded, details}
+    end
+  end
+
+  defp start_streaming(socket, description) do
+    template = Pipeline.classify_type(description)
+    provider = Config.default_provider()
+    prompt = Prompts.build_generation_prompt(description, template)
+    system = Prompts.system_prompt()
+
+    {:ok, _pid} =
+      StreamHandler.start(self(), prompt, model: provider.model, system: system)
+
+    {:noreply,
+     assign(socket,
+       generating: true,
+       error: nil,
+       show_billing_link: false,
+       description: description,
+       generated_code: nil,
+       generation_result: nil,
+       streaming_tokens: "",
+       generation_meta: %{
+         template: template,
+         provider: to_string(provider.name),
+         model: provider.model,
+         start_time: System.monotonic_time(:millisecond)
+       }
+     )}
   end
 
   defp maybe_record_usage(socket) do
@@ -249,8 +339,8 @@ defmodule BlackboexWeb.ApiLive.New do
           organization_id: scope.organization.id,
           provider: result.provider,
           model: result.model || "unknown",
-          input_tokens: result.tokens_used,
-          output_tokens: 0,
+          input_tokens: max(result.tokens_used - result.output_tokens, 0),
+          output_tokens: result.output_tokens,
           cost_cents: 0,
           operation: "code_generation",
           duration_ms: result.duration_ms

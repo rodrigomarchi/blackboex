@@ -87,6 +87,7 @@ defmodule Blackboex.CodeGen.Pipeline do
                provider: to_string(provider.name),
                model: provider.model,
                tokens_used: total_tokens,
+               output_tokens: Map.get(usage, :output_tokens, 0),
                duration_ms: duration_ms
              }}
 

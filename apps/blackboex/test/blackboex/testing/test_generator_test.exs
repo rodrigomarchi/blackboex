@@ -75,7 +75,7 @@ defmodule Blackboex.Testing.TestGeneratorTest do
         {:ok, %{content: @valid_test_code, usage: %{}}}
       end)
 
-      assert {:ok, code} = TestGenerator.generate_tests(@test_api)
+      assert {:ok, %{code: code, usage: _usage}} = TestGenerator.generate_tests(@test_api)
       assert String.contains?(code, "defmodule")
       assert String.contains?(code, "use ExUnit.Case")
       assert String.contains?(code, "test ")
@@ -101,7 +101,7 @@ defmodule Blackboex.Testing.TestGeneratorTest do
         {:ok, %{content: @valid_test_code, usage: %{}}}
       end)
 
-      assert {:ok, code} = TestGenerator.generate_tests(@test_api)
+      assert {:ok, %{code: code}} = TestGenerator.generate_tests(@test_api)
       assert String.contains?(code, "defmodule")
     end
 

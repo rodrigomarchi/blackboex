@@ -14,6 +14,7 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
   alias Blackboex.Apis.Registry
   alias Blackboex.Billing.Enforcement
   alias Blackboex.CodeGen.Compiler
+  alias Blackboex.CodeGen.Sandbox
   alias Blackboex.Telemetry.Events
   alias BlackboexWeb.Plugs.ApiAuth
   alias BlackboexWeb.Plugs.ApiDocsPlug
@@ -207,9 +208,19 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
           visibility: api.visibility
         )
       rescue
-        _ -> :ok
+        error ->
+          Logger.warning(
+            "Registry.register failed for #{org_slug}/#{api_slug}: #{Exception.message(error)}"
+          )
+
+          :ok
       catch
-        :exit, _ -> :ok
+        :exit, reason ->
+          Logger.warning(
+            "Registry.register exited for #{org_slug}/#{api_slug}: #{inspect(reason)}"
+          )
+
+          :ok
       end
 
       Logger.info("Compiled API on-demand: #{org_slug}/#{api_slug}")
@@ -224,17 +235,25 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
   defp execute_module(conn, module, rest) do
     conn = %{conn | path_info: rest, script_name: conn.script_name}
 
-    old_heap = Process.flag(:max_heap_size, %{size: 10_000_000, kill: false, error_logger: true})
+    case Sandbox.execute_plug(module, conn, timeout: 30_000) do
+      {:ok, result_conn} ->
+        result_conn
 
-    try do
-      plug_opts = module.init([])
-      module.call(conn, plug_opts)
-    rescue
-      error ->
-        Logger.error("API execution error: #{Exception.message(error)}")
+      {:error, :timeout} ->
+        Logger.warning("API execution timeout: #{inspect(module)}")
+        send_json(conn, 504, %{error: "API execution timed out"})
+
+      {:error, :memory_exceeded} ->
+        Logger.warning("API execution memory exceeded: #{inspect(module)}")
+        send_json(conn, 503, %{error: "API execution exceeded memory limit"})
+
+      {:error, {:exception, message}} ->
+        Logger.error("API execution error: #{message}")
         send_json(conn, 500, %{error: "API execution failed"})
-    after
-      Process.flag(:max_heap_size, old_heap)
+
+      {:error, {:runtime, _reason}} ->
+        Logger.error("API runtime error: #{inspect(module)}")
+        send_json(conn, 500, %{error: "API execution failed"})
     end
   end
 

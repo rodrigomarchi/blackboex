@@ -36,20 +36,13 @@ defmodule BlackboexWeb.ApiLive.NewTest do
     end
 
     test "shows preview area after generation", %{conn: conn} do
-      Blackboex.LLM.ClientMock
-      |> expect(:generate_text, fn _prompt, _opts ->
-        {:ok,
-         %{
-           content: """
-           ```elixir
-           def call(conn, %{"celsius" => c}) do
-             json(conn, %{fahrenheit: c * 9 / 5 + 32})
-           end
-           ```
-           """,
-           usage: %{input_tokens: 50, output_tokens: 100}
-         }}
-      end)
+      mock_stream_text("""
+      ```elixir
+      def call(conn, %{"celsius" => c}) do
+        json(conn, %{fahrenheit: c * 9 / 5 + 32})
+      end
+      ```
+      """)
 
       {:ok, view, _html} = live(conn, ~p"/apis/new")
 
@@ -57,7 +50,6 @@ defmodule BlackboexWeb.ApiLive.NewTest do
       |> form("#generate-form", %{description: "Convert Celsius to Fahrenheit"})
       |> render_submit()
 
-      # Wait for the async Task to complete
       wait_for_generation(view)
 
       html = render(view)
@@ -66,14 +58,7 @@ defmodule BlackboexWeb.ApiLive.NewTest do
     end
 
     test "shows name/slug fields after generation", %{conn: conn} do
-      Blackboex.LLM.ClientMock
-      |> expect(:generate_text, fn _prompt, _opts ->
-        {:ok,
-         %{
-           content: "```elixir\ndef call(conn, params), do: json(conn, %{ok: true})\n```",
-           usage: %{input_tokens: 10, output_tokens: 20}
-         }}
-      end)
+      mock_stream_text("```elixir\ndef call(conn, params), do: json(conn, %{ok: true})\n```")
 
       {:ok, view, _html} = live(conn, ~p"/apis/new")
 
@@ -91,7 +76,7 @@ defmodule BlackboexWeb.ApiLive.NewTest do
     @tag :capture_log
     test "shows error when generation fails", %{conn: conn} do
       Blackboex.LLM.ClientMock
-      |> expect(:generate_text, fn _prompt, _opts ->
+      |> expect(:stream_text, fn _prompt, _opts ->
         {:error, :api_error}
       end)
 
@@ -108,14 +93,7 @@ defmodule BlackboexWeb.ApiLive.NewTest do
     end
 
     test "saves generated API as draft", %{conn: conn} do
-      Blackboex.LLM.ClientMock
-      |> expect(:generate_text, fn _prompt, _opts ->
-        {:ok,
-         %{
-           content: "```elixir\ndef call(conn, p), do: json(conn, p)\n```",
-           usage: %{input_tokens: 10, output_tokens: 20}
-         }}
-      end)
+      mock_stream_text("```elixir\ndef call(conn, p), do: json(conn, p)\n```")
 
       {:ok, view, _html} = live(conn, ~p"/apis/new")
 
@@ -134,14 +112,7 @@ defmodule BlackboexWeb.ApiLive.NewTest do
     end
 
     test "shows validation error on save with empty name", %{conn: conn} do
-      Blackboex.LLM.ClientMock
-      |> expect(:generate_text, fn _prompt, _opts ->
-        {:ok,
-         %{
-           content: "```elixir\ndef call(conn, p), do: json(conn, p)\n```",
-           usage: %{input_tokens: 10, output_tokens: 20}
-         }}
-      end)
+      mock_stream_text("```elixir\ndef call(conn, p), do: json(conn, p)\n```")
 
       {:ok, view, _html} = live(conn, ~p"/apis/new")
 
@@ -161,8 +132,15 @@ defmodule BlackboexWeb.ApiLive.NewTest do
     end
   end
 
+  defp mock_stream_text(content) do
+    Blackboex.LLM.ClientMock
+    |> expect(:stream_text, fn _prompt, _opts ->
+      {:ok, [{:token, content}]}
+    end)
+  end
+
   defp wait_for_generation(view) do
-    # Allow the async Task to complete and send result back to LiveView
+    # Allow the streaming Task to complete and send result back to LiveView
     Process.sleep(150)
     render(view)
   end

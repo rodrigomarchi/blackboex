@@ -9,6 +9,7 @@ defmodule Blackboex.CodeGen.GenerationResult do
           description: String.t(),
           provider: String.t(),
           tokens_used: non_neg_integer(),
+          output_tokens: non_neg_integer(),
           duration_ms: non_neg_integer(),
           method: String.t(),
           model: String.t(),
@@ -28,6 +29,7 @@ defmodule Blackboex.CodeGen.GenerationResult do
     :example_request,
     :example_response,
     :param_schema,
+    output_tokens: 0,
     duration_ms: 0,
     method: "POST"
   ]

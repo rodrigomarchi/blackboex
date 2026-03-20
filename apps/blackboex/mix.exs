@@ -57,6 +57,7 @@ defmodule Blackboex.MixProject do
       {:opentelemetry_api, "~> 1.5"},
       {:opentelemetry_ecto, "~> 1.2"},
       {:logger_json, "~> 7.0"},
+      {:open_api_spex, "~> 3.22"},
       {:ex_json_schema, "~> 0.11"},
       {:ymlr, "~> 5.1"},
       {:mox, "~> 1.0", only: :test},

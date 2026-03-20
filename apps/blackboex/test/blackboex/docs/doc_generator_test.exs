@@ -71,7 +71,7 @@ defmodule Blackboex.Docs.DocGeneratorTest do
         {:ok, %{content: @valid_markdown, usage: %{}}}
       end)
 
-      assert {:ok, markdown} = DocGenerator.generate(@test_api)
+      assert {:ok, %{doc: markdown, usage: _usage}} = DocGenerator.generate(@test_api)
       assert is_binary(markdown)
       assert String.contains?(markdown, "Calculator")
     end

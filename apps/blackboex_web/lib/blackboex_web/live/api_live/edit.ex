@@ -13,8 +13,10 @@ defmodule BlackboexWeb.ApiLive.Edit do
   alias Blackboex.Apis.DiffEngine
   alias Blackboex.Apis.Keys
   alias Blackboex.Apis.Registry
+  alias Blackboex.Billing.Enforcement
   alias Blackboex.CodeGen.Compiler
   alias Blackboex.Docs.DocGenerator
+  alias Blackboex.LLM
   alias Blackboex.LLM.Config
   alias Blackboex.LLM.EditPrompts
   alias Blackboex.Testing
@@ -187,7 +189,11 @@ defmodule BlackboexWeb.ApiLive.Edit do
 
           <%!-- Test Panel (50%) — shown when Test tab active --%>
           <%= if @tab == "test" do %>
-            <div class="col-span-6 space-y-4">
+            <div
+              class="col-span-6 space-y-4"
+              phx-window-keydown="keyboard_shortcut"
+              phx-key="Enter"
+            >
               <.live_component
                 module={BlackboexWeb.Components.RequestBuilder}
                 id="request-builder"
@@ -980,6 +986,19 @@ defmodule BlackboexWeb.ApiLive.Edit do
   end
 
   @impl true
+  def handle_event("keyboard_shortcut", %{"key" => "Enter", "ctrlKey" => true}, socket) do
+    handle_event("send_request", %{}, socket)
+  end
+
+  def handle_event("keyboard_shortcut", %{"key" => "Enter", "metaKey" => true}, socket) do
+    handle_event("send_request", %{}, socket)
+  end
+
+  def handle_event("keyboard_shortcut", _params, socket) do
+    {:noreply, socket}
+  end
+
+  @impl true
   def handle_event("send_request", _params, %{assigns: %{test_loading: true}} = socket) do
     {:noreply, socket}
   end
@@ -1189,9 +1208,17 @@ defmodule BlackboexWeb.ApiLive.Edit do
 
   @impl true
   def handle_event("generate_tests", _params, socket) do
-    api = socket.assigns.api
-    task = Task.async(fn -> TestGenerator.generate_tests(api) end)
-    {:noreply, assign(socket, test_generating: true, test_gen_ref: task.ref)}
+    org = socket.assigns.org
+
+    case Enforcement.check_limit(org, :llm_generation) do
+      {:ok, _remaining} ->
+        api = socket.assigns.api
+        task = Task.async(fn -> TestGenerator.generate_tests(api) end)
+        {:noreply, assign(socket, test_generating: true, test_gen_ref: task.ref)}
+
+      {:error, :limit_exceeded, _details} ->
+        {:noreply, put_flash(socket, :error, "LLM generation limit reached. Upgrade your plan.")}
+    end
   end
 
   @impl true
@@ -1229,14 +1256,34 @@ defmodule BlackboexWeb.ApiLive.Edit do
 
   @impl true
   def handle_event("generate_docs", _params, socket) do
-    api = socket.assigns.api
-    task = Task.async(fn -> DocGenerator.generate(api) end)
-    {:noreply, assign(socket, doc_generating: true, doc_gen_ref: task.ref)}
+    org = socket.assigns.org
+
+    case Enforcement.check_limit(org, :llm_generation) do
+      {:ok, _remaining} ->
+        api = socket.assigns.api
+        task = Task.async(fn -> DocGenerator.generate(api) end)
+        {:noreply, assign(socket, doc_generating: true, doc_gen_ref: task.ref)}
+
+      {:error, :limit_exceeded, _details} ->
+        {:noreply, put_flash(socket, :error, "LLM generation limit reached. Upgrade your plan.")}
+    end
   end
 
   # --- Helpers ---
 
   defp do_chat_request(socket, conversation, message) do
+    org = socket.assigns.org
+
+    case Enforcement.check_limit(org, :llm_generation) do
+      {:ok, _remaining} ->
+        do_chat_llm_call(socket, conversation, message)
+
+      {:error, :limit_exceeded, _details} ->
+        {:noreply, put_flash(socket, :error, "LLM generation limit reached. Upgrade your plan.")}
+    end
+  end
+
+  defp do_chat_llm_call(socket, conversation, message) do
     socket =
       socket
       |> assign(
@@ -1254,7 +1301,8 @@ defmodule BlackboexWeb.ApiLive.Edit do
       )
 
     case Config.client().generate_text(prompt, system: EditPrompts.system_prompt()) do
-      {:ok, %{content: response}} ->
+      {:ok, %{content: response} = llm_response} ->
+        record_chat_usage(socket, llm_response)
         handle_llm_response(socket, conversation, response, message)
 
       {:error, reason} ->
@@ -1272,6 +1320,25 @@ defmodule BlackboexWeb.ApiLive.Edit do
            chat_loading: false
          )}
     end
+  end
+
+  defp record_chat_usage(socket, llm_response) do
+    scope = socket.assigns.current_scope
+    usage = Map.get(llm_response, :usage, %{})
+    provider = Config.default_provider()
+
+    LLM.record_usage(%{
+      user_id: scope.user.id,
+      organization_id: socket.assigns.org.id,
+      provider: to_string(provider.name),
+      model: provider.model,
+      input_tokens: Map.get(usage, :input_tokens, 0),
+      output_tokens: Map.get(usage, :output_tokens, 0),
+      cost_cents: 0,
+      operation: "chat_edit",
+      api_id: socket.assigns.api.id,
+      duration_ms: 0
+    })
   end
 
   defp save_version(socket, compile?) do
@@ -1428,8 +1495,12 @@ defmodule BlackboexWeb.ApiLive.Edit do
   end
 
   @impl true
-  def handle_info({ref, {:ok, test_code}}, %{assigns: %{test_gen_ref: ref}} = socket) do
+  def handle_info(
+        {ref, {:ok, %{code: test_code, usage: usage}}},
+        %{assigns: %{test_gen_ref: ref}} = socket
+      ) do
     Process.demonitor(ref, [:flush])
+    record_generation_usage(socket, "test_generation", usage)
 
     {:noreply,
      socket
@@ -1519,9 +1590,12 @@ defmodule BlackboexWeb.ApiLive.Edit do
   end
 
   @impl true
-  def handle_info({ref, {:ok, markdown}}, %{assigns: %{doc_gen_ref: ref}} = socket)
-      when is_binary(markdown) do
+  def handle_info(
+        {ref, {:ok, %{doc: markdown, usage: usage}}},
+        %{assigns: %{doc_gen_ref: ref}} = socket
+      ) do
     Process.demonitor(ref, [:flush])
+    record_generation_usage(socket, "doc_generation", usage)
 
     case Apis.update_api(socket.assigns.api, %{documentation_md: markdown}) do
       {:ok, updated_api} ->
@@ -1567,6 +1641,24 @@ defmodule BlackboexWeb.ApiLive.Edit do
   @impl true
   def handle_info({:DOWN, ref, :process, _pid, _reason}, %{assigns: %{doc_gen_ref: ref}} = socket) do
     {:noreply, assign(socket, doc_generating: false, doc_gen_ref: nil)}
+  end
+
+  defp record_generation_usage(socket, operation, usage) do
+    scope = socket.assigns.current_scope
+    provider = Config.default_provider()
+
+    LLM.record_usage(%{
+      user_id: scope.user.id,
+      organization_id: socket.assigns.org.id,
+      provider: to_string(provider.name),
+      model: provider.model,
+      input_tokens: Map.get(usage, :input_tokens, 0),
+      output_tokens: Map.get(usage, :output_tokens, 0),
+      cost_cents: 0,
+      operation: operation,
+      api_id: socket.assigns.api.id,
+      duration_ms: 0
+    })
   end
 
   defp lazy_load_tab(socket, "test") when not socket.assigns.history_loaded do

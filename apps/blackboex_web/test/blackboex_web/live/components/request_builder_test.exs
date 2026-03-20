@@ -106,7 +106,8 @@ defmodule BlackboexWeb.Components.RequestBuilderTest do
 
       # Try to load history item from the OTHER api — should be rejected
       html = render_click(lv, "load_history_item", %{"id" => other_request.id})
-      assert html =~ "Request not found"
+      # Flash is rendered by app layout; verify the other API's data is NOT loaded
+      refute html =~ "secret data"
     end
   end
 

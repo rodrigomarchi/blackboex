@@ -1,9 +1,9 @@
 defmodule BlackboexWeb.PageControllerTest do
   use BlackboexWeb.ConnCase
 
-  test "GET / redirects to login when not authenticated", %{conn: conn} do
+  test "GET / renders landing page when not authenticated", %{conn: conn} do
     conn = get(conn, ~p"/")
-    assert redirected_to(conn) == "/users/log-in"
+    assert html_response(conn, 200) =~ "Describe it. We build the API."
   end
 
   test "GET / redirects to dashboard when authenticated", %{conn: conn} do

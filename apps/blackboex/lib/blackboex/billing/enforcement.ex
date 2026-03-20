@@ -90,6 +90,41 @@ defmodule Blackboex.Billing.Enforcement do
     Map.fetch!(@limits, plan)
   end
 
+  @spec get_usage_details(Organization.t()) :: %{
+          plan: atom(),
+          apis: %{used: non_neg_integer(), limit: non_neg_integer() | :unlimited, pct: float()},
+          invocations_today: %{
+            used: non_neg_integer(),
+            limit: non_neg_integer() | :unlimited,
+            pct: float()
+          },
+          llm_generations_month: %{
+            used: non_neg_integer(),
+            limit: non_neg_integer() | :unlimited,
+            pct: float()
+          }
+        }
+  def get_usage_details(%Organization{} = org) do
+    plan = effective_plan(org)
+    limits = get_limits(plan)
+
+    api_count = count_apis(org.id)
+    invocations = Billing.count_usage_events_today(org.id, "api_invocation")
+    llm_gens = Billing.sum_monthly_usage(org.id, "llm_generation")
+
+    %{
+      plan: plan,
+      apis: usage_detail(api_count, limits.max_apis),
+      invocations_today: usage_detail(invocations, limits.max_invocations_per_day),
+      llm_generations_month: usage_detail(llm_gens, limits.max_llm_generations_per_month)
+    }
+  end
+
+  defp usage_detail(used, :unlimited), do: %{used: used, limit: :unlimited, pct: 0.0}
+
+  defp usage_detail(used, limit),
+    do: %{used: used, limit: limit, pct: Float.round(used / max(limit, 1) * 100, 1)}
+
   defp check(current, max, _plan) when current < max do
     {:ok, max - current}
   end

@@ -86,6 +86,7 @@ defmodule BlackboexWeb do
       import Phoenix.HTML
       # Core UI components
       import BlackboexWeb.CoreComponents
+      import BlackboexWeb.Logo
 
       # Common modules used in templates
       alias BlackboexWeb.Layouts

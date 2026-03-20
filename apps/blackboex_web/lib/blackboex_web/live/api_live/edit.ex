@@ -98,7 +98,8 @@ defmodule BlackboexWeb.ApiLive.Edit do
            api_keys: [],
            keys_loaded: false,
            plain_key_flash: nil,
-           metrics: nil
+           metrics: nil,
+           chat_collapsed: false
          )}
     end
   end
@@ -106,32 +107,48 @@ defmodule BlackboexWeb.ApiLive.Edit do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} current_scope={@current_scope}>
-      <div class="space-y-4">
-        <div class="flex items-center justify-between">
-          <div>
-            <h1 class="text-2xl font-bold tracking-tight">{@api.name}</h1>
-            <p class="text-sm text-muted-foreground">{@api.description}</p>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class={[
-              "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold",
-              status_color(@api.status)
-            ]}>
-              {@api.status}
-            </span>
-            <.link
-              navigate={~p"/apis/#{@api.id}"}
-              class="text-sm text-muted-foreground hover:text-foreground"
-            >
-              Back
-            </.link>
-          </div>
+    <div class="space-y-3">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <h1 class="text-xl font-bold tracking-tight">{@api.name}</h1>
+          <span class={[
+            "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold",
+            status_color(@api.status)
+          ]}>
+            {@api.status}
+          </span>
+          <span
+            :if={@code != (@api.source_code || "")}
+            class="inline-flex items-center rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-600"
+          >
+            unsaved
+          </span>
         </div>
+        <.link
+          navigate={~p"/apis/#{@api.id}"}
+          class="text-sm text-muted-foreground hover:text-foreground"
+        >
+          &larr; Back
+        </.link>
+      </div>
 
-        <div class="grid grid-cols-12 gap-4">
-          <%!-- Chat Panel (25%) --%>
-          <div class="col-span-3 rounded-lg border bg-card text-card-foreground shadow-sm max-h-[700px]">
+      <div class="grid grid-cols-12 gap-3" style="height: calc(100vh - 140px);">
+        <%!-- Chat Panel — collapsible --%>
+        <div class={[
+          "rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden flex flex-col",
+          if(@chat_collapsed, do: "col-span-1", else: "col-span-3")
+        ]}>
+          <button
+            phx-click="toggle_chat"
+            class="flex items-center justify-center border-b px-2 py-1.5 text-xs text-muted-foreground hover:bg-accent shrink-0"
+          >
+            <%= if @chat_collapsed do %>
+              <.icon name="hero-chevron-right" class="size-4" />
+            <% else %>
+              <.icon name="hero-chevron-left" class="size-3 mr-1" /> Chat
+            <% end %>
+          </button>
+          <div :if={!@chat_collapsed} class="flex-1 overflow-hidden">
             <.live_component
               module={BlackboexWeb.Components.ChatPanel}
               id="chat-panel"
@@ -143,131 +160,132 @@ defmodule BlackboexWeb.ApiLive.Edit do
               template_type={@api.template_type}
             />
           </div>
+        </div>
 
-          <%!-- Editor Panel (50%) — hidden when Test tab active --%>
-          <div class={[
-            "col-span-6 rounded-lg border bg-card text-card-foreground shadow-sm",
-            if(@tab == "test", do: "hidden")
-          ]}>
-            <div class="flex items-center justify-between border-b px-4 py-2">
-              <h2 class="text-sm font-semibold">Code Editor</h2>
-              <div class="flex items-center gap-2">
-                <button
-                  phx-click="save"
-                  disabled={@saving}
-                  class="inline-flex items-center rounded-md border px-3 py-1 text-xs font-medium hover:bg-accent"
-                >
-                  Save
-                </button>
-                <button
-                  phx-click="save_and_compile"
-                  class="inline-flex items-center rounded-md bg-primary px-3 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90"
-                >
-                  Save & Compile
-                </button>
-              </div>
+        <%!-- Editor Panel — expands when chat collapsed --%>
+        <div class={[
+          "rounded-lg border bg-card text-card-foreground shadow-sm flex flex-col",
+          if(@tab == "test", do: "hidden"),
+          if(@chat_collapsed, do: "col-span-8", else: "col-span-6")
+        ]}>
+          <div class="flex items-center justify-between border-b px-4 py-2">
+            <h2 class="text-sm font-semibold">Code Editor</h2>
+            <div class="flex items-center gap-2">
+              <button
+                phx-click="save"
+                disabled={@saving}
+                class="inline-flex items-center rounded-md border px-3 py-1 text-xs font-medium hover:bg-accent"
+              >
+                Save
+              </button>
+              <button
+                phx-click="save_and_compile"
+                class="inline-flex items-center rounded-md bg-primary px-3 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                Save & Compile
+              </button>
             </div>
-            <div style="min-height: 500px;">
-              <LiveMonacoEditor.code_editor
-                path={"api_#{@api.id}.ex"}
-                value={@code}
-                change="code_changed"
-                style="min-height: 500px; width: 100%;"
-                opts={
-                  Map.merge(LiveMonacoEditor.default_opts(), %{
-                    "language" => "elixir",
-                    "fontSize" => 14,
-                    "minimap" => %{"enabled" => false},
-                    "wordWrap" => "on",
-                    "scrollBeyondLastLine" => false,
-                    "readOnly" => @selected_version != nil
-                  })
-                }
-              />
+          </div>
+          <div style="min-height: 500px;">
+            <LiveMonacoEditor.code_editor
+              path={"api_#{@api.id}.ex"}
+              value={@code}
+              change="code_changed"
+              style="min-height: 500px; width: 100%;"
+              opts={
+                Map.merge(LiveMonacoEditor.default_opts(), %{
+                  "language" => "elixir",
+                  "fontSize" => 14,
+                  "minimap" => %{"enabled" => false},
+                  "wordWrap" => "on",
+                  "scrollBeyondLastLine" => false,
+                  "readOnly" => @selected_version != nil
+                })
+              }
+            />
+          </div>
+        </div>
+
+        <%!-- Test Panel (50%) — shown when Test tab active --%>
+        <%= if @tab == "test" do %>
+          <div
+            class="col-span-6 space-y-4"
+            phx-window-keydown="keyboard_shortcut"
+            phx-key="Enter"
+          >
+            <.live_component
+              module={BlackboexWeb.Components.RequestBuilder}
+              id="request-builder"
+              method={@test_method}
+              url={@test_url}
+              params={@test_params}
+              headers={@test_headers}
+              body_json={@test_body_json}
+              body_error={@test_body_error}
+              api_key={@test_api_key}
+              loading={@test_loading}
+              active_tab={@request_tab}
+            />
+
+            <.live_component
+              module={BlackboexWeb.Components.ResponseViewer}
+              id="response-viewer"
+              response={@test_response}
+              loading={@test_loading}
+              error={@test_error}
+              violations={@test_violations}
+              response_tab={@response_tab}
+            />
+          </div>
+        <% end %>
+
+        <%!-- Side Panel (25%) --%>
+        <div class="col-span-3 space-y-4">
+          <%!-- Tabs --%>
+          <div class="rounded-lg border bg-card text-card-foreground shadow-sm">
+            <div class="flex border-b">
+              <button
+                :for={t <- ["info", "versions", "test", "auto_tests", "keys", "publish"]}
+                phx-click="switch_tab"
+                phx-value-tab={t}
+                class={[
+                  "flex-1 px-3 py-2 text-xs font-medium border-b-2",
+                  if(t == @tab,
+                    do: "border-primary text-primary",
+                    else: "border-transparent text-muted-foreground hover:text-foreground"
+                  )
+                ]}
+              >
+                {tab_label(t)}
+              </button>
+            </div>
+
+            <div class="p-4">
+              {render_tab(assigns)}
             </div>
           </div>
 
-          <%!-- Test Panel (50%) — shown when Test tab active --%>
-          <%= if @tab == "test" do %>
-            <div
-              class="col-span-6 space-y-4"
-              phx-window-keydown="keyboard_shortcut"
-              phx-key="Enter"
-            >
-              <.live_component
-                module={BlackboexWeb.Components.RequestBuilder}
-                id="request-builder"
-                method={@test_method}
-                url={@test_url}
-                params={@test_params}
-                headers={@test_headers}
-                body_json={@test_body_json}
-                body_error={@test_body_error}
-                api_key={@test_api_key}
-                loading={@test_loading}
-                active_tab={@request_tab}
-              />
-
-              <.live_component
-                module={BlackboexWeb.Components.ResponseViewer}
-                id="response-viewer"
-                response={@test_response}
-                loading={@test_loading}
-                error={@test_error}
-                violations={@test_violations}
-                response_tab={@response_tab}
-              />
+          <%!-- Compile Errors --%>
+          <%= if @compile_errors do %>
+            <div class="rounded-lg border border-destructive bg-destructive/10 p-3 text-xs text-destructive space-y-1">
+              <p class="font-semibold">Compilation failed:</p>
+              <ul class="list-disc list-inside">
+                <%= for error <- @compile_errors do %>
+                  <li>{error}</li>
+                <% end %>
+              </ul>
             </div>
           <% end %>
 
-          <%!-- Side Panel (25%) --%>
-          <div class="col-span-3 space-y-4">
-            <%!-- Tabs --%>
-            <div class="rounded-lg border bg-card text-card-foreground shadow-sm">
-              <div class="flex border-b">
-                <button
-                  :for={t <- ["info", "versions", "test", "auto_tests", "keys", "publish"]}
-                  phx-click="switch_tab"
-                  phx-value-tab={t}
-                  class={[
-                    "flex-1 px-3 py-2 text-xs font-medium border-b-2",
-                    if(t == @tab,
-                      do: "border-primary text-primary",
-                      else: "border-transparent text-muted-foreground hover:text-foreground"
-                    )
-                  ]}
-                >
-                  {tab_label(t)}
-                </button>
-              </div>
-
-              <div class="p-4">
-                {render_tab(assigns)}
-              </div>
+          <%= if @compile_success do %>
+            <div class="rounded-lg border border-green-500 bg-green-50 p-3 text-xs text-green-700">
+              Compiled successfully. API available at
+              <code class="font-mono">/api/{@org.slug}/{@api.slug}</code>
             </div>
-
-            <%!-- Compile Errors --%>
-            <%= if @compile_errors do %>
-              <div class="rounded-lg border border-destructive bg-destructive/10 p-3 text-xs text-destructive space-y-1">
-                <p class="font-semibold">Compilation failed:</p>
-                <ul class="list-disc list-inside">
-                  <%= for error <- @compile_errors do %>
-                    <li>{error}</li>
-                  <% end %>
-                </ul>
-              </div>
-            <% end %>
-
-            <%= if @compile_success do %>
-              <div class="rounded-lg border border-green-500 bg-green-50 p-3 text-xs text-green-700">
-                Compiled successfully. API available at
-                <code class="font-mono">/api/{@org.slug}/{@api.slug}</code>
-              </div>
-            <% end %>
-          </div>
+          <% end %>
         </div>
       </div>
-    </Layouts.app>
+    </div>
     """
   end
 
@@ -720,6 +738,11 @@ defmodule BlackboexWeb.ApiLive.Edit do
   @impl true
   def handle_event("switch_tab", %{"tab" => tab}, socket) do
     {:noreply, socket |> lazy_load_tab(tab) |> assign(tab: tab)}
+  end
+
+  @impl true
+  def handle_event("toggle_chat", _params, socket) do
+    {:noreply, assign(socket, chat_collapsed: !socket.assigns.chat_collapsed)}
   end
 
   @impl true

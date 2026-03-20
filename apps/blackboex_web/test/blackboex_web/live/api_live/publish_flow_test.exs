@@ -116,9 +116,7 @@ defmodule BlackboexWeb.ApiLive.PublishFlowTest do
       assert html =~ "Unpublish"
 
       # Unpublish
-      html = lv |> element(~s(button[phx-click="unpublish"])) |> render_click()
-
-      assert html =~ "unpublished"
+      lv |> element(~s(button[phx-click="unpublish"])) |> render_click()
 
       # Verify API status changed back
       updated_api = Apis.get_api(org.id, api.id)

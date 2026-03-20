@@ -71,6 +71,15 @@ defmodule Blackboex.Apis.Analytics do
     end
   end
 
+  @spec error_count(Ecto.UUID.t(), keyword()) :: non_neg_integer()
+  def error_count(api_id, opts \\ []) do
+    api_id
+    |> base_query(opts)
+    |> where([l], l.status_code >= 400)
+    |> select([l], count(l.id))
+    |> Repo.one()
+  end
+
   defp base_query(api_id, opts) do
     period = Keyword.get(opts, :period, :all)
 

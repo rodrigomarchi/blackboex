@@ -37,105 +37,103 @@ defmodule BlackboexWeb.ApiLive.New do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} current_scope={@current_scope}>
-      <div class="space-y-6">
-        <div>
-          <h1 class="text-2xl font-bold tracking-tight">Create API</h1>
-          <p class="text-muted-foreground">Describe your API in natural language</p>
-        </div>
+    <div class="space-y-6">
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight">Create API</h1>
+        <p class="text-muted-foreground">Describe your API in natural language</p>
+      </div>
 
-        <div class="rounded-lg border bg-card p-6 text-card-foreground shadow-sm">
-          <form id="generate-form" phx-submit="generate" class="space-y-4">
-            <div>
-              <label for="description" class="text-sm font-medium">Description</label>
-              <textarea
-                id="description"
-                name="description"
-                rows="4"
-                maxlength="10000"
-                placeholder="Describe what your API should do. E.g.: An API that converts Celsius to Fahrenheit"
-                class="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm"
-                disabled={@generating}
-              >{@description}</textarea>
+      <div class="rounded-lg border bg-card p-6 text-card-foreground shadow-sm">
+        <form id="generate-form" phx-submit="generate" class="space-y-4">
+          <div>
+            <label for="description" class="text-sm font-medium">Description</label>
+            <textarea
+              id="description"
+              name="description"
+              rows="4"
+              maxlength="10000"
+              placeholder="Describe what your API should do. E.g.: An API that converts Celsius to Fahrenheit"
+              class="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm"
+              disabled={@generating}
+            >{@description}</textarea>
+          </div>
+          <button
+            type="submit"
+            disabled={@generating}
+            class="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90 disabled:opacity-50"
+          >
+            <%= if @generating do %>
+              <.icon name="hero-arrow-path" class="mr-2 size-4 animate-spin" /> Generating...
+            <% else %>
+              <.icon name="hero-bolt" class="mr-2 size-4" /> Generate
+            <% end %>
+          </button>
+        </form>
+      </div>
+
+      <%= if @error do %>
+        <div class="rounded-lg border border-destructive bg-destructive/10 p-4 text-sm text-destructive">
+          <p>{@error}</p>
+          <%= if @show_billing_link do %>
+            <.link navigate={~p"/billing"} class="mt-2 inline-block font-medium underline">
+              Upgrade your plan
+            </.link>
+          <% end %>
+        </div>
+      <% end %>
+
+      <%= if @generating && @streaming_tokens != "" do %>
+        <div class="rounded-lg border bg-card p-6 text-card-foreground shadow-sm space-y-4">
+          <h2 class="text-lg font-semibold flex items-center gap-2">
+            <.icon name="hero-arrow-path" class="size-4 animate-spin" /> Generating code...
+          </h2>
+          <pre class="overflow-x-auto rounded-md bg-muted p-4 text-sm"><code>{@streaming_tokens}</code></pre>
+        </div>
+      <% end %>
+
+      <%= if @generated_code do %>
+        <div class="rounded-lg border bg-card p-6 text-card-foreground shadow-sm space-y-4">
+          <h2 class="text-lg font-semibold">Generated Code</h2>
+          <pre class="overflow-x-auto rounded-md bg-muted p-4 text-sm"><code>{@generated_code}</code></pre>
+
+          <form id="save-form" phx-submit="save" class="space-y-4">
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label for="api-name" class="text-sm font-medium">Name</label>
+                <input
+                  type="text"
+                  id="api-name"
+                  name="name"
+                  value={@save_form[:name].value}
+                  placeholder="My API"
+                  required
+                  maxlength="200"
+                  class="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label for="api-slug" class="text-sm font-medium">Slug</label>
+                <input
+                  type="text"
+                  id="api-slug"
+                  name="slug"
+                  value={@save_form[:slug].value}
+                  placeholder="my-api (auto-generated if empty)"
+                  maxlength="100"
+                  class="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm"
+                />
+              </div>
             </div>
             <button
               type="submit"
-              disabled={@generating}
-              class="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90 disabled:opacity-50"
+              class="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90"
             >
-              <%= if @generating do %>
-                <.icon name="hero-arrow-path" class="mr-2 size-4 animate-spin" /> Generating...
-              <% else %>
-                <.icon name="hero-bolt" class="mr-2 size-4" /> Generate
-              <% end %>
+              <.icon name="hero-document-check" class="mr-2 size-4" /> Save as Draft
             </button>
           </form>
         </div>
-
-        <%= if @error do %>
-          <div class="rounded-lg border border-destructive bg-destructive/10 p-4 text-sm text-destructive">
-            <p>{@error}</p>
-            <%= if @show_billing_link do %>
-              <.link navigate={~p"/billing"} class="mt-2 inline-block font-medium underline">
-                Upgrade your plan
-              </.link>
-            <% end %>
-          </div>
-        <% end %>
-
-        <%= if @generating && @streaming_tokens != "" do %>
-          <div class="rounded-lg border bg-card p-6 text-card-foreground shadow-sm space-y-4">
-            <h2 class="text-lg font-semibold flex items-center gap-2">
-              <.icon name="hero-arrow-path" class="size-4 animate-spin" /> Generating code...
-            </h2>
-            <pre class="overflow-x-auto rounded-md bg-muted p-4 text-sm"><code>{@streaming_tokens}</code></pre>
-          </div>
-        <% end %>
-
-        <%= if @generated_code do %>
-          <div class="rounded-lg border bg-card p-6 text-card-foreground shadow-sm space-y-4">
-            <h2 class="text-lg font-semibold">Generated Code</h2>
-            <pre class="overflow-x-auto rounded-md bg-muted p-4 text-sm"><code>{@generated_code}</code></pre>
-
-            <form id="save-form" phx-submit="save" class="space-y-4">
-              <div class="grid grid-cols-2 gap-4">
-                <div>
-                  <label for="api-name" class="text-sm font-medium">Name</label>
-                  <input
-                    type="text"
-                    id="api-name"
-                    name="name"
-                    value={@save_form[:name].value}
-                    placeholder="My API"
-                    required
-                    maxlength="200"
-                    class="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm"
-                  />
-                </div>
-                <div>
-                  <label for="api-slug" class="text-sm font-medium">Slug</label>
-                  <input
-                    type="text"
-                    id="api-slug"
-                    name="slug"
-                    value={@save_form[:slug].value}
-                    placeholder="my-api (auto-generated if empty)"
-                    maxlength="100"
-                    class="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm"
-                  />
-                </div>
-              </div>
-              <button
-                type="submit"
-                class="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90"
-              >
-                <.icon name="hero-document-check" class="mr-2 size-4" /> Save as Draft
-              </button>
-            </form>
-          </div>
-        <% end %>
-      </div>
-    </Layouts.app>
+      <% end %>
+    </div>
     """
   end
 

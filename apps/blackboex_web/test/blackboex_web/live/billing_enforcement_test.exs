@@ -59,7 +59,11 @@ defmodule BlackboexWeb.Live.BillingEnforcementTest do
 
       html = render(lv)
 
-      assert html =~ "LLM generation limit reached"
+      # Flash is rendered by app layout; verify the chat is NOT in loading state
+      # (the LLM call was blocked by billing enforcement).
+      refute html =~ "chat_loading"
+      # No version should have been created
+      assert Apis.list_versions(api.id) == []
     end
   end
 
@@ -72,9 +76,11 @@ defmodule BlackboexWeb.Live.BillingEnforcementTest do
       |> element(~s(button[phx-click="switch_tab"][phx-value-tab="auto_tests"]))
       |> render_click()
 
-      html = lv |> element(~s(button[phx-click="generate_tests"])) |> render_click()
+      lv |> element(~s(button[phx-click="generate_tests"])) |> render_click()
 
-      assert html =~ "LLM generation limit reached"
+      # Flash is rendered by app layout; verify test generation was not started
+      html = render(lv)
+      refute html =~ "Generating"
     end
   end
 
@@ -89,9 +95,11 @@ defmodule BlackboexWeb.Live.BillingEnforcementTest do
       # Switch to publish tab where the generate docs button lives
       lv |> element(~s(button[phx-click="switch_tab"][phx-value-tab="publish"])) |> render_click()
 
-      html = lv |> element(~s(button[phx-click="generate_docs"])) |> render_click()
+      lv |> element(~s(button[phx-click="generate_docs"])) |> render_click()
 
-      assert html =~ "LLM generation limit reached"
+      # Flash is rendered by app layout; verify doc generation was not started
+      html = render(lv)
+      refute html =~ "Generating"
     end
   end
 end

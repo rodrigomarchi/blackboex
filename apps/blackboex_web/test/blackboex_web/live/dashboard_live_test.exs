@@ -20,7 +20,7 @@ defmodule BlackboexWeb.DashboardLiveTest do
 
     test "shows create API button", %{conn: conn} do
       {:ok, _lv, html} = live(conn, ~p"/dashboard")
-      assert html =~ "Create API"
+      assert html =~ "Create your first API"
     end
   end
 

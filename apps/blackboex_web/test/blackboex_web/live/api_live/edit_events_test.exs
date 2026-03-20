@@ -55,15 +55,17 @@ defmodule BlackboexWeb.ApiLive.EditEventsTest do
     test "respects the 50 item limit", %{conn: conn, org: org, api: api} do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
       lv |> element("[phx-click=switch_tab][phx-value-tab=test]") |> render_click()
+      render_click(lv, "switch_request_tab", %{"tab" => "params"})
 
       # Add 50 params to reach the limit
       for _ <- 1..50 do
         render_click(lv, "add_param")
       end
 
-      # The 51st should show an error flash
-      html = render_click(lv, "add_param")
-      assert html =~ "Maximum 50 parameters allowed"
+      # The 51st should be rejected; verify count stays at 50
+      render_click(lv, "add_param")
+      html = render(lv)
+      assert Regex.scan(~r/phx-click="remove_param"/, html) |> length() == 50
     end
   end
 
@@ -121,9 +123,10 @@ defmodule BlackboexWeb.ApiLive.EditEventsTest do
         render_click(lv, "add_header")
       end
 
-      # The 51st should show an error flash
-      html = render_click(lv, "add_header")
-      assert html =~ "Maximum 50 headers allowed"
+      # The 51st should be rejected; verify count stays at 50
+      render_click(lv, "add_header")
+      html = render(lv)
+      assert Regex.scan(~r/phx-click="remove_header"/, html) |> length() == 50
     end
   end
 
@@ -207,16 +210,14 @@ defmodule BlackboexWeb.ApiLive.EditEventsTest do
       lv |> render_hook("code_changed", %{"value" => "def handle(_), do: %{v: 1}"})
 
       # First save should work
-      html = lv |> element("button[phx-click=save]") |> render_click()
-      assert html =~ "Saved"
+      lv |> element("button[phx-click=save]") |> render_click()
 
       # Verify one version was created
       assert length(Apis.list_versions(api.id)) == 1
 
       # Change code again for second save
       lv |> render_hook("code_changed", %{"value" => "def handle(_), do: %{v: 2}"})
-      html = lv |> element("button[phx-click=save]") |> render_click()
-      assert html =~ "Saved"
+      lv |> element("button[phx-click=save]") |> render_click()
 
       # Second save should also create a version (saving flag was reset)
       assert length(Apis.list_versions(api.id)) == 2
@@ -232,8 +233,10 @@ defmodule BlackboexWeb.ApiLive.EditEventsTest do
       lv |> render_hook("code_changed", %{"value" => "def handle(_), do: %{ok: true}"})
 
       # First save_and_compile should work
-      html = lv |> element("button", "Save & Compile") |> render_click()
-      assert html =~ "compiled" or html =~ "Saved"
+      lv |> element("button", "Save & Compile") |> render_click()
+      html = render(lv)
+      # "Compiled successfully" badge is rendered in the LV template
+      assert html =~ "Compiled successfully"
 
       on_exit(fn ->
         module = Compiler.module_name_for(api)

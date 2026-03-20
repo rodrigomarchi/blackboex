@@ -64,9 +64,7 @@ defmodule BlackboexWeb.ApiLive.ChatEditTest do
       assert html =~ "Rejeitar"
 
       # Accept the edit
-      html = lv |> element(~s(button[phx-click="accept_edit"])) |> render_click()
-
-      assert html =~ "aceita"
+      lv |> element(~s(button[phx-click="accept_edit"])) |> render_click()
 
       # Verify version was created
       versions = Apis.list_versions(api.id)

@@ -129,9 +129,11 @@ defmodule BlackboexWeb.Components.ChatFlowTest do
 
       lv |> form("form[phx-submit=send_chat]", %{chat_input: "Add validation"}) |> render_submit()
 
-      html = lv |> element("button[phx-click=accept_edit]") |> render_click()
+      lv |> element("button[phx-click=accept_edit]") |> render_click()
 
-      assert html =~ "aceita" || html =~ "Aceita" || html =~ "aplicad"
+      # Flash is rendered by app layout; verify side-effect (version created)
+      versions = Apis.list_versions(api.id)
+      assert length(versions) == 1
     end
   end
 

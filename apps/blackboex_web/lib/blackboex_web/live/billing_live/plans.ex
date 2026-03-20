@@ -5,6 +5,7 @@ defmodule BlackboexWeb.BillingLive.Plans do
   use BlackboexWeb, :live_view
 
   alias Blackboex.Billing
+  alias Blackboex.Billing.Enforcement
 
   @plans [
     %{
@@ -52,10 +53,28 @@ defmodule BlackboexWeb.BillingLive.Plans do
   @spec mount(map(), map(), Phoenix.LiveView.Socket.t()) :: {:ok, Phoenix.LiveView.Socket.t()}
   def mount(_params, _session, socket) do
     org = socket.assigns.current_scope.organization
-    subscription = Billing.get_subscription(org.id)
-    current_plan = if subscription, do: subscription.plan, else: "free"
 
-    {:ok, assign(socket, plans: @plans, current_plan: current_plan, loading_plan: nil)}
+    if org do
+      subscription = Billing.get_subscription(org.id)
+      current_plan = if subscription, do: subscription.plan, else: "free"
+      usage = Enforcement.get_usage_details(org)
+
+      {:ok,
+       assign(socket,
+         plans: @plans,
+         current_plan: current_plan,
+         loading_plan: nil,
+         usage: usage
+       )}
+    else
+      {:ok,
+       assign(socket,
+         plans: @plans,
+         current_plan: "free",
+         loading_plan: nil,
+         usage: nil
+       )}
+    end
   end
 
   @impl true
@@ -89,6 +108,24 @@ defmodule BlackboexWeb.BillingLive.Plans do
       <div class="text-center mb-10">
         <h1 class="text-3xl font-bold">Choose your plan</h1>
         <p class="text-base-content/60 mt-2">Scale your API platform with the right plan</p>
+      </div>
+
+      <div :if={@usage} class="card bg-base-100 border shadow-sm mb-8">
+        <div class="card-body">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="card-title">Current Plan: {@usage.plan}</h2>
+            <.link navigate={~p"/billing/manage"} class="btn btn-outline btn-sm">
+              Manage Subscription
+            </.link>
+          </div>
+
+          <h3 class="text-sm font-semibold text-base-content/60 mb-3">Usage this month</h3>
+          <div class="space-y-4">
+            <.usage_bar label="APIs" detail={@usage.apis} />
+            <.usage_bar label="Calls/day" detail={@usage.invocations_today} />
+            <.usage_bar label="LLM generations" detail={@usage.llm_generations_month} />
+          </div>
+        </div>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -137,6 +174,35 @@ defmodule BlackboexWeb.BillingLive.Plans do
             </div>
           </div>
         </div>
+      </div>
+    </div>
+    """
+  end
+
+  @spec usage_bar(map()) :: Phoenix.LiveView.Rendered.t()
+  defp usage_bar(%{detail: %{limit: :unlimited}} = assigns) do
+    ~H"""
+    <div class="space-y-1">
+      <div class="flex justify-between text-sm">
+        <span>{@label}</span>
+        <span>{@detail.used} / Unlimited</span>
+      </div>
+      <div class="h-2 rounded-full bg-muted">
+        <div class="h-full rounded-full bg-green-500 w-full"></div>
+      </div>
+    </div>
+    """
+  end
+
+  defp usage_bar(assigns) do
+    ~H"""
+    <div class="space-y-1">
+      <div class="flex justify-between text-sm">
+        <span>{@label}</span>
+        <span>{@detail.used} / {@detail.limit}</span>
+      </div>
+      <div class="h-2 rounded-full bg-muted">
+        <div class="h-full rounded-full bg-primary" style={"width: #{min(@detail.pct, 100)}%"}></div>
       </div>
     </div>
     """

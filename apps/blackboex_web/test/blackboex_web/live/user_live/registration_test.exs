@@ -72,7 +72,7 @@ defmodule BlackboexWeb.UserLive.RegistrationTest do
 
       {:ok, _login_live, login_html} =
         lv
-        |> element("main a", "Log in")
+        |> element(~s(a[href="/users/log-in"]), "Log in")
         |> render_click()
         |> follow_redirect(conn, ~p"/users/log-in")
 

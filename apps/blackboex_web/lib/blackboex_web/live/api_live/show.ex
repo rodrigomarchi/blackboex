@@ -37,123 +37,121 @@ defmodule BlackboexWeb.ApiLive.Show do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} current_scope={@current_scope}>
-      <div class="space-y-6">
-        <div class="flex items-center justify-between">
-          <div>
-            <h1 class="text-2xl font-bold tracking-tight">{@api.name}</h1>
-            <p class="text-muted-foreground">{@api.description}</p>
+    <div class="space-y-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-2xl font-bold tracking-tight">{@api.name}</h1>
+          <p class="text-muted-foreground">{@api.description}</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class={[
+            "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold",
+            status_color(@api.status)
+          ]}>
+            {@api.status}
+          </span>
+          <.link
+            navigate={~p"/apis/#{@api.id}/edit"}
+            class="inline-flex items-center rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-accent"
+          >
+            Edit
+          </.link>
+          <.link
+            navigate={~p"/apis"}
+            class="text-sm text-muted-foreground hover:text-foreground"
+          >
+            Back to APIs
+          </.link>
+        </div>
+      </div>
+
+      <%= if @api.source_code do %>
+        <div class="rounded-lg border bg-card p-6 text-card-foreground shadow-sm space-y-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-lg font-semibold">Source Code</h2>
+            <div class="flex items-center gap-2">
+              <button
+                phx-click="compile"
+                disabled={@compiling}
+                class="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90 disabled:opacity-50"
+              >
+                <%= if @compiling do %>
+                  Compiling...
+                <% else %>
+                  Compile
+                <% end %>
+              </button>
+            </div>
           </div>
-          <div class="flex items-center gap-3">
-            <span class={[
-              "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold",
-              status_color(@api.status)
-            ]}>
-              {@api.status}
-            </span>
-            <.link
-              navigate={~p"/apis/#{@api.id}/edit"}
-              class="inline-flex items-center rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-accent"
-            >
-              Edit
-            </.link>
-            <.link
-              navigate={~p"/apis"}
-              class="text-sm text-muted-foreground hover:text-foreground"
-            >
-              Back to APIs
-            </.link>
+          <pre class="overflow-x-auto rounded-md bg-muted p-4 text-sm"><code>{@api.source_code}</code></pre>
+        </div>
+      <% end %>
+
+      <%= if @compile_errors do %>
+        <div class="rounded-lg border border-destructive bg-destructive/10 p-4 text-sm text-destructive space-y-1">
+          <p class="font-semibold">Compilation failed:</p>
+          <ul class="list-disc list-inside">
+            <%= for error <- @compile_errors do %>
+              <li>{error}</li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+
+      <%= if @api.status in ["compiled", "published"] do %>
+        <div class="rounded-lg border bg-card p-6 text-card-foreground shadow-sm space-y-4">
+          <h2 class="text-lg font-semibold">API Endpoint</h2>
+          <div class="flex items-center gap-2">
+            <code class="rounded bg-muted px-2 py-1 text-sm">
+              POST /api/{@org.slug}/{@api.slug}
+            </code>
+          </div>
+
+          <form phx-submit="test_api" phx-change="update_test_body" class="space-y-4">
+            <h3 class="text-sm font-medium">Test your API</h3>
+            <div class="space-y-2">
+              <label for="test-body" class="text-sm text-muted-foreground">
+                Request body (JSON)
+              </label>
+              <textarea
+                id="test-body"
+                name="test_body"
+                rows="3"
+                class="w-full rounded-md border bg-background px-3 py-2 text-sm font-mono"
+                placeholder={~s({"n": 5})}
+              >{@test_body}</textarea>
+            </div>
+            <div class="flex items-center gap-2">
+              <button
+                type="submit"
+                class="inline-flex items-center justify-center rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-accent"
+              >
+                Send POST
+              </button>
+              <button
+                type="button"
+                phx-click="test_api_get"
+                class="inline-flex items-center justify-center rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-accent"
+              >
+                Send GET
+              </button>
+            </div>
+          </form>
+
+          <%= if @test_result do %>
+            <div>
+              <p class="text-xs text-muted-foreground mb-1">Response:</p>
+              <pre class="overflow-x-auto rounded-md bg-muted p-4 text-sm"><code>{@test_result}</code></pre>
+            </div>
+          <% end %>
+
+          <div class="text-xs text-muted-foreground">
+            <p class="font-medium mb-1">Or test via curl:</p>
+            <pre class="overflow-x-auto rounded-md bg-muted p-2 text-xs"><code>curl -X POST http://localhost:4000/api/{@org.slug}/{@api.slug} -H "Content-Type: application/json" -d '{@test_body}'</code></pre>
           </div>
         </div>
-
-        <%= if @api.source_code do %>
-          <div class="rounded-lg border bg-card p-6 text-card-foreground shadow-sm space-y-4">
-            <div class="flex items-center justify-between">
-              <h2 class="text-lg font-semibold">Source Code</h2>
-              <div class="flex items-center gap-2">
-                <button
-                  phx-click="compile"
-                  disabled={@compiling}
-                  class="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90 disabled:opacity-50"
-                >
-                  <%= if @compiling do %>
-                    Compiling...
-                  <% else %>
-                    Compile
-                  <% end %>
-                </button>
-              </div>
-            </div>
-            <pre class="overflow-x-auto rounded-md bg-muted p-4 text-sm"><code>{@api.source_code}</code></pre>
-          </div>
-        <% end %>
-
-        <%= if @compile_errors do %>
-          <div class="rounded-lg border border-destructive bg-destructive/10 p-4 text-sm text-destructive space-y-1">
-            <p class="font-semibold">Compilation failed:</p>
-            <ul class="list-disc list-inside">
-              <%= for error <- @compile_errors do %>
-                <li>{error}</li>
-              <% end %>
-            </ul>
-          </div>
-        <% end %>
-
-        <%= if @api.status in ["compiled", "published"] do %>
-          <div class="rounded-lg border bg-card p-6 text-card-foreground shadow-sm space-y-4">
-            <h2 class="text-lg font-semibold">API Endpoint</h2>
-            <div class="flex items-center gap-2">
-              <code class="rounded bg-muted px-2 py-1 text-sm">
-                POST /api/{@org.slug}/{@api.slug}
-              </code>
-            </div>
-
-            <form phx-submit="test_api" phx-change="update_test_body" class="space-y-4">
-              <h3 class="text-sm font-medium">Test your API</h3>
-              <div class="space-y-2">
-                <label for="test-body" class="text-sm text-muted-foreground">
-                  Request body (JSON)
-                </label>
-                <textarea
-                  id="test-body"
-                  name="test_body"
-                  rows="3"
-                  class="w-full rounded-md border bg-background px-3 py-2 text-sm font-mono"
-                  placeholder={~s({"n": 5})}
-                >{@test_body}</textarea>
-              </div>
-              <div class="flex items-center gap-2">
-                <button
-                  type="submit"
-                  class="inline-flex items-center justify-center rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-accent"
-                >
-                  Send POST
-                </button>
-                <button
-                  type="button"
-                  phx-click="test_api_get"
-                  class="inline-flex items-center justify-center rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-accent"
-                >
-                  Send GET
-                </button>
-              </div>
-            </form>
-
-            <%= if @test_result do %>
-              <div>
-                <p class="text-xs text-muted-foreground mb-1">Response:</p>
-                <pre class="overflow-x-auto rounded-md bg-muted p-4 text-sm"><code>{@test_result}</code></pre>
-              </div>
-            <% end %>
-
-            <div class="text-xs text-muted-foreground">
-              <p class="font-medium mb-1">Or test via curl:</p>
-              <pre class="overflow-x-auto rounded-md bg-muted p-2 text-xs"><code>curl -X POST http://localhost:4000/api/{@org.slug}/{@api.slug} -H "Content-Type: application/json" -d '{@test_body}'</code></pre>
-            </div>
-          </div>
-        <% end %>
-      </div>
-    </Layouts.app>
+      <% end %>
+    </div>
     """
   end
 

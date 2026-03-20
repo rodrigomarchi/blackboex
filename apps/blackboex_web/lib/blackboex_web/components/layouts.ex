@@ -31,71 +31,109 @@ defmodule BlackboexWeb.Layouts do
     default: nil,
     doc: "the current [scope](https://hexdocs.pm/phoenix/scopes.html)"
 
-  slot :inner_block, required: true
-
   def app(assigns) do
     ~H"""
-    <div class="flex h-screen">
-      <aside class="hidden w-64 shrink-0 border-r bg-card md:flex md:flex-col">
-        <div class="flex h-14 items-center border-b px-4">
-          <a href="/" class="flex items-center gap-2 font-semibold">
-            <.icon name="hero-cube" class="size-5" />
-            <span>BlackBoex</span>
-          </a>
-        </div>
-        <nav class="flex-1 space-y-1 px-3 py-4">
-          <.link
-            navigate={~p"/dashboard"}
-            class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
-          >
-            <.icon name="hero-home" class="size-4" /> Dashboard
-          </.link>
-          <.link
-            navigate={~p"/apis"}
-            class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
-          >
-            <.icon name="hero-bolt" class="size-4" /> APIs
-          </.link>
-          <.link
-            navigate={~p"/billing"}
-            class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
-          >
-            <.icon name="hero-credit-card" class="size-4" /> Billing
-          </.link>
-          <.link
-            navigate={~p"/settings"}
-            class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
-          >
-            <.icon name="hero-cog-6-tooth" class="size-4" /> Settings
-          </.link>
+    <div class="flex h-screen flex-col">
+      <header class="flex h-14 shrink-0 items-center border-b bg-card px-4 md:px-6">
+        <%!-- Logo --%>
+        <.logo_full class="h-6" />
+
+        <%!-- Desktop nav --%>
+        <nav class="ml-8 hidden items-center gap-1 md:flex">
+          <.nav_link navigate={~p"/dashboard"} icon="hero-home">Dashboard</.nav_link>
+          <.nav_link navigate={~p"/apis"} icon="hero-bolt">APIs</.nav_link>
+          <.nav_link navigate={~p"/billing"} icon="hero-credit-card">Billing</.nav_link>
         </nav>
-      </aside>
 
-      <div class="flex flex-1 flex-col">
-        <header class="flex h-14 items-center gap-4 border-b bg-card px-6">
-          <div class="flex-1">
-            <.org_switcher current_scope={@current_scope} />
-          </div>
-          <div class="flex items-center gap-4">
-            <.theme_toggle />
-            <%= if @current_scope && @current_scope.user do %>
-              <span class="text-sm text-muted-foreground">{@current_scope.user.email}</span>
-              <.link
-                href={~p"/users/log-out"}
-                method="delete"
-                class="text-sm font-medium hover:underline"
-              >
-                Log out
-              </.link>
-            <% end %>
-          </div>
-        </header>
+        <div class="flex-1" />
 
-        <main class="flex-1 overflow-y-auto p-6">
-          <div class="mx-auto max-w-5xl">
-            {render_slot(@inner_block)}
+        <%!-- Right side: theme toggle + user menu --%>
+        <div class="flex items-center gap-3">
+          <.theme_toggle />
+          <%= if @current_scope && @current_scope.user do %>
+            <span class="hidden text-sm text-muted-foreground md:inline">
+              {@current_scope.user.email}
+            </span>
+            <.link
+              navigate={~p"/settings"}
+              class="hidden text-sm font-medium text-muted-foreground hover:text-foreground md:inline"
+            >
+              <.icon name="hero-cog-6-tooth" class="size-4" />
+            </.link>
+            <.link
+              href={~p"/users/log-out"}
+              method="delete"
+              class="hidden text-sm font-medium hover:underline md:inline"
+            >
+              Log out
+            </.link>
+          <% end %>
+
+          <%!-- Mobile hamburger --%>
+          <button
+            class="inline-flex items-center justify-center rounded-md p-2 hover:bg-accent md:hidden"
+            phx-click={toggle_mobile_menu()}
+          >
+            <span id="mobile-menu-open"><.icon name="hero-bars-3" class="size-5" /></span>
+            <span id="mobile-menu-close" class="hidden">
+              <.icon name="hero-x-mark" class="size-5" />
+            </span>
+          </button>
+        </div>
+      </header>
+
+      <%!-- Mobile menu (hidden by default) --%>
+      <div id="mobile-menu" class="hidden border-b bg-card px-4 py-3 md:hidden">
+        <nav class="flex flex-col gap-1">
+          <.nav_link navigate={~p"/dashboard"} icon="hero-home">Dashboard</.nav_link>
+          <.nav_link navigate={~p"/apis"} icon="hero-bolt">APIs</.nav_link>
+          <.nav_link navigate={~p"/billing"} icon="hero-credit-card">Billing</.nav_link>
+          <.nav_link navigate={~p"/settings"} icon="hero-cog-6-tooth">Settings</.nav_link>
+        </nav>
+        <%= if @current_scope && @current_scope.user do %>
+          <div class="mt-3 border-t pt-3">
+            <span class="text-sm text-muted-foreground">{@current_scope.user.email}</span>
+            <.link
+              href={~p"/users/log-out"}
+              method="delete"
+              class="mt-2 block text-sm font-medium hover:underline"
+            >
+              Log out
+            </.link>
           </div>
-        </main>
+        <% end %>
+      </div>
+
+      <main class="flex-1 overflow-y-auto p-4 md:p-6">
+        <div class="mx-auto max-w-6xl">
+          {@inner_content}
+        </div>
+      </main>
+    </div>
+
+    <.flash_group flash={@flash} />
+    """
+  end
+
+  @doc """
+  Auth layout for login/register pages.
+  Centered card without app navigation.
+  """
+  attr :flash, :map, required: true
+
+  attr :current_scope, :map,
+    default: nil,
+    doc: "the current scope"
+
+  def auth(assigns) do
+    ~H"""
+    <div class="flex min-h-screen flex-col items-center justify-center bg-background px-4">
+      <div class="mb-8">
+        <.logo_full class="h-8" />
+      </div>
+
+      <div class="w-full max-w-md rounded-lg border bg-card p-8 shadow-sm">
+        {@inner_content}
       </div>
     </div>
 
@@ -152,14 +190,26 @@ defmodule BlackboexWeb.Layouts do
     """
   end
 
-  attr :current_scope, :map, default: nil
+  attr :navigate, :string, required: true
+  attr :icon, :string, required: true
+  slot :inner_block, required: true
 
-  defp org_switcher(assigns) do
+  defp nav_link(assigns) do
     ~H"""
-    <%= if @current_scope && @current_scope.organization do %>
-      <span class="text-sm font-medium">{@current_scope.organization.name}</span>
-    <% end %>
+    <.link
+      navigate={@navigate}
+      class="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+    >
+      <.icon name={@icon} class="size-4" />
+      {render_slot(@inner_block)}
+    </.link>
     """
+  end
+
+  defp toggle_mobile_menu do
+    JS.toggle(to: "#mobile-menu")
+    |> JS.toggle(to: "#mobile-menu-open")
+    |> JS.toggle(to: "#mobile-menu-close")
   end
 
   @doc """

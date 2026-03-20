@@ -32,33 +32,28 @@ defmodule BlackboexWeb.SettingsLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="max-w-4xl mx-auto py-8">
+    <div class="py-8">
       <h1 class="text-2xl font-bold mb-6">Settings</h1>
 
-      <div class="flex gap-8">
-        <nav class="w-48 shrink-0">
-          <ul class="space-y-1">
-            <li :for={tab <- tabs()}>
-              <.link
-                patch={~p"/settings?tab=#{tab}"}
-                class={[
-                  "block px-3 py-2 rounded-md text-sm font-medium",
-                  if(@active_tab == tab,
-                    do: "bg-primary text-primary-content",
-                    else: "hover:bg-base-200"
-                  )
-                ]}
-              >
-                {tab_label(tab)}
-              </.link>
-            </li>
-          </ul>
+      <div class="border-b mb-6">
+        <nav class="flex gap-1">
+          <.link
+            :for={tab <- tabs()}
+            patch={~p"/settings?tab=#{tab}"}
+            class={[
+              "px-4 py-2 text-sm font-medium border-b-2 -mb-px",
+              if(@active_tab == tab,
+                do: "border-primary text-primary",
+                else: "border-transparent text-muted-foreground hover:text-foreground"
+              )
+            ]}
+          >
+            {tab_label(tab)}
+          </.link>
         </nav>
-
-        <div class="flex-1">
-          {render_tab(assigns)}
-        </div>
       </div>
+
+      {render_tab(assigns)}
     </div>
     """
   end
@@ -68,7 +63,20 @@ defmodule BlackboexWeb.SettingsLive do
     <div class="card bg-base-100 border shadow-sm">
       <div class="card-body">
         <h2 class="card-title">Profile</h2>
-        <div class="mt-4 space-y-4">
+
+        <div class="flex items-center gap-4 mb-6 mt-4">
+          <div class="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary font-bold">
+            {String.first(@current_scope.user.email) |> String.upcase()}
+          </div>
+          <div>
+            <p class="font-medium">{@current_scope.user.email}</p>
+            <p class="text-sm text-muted-foreground">
+              Member since {Calendar.strftime(@current_scope.user.inserted_at, "%B %Y")}
+            </p>
+          </div>
+        </div>
+
+        <div class="space-y-4">
           <div>
             <span class="text-sm text-base-content/60">Email</span>
             <p class="font-medium">{@current_scope.user.email}</p>
@@ -83,6 +91,17 @@ defmodule BlackboexWeb.SettingsLive do
             </.link>
           </div>
         </div>
+      </div>
+    </div>
+    """
+  end
+
+  defp render_tab(%{active_tab: "organization", current_scope: %{organization: nil}} = assigns) do
+    ~H"""
+    <div class="card bg-base-100 border shadow-sm">
+      <div class="card-body">
+        <h2 class="card-title">Organization</h2>
+        <p class="text-muted-foreground mt-4">No organization selected.</p>
       </div>
     </div>
     """
@@ -128,6 +147,17 @@ defmodule BlackboexWeb.SettingsLive do
             </div>
           </div>
         </div>
+      </div>
+    </div>
+    """
+  end
+
+  defp render_tab(%{active_tab: "billing", current_scope: %{organization: nil}} = assigns) do
+    ~H"""
+    <div class="card bg-base-100 border shadow-sm">
+      <div class="card-body">
+        <h2 class="card-title">Billing</h2>
+        <p class="text-muted-foreground mt-4">No organization selected.</p>
       </div>
     </div>
     """
@@ -210,21 +240,30 @@ defmodule BlackboexWeb.SettingsLive do
   end
 
   defp load_tab_data(socket, "organization") do
-    org_id = socket.assigns.current_scope.organization.id
+    case socket.assigns.current_scope.organization do
+      nil ->
+        assign(socket, members: [])
 
-    members =
-      Blackboex.Organizations.Membership
-      |> where([m], m.organization_id == ^org_id)
-      |> preload(:user)
-      |> Blackboex.Repo.all()
+      org ->
+        members =
+          Blackboex.Organizations.Membership
+          |> where([m], m.organization_id == ^org.id)
+          |> preload(:user)
+          |> Blackboex.Repo.all()
 
-    assign(socket, members: members)
+        assign(socket, members: members)
+    end
   end
 
   defp load_tab_data(socket, "billing") do
-    org = socket.assigns.current_scope.organization
-    subscription = Billing.get_subscription(org.id)
-    assign(socket, subscription: subscription)
+    case socket.assigns.current_scope.organization do
+      nil ->
+        assign(socket, subscription: nil)
+
+      org ->
+        subscription = Billing.get_subscription(org.id)
+        assign(socket, subscription: subscription)
+    end
   end
 
   defp load_tab_data(socket, "security") do

@@ -45,4 +45,24 @@ defmodule Blackboex.Audit do
     |> limit(^limit)
     |> Repo.all()
   end
+
+  @spec list_recent_activity(Ecto.UUID.t(), pos_integer()) :: [map()]
+  def list_recent_activity(org_id, limit \\ 10) do
+    AuditLog
+    |> where([a], a.organization_id == ^org_id)
+    |> order_by([a], desc: a.inserted_at)
+    |> limit(^limit)
+    |> Repo.all()
+    |> Enum.map(&format_activity/1)
+  end
+
+  defp format_activity(%AuditLog{} = log) do
+    %{
+      action: log.action,
+      resource_type: log.resource_type,
+      resource_id: log.resource_id,
+      metadata: log.metadata || %{},
+      timestamp: log.inserted_at
+    }
+  end
 end

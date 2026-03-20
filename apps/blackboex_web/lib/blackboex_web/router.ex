@@ -98,6 +98,7 @@ defmodule BlackboexWeb.Router do
     pipe_through [:browser, :require_authenticated_user, :audit_context]
 
     live_session :require_authenticated_user,
+      layout: {BlackboexWeb.Layouts, :app},
       on_mount: [
         {BlackboexWeb.UserAuth, :require_authenticated},
         {BlackboexWeb.Hooks.SetOrganization, :default}
@@ -122,6 +123,7 @@ defmodule BlackboexWeb.Router do
     pipe_through [:browser]
 
     live_session :current_user,
+      layout: {BlackboexWeb.Layouts, :auth},
       on_mount: [{BlackboexWeb.UserAuth, :mount_current_scope}] do
       live "/users/register", UserLive.Registration, :new
       live "/users/log-in", UserLive.Login, :new

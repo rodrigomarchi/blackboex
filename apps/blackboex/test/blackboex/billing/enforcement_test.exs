@@ -2,7 +2,7 @@ defmodule Blackboex.Billing.EnforcementTest do
   use Blackboex.DataCase, async: false
 
   alias Blackboex.Billing
-  alias Blackboex.Billing.Enforcement
+  alias Blackboex.Billing.{Enforcement, Subscription}
   alias Blackboex.Organizations
 
   import Blackboex.AccountsFixtures
@@ -15,6 +15,41 @@ defmodule Blackboex.Billing.EnforcementTest do
     %{org: org, user: user}
   end
 
+  defp create_subscription(org, plan) do
+    %Subscription{}
+    |> Subscription.changeset(%{
+      organization_id: org.id,
+      plan: plan,
+      status: "active"
+    })
+    |> Repo.insert!()
+  end
+
+  describe "effective_plan/1" do
+    setup [:create_org]
+
+    test "returns :free when no subscription exists", %{org: org} do
+      assert :free = Enforcement.effective_plan(org)
+    end
+
+    test "returns plan from active subscription", %{org: org} do
+      create_subscription(org, "pro")
+      assert :pro = Enforcement.effective_plan(org)
+    end
+
+    test "returns :free when subscription is not active", %{org: org} do
+      %Subscription{}
+      |> Subscription.changeset(%{
+        organization_id: org.id,
+        plan: "pro",
+        status: "canceled"
+      })
+      |> Repo.insert!()
+
+      assert :free = Enforcement.effective_plan(org)
+    end
+  end
+
   describe "check_limit/2 :create_api" do
     setup [:create_org]
 
@@ -23,12 +58,12 @@ defmodule Blackboex.Billing.EnforcementTest do
     end
 
     test "pro plan allows up to 50 APIs", %{org: org} do
-      org = %{org | plan: :pro}
+      create_subscription(org, "pro")
       assert {:ok, 50} = Enforcement.check_limit(org, :create_api)
     end
 
     test "enterprise plan is unlimited", %{org: org} do
-      org = %{org | plan: :enterprise}
+      create_subscription(org, "enterprise")
       assert {:ok, :unlimited} = Enforcement.check_limit(org, :create_api)
     end
   end
@@ -65,7 +100,7 @@ defmodule Blackboex.Billing.EnforcementTest do
     end
 
     test "pro plan allows 500 LLM generations/month", %{org: org} do
-      org = %{org | plan: :pro}
+      create_subscription(org, "pro")
       assert {:ok, 500} = Enforcement.check_limit(org, :llm_generation)
     end
   end

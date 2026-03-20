@@ -6,6 +6,8 @@ defmodule Blackboex.Apis.Api do
   use Ecto.Schema
   import Ecto.Changeset
 
+  import Blackboex.ChangesetHelpers, only: [validate_json_size: 2]
+
   @type t :: %__MODULE__{}
 
   @valid_template_types ~w(computation crud webhook)
@@ -70,6 +72,9 @@ defmodule Blackboex.Apis.Api do
     |> validate_inclusion(:method, @valid_methods)
     |> validate_inclusion(:status, @valid_statuses)
     |> validate_inclusion(:visibility, @valid_visibilities)
+    |> validate_json_size(:param_schema)
+    |> validate_json_size(:example_request)
+    |> validate_json_size(:example_response)
     |> unique_constraint([:organization_id, :slug])
   end
 

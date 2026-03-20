@@ -13,35 +13,45 @@ defmodule Blackboex.Billing.WebhookHandler do
   @spec process_event(String.t(), String.t(), map()) ::
           :ok | {:error, :already_processed} | {:error, term()}
   def process_event(event_id, event_type, payload) do
-    if already_processed?(event_id) do
-      Logger.info("Webhook event already processed: #{event_id}")
-      {:error, :already_processed}
-    else
-      case handle_event(event_type, payload) do
-        :ok ->
-          mark_processed(event_id, event_type)
-          :ok
+    # Atomic insert-first approach: try to insert the ProcessedEvent first.
+    # If it succeeds (no conflict), we own the event and can process it.
+    # If it conflicts (unique index on event_id), it was already processed.
+    case mark_processed(event_id, event_type) do
+      {:ok, _} ->
+        case handle_event(event_type, payload) do
+          :ok ->
+            :ok
 
-        {:error, reason} ->
-          Logger.warning("Webhook event #{event_id} failed: #{inspect(reason)}")
-          {:error, reason}
-      end
+          {:error, reason} ->
+            Logger.warning("Webhook event #{event_id} failed: #{inspect(reason)}")
+            {:error, reason}
+        end
+
+      {:error, %Ecto.Changeset{errors: errors}} ->
+        if Keyword.has_key?(errors, :event_id) do
+          Logger.info("Webhook event already processed: #{event_id}")
+          {:error, :already_processed}
+        else
+          Logger.warning("Webhook event #{event_id} insert failed: #{inspect(errors)}")
+          {:error, :insert_failed}
+        end
     end
   end
 
-  defp already_processed?(event_id) do
-    Repo.get_by(ProcessedEvent, event_id: event_id) != nil
-  end
+  @valid_plans ~w(free pro enterprise)
 
   @spec handle_event(String.t(), map()) :: :ok | {:error, term()}
   def handle_event("checkout.session.completed", payload) do
     metadata = payload["metadata"] || %{}
     org_id = metadata["organization_id"]
-    plan = metadata["plan"] || "free"
+    plan = metadata["plan"]
     customer_id = payload["customer"]
     subscription_id = payload["subscription"]
 
-    if org_id do
+    with :ok <- validate_non_empty_binary(org_id, "organization_id"),
+         :ok <- validate_non_empty_binary(customer_id, "customer"),
+         :ok <- validate_non_empty_binary(subscription_id, "subscription"),
+         :ok <- validate_plan(plan) do
       case Billing.create_or_update_subscription(%{
              organization_id: org_id,
              stripe_customer_id: customer_id,
@@ -53,8 +63,9 @@ defmodule Blackboex.Billing.WebhookHandler do
         {:error, reason} -> {:error, reason}
       end
     else
-      Logger.warning("checkout.session.completed missing organization_id in metadata")
-      :ok
+      {:error, :invalid_payload} = err ->
+        Logger.warning("checkout.session.completed invalid payload")
+        err
     end
   end
 
@@ -143,5 +154,21 @@ defmodule Blackboex.Billing.WebhookHandler do
       processed_at: DateTime.utc_now(:second)
     })
     |> Repo.insert()
+  end
+
+  defp validate_non_empty_binary(value, _field) when is_binary(value) and byte_size(value) > 0 do
+    :ok
+  end
+
+  defp validate_non_empty_binary(_value, field) do
+    Logger.warning("checkout.session.completed: #{field} is missing or empty")
+    {:error, :invalid_payload}
+  end
+
+  defp validate_plan(plan) when plan in @valid_plans, do: :ok
+
+  defp validate_plan(plan) do
+    Logger.warning("checkout.session.completed: invalid plan #{inspect(plan)}")
+    {:error, :invalid_payload}
   end
 end

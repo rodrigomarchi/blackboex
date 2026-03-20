@@ -723,8 +723,18 @@ defmodule BlackboexWeb.ApiLive.Edit do
   end
 
   @impl true
+  def handle_event("save", _params, %{assigns: %{saving: true}} = socket) do
+    {:noreply, socket}
+  end
+
+  @impl true
   def handle_event("save", _params, socket) do
     save_version(socket, false)
+  end
+
+  @impl true
+  def handle_event("save_and_compile", _params, %{assigns: %{saving: true}} = socket) do
+    {:noreply, socket}
   end
 
   @impl true
@@ -937,10 +947,16 @@ defmodule BlackboexWeb.ApiLive.Edit do
     {:noreply, assign(socket, test_api_key: key)}
   end
 
+  @max_test_items 50
+
   @impl true
   def handle_event("add_param", _params, socket) do
-    new_param = %{key: "", value: "", id: Ecto.UUID.generate()}
-    {:noreply, assign(socket, test_params: socket.assigns.test_params ++ [new_param])}
+    if length(socket.assigns.test_params) >= @max_test_items do
+      {:noreply, put_flash(socket, :error, "Maximum #{@max_test_items} parameters allowed")}
+    else
+      new_param = %{key: "", value: "", id: Ecto.UUID.generate()}
+      {:noreply, assign(socket, test_params: socket.assigns.test_params ++ [new_param])}
+    end
   end
 
   @impl true
@@ -963,8 +979,12 @@ defmodule BlackboexWeb.ApiLive.Edit do
 
   @impl true
   def handle_event("add_header", _params, socket) do
-    new_header = %{key: "", value: "", id: Ecto.UUID.generate()}
-    {:noreply, assign(socket, test_headers: socket.assigns.test_headers ++ [new_header])}
+    if length(socket.assigns.test_headers) >= @max_test_items do
+      {:noreply, put_flash(socket, :error, "Maximum #{@max_test_items} headers allowed")}
+    else
+      new_header = %{key: "", value: "", id: Ecto.UUID.generate()}
+      {:noreply, assign(socket, test_headers: socket.assigns.test_headers ++ [new_header])}
+    end
   end
 
   @impl true
@@ -1346,11 +1366,11 @@ defmodule BlackboexWeb.ApiLive.Edit do
     scope = socket.assigns.current_scope
     code = socket.assigns.code
 
-    # Fix 5: Skip save if code hasn't changed
+    # Skip save if code hasn't changed
     if code == (api.source_code || "") and not compile? do
       {:noreply, put_flash(socket, :info, "No changes to save")}
     else
-      do_save_version(socket, api, scope, code, compile?)
+      do_save_version(assign(socket, saving: true), api, scope, code, compile?)
     end
   end
 
@@ -1374,6 +1394,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
          socket
          |> assign(
            api: api,
+           saving: false,
            versions: Apis.list_versions(api.id),
            compile_errors: compile_result.errors,
            compile_success: compile_result.success
@@ -1384,7 +1405,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
          )}
 
       {:error, _changeset} ->
-        {:noreply, put_flash(socket, :error, "Failed to save")}
+        {:noreply, socket |> assign(saving: false) |> put_flash(:error, "Failed to save")}
     end
   end
 

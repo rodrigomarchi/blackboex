@@ -15,7 +15,7 @@ config :blackboex_web, BlackboexWeb.Endpoint,
 config :blackboex_web, BlackboexWeb.Endpoint,
   force_ssl: [rewrite_on: [:x_forwarded_proto]],
   exclude: [
-    # paths: ["/health"],
+    paths: ["/health/live", "/health/ready", "/health/startup"],
     hosts: ["localhost", "127.0.0.1"]
   ]
 

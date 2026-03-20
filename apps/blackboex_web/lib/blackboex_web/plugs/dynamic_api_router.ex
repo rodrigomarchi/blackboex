@@ -12,6 +12,7 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
 
   alias Blackboex.Apis.Analytics
   alias Blackboex.Apis.Registry
+  alias Blackboex.Billing
   alias Blackboex.Billing.Enforcement
   alias Blackboex.CodeGen.Compiler
   alias Blackboex.CodeGen.Sandbox
@@ -49,6 +50,9 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
       {{:ok, module, metadata, api}, _rest} ->
         run_pipeline(conn, module, metadata, api, rest)
 
+      {{:error, :shutting_down}, _} ->
+        send_json(conn, 503, %{error: "Service is shutting down"})
+
       {{:error, :not_found}, _} ->
         send_json(conn, 404, %{error: "API not found"})
     end
@@ -80,7 +84,7 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
 
     case result do
       {:ok, result_conn} ->
-        log_request(conn, result_conn, metadata, duration_ms)
+        log_request(conn, result_conn, metadata, api, duration_ms)
         result_conn
 
       {:error, :rate_limited, retry_after} ->
@@ -89,7 +93,7 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
           |> Plug.Conn.put_resp_header("retry-after", to_string(retry_after))
           |> send_json(429, %{error: "Rate limit exceeded", retry_after: retry_after})
 
-        log_request(conn, resp_conn, metadata, duration_ms)
+        log_request(conn, resp_conn, metadata, api, duration_ms)
         resp_conn
 
       {:error, :limit_exceeded, details} ->
@@ -102,12 +106,12 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
             upgrade_url: "/billing"
           })
 
-        log_request(conn, resp_conn, metadata, duration_ms)
+        log_request(conn, resp_conn, metadata, api, duration_ms)
         resp_conn
 
       {:error, auth_reason} ->
         resp_conn = send_auth_error(conn, auth_reason)
-        log_request(conn, resp_conn, metadata, duration_ms)
+        log_request(conn, resp_conn, metadata, api, duration_ms)
         resp_conn
     end
   end
@@ -257,7 +261,7 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
     end
   end
 
-  defp log_request(conn, result_conn, metadata, duration_ms) do
+  defp log_request(conn, result_conn, metadata, api, duration_ms) do
     Events.emit_api_request(%{
       duration_ms: duration_ms,
       api_id: metadata.api_id,
@@ -278,6 +282,14 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
       response_body_size: byte_size(result_conn.resp_body || ""),
       ip_address: ip
     })
+
+    if api.status == "published" do
+      Billing.record_usage_event(%{
+        organization_id: api.organization_id,
+        event_type: "api_invocation",
+        metadata: %{api_id: api.id}
+      })
+    end
   end
 
   defp raw_body_size(nil), do: 0

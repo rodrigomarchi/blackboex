@@ -15,7 +15,11 @@ defmodule Blackboex.CodeGen.ASTValidator do
     Code,
     Module,
     Node,
-    Application
+    Application,
+    # HTTP clients — prevent SSRF and data exfiltration
+    Req,
+    Req.Request,
+    HTTPoison
   ]
 
   @blocked_erlang_modules [
@@ -27,7 +31,11 @@ defmodule Blackboex.CodeGen.ASTValidator do
     :net,
     :gen_tcp,
     :gen_udp,
-    :httpc
+    :httpc,
+    # HTTP client backends
+    :finch,
+    :mint,
+    :hackney
   ]
 
   # Kernel functions that must be blocked as bare calls

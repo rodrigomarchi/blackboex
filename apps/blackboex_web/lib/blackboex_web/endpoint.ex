@@ -49,11 +49,25 @@ defmodule BlackboexWeb.Endpoint do
   plug Plug.Parsers,
     parsers: [:urlencoded, :multipart, :json],
     pass: ["*/*"],
+    length: 1_000_000,
     body_reader: {BlackboexWeb.Plugs.CacheBodyReader, :read_body, []},
     json_decoder: Phoenix.json_library()
 
   plug Plug.MethodOverride
   plug Plug.Head
   plug Plug.Session, @session_options
+
+  # Proxy trust: when deployed behind a reverse proxy (nginx, load balancer),
+  # conn.remote_ip will be the proxy's IP, not the client's. To fix this:
+  #
+  # Option 1 (recommended): Add {:remote_ip, "~> 1.2"} to deps and
+  #   plug RemoteIp here, configured with your proxy's trusted CIDR ranges.
+  #
+  # Option 2: Configure your proxy to set X-Forwarded-For and use a plug like:
+  #   plug RemoteIp, headers: ["x-forwarded-for"], proxies: ["10.0.0.0/8"]
+  #
+  # Without this, rate limiting (RateLimiter) and audit logging (AuditContext)
+  # will see the proxy IP instead of the real client IP.
+
   plug BlackboexWeb.Router
 end

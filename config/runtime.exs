@@ -7,6 +7,11 @@ import Config
 # any compile-time configuration in here, as it won't be applied.
 # The block below contains prod specific runtime configuration.
 
+# Start the Phoenix endpoint server when PHX_SERVER=true (used by releases/Docker)
+if System.get_env("PHX_SERVER") do
+  config :blackboex_web, BlackboexWeb.Endpoint, server: true
+end
+
 config :blackboex_web, BlackboexWeb.Endpoint,
   http: [port: String.to_integer(System.get_env("PORT", "4000"))]
 
@@ -58,7 +63,7 @@ if config_env() == :prod do
   maybe_ipv6 = if System.get_env("ECTO_IPV6") in ~w(true 1), do: [:inet6], else: []
 
   config :blackboex, Blackboex.Repo,
-    # ssl: true,
+    ssl: true,
     url: database_url,
     pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10"),
     socket_options: maybe_ipv6

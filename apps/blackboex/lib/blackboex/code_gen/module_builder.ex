@@ -30,7 +30,10 @@ defmodule Blackboex.CodeGen.ModuleBuilder do
           result = handle(params)
           send_resp(conn, 200, Jason.encode!(result))
         rescue
-          e -> send_resp(conn, 500, Jason.encode!(%{error: "handler error", detail: Exception.message(e)}))
+          e ->
+            require Logger
+            Logger.error("API handler error: \#{Exception.message(e)}")
+            send_resp(conn, 500, Jason.encode!(%{error: "handler error"}))
         end
       end
 
@@ -63,7 +66,10 @@ defmodule Blackboex.CodeGen.ModuleBuilder do
         try do
           fun.()
         rescue
-          e -> send_resp(conn, 500, Jason.encode!(%{error: "handler error", detail: Exception.message(e)}))
+          e ->
+            require Logger
+            Logger.error("API handler error: \#{Exception.message(e)}")
+            send_resp(conn, 500, Jason.encode!(%{error: "handler error"}))
         end
       end
 
@@ -128,7 +134,10 @@ defmodule Blackboex.CodeGen.ModuleBuilder do
           result = handle_webhook(conn.body_params)
           send_resp(conn, 200, Jason.encode!(result))
         rescue
-          e -> send_resp(conn, 500, Jason.encode!(%{error: "handler error", detail: Exception.message(e)}))
+          e ->
+            require Logger
+            Logger.error("API handler error: \#{Exception.message(e)}")
+            send_resp(conn, 500, Jason.encode!(%{error: "handler error"}))
         end
       end
 

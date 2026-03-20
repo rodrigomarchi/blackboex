@@ -6,6 +6,8 @@ defmodule Blackboex.Testing.TestRequest do
   use Ecto.Schema
   import Ecto.Changeset
 
+  import Blackboex.ChangesetHelpers, only: [validate_json_size: 2]
+
   @type t :: %__MODULE__{}
 
   @valid_methods ~w(GET POST PUT PATCH DELETE)
@@ -47,5 +49,7 @@ defmodule Blackboex.Testing.TestRequest do
     |> validate_inclusion(:method, @valid_methods)
     |> validate_length(:path, max: 2048)
     |> validate_length(:body, max: 1_048_576)
+    |> validate_json_size(:headers)
+    |> validate_json_size(:response_headers)
   end
 end

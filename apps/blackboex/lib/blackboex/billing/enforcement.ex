@@ -29,8 +29,22 @@ defmodule Blackboex.Billing.Enforcement do
     }
   }
 
+  @plan_atom_map %{"free" => :free, "pro" => :pro, "enterprise" => :enterprise}
+
+  @spec effective_plan(Organization.t()) :: atom()
+  def effective_plan(%Organization{id: org_id}) do
+    case Billing.get_subscription(org_id) do
+      %{status: "active", plan: plan} when is_binary(plan) ->
+        Map.get(@plan_atom_map, plan, :free)
+
+      _ ->
+        :free
+    end
+  end
+
   @spec check_limit(Organization.t(), atom()) :: limit_check()
-  def check_limit(%Organization{plan: plan} = org, :create_api) do
+  def check_limit(%Organization{} = org, :create_api) do
+    plan = effective_plan(org)
     limits = Map.fetch!(@limits, plan)
 
     case limits.max_apis do
@@ -43,7 +57,8 @@ defmodule Blackboex.Billing.Enforcement do
     end
   end
 
-  def check_limit(%Organization{plan: plan} = org, :api_invocation) do
+  def check_limit(%Organization{} = org, :api_invocation) do
+    plan = effective_plan(org)
     limits = Map.fetch!(@limits, plan)
 
     case limits.max_invocations_per_day do
@@ -56,7 +71,8 @@ defmodule Blackboex.Billing.Enforcement do
     end
   end
 
-  def check_limit(%Organization{plan: plan} = org, :llm_generation) do
+  def check_limit(%Organization{} = org, :llm_generation) do
+    plan = effective_plan(org)
     limits = Map.fetch!(@limits, plan)
 
     case limits.max_llm_generations_per_month do

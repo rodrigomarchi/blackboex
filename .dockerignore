@@ -1,0 +1,42 @@
+# Build artifacts
+/_build/
+/deps/
+/cover/
+/doc/
+
+# Dialyzer PLTs
+/priv/plts/
+
+# Version control
+.git
+.gitignore
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment files
+.env*
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary / test
+/tmp/
+erl_crash.dump
+
+# Documentation
+/docs/
+
+# Claude
+CLAUDE.md
+.claude/

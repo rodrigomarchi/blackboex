@@ -38,6 +38,49 @@ defmodule Blackboex.Billing.WebhookHandlerTest do
       updated_org = Organizations.get_organization!(org.id)
       assert updated_org.plan == :pro
     end
+
+    test "rejects payload with missing organization_id" do
+      payload = %{
+        "customer" => "cus_test123",
+        "subscription" => "sub_test456",
+        "metadata" => %{"plan" => "pro"}
+      }
+
+      assert {:error, :invalid_payload} =
+               WebhookHandler.handle_event("checkout.session.completed", payload)
+    end
+
+    test "rejects payload with empty customer" do
+      payload = %{
+        "customer" => "",
+        "subscription" => "sub_test456",
+        "metadata" => %{"organization_id" => Ecto.UUID.generate(), "plan" => "pro"}
+      }
+
+      assert {:error, :invalid_payload} =
+               WebhookHandler.handle_event("checkout.session.completed", payload)
+    end
+
+    test "rejects payload with missing subscription" do
+      payload = %{
+        "customer" => "cus_test123",
+        "metadata" => %{"organization_id" => Ecto.UUID.generate(), "plan" => "pro"}
+      }
+
+      assert {:error, :invalid_payload} =
+               WebhookHandler.handle_event("checkout.session.completed", payload)
+    end
+
+    test "rejects payload with invalid plan" do
+      payload = %{
+        "customer" => "cus_test123",
+        "subscription" => "sub_test456",
+        "metadata" => %{"organization_id" => Ecto.UUID.generate(), "plan" => "ultra"}
+      }
+
+      assert {:error, :invalid_payload} =
+               WebhookHandler.handle_event("checkout.session.completed", payload)
+    end
   end
 
   describe "handle_event/2 customer.subscription.updated" do

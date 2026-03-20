@@ -8,6 +8,13 @@ defmodule Blackboex.Application do
   alias Blackboex.Telemetry.Events
 
   @impl true
+  @spec prep_stop(term()) :: term()
+  def prep_stop(state) do
+    Blackboex.Apis.Registry.shutdown()
+    state
+  end
+
+  @impl true
   def start(_type, _args) do
     attach_telemetry_handlers()
 

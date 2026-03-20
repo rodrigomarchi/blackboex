@@ -27,27 +27,51 @@ defmodule Blackboex.Apis do
   def create_api(attrs) do
     org_id = attrs[:organization_id] || attrs["organization_id"]
 
-    with :ok <- check_api_limit(org_id) do
+    if org_id do
+      create_api_with_lock(attrs, org_id)
+    else
       %Api{}
       |> Api.changeset(attrs)
       |> Repo.insert()
     end
   end
 
-  defp check_api_limit(nil), do: :ok
+  defp create_api_with_lock(attrs, org_id) do
+    Repo.transaction(fn ->
+      acquire_api_creation_lock(org_id)
+      check_and_insert_api(attrs, org_id)
+    end)
+    |> case do
+      {:ok, api} -> {:ok, api}
+      {:error, {:limit_exceeded, details}} -> {:error, :limit_exceeded, details}
+      {:error, %Ecto.Changeset{} = changeset} -> {:error, changeset}
+    end
+  rescue
+    e in Ecto.InvalidChangesetError -> {:error, e.changeset}
+  end
 
-  defp check_api_limit(org_id) do
+  defp acquire_api_creation_lock(org_id) do
+    lock_key = :erlang.phash2({"create_api", org_id})
+    Repo.query!("SELECT pg_advisory_xact_lock($1)", [lock_key])
+  end
+
+  defp check_and_insert_api(attrs, org_id) do
     case Organizations.get_organization(org_id) do
-      nil -> :ok
-      org -> enforce_limit(org, :create_api)
+      nil ->
+        insert_api!(attrs)
+
+      org ->
+        case Enforcement.check_limit(org, :create_api) do
+          {:ok, _remaining} -> insert_api!(attrs)
+          {:error, :limit_exceeded, details} -> Repo.rollback({:limit_exceeded, details})
+        end
     end
   end
 
-  defp enforce_limit(org, limit_type) do
-    case Enforcement.check_limit(org, limit_type) do
-      {:ok, _remaining} -> :ok
-      {:error, :limit_exceeded, details} -> {:error, :limit_exceeded, details}
-    end
+  defp insert_api!(attrs) do
+    %Api{}
+    |> Api.changeset(attrs)
+    |> Repo.insert!()
   end
 
   @spec list_apis(Ecto.UUID.t()) :: [Api.t()]

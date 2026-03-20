@@ -13,6 +13,9 @@ defmodule Blackboex.Apis.Registry do
 
   @table :api_registry
   @path_table :api_registry_paths
+  @shutdown_flag :api_registry_shutting_down
+  @drain_timeout_ms 30_000
+  @drain_poll_ms 500
 
   @type metadata :: %{
           requires_auth: boolean(),
@@ -32,8 +35,11 @@ defmodule Blackboex.Apis.Registry do
     GenServer.call(__MODULE__, {:register, api_id, module, opts})
   end
 
-  @spec lookup(Ecto.UUID.t()) :: {:ok, module(), metadata()} | {:error, :not_found}
+  @spec lookup(Ecto.UUID.t()) ::
+          {:ok, module(), metadata()} | {:error, :not_found | :shutting_down}
   def lookup(api_id) do
+    if shutting_down?(), do: throw(:shutting_down)
+
     case :ets.lookup(@table, api_id) do
       [{^api_id, {module, metadata}}] -> {:ok, module, metadata}
       # Legacy format compatibility (module without metadata)
@@ -42,11 +48,15 @@ defmodule Blackboex.Apis.Registry do
     end
   rescue
     ArgumentError -> {:error, :not_found}
+  catch
+    :shutting_down -> {:error, :shutting_down}
   end
 
   @spec lookup_by_path(String.t(), String.t()) ::
-          {:ok, module(), metadata()} | {:error, :not_found}
+          {:ok, module(), metadata()} | {:error, :not_found | :shutting_down}
   def lookup_by_path(org_slug, slug) do
+    if shutting_down?(), do: throw(:shutting_down)
+
     case :ets.lookup(@path_table, {org_slug, slug}) do
       [{{^org_slug, ^slug}, api_id}] ->
         lookup(api_id)
@@ -56,6 +66,8 @@ defmodule Blackboex.Apis.Registry do
     end
   rescue
     ArgumentError -> {:error, :not_found}
+  catch
+    :shutting_down -> {:error, :shutting_down}
   end
 
   @spec unregister(Ecto.UUID.t()) :: :ok
@@ -66,6 +78,44 @@ defmodule Blackboex.Apis.Registry do
   @spec clear() :: :ok
   def clear do
     GenServer.call(__MODULE__, :clear)
+  end
+
+  @doc """
+  Returns true if the registry is draining and rejecting new requests.
+  """
+  @spec shutting_down?() :: boolean()
+  def shutting_down? do
+    :persistent_term.get(@shutdown_flag, false)
+  end
+
+  @doc """
+  Gracefully shuts down the registry:
+
+  1. Sets a flag to reject new lookups
+  2. Waits up to 30 seconds for in-flight sandbox tasks to complete
+  3. Unloads all dynamic modules and clears the ETS tables
+
+  Called from `Blackboex.Application.prep_stop/1`.
+  """
+  @spec shutdown() :: :ok
+  def shutdown do
+    Logger.info("Registry shutdown initiated, draining in-flight requests...")
+    :persistent_term.put(@shutdown_flag, true)
+
+    drain_sandbox_tasks(@drain_timeout_ms)
+
+    # Unload all dynamically compiled modules
+    unload_all_modules()
+
+    # Clear ETS tables
+    clear()
+
+    Logger.info("Registry shutdown complete")
+    :ok
+  rescue
+    error ->
+      Logger.warning("Registry shutdown error: #{inspect(error)}")
+      :ok
   end
 
   # Server callbacks
@@ -183,5 +233,46 @@ defmodule Blackboex.Apis.Registry do
 
   defp default_metadata(api_id) do
     %{requires_auth: true, visibility: "private", api_id: api_id}
+  end
+
+  defp drain_sandbox_tasks(remaining) when remaining <= 0 do
+    Logger.warning("Registry drain timeout reached, proceeding with shutdown")
+  end
+
+  defp drain_sandbox_tasks(remaining) do
+    active =
+      case Process.whereis(Blackboex.SandboxTaskSupervisor) do
+        nil ->
+          0
+
+        pid ->
+          %{active: count} = Supervisor.count_children(pid)
+          count
+      end
+
+    if active > 0 do
+      Logger.info("Registry drain: #{active} sandbox tasks still running, waiting...")
+      Process.sleep(@drain_poll_ms)
+      drain_sandbox_tasks(remaining - @drain_poll_ms)
+    else
+      Logger.info("Registry drain: all sandbox tasks completed")
+    end
+  end
+
+  defp unload_all_modules do
+    entries = :ets.tab2list(@table)
+
+    Enum.each(entries, fn
+      {_api_id, {module, _metadata}} when is_atom(module) ->
+        :code.purge(module)
+        :code.delete(module)
+
+      {_api_id, module} when is_atom(module) ->
+        :code.purge(module)
+        :code.delete(module)
+
+      _ ->
+        :ok
+    end)
   end
 end

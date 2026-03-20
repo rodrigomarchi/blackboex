@@ -10,6 +10,15 @@ import Config
 config :blackboex_web, BlackboexWeb.Endpoint,
   http: [port: String.to_integer(System.get_env("PORT", "4000"))]
 
+# Stripe configuration (all environments — loaded from env vars when present)
+if stripe_key = System.get_env("STRIPE_SECRET_KEY") do
+  config :stripity_stripe, api_key: stripe_key
+end
+
+if stripe_webhook_secret = System.get_env("STRIPE_WEBHOOK_SECRET") do
+  config :blackboex, :stripe_webhook_secret, stripe_webhook_secret
+end
+
 # ReqLLM API keys (all environments — loaded from env vars when present)
 config :req_llm,
   anthropic_api_key: System.get_env("ANTHROPIC_API_KEY"),
@@ -52,6 +61,17 @@ if config_env() == :prod do
     secret_key_base: secret_key_base
 
   config :blackboex, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
+
+  # Stripe keys — required in production
+  config :stripity_stripe,
+    api_key:
+      System.get_env("STRIPE_SECRET_KEY") ||
+        raise("missing STRIPE_SECRET_KEY env var")
+
+  config :blackboex,
+         :stripe_webhook_secret,
+         System.get_env("STRIPE_WEBHOOK_SECRET") ||
+           raise("missing STRIPE_WEBHOOK_SECRET env var")
 
   # Use real LLM client in production
   config :blackboex, :llm_client, Blackboex.LLM.ReqLLMClient

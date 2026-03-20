@@ -10,18 +10,44 @@ defmodule Blackboex.Apis do
   alias Blackboex.Apis.DiffEngine
   alias Blackboex.Apis.Keys
   alias Blackboex.Apis.Registry
+  alias Blackboex.Audit
+  alias Blackboex.Billing.Enforcement
   alias Blackboex.CodeGen.Compiler
   alias Blackboex.CodeGen.GenerationResult
+  alias Blackboex.Organizations
   alias Blackboex.Organizations.Organization
   alias Blackboex.Repo
 
   require Logger
 
-  @spec create_api(map()) :: {:ok, Api.t()} | {:error, Ecto.Changeset.t()}
+  @spec create_api(map()) ::
+          {:ok, Api.t()}
+          | {:error, Ecto.Changeset.t()}
+          | {:error, :limit_exceeded, map()}
   def create_api(attrs) do
-    %Api{}
-    |> Api.changeset(attrs)
-    |> Repo.insert()
+    org_id = attrs[:organization_id] || attrs["organization_id"]
+
+    with :ok <- check_api_limit(org_id) do
+      %Api{}
+      |> Api.changeset(attrs)
+      |> Repo.insert()
+    end
+  end
+
+  defp check_api_limit(nil), do: :ok
+
+  defp check_api_limit(org_id) do
+    case Organizations.get_organization(org_id) do
+      nil -> :ok
+      org -> enforce_limit(org, :create_api)
+    end
+  end
+
+  defp enforce_limit(org, limit_type) do
+    case Enforcement.check_limit(org, limit_type) do
+      {:ok, _remaining} -> :ok
+      {:error, :limit_exceeded, details} -> {:error, :limit_exceeded, details}
+    end
   end
 
   @spec list_apis(Ecto.UUID.t()) :: [Api.t()]
@@ -185,6 +211,16 @@ defmodule Blackboex.Apis do
     |> case do
       {:ok, %{api: published_api, key: {plain_key, _api_key}}} ->
         register_published_api(published_api, org)
+
+        Task.Supervisor.start_child(Blackboex.LoggingSupervisor, fn ->
+          Audit.log("api.published", %{
+            resource_type: "api",
+            resource_id: published_api.id,
+            user_id: published_api.user_id,
+            organization_id: org.id
+          })
+        end)
+
         {:ok, published_api, plain_key}
 
       {:error, :api, changeset, _} ->
@@ -206,6 +242,15 @@ defmodule Blackboex.Apis do
 
         module_name = Compiler.module_name_for(api)
         Compiler.unload(module_name)
+
+        Task.Supervisor.start_child(Blackboex.LoggingSupervisor, fn ->
+          Audit.log("api.unpublished", %{
+            resource_type: "api",
+            resource_id: api.id,
+            user_id: api.user_id,
+            organization_id: api.organization_id
+          })
+        end)
 
         {:ok, updated_api}
 

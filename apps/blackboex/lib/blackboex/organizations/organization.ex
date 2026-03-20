@@ -36,6 +36,17 @@ defmodule Blackboex.Organizations.Organization do
     |> unique_constraint(:slug)
   end
 
+  @doc """
+  Admin changeset for Backpex admin panel operations.
+  Only allows editing name and plan. Slug is immutable.
+  """
+  @spec admin_changeset(t(), map(), map()) :: Ecto.Changeset.t()
+  def admin_changeset(organization, attrs, _metadata) do
+    organization
+    |> cast(attrs, [:name, :plan])
+    |> validate_required([:name])
+  end
+
   defp maybe_generate_slug(changeset) do
     case get_change(changeset, :slug) do
       nil ->

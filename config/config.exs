@@ -62,6 +62,38 @@ config :tailwind,
     cd: Path.expand("../apps/blackboex_web", __DIR__)
   ]
 
+# Backpex admin panel
+config :backpex, :pubsub_server, Blackboex.PubSub
+
+# ExAudit row-level audit tracking
+config :ex_audit,
+  ecto_repos: [Blackboex.Repo],
+  version_schema: Blackboex.Audit.Version,
+  tracked_schemas: [
+    Blackboex.Billing.Subscription,
+    Blackboex.Apis.Api,
+    Blackboex.Apis.ApiKey,
+    Blackboex.Organizations.Organization
+  ]
+
+# Stripe client configuration
+config :blackboex, :stripe_client, Blackboex.Billing.StripeClient.Live
+
+# FunWithFlags feature flag configuration
+config :fun_with_flags, :persistence,
+  adapter: FunWithFlags.Store.Persistent.Ecto,
+  repo: Blackboex.Repo
+
+config :fun_with_flags, :cache_bust_notifications,
+  adapter: FunWithFlags.Notifications.PhoenixPubSub,
+  client: Blackboex.PubSub
+
+# Oban job processing
+config :blackboex, Oban,
+  repo: Blackboex.Repo,
+  queues: [billing: 10],
+  plugins: [Oban.Plugins.Pruner]
+
 # Configure Elixir's Logger
 config :logger, :default_formatter,
   format: "$time $metadata[$level] $message\n",

@@ -65,7 +65,8 @@ defmodule BlackboexWeb.MixProject do
       {:live_monaco_editor, "~> 0.2"},
       {:floki, "~> 0.37", only: :test},
       {:hammer, "~> 7.2"},
-      {:open_api_spex, "~> 3.22"}
+      {:open_api_spex, "~> 3.22"},
+      {:backpex, "~> 0.17"}
     ]
   end
 

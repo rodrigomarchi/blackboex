@@ -20,5 +20,15 @@
   {"lib/blackboex_web/rate_limiter_backend.ex", :callback_info_missing},
   # ExJsonSchema and Ymlr are in domain app deps — cross-app deps not visible to Dialyzer
   {"lib/blackboex/testing/contract_validator.ex", :unknown_function},
-  {"lib/blackboex/docs/open_api_generator.ex", :unknown_function}
+  {"lib/blackboex/docs/open_api_generator.ex", :unknown_function},
+  # ExAudit internal modules are resolved at runtime — not visible to Dialyzer
+  ~r/ex_audit/,
+  # ExAudit.track/1 is in domain app dep — cross-app not visible to web app Dialyzer
+  {"lib/blackboex_web/plugs/audit_context.ex", :unknown_function},
+  # Ecto.Multi opaque type false positive in Billing context
+  {"lib/blackboex/billing.ex", :call_without_opaque},
+  # Stripity Stripe uses complex internal types — Dialyzer can't fully resolve Live client
+  {"lib/blackboex/billing/stripe_client/live.ex", :invalid_contract},
+  {"lib/blackboex/billing/stripe_client/live.ex", :no_return},
+  {"lib/blackboex/billing/stripe_client/live.ex", :call}
 ]

@@ -9,6 +9,7 @@ defmodule Blackboex.Application do
   def start(_type, _args) do
     children = [
       Blackboex.Repo,
+      {Oban, Application.fetch_env!(:blackboex, Oban)},
       {DNSCluster, query: Application.get_env(:blackboex, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Blackboex.PubSub},
       {Task.Supervisor, name: Blackboex.SandboxTaskSupervisor},

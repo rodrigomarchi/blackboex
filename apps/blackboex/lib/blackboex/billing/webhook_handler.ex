@@ -1,0 +1,147 @@
+defmodule Blackboex.Billing.WebhookHandler do
+  @moduledoc """
+  Handles Stripe webhook events.
+  Each event type has a dedicated handle_event/2 clause.
+  """
+
+  alias Blackboex.Billing
+  alias Blackboex.Billing.ProcessedEvent
+  alias Blackboex.Repo
+
+  require Logger
+
+  @spec process_event(String.t(), String.t(), map()) ::
+          :ok | {:error, :already_processed} | {:error, term()}
+  def process_event(event_id, event_type, payload) do
+    if already_processed?(event_id) do
+      Logger.info("Webhook event already processed: #{event_id}")
+      {:error, :already_processed}
+    else
+      case handle_event(event_type, payload) do
+        :ok ->
+          mark_processed(event_id, event_type)
+          :ok
+
+        {:error, reason} ->
+          Logger.warning("Webhook event #{event_id} failed: #{inspect(reason)}")
+          {:error, reason}
+      end
+    end
+  end
+
+  defp already_processed?(event_id) do
+    Repo.get_by(ProcessedEvent, event_id: event_id) != nil
+  end
+
+  @spec handle_event(String.t(), map()) :: :ok | {:error, term()}
+  def handle_event("checkout.session.completed", payload) do
+    metadata = payload["metadata"] || %{}
+    org_id = metadata["organization_id"]
+    plan = metadata["plan"] || "free"
+    customer_id = payload["customer"]
+    subscription_id = payload["subscription"]
+
+    if org_id do
+      case Billing.create_or_update_subscription(%{
+             organization_id: org_id,
+             stripe_customer_id: customer_id,
+             stripe_subscription_id: subscription_id,
+             plan: plan,
+             status: "active"
+           }) do
+        {:ok, _sub} -> :ok
+        {:error, reason} -> {:error, reason}
+      end
+    else
+      Logger.warning("checkout.session.completed missing organization_id in metadata")
+      :ok
+    end
+  end
+
+  def handle_event("customer.subscription.updated", payload) do
+    subscription_id = payload["id"]
+    status = payload["status"]
+    cancel_at_period_end = payload["cancel_at_period_end"] || false
+
+    case Repo.get_by(Blackboex.Billing.Subscription, stripe_subscription_id: subscription_id) do
+      nil ->
+        Logger.warning("Subscription not found for stripe_subscription_id: #{subscription_id}")
+        :ok
+
+      sub ->
+        attrs = %{
+          organization_id: sub.organization_id,
+          status: to_string(status),
+          cancel_at_period_end: cancel_at_period_end
+        }
+
+        attrs =
+          if is_integer(payload["current_period_start"]) &&
+               is_integer(payload["current_period_end"]) do
+            Map.merge(attrs, %{
+              current_period_start: DateTime.from_unix!(payload["current_period_start"]),
+              current_period_end: DateTime.from_unix!(payload["current_period_end"])
+            })
+          else
+            attrs
+          end
+
+        case Billing.create_or_update_subscription(attrs) do
+          {:ok, _} -> :ok
+          {:error, reason} -> {:error, reason}
+        end
+    end
+  end
+
+  def handle_event("customer.subscription.deleted", payload) do
+    subscription_id = payload["id"]
+
+    case Repo.get_by(Blackboex.Billing.Subscription, stripe_subscription_id: subscription_id) do
+      nil ->
+        :ok
+
+      sub ->
+        case Billing.create_or_update_subscription(%{
+               organization_id: sub.organization_id,
+               plan: "free",
+               status: "canceled"
+             }) do
+          {:ok, _} -> :ok
+          {:error, reason} -> {:error, reason}
+        end
+    end
+  end
+
+  def handle_event("invoice.payment_failed", payload) do
+    subscription_id = payload["subscription"]
+
+    case Repo.get_by(Blackboex.Billing.Subscription, stripe_subscription_id: subscription_id) do
+      nil ->
+        :ok
+
+      sub ->
+        case Billing.create_or_update_subscription(%{
+               organization_id: sub.organization_id,
+               status: "past_due"
+             }) do
+          {:ok, _} -> :ok
+          {:error, reason} -> {:error, reason}
+        end
+    end
+  end
+
+  def handle_event(event_type, _payload) do
+    Logger.info("Unhandled webhook event type: #{event_type}")
+    :ok
+  end
+
+  defp mark_processed(event_id, event_type) do
+    %ProcessedEvent{}
+    |> ProcessedEvent.changeset(%{
+      event_id: event_id,
+      event_type: event_type,
+      processed_at: DateTime.utc_now(:second)
+    })
+    |> Repo.insert()
+  end
+end

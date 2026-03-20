@@ -2,6 +2,7 @@ defmodule BlackboexWeb.Router do
   use BlackboexWeb, :router
 
   import BlackboexWeb.UserAuth
+  import Backpex.Router
 
   pipeline :browser do
     plug :accepts, ["html"]
@@ -15,6 +16,14 @@ defmodule BlackboexWeb.Router do
 
   pipeline :api do
     plug :accepts, ["json"]
+  end
+
+  pipeline :audit_context do
+    plug BlackboexWeb.Plugs.AuditContext
+  end
+
+  pipeline :require_platform_admin do
+    plug BlackboexWeb.Plugs.RequirePlatformAdmin
   end
 
   scope "/", BlackboexWeb do
@@ -52,10 +61,41 @@ defmodule BlackboexWeb.Router do
     end
   end
 
+  # Stripe webhooks — no auth, no CSRF, signature verified in controller
+  scope "/webhooks", BlackboexWeb do
+    pipe_through :api
+    post "/stripe", WebhookController, :handle
+  end
+
+  # Backpex cookie route
+  scope "/" do
+    pipe_through :browser
+    backpex_routes()
+  end
+
+  # Admin panel — platform admins only
+  scope "/admin", BlackboexWeb.Admin do
+    pipe_through [:browser, :require_authenticated_user, :require_platform_admin, :audit_context]
+
+    live_session :admin,
+      on_mount: [
+        {BlackboexWeb.UserAuth, :require_authenticated},
+        {BlackboexWeb.Hooks.SetOrganization, :default},
+        Backpex.InitAssigns
+      ] do
+      live "/", DashboardLive, :index
+      live_resources "/users", UserLive
+      live_resources "/organizations", OrganizationLive
+      live_resources "/apis", ApiLive
+      live_resources "/subscriptions", SubscriptionLive, only: [:index, :show]
+      live_resources "/audit-logs", AuditLogLive, only: [:index, :show]
+    end
+  end
+
   ## Authentication routes
 
   scope "/", BlackboexWeb do
-    pipe_through [:browser, :require_authenticated_user]
+    pipe_through [:browser, :require_authenticated_user, :audit_context]
 
     live_session :require_authenticated_user,
       on_mount: [
@@ -67,6 +107,9 @@ defmodule BlackboexWeb.Router do
       live "/apis/new", ApiLive.New, :new
       live "/apis/:id", ApiLive.Show, :show
       live "/apis/:id/edit", ApiLive.Edit, :edit
+      live "/billing", BillingLive.Plans, :index
+      live "/billing/manage", BillingLive.Manage, :manage
+      live "/settings", SettingsLive, :index
       live "/users/settings", UserLive.Settings, :edit
       live "/users/settings/confirm-email/:token", UserLive.Settings, :confirm_email
     end

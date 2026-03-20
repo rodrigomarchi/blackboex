@@ -57,7 +57,13 @@ defmodule BlackboexWeb.Layouts do
             <.icon name="hero-bolt" class="size-4" /> APIs
           </.link>
           <.link
-            navigate={~p"/users/settings"}
+            navigate={~p"/billing"}
+            class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+          >
+            <.icon name="hero-credit-card" class="size-4" /> Billing
+          </.link>
+          <.link
+            navigate={~p"/settings"}
             class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
           >
             <.icon name="hero-cog-6-tooth" class="size-4" /> Settings
@@ -94,6 +100,55 @@ defmodule BlackboexWeb.Layouts do
     </div>
 
     <.flash_group flash={@flash} />
+    """
+  end
+
+  @doc """
+  Admin layout for Backpex admin panel.
+  Uses Backpex's app_shell component with sidebar navigation.
+  """
+  slot :inner_content
+
+  def admin(assigns) do
+    ~H"""
+    <Backpex.HTML.Layout.app_shell>
+      <:topbar>
+        <a href="/" class="text-lg font-semibold">BlackBoex Admin</a>
+      </:topbar>
+      <:sidebar>
+        <li>
+          <.link navigate={~p"/admin"} class="flex items-center gap-2">
+            <.icon name="hero-chart-bar" class="size-4" /> Dashboard
+          </.link>
+        </li>
+        <li>
+          <.link navigate={~p"/admin/users"} class="flex items-center gap-2">
+            <.icon name="hero-users" class="size-4" /> Users
+          </.link>
+        </li>
+        <li>
+          <.link navigate={~p"/admin/organizations"} class="flex items-center gap-2">
+            <.icon name="hero-building-office" class="size-4" /> Organizations
+          </.link>
+        </li>
+        <li>
+          <.link navigate={~p"/admin/apis"} class="flex items-center gap-2">
+            <.icon name="hero-bolt" class="size-4" /> APIs
+          </.link>
+        </li>
+        <li>
+          <.link navigate={~p"/admin/subscriptions"} class="flex items-center gap-2">
+            <.icon name="hero-credit-card" class="size-4" /> Subscriptions
+          </.link>
+        </li>
+        <li>
+          <.link navigate={~p"/admin/audit-logs"} class="flex items-center gap-2">
+            <.icon name="hero-document-text" class="size-4" /> Audit Logs
+          </.link>
+        </li>
+      </:sidebar>
+      {render_slot(@inner_content)}
+    </Backpex.HTML.Layout.app_shell>
     """
   end
 

@@ -8,6 +8,7 @@ defmodule Blackboex.Apis.Keys do
 
   alias Blackboex.Apis.Api
   alias Blackboex.Apis.ApiKey
+  alias Blackboex.Audit
   alias Blackboex.Repo
 
   @key_prefix "bb_live_"
@@ -29,8 +30,19 @@ defmodule Blackboex.Apis.Keys do
     case %ApiKey{}
          |> ApiKey.changeset(changeset_attrs)
          |> Repo.insert() do
-      {:ok, api_key} -> {:ok, plain_key, api_key}
-      {:error, changeset} -> {:error, changeset}
+      {:ok, api_key} ->
+        Task.Supervisor.start_child(Blackboex.LoggingSupervisor, fn ->
+          Audit.log("api_key.created", %{
+            resource_type: "api_key",
+            resource_id: api_key.id,
+            organization_id: api_key.organization_id
+          })
+        end)
+
+        {:ok, plain_key, api_key}
+
+      {:error, changeset} ->
+        {:error, changeset}
     end
   end
 
@@ -89,9 +101,23 @@ defmodule Blackboex.Apis.Keys do
 
   @spec revoke_key(ApiKey.t()) :: {:ok, ApiKey.t()} | {:error, Ecto.Changeset.t()}
   def revoke_key(%ApiKey{} = api_key) do
-    api_key
-    |> ApiKey.changeset(%{revoked_at: DateTime.utc_now()})
-    |> Repo.update()
+    case api_key
+         |> ApiKey.changeset(%{revoked_at: DateTime.utc_now()})
+         |> Repo.update() do
+      {:ok, revoked_key} ->
+        Task.Supervisor.start_child(Blackboex.LoggingSupervisor, fn ->
+          Audit.log("api_key.revoked", %{
+            resource_type: "api_key",
+            resource_id: revoked_key.id,
+            organization_id: revoked_key.organization_id
+          })
+        end)
+
+        {:ok, revoked_key}
+
+      {:error, changeset} ->
+        {:error, changeset}
+    end
   end
 
   @spec rotate_key(ApiKey.t()) :: {:ok, String.t(), ApiKey.t()} | {:error, Ecto.Changeset.t()}

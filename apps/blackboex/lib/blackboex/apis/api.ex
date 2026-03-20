@@ -73,6 +73,16 @@ defmodule Blackboex.Apis.Api do
     |> unique_constraint([:organization_id, :slug])
   end
 
+  @doc """
+  Admin changeset for Backpex admin panel operations.
+  """
+  @spec admin_changeset(t(), map(), map()) :: Ecto.Changeset.t()
+  def admin_changeset(api, attrs, _metadata) do
+    api
+    |> cast(attrs, [:name, :status, :visibility])
+    |> validate_required([:name])
+  end
+
   defp maybe_generate_slug(changeset) do
     case get_change(changeset, :slug) do
       nil ->

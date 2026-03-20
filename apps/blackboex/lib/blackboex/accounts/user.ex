@@ -13,6 +13,7 @@ defmodule Blackboex.Accounts.User do
     field :hashed_password, :string, redact: true
     field :confirmed_at, :naive_datetime
     field :authenticated_at, :naive_datetime, virtual: true
+    field :is_platform_admin, :boolean, default: false
 
     timestamps()
   end
@@ -111,6 +112,16 @@ defmodule Blackboex.Accounts.User do
     else
       changeset
     end
+  end
+
+  @doc """
+  Admin changeset for platform admin operations (e.g., Backpex).
+  Only allows toggling `is_platform_admin`.
+  """
+  @spec admin_changeset(t(), map(), map()) :: Ecto.Changeset.t()
+  def admin_changeset(user, attrs, _metadata) do
+    user
+    |> cast(attrs, [:is_platform_admin])
   end
 
   @doc """

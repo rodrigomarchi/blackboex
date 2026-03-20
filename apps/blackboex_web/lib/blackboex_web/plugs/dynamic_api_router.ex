@@ -12,6 +12,7 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
 
   alias Blackboex.Apis.Analytics
   alias Blackboex.Apis.Registry
+  alias Blackboex.Billing.Enforcement
   alias Blackboex.CodeGen.Compiler
   alias BlackboexWeb.Plugs.ApiAuth
   alias BlackboexWeb.Plugs.ApiDocsPlug
@@ -68,7 +69,8 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
 
     result =
       with {:ok, conn} <- maybe_rate_limit(conn, api, metadata),
-           {:ok, conn} <- maybe_authenticate(conn, api, metadata) do
+           {:ok, conn} <- maybe_authenticate(conn, api, metadata),
+           {:ok, conn} <- maybe_check_enforcement(conn, api) do
         {:ok, execute_module(conn, module, rest)}
       end
 
@@ -84,6 +86,19 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
           conn
           |> Plug.Conn.put_resp_header("retry-after", to_string(retry_after))
           |> send_json(429, %{error: "Rate limit exceeded", retry_after: retry_after})
+
+        log_request(conn, resp_conn, metadata, duration_ms)
+        resp_conn
+
+      {:error, :limit_exceeded, details} ->
+        resp_conn =
+          send_json(conn, 402, %{
+            error: "Plan limit exceeded",
+            limit: details.limit,
+            current: details.current,
+            plan: details.plan,
+            upgrade_url: "/billing"
+          })
 
         log_request(conn, resp_conn, metadata, duration_ms)
         resp_conn
@@ -108,6 +123,22 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
       ApiAuth.authenticate(conn, api, metadata)
     else
       {:ok, conn}
+    end
+  end
+
+  defp maybe_check_enforcement(conn, %{status: "published"} = api) do
+    case Blackboex.Organizations.get_organization(api.organization_id) do
+      nil -> {:ok, conn}
+      org -> check_invocation_limit(conn, org)
+    end
+  end
+
+  defp maybe_check_enforcement(conn, _api), do: {:ok, conn}
+
+  defp check_invocation_limit(conn, org) do
+    case Enforcement.check_limit(org, :api_invocation) do
+      {:ok, _remaining} -> {:ok, conn}
+      {:error, :limit_exceeded, details} -> {:error, :limit_exceeded, details}
     end
   end
 
@@ -216,11 +247,15 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
       path: "/" <> Enum.join(conn.path_info, "/"),
       status_code: result_conn.status,
       duration_ms: duration_ms,
-      request_body_size: byte_size(conn.assigns[:raw_body] || ""),
+      request_body_size: raw_body_size(conn.assigns[:raw_body]),
       response_body_size: byte_size(result_conn.resp_body || ""),
       ip_address: ip
     })
   end
+
+  defp raw_body_size(nil), do: 0
+  defp raw_body_size(body) when is_binary(body), do: byte_size(body)
+  defp raw_body_size(body) when is_list(body), do: body |> IO.iodata_length()
 
   defp send_json(conn, status, body) do
     conn

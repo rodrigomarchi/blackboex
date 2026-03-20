@@ -28,7 +28,8 @@ defmodule Blackboex.AccountsFixtures do
   end
 
   def user_fixture(attrs \\ %{}) do
-    user = unconfirmed_user_fixture(attrs)
+    {extra_attrs, registration_attrs} = Map.pop(attrs, :is_platform_admin)
+    user = unconfirmed_user_fixture(registration_attrs)
 
     token =
       extract_user_token(fn url ->
@@ -38,7 +39,13 @@ defmodule Blackboex.AccountsFixtures do
     {:ok, {user, _expired_tokens}} =
       Accounts.login_user_by_magic_link(token)
 
-    user
+    if extra_attrs do
+      user
+      |> Ecto.Changeset.change(is_platform_admin: extra_attrs)
+      |> Blackboex.Repo.update!()
+    else
+      user
+    end
   end
 
   def user_scope_fixture do

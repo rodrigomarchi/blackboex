@@ -6,14 +6,35 @@ defmodule Blackboex.CodeGen.Pipeline do
 
   require Logger
 
+  alias Blackboex.Billing.Enforcement
   alias Blackboex.CodeGen.GenerationResult
   alias Blackboex.LLM.{Config, Prompts}
+  alias Blackboex.Organizations
 
   @crud_keywords ~w(crud store database banco armazenar listar persist persistir save salvar)
   @webhook_keywords ~w(webhook receive callback receber notificacao notificação)
 
-  @spec generate(String.t(), keyword()) :: {:ok, GenerationResult.t()} | {:error, term()}
+  @spec generate(String.t(), keyword()) ::
+          {:ok, GenerationResult.t()} | {:error, term()} | {:error, :limit_exceeded, map()}
   def generate(description, opts \\ []) do
+    with :ok <- check_llm_limit(opts) do
+      do_generate(description, opts)
+    end
+  end
+
+  defp check_llm_limit(opts) do
+    with {:ok, org_id} <- Keyword.fetch(opts, :organization_id),
+         org when not is_nil(org) <- Organizations.get_organization(org_id) do
+      case Enforcement.check_limit(org, :llm_generation) do
+        {:ok, _remaining} -> :ok
+        {:error, :limit_exceeded, details} -> {:error, :limit_exceeded, details}
+      end
+    else
+      _ -> :ok
+    end
+  end
+
+  defp do_generate(description, opts) do
     client = Config.client()
     provider = Config.default_provider()
     start_time = System.monotonic_time(:millisecond)

@@ -80,6 +80,23 @@
 > - Helpers de teste DEVEM usar assinaturas reais — `grep` uso existente antes de escrever novos
 > - Antes de adicionar branch a `cond`/`case` com 3+ branches, extrair para function clauses — previne Credo cyclomatic
 > - Regex de LLM DEVE usar `[\r\n]` e catch-all defensivo
+>
+> **CHECKLIST PRE-EXECUCAO (Licoes Fase 09):**
+> - Processamento idempotente de eventos DEVE seguir ordem: (1) checar se ja processou, (2) processar, (3) marcar como processado APENAS no sucesso. Marcar antes = evento perdido se handler falhar
+> - Webhooks/callbacks de servicos externos DEVEM retornar 500 em falha real (nao 200) — servico externo so retenta em 4xx/5xx
+> - `DateTime.from_unix!/1` em payloads externos DEVE ter guard `is_integer/1` — dados de webhook nao sao confiaveis
+> - NUNCA usar `String.to_existing_atom/1` com dados de DB ou input externo — usar Map lookup explicito: `@map %{"free" => :free}` + `Map.get(@map, val, :default)`
+> - `admin_changeset/3` para Backpex DEVE ter arity 3 (item, attrs, metadata). DEVE restringir campos editaveis — NUNCA delegar para changeset regular sem filtrar
+> - Schemas imutaveis (audit logs, event logs) DEVEM ter `admin_changeset` que retorna `change(struct)` sem cast — impedir edicao via admin
+> - Todo scope autenticado no router (incluindo admin) DEVE incluir pipeline de audit context — sem isso, acoes admin nao tem audit trail
+> - Modulos de deps do app domain (`ExAudit.track/1`) NAO devem ser chamados diretamente do app web — criar wrapper no domain (ex: `Blackboex.Audit.track/1`) para evitar warning com `--warnings-as-errors`
+> - Body readers customizados (`CacheBodyReader`) DEVEM ter nil guard em `get_raw_body/1` — raw_body pode ser nil se body reader nao populou
+> - Campos JSONB `metadata`/`params` DEVEM ter validacao de tamanho (max keys ou max bytes) — sem limite, atacante pode causar storage bloat
+> - Workers de agregacao DEVEM popular TODOS os campos do schema destino, nao apenas contagens — conferir que todo campo numerico e coberto pela query de agregacao
+> - Secrets de servicos externos (Stripe, etc.) DEVEM ser obrigatorios em prod com `raise` se ausentes
+> - Testes de ordenacao por `inserted_at` com records criados na mesma operacao sao flakey — testar contagem/membership, nao posicao
+> - `user_fixture` com campos extras que nao passam pelo `register_user` precisa de tratamento especial — pop attrs extras e aplicar via `Repo.update!` apos criacao
+> - Dialyzer: deps internas com modulos runtime-only (ExAudit.Schema, ExAudit.Queryable) precisam de ignore com `~r/dep_name/` pattern — regex bare funciona melhor que string path para deps
 
 ## Fontes de Discovery
 - `docs/discovery/07-observability.md` (OpenTelemetry, PromEx, Loki, Grafana, Sentry)

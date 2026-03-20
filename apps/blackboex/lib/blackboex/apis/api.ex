@@ -28,6 +28,7 @@ defmodule Blackboex.Apis.Api do
     field :example_response, :map
     field :visibility, :string, default: "private"
     field :requires_auth, :boolean, default: true
+    field :documentation_md, :string
 
     belongs_to :organization, Blackboex.Organizations.Organization
     belongs_to :user, Blackboex.Accounts.User, type: :id
@@ -51,6 +52,7 @@ defmodule Blackboex.Apis.Api do
       :example_response,
       :visibility,
       :requires_auth,
+      :documentation_md,
       :organization_id,
       :user_id
     ])

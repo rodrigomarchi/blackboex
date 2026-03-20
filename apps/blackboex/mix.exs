@@ -50,6 +50,8 @@ defmodule Blackboex.MixProject do
       {:req, "~> 0.5"},
       {:plug, "~> 1.16"},
       {:ex_rated, "~> 2.1"},
+      {:ex_json_schema, "~> 0.11"},
+      {:ymlr, "~> 5.1"},
       {:mox, "~> 1.0", only: :test},
       {:ex_machina, "~> 2.8", only: :test}
     ]

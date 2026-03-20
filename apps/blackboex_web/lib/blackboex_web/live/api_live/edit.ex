@@ -14,6 +14,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
   alias Blackboex.Apis.Keys
   alias Blackboex.Apis.Registry
   alias Blackboex.CodeGen.Compiler
+  alias Blackboex.Docs.DocGenerator
   alias Blackboex.LLM.Config
   alias Blackboex.LLM.EditPrompts
   alias Blackboex.Testing
@@ -21,6 +22,8 @@ defmodule BlackboexWeb.ApiLive.Edit do
   alias Blackboex.Testing.ResponseValidator
   alias Blackboex.Testing.SampleData
   alias Blackboex.Testing.SnippetGenerator
+  alias Blackboex.Testing.TestGenerator
+  alias Blackboex.Testing.TestRunner
 
   @impl true
   def mount(%{"id" => id} = params, _session, socket) do
@@ -77,6 +80,18 @@ defmodule BlackboexWeb.ApiLive.Edit do
            request_tab: "body",
            response_tab: "body",
            test_ref: nil,
+           # Auto-test assigns
+           auto_test_code: nil,
+           auto_test_results: [],
+           auto_test_suites: [],
+           auto_test_suites_loaded: false,
+           test_generating: false,
+           test_running: false,
+           test_gen_ref: nil,
+           test_run_ref: nil,
+           expanded_test: nil,
+           doc_generating: false,
+           doc_gen_ref: nil,
            # Publish assigns
            api_keys: [],
            keys_loaded: false,
@@ -205,7 +220,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
             <div class="rounded-lg border bg-card text-card-foreground shadow-sm">
               <div class="flex border-b">
                 <button
-                  :for={t <- ["info", "versions", "test", "keys", "publish"]}
+                  :for={t <- ["info", "versions", "test", "auto_tests", "keys", "publish"]}
                   phx-click="switch_tab"
                   phx-value-tab={t}
                   class={[
@@ -419,6 +434,99 @@ defmodule BlackboexWeb.ApiLive.Edit do
     """
   end
 
+  defp render_tab(%{tab: "auto_tests"} = assigns) do
+    ~H"""
+    <div class="space-y-3">
+      <div class="flex items-center justify-between">
+        <h3 class="text-xs font-semibold text-muted-foreground uppercase">Auto Tests</h3>
+        <%= if @auto_test_results != [] do %>
+          <span class={[
+            "inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold",
+            auto_test_badge_color(@auto_test_results)
+          ]}>
+            {test_pass_count(@auto_test_results)}/{length(@auto_test_results)} passing
+          </span>
+        <% end %>
+      </div>
+
+      <%!-- Generate / Regenerate buttons --%>
+      <div class="space-y-1">
+        <%= if @auto_test_code do %>
+          <button
+            phx-click="regenerate_tests"
+            disabled={@test_generating}
+            class="w-full rounded border px-2 py-1 text-xs hover:bg-accent disabled:opacity-50"
+          >
+            {if @test_generating, do: "Generating...", else: "Regenerate Tests"}
+          </button>
+          <button
+            phx-click="run_tests"
+            disabled={@test_running}
+            class="w-full rounded bg-primary px-2 py-1 text-xs text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          >
+            {if @test_running, do: "Running...", else: "Run Tests"}
+          </button>
+        <% else %>
+          <button
+            phx-click="generate_tests"
+            disabled={@test_generating}
+            class="w-full rounded bg-primary px-2 py-1 text-xs text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          >
+            {if @test_generating, do: "Generating...", else: "Generate Tests"}
+          </button>
+        <% end %>
+      </div>
+
+      <%!-- Test Results --%>
+      <%= if @auto_test_results != [] do %>
+        <h3 class="text-xs font-semibold text-muted-foreground uppercase mt-2">Results</h3>
+        <div class="space-y-1 max-h-60 overflow-y-auto">
+          <div :for={result <- @auto_test_results} class="rounded border p-1.5 text-xs space-y-1">
+            <div
+              class="flex items-center justify-between cursor-pointer"
+              phx-click="toggle_test_result"
+              phx-value-name={result.name}
+            >
+              <div class="flex items-center gap-1">
+                <span class={if result.status == "passed", do: "text-green-600", else: "text-red-600"}>
+                  {if result.status == "passed", do: "✓", else: "✗"}
+                </span>
+                <span class="truncate max-w-[180px]">{result.name}</span>
+              </div>
+              <span class="text-muted-foreground">{result.duration_ms}ms</span>
+            </div>
+            <%= if @expanded_test == result.name and result.error do %>
+              <div class="mt-1 rounded bg-red-50 p-2 text-[10px] font-mono text-red-700 whitespace-pre-wrap">
+                {result.error}
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+
+      <%!-- History --%>
+      <%= if @auto_test_suites != [] do %>
+        <h3 class="text-xs font-semibold text-muted-foreground uppercase mt-2">History</h3>
+        <div class="space-y-1 max-h-40 overflow-y-auto">
+          <div :for={suite <- @auto_test_suites} class="rounded border p-1.5 text-xs">
+            <div class="flex items-center justify-between">
+              <span class={[
+                "inline-flex rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
+                suite_status_color(suite.status)
+              ]}>
+                {suite.status}
+              </span>
+              <span class="text-muted-foreground">
+                {suite.passed_tests}/{suite.total_tests}
+              </span>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    </div>
+    """
+  end
+
   defp render_tab(%{tab: "keys"} = assigns) do
     ~H"""
     <div class="space-y-3">
@@ -557,6 +665,35 @@ defmodule BlackboexWeb.ApiLive.Edit do
           Compile the API first before publishing.
         </p>
       <% end %>
+
+      <%!-- Documentation Generation --%>
+      <%= if @api.status in ["compiled", "published"] do %>
+        <div class="border-t pt-3 mt-3">
+          <h3 class="text-xs font-semibold text-muted-foreground uppercase mb-2">Documentation</h3>
+          <button
+            phx-click="generate_docs"
+            disabled={@doc_generating}
+            class="w-full rounded border px-3 py-1.5 text-xs font-medium hover:bg-accent disabled:opacity-50"
+          >
+            {if @doc_generating,
+              do: "Generating...",
+              else: if(@api.documentation_md, do: "Regenerate Docs", else: "Generate Docs")}
+          </button>
+          <%= if @api.documentation_md do %>
+            <p class="text-[10px] text-green-600 mt-1">Documentation available on public page</p>
+          <% end %>
+
+          <%= if @api.status == "published" and @api.visibility == "public" do %>
+            <a
+              href={"/api/#{@org.slug}/#{@api.slug}/docs"}
+              target="_blank"
+              class="block text-xs text-primary hover:underline mt-1"
+            >
+              View Swagger UI
+            </a>
+          <% end %>
+        </div>
+      <% end %>
     </div>
     """
   end
@@ -576,32 +713,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
 
   @impl true
   def handle_event("switch_tab", %{"tab" => tab}, socket) do
-    socket =
-      cond do
-        tab == "test" and not socket.assigns.history_loaded ->
-          history = Testing.list_test_requests(socket.assigns.api.id)
-          assign(socket, test_history: history, history_loaded: true)
-
-        tab == "keys" and not socket.assigns.keys_loaded ->
-          keys = Keys.list_keys(socket.assigns.api.id)
-          assign(socket, api_keys: keys, keys_loaded: true)
-
-        tab == "publish" ->
-          api_id = socket.assigns.api.id
-
-          metrics = %{
-            count_24h: Analytics.invocations_count(api_id, period: :day),
-            success_rate: Analytics.success_rate(api_id, period: :day),
-            avg_latency: Analytics.avg_latency(api_id, period: :day)
-          }
-
-          assign(socket, metrics: metrics)
-
-        true ->
-          socket
-      end
-
-    {:noreply, assign(socket, tab: tab)}
+    {:noreply, socket |> lazy_load_tab(tab) |> assign(tab: tab)}
   end
 
   @impl true
@@ -1070,6 +1182,58 @@ defmodule BlackboexWeb.ApiLive.Edit do
     end
   end
 
+  @impl true
+  def handle_event("generate_tests", _params, %{assigns: %{test_generating: true}} = socket) do
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("generate_tests", _params, socket) do
+    api = socket.assigns.api
+    task = Task.async(fn -> TestGenerator.generate_tests(api) end)
+    {:noreply, assign(socket, test_generating: true, test_gen_ref: task.ref)}
+  end
+
+  @impl true
+  def handle_event("regenerate_tests", _params, socket) do
+    handle_event("generate_tests", %{}, socket)
+  end
+
+  @impl true
+  def handle_event("run_tests", _params, %{assigns: %{test_running: true}} = socket) do
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("run_tests", _params, socket) do
+    code = socket.assigns.auto_test_code
+
+    if code do
+      task = Task.async(fn -> TestRunner.run(code) end)
+      {:noreply, assign(socket, test_running: true, test_run_ref: task.ref)}
+    else
+      {:noreply, put_flash(socket, :error, "No test code to run")}
+    end
+  end
+
+  @impl true
+  def handle_event("toggle_test_result", %{"name" => name}, socket) do
+    expanded = if socket.assigns.expanded_test == name, do: nil, else: name
+    {:noreply, assign(socket, expanded_test: expanded)}
+  end
+
+  @impl true
+  def handle_event("generate_docs", _params, %{assigns: %{doc_generating: true}} = socket) do
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("generate_docs", _params, socket) do
+    api = socket.assigns.api
+    task = Task.async(fn -> DocGenerator.generate(api) end)
+    {:noreply, assign(socket, doc_generating: true, doc_gen_ref: task.ref)}
+  end
+
   # --- Helpers ---
 
   defp do_chat_request(socket, conversation, message) do
@@ -1263,6 +1427,198 @@ defmodule BlackboexWeb.ApiLive.Edit do
     {:noreply, assign(socket, test_loading: false, test_ref: nil)}
   end
 
+  @impl true
+  def handle_info({ref, {:ok, test_code}}, %{assigns: %{test_gen_ref: ref}} = socket) do
+    Process.demonitor(ref, [:flush])
+
+    {:noreply,
+     socket
+     |> assign(
+       auto_test_code: test_code,
+       test_generating: false,
+       test_gen_ref: nil,
+       auto_test_results: []
+     )
+     |> put_flash(:info, "Tests generated successfully")}
+  end
+
+  @impl true
+  def handle_info({ref, {:error, reason}}, %{assigns: %{test_gen_ref: ref}} = socket) do
+    Process.demonitor(ref, [:flush])
+    Logger.warning("Test generation failed: #{inspect(reason)}")
+
+    {:noreply,
+     socket
+     |> assign(test_generating: false, test_gen_ref: nil)
+     |> put_flash(:error, "Failed to generate tests. Please try again.")}
+  end
+
+  @impl true
+  def handle_info({ref, {:ok, results}}, %{assigns: %{test_run_ref: ref}} = socket) do
+    Process.demonitor(ref, [:flush])
+
+    passed = Enum.count(results, &(&1.status == "passed"))
+    failed = length(results) - passed
+    total_duration = results |> Enum.map(& &1.duration_ms) |> Enum.sum()
+
+    serializable_results =
+      Enum.map(results, fn r ->
+        %{
+          "name" => r.name,
+          "status" => r.status,
+          "duration_ms" => r.duration_ms,
+          "error" => r.error
+        }
+      end)
+
+    {:ok, suite} =
+      Testing.create_test_suite(%{
+        api_id: socket.assigns.api.id,
+        test_code: socket.assigns.auto_test_code,
+        status: if(failed == 0, do: "passed", else: "failed"),
+        results: serializable_results,
+        total_tests: length(results),
+        passed_tests: passed,
+        failed_tests: failed,
+        duration_ms: total_duration
+      })
+
+    suites = [suite | socket.assigns.auto_test_suites] |> Enum.take(10)
+
+    {:noreply,
+     socket
+     |> assign(
+       test_running: false,
+       test_run_ref: nil,
+       auto_test_results: results,
+       auto_test_suites: suites
+     )
+     |> put_flash(:info, "Tests completed: #{passed}/#{length(results)} passing")}
+  end
+
+  @impl true
+  def handle_info({ref, {:error, :compile_error, msg}}, %{assigns: %{test_run_ref: ref}} = socket) do
+    Process.demonitor(ref, [:flush])
+    Logger.warning("Test run compile error: #{msg}")
+
+    {:noreply,
+     socket
+     |> assign(test_running: false, test_run_ref: nil)
+     |> put_flash(:error, "Test code has compilation errors")}
+  end
+
+  @impl true
+  def handle_info({ref, {:error, reason}}, %{assigns: %{test_run_ref: ref}} = socket) do
+    Process.demonitor(ref, [:flush])
+    Logger.warning("Test run failed: #{inspect(reason)}")
+
+    {:noreply,
+     socket
+     |> assign(test_running: false, test_run_ref: nil)
+     |> put_flash(:error, "Test execution failed")}
+  end
+
+  @impl true
+  def handle_info({ref, {:ok, markdown}}, %{assigns: %{doc_gen_ref: ref}} = socket)
+      when is_binary(markdown) do
+    Process.demonitor(ref, [:flush])
+
+    case Apis.update_api(socket.assigns.api, %{documentation_md: markdown}) do
+      {:ok, updated_api} ->
+        {:noreply,
+         socket
+         |> assign(api: updated_api, doc_generating: false, doc_gen_ref: nil)
+         |> put_flash(:info, "Documentation generated successfully")}
+
+      {:error, _changeset} ->
+        {:noreply,
+         socket
+         |> assign(doc_generating: false, doc_gen_ref: nil)
+         |> put_flash(:error, "Failed to save documentation")}
+    end
+  end
+
+  @impl true
+  def handle_info({ref, {:error, _reason}}, %{assigns: %{doc_gen_ref: ref}} = socket) do
+    Process.demonitor(ref, [:flush])
+
+    {:noreply,
+     socket
+     |> assign(doc_generating: false, doc_gen_ref: nil)
+     |> put_flash(:error, "Failed to generate documentation")}
+  end
+
+  @impl true
+  def handle_info(
+        {:DOWN, ref, :process, _pid, _reason},
+        %{assigns: %{test_gen_ref: ref}} = socket
+      ) do
+    {:noreply, assign(socket, test_generating: false, test_gen_ref: nil)}
+  end
+
+  @impl true
+  def handle_info(
+        {:DOWN, ref, :process, _pid, _reason},
+        %{assigns: %{test_run_ref: ref}} = socket
+      ) do
+    {:noreply, assign(socket, test_running: false, test_run_ref: nil)}
+  end
+
+  @impl true
+  def handle_info({:DOWN, ref, :process, _pid, _reason}, %{assigns: %{doc_gen_ref: ref}} = socket) do
+    {:noreply, assign(socket, doc_generating: false, doc_gen_ref: nil)}
+  end
+
+  defp lazy_load_tab(socket, "test") when not socket.assigns.history_loaded do
+    history = Testing.list_test_requests(socket.assigns.api.id)
+    assign(socket, test_history: history, history_loaded: true)
+  end
+
+  defp lazy_load_tab(socket, "auto_tests") when not socket.assigns.auto_test_suites_loaded do
+    api_id = socket.assigns.api.id
+    suites = Testing.list_test_suites(api_id)
+    latest = Testing.get_latest_test_suite(api_id)
+
+    code = if latest, do: latest.test_code, else: nil
+    results = if latest && latest.results, do: latest.results, else: []
+
+    parsed_results =
+      Enum.map(results, fn r ->
+        %{
+          name: r["name"] || "",
+          status: r["status"] || "error",
+          duration_ms: r["duration_ms"] || 0,
+          error: r["error"]
+        }
+      end)
+
+    assign(socket,
+      auto_test_suites: suites,
+      auto_test_suites_loaded: true,
+      auto_test_code: code,
+      auto_test_results: parsed_results
+    )
+  end
+
+  defp lazy_load_tab(socket, "keys") when not socket.assigns.keys_loaded do
+    keys = Keys.list_keys(socket.assigns.api.id)
+    assign(socket, api_keys: keys, keys_loaded: true)
+  end
+
+  defp lazy_load_tab(socket, "publish") do
+    api_id = socket.assigns.api.id
+
+    metrics = %{
+      count_24h: Analytics.invocations_count(api_id, period: :day),
+      success_rate: Analytics.success_rate(api_id, period: :day),
+      avg_latency: Analytics.avg_latency(api_id, period: :day)
+    }
+
+    assign(socket, metrics: metrics)
+  end
+
+  defp lazy_load_tab(socket, _tab), do: socket
+
   defp push_editor_value(socket, code) do
     editor_path = "api_#{socket.assigns.api.id}.ex"
     LiveMonacoEditor.set_value(socket, code, to: editor_path)
@@ -1350,6 +1706,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
   defp tab_label("info"), do: "Info"
   defp tab_label("versions"), do: "Versions"
   defp tab_label("test"), do: "Test"
+  defp tab_label("auto_tests"), do: "Auto Tests"
   defp tab_label("keys"), do: "Keys"
   defp tab_label("publish"), do: "Publish"
 
@@ -1358,6 +1715,23 @@ defmodule BlackboexWeb.ApiLive.Edit do
   defp status_color("published"), do: "border-blue-500 bg-blue-50 text-blue-700"
   defp status_color("archived"), do: "border-gray-500 bg-gray-50 text-gray-500"
   defp status_color(_), do: "border bg-muted text-muted-foreground"
+
+  defp auto_test_badge_color(results) do
+    if Enum.all?(results, &(&1.status == "passed")) do
+      "bg-green-100 text-green-700"
+    else
+      "bg-red-100 text-red-700"
+    end
+  end
+
+  defp test_pass_count(results) do
+    Enum.count(results, &(&1.status == "passed"))
+  end
+
+  defp suite_status_color("passed"), do: "bg-green-100 text-green-700"
+  defp suite_status_color("failed"), do: "bg-red-100 text-red-700"
+  defp suite_status_color("running"), do: "bg-blue-100 text-blue-700"
+  defp suite_status_color(_), do: "bg-gray-100 text-gray-700"
 
   defp friendly_llm_error(:timeout), do: "A requisição demorou demais. Tente novamente."
 

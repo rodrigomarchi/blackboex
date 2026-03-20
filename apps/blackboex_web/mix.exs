@@ -64,7 +64,8 @@ defmodule BlackboexWeb.MixProject do
       {:salad_ui, "~> 0.14"},
       {:live_monaco_editor, "~> 0.2"},
       {:floki, "~> 0.37", only: :test},
-      {:hammer, "~> 7.2"}
+      {:hammer, "~> 7.2"},
+      {:open_api_spex, "~> 3.22"}
     ]
   end
 

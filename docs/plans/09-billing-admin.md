@@ -94,6 +94,20 @@
 > - Hammer 7.x `use Hammer` gera defdelegate — Dialyzer precisa de DOIS ignores: `:unknown_function` E `:callback_info_missing`
 > - `Ecto.Multi.run` callback DEVE retornar 2-tupla `{:ok, value}` — nunca 3-tupla. Wrap: `{:ok, {a, b}}`
 > - Auditoria pos-implementacao: timing attacks, IDOR em eventos LiveView, Policy actions completas, ownership validation, Task.Supervisor limites, XSS tests explicitos
+>
+> **CHECKLIST PRE-EXECUCAO (Licoes Fase 08):**
+> - `Code.compile_string` com `use ExUnit.Case` auto-registra modulos no ExUnit.Server — NUNCA compilar modulos ExUnit dinamicamente sem substituir por macro customizado que NAO registra
+> - UUID binary IDs NAO ordenam por tempo de criacao — testes que dependem de ordenacao por ID sao flakey. Testar contagem/membros, nao posicao
+> - Campos de usuario (`source_code`, `description`, `name`) interpolados em prompts LLM podem conter ``` que quebra code fences — SEMPRE sanitizar com `sanitize_code_fence/1` e `sanitize_field/1`
+> - `TestRunner` retornando `{:ok, []}` (zero testes) e falso positivo perigoso — validar que pelo menos 1 teste foi encontrado antes de retornar sucesso
+> - Clausulas `handle_event`/`handle_info` com mesmo nome DEVEM ser agrupadas adjacentes — separar em blocos diferentes gera warning de compilacao
+> - Opts de timeout/heap_size que vem de keyword args DEVEM ter cap rigido: `min(user_value, @hard_cap)` — previne DoS via `timeout: :infinity`
+> - `Exception.message(e)` pode retornar strings arbitrariamente longas expondo internals — SEMPRE truncar antes de retornar ao usuario (max ~500 bytes)
+> - `ContractValidator` e qualquer funcao que navega maps aninhados de specs OpenAPI DEVE checar nil em cada nivel — specs de APIs geradas podem ter paths/methods vazios
+> - Deps de um app umbrella usados em outro geram warnings "module not available" no Dialyzer — adicionar a `.dialyzer_ignore.exs` proativamente
+> - Helpers de teste DEVEM usar as assinaturas reais das funcoes — SEMPRE `grep` por uso existente nos testes antes de escrever novos helpers
+> - Antes de adicionar branch a `cond`/`case` com 3+ branches, extrair para function clauses separados — previne cyclomatic complexity do Credo
+> - Regex que parseia code blocks de LLM DEVE usar `[\r\n]` (nao apenas `\n`) e catch-all `_ ->` defensivo
 
 ## Fontes de Discovery
 - `docs/discovery/02-backoffice-config.md` (Backpex, billing, audit, feature flags)

@@ -24,6 +24,28 @@
     </div>
   </div>
 
+  <div class="flex gap-3 mb-8">
+    <a
+      href={"/api/#{@org.slug}/#{@api.slug}/docs"}
+      class="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+    >
+      API Documentation
+    </a>
+    <a
+      href={"/api/#{@org.slug}/#{@api.slug}/openapi.json"}
+      class="inline-flex items-center rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+    >
+      OpenAPI Spec (JSON)
+    </a>
+  </div>
+
+  <%= if @api.documentation_md do %>
+    <div class="mb-8 bg-white rounded-lg border p-6">
+      <h2 class="text-lg font-semibold text-gray-900 mb-3">Documentation</h2>
+      <pre class="text-sm text-gray-700 whitespace-pre-wrap font-mono">{@api.documentation_md}</pre>
+    </div>
+  <% end %>
+
   <div class="border-t border-gray-200 pt-6">
     <dl class="grid grid-cols-2 gap-4 text-sm">
       <div>

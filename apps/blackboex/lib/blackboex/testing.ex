@@ -7,6 +7,7 @@ defmodule Blackboex.Testing do
 
   alias Blackboex.Repo
   alias Blackboex.Testing.TestRequest
+  alias Blackboex.Testing.TestSuite
 
   @sensitive_headers ~w(
     authorization cookie x-api-key
@@ -14,6 +15,51 @@ defmodule Blackboex.Testing do
     proxy-authorization set-cookie
   )
   @max_body_bytes 65_536
+
+  # --- TestSuite CRUD ---
+
+  @spec create_test_suite(map()) :: {:ok, TestSuite.t()} | {:error, Ecto.Changeset.t()}
+  def create_test_suite(attrs) do
+    %TestSuite{}
+    |> TestSuite.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  @spec update_test_suite(TestSuite.t(), map()) ::
+          {:ok, TestSuite.t()} | {:error, Ecto.Changeset.t()}
+  def update_test_suite(%TestSuite{} = suite, attrs) do
+    suite
+    |> TestSuite.changeset(attrs)
+    |> Repo.update()
+  end
+
+  @spec list_test_suites(binary(), non_neg_integer()) :: [TestSuite.t()]
+  def list_test_suites(api_id, limit \\ 10) do
+    TestSuite
+    |> where([ts], ts.api_id == ^api_id)
+    |> order_by([ts], desc: ts.inserted_at, desc: ts.id)
+    |> limit(^limit)
+    |> Repo.all()
+  end
+
+  @spec get_test_suite(binary()) :: {:ok, TestSuite.t()} | {:error, :not_found}
+  def get_test_suite(id) do
+    case Repo.get(TestSuite, id) do
+      nil -> {:error, :not_found}
+      suite -> {:ok, suite}
+    end
+  end
+
+  @spec get_latest_test_suite(binary()) :: TestSuite.t() | nil
+  def get_latest_test_suite(api_id) do
+    TestSuite
+    |> where([ts], ts.api_id == ^api_id)
+    |> order_by([ts], desc: ts.inserted_at, desc: ts.id)
+    |> limit(1)
+    |> Repo.one()
+  end
+
+  # --- TestRequest CRUD ---
 
   @spec create_test_request(map()) :: {:ok, TestRequest.t()} | {:error, Ecto.Changeset.t()}
   def create_test_request(attrs) do

@@ -14,7 +14,10 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
   alias Blackboex.Apis.Registry
   alias Blackboex.CodeGen.Compiler
   alias BlackboexWeb.Plugs.ApiAuth
+  alias BlackboexWeb.Plugs.ApiDocsPlug
   alias BlackboexWeb.Plugs.RateLimiter
+
+  @doc_paths ~w(docs openapi.json openapi.yaml)
 
   require Logger
 
@@ -35,13 +38,29 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
   end
 
   defp dispatch(conn, org_slug, slug, rest) do
-    case resolve_api(org_slug, slug) do
-      {:ok, module, metadata, api} ->
+    case {resolve_api(org_slug, slug), rest} do
+      {{:ok, _mod, _meta, %{status: "published", visibility: "public"} = api}, [doc_path]}
+      when doc_path in @doc_paths ->
+        serve_docs(conn, api, org_slug, slug, doc_path)
+
+      {{:ok, module, metadata, api}, _rest} ->
         run_pipeline(conn, module, metadata, api, rest)
 
-      {:error, :not_found} ->
+      {{:error, :not_found}, _} ->
         send_json(conn, 404, %{error: "API not found"})
     end
+  end
+
+  defp serve_docs(conn, api, org_slug, slug, "docs") do
+    ApiDocsPlug.serve_swagger_ui(conn, api, org_slug, slug)
+  end
+
+  defp serve_docs(conn, api, org_slug, slug, "openapi.json") do
+    ApiDocsPlug.serve_spec_json(conn, api, org_slug, slug)
+  end
+
+  defp serve_docs(conn, api, org_slug, slug, "openapi.yaml") do
+    ApiDocsPlug.serve_spec_yaml(conn, api, org_slug, slug)
   end
 
   defp run_pipeline(conn, module, metadata, api, rest) do

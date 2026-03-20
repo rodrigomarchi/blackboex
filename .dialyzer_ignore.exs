@@ -17,5 +17,8 @@
   {"lib/blackboex_web/live/api_live/edit.ex", :unknown_function},
   # Hammer uses `use Hammer` macro with defdelegate — Dialyzer can't resolve delegated functions
   {"lib/blackboex_web/rate_limiter_backend.ex", :unknown_function},
-  {"lib/blackboex_web/rate_limiter_backend.ex", :callback_info_missing}
+  {"lib/blackboex_web/rate_limiter_backend.ex", :callback_info_missing},
+  # ExJsonSchema and Ymlr are in domain app deps — cross-app deps not visible to Dialyzer
+  {"lib/blackboex/testing/contract_validator.ex", :unknown_function},
+  {"lib/blackboex/docs/open_api_generator.ex", :unknown_function}
 ]

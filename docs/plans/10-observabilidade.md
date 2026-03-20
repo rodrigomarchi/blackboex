@@ -66,6 +66,20 @@
 > - Hammer 7.x `use Hammer` gera defdelegate — Dialyzer precisa de DOIS ignores: `:unknown_function` E `:callback_info_missing`
 > - `Ecto.Multi.run` callback DEVE retornar 2-tupla `{:ok, value}` — nunca 3-tupla. Wrap: `{:ok, {a, b}}`
 > - Auditoria pos-implementacao: timing attacks, IDOR em eventos LiveView, Policy actions completas, ownership validation, Task.Supervisor limites, XSS tests explicitos
+>
+> **CHECKLIST PRE-EXECUCAO (Licoes Fase 08):**
+> - `Code.compile_string` com `use ExUnit.Case` auto-registra modulos no ExUnit.Server — NUNCA compilar modulos ExUnit dinamicamente sem substituir por macro customizado que NAO registra
+> - UUID binary IDs NAO ordenam por tempo de criacao — testes que dependem de ordenacao por ID sao flakey. Testar contagem/membros, nao posicao
+> - Campos de usuario interpolados em prompts LLM podem conter ``` que quebra code fences — SEMPRE sanitizar
+> - Resultados vazios (zero testes encontrados) sao falso positivo perigoso — validar que pelo menos 1 item foi encontrado antes de retornar sucesso
+> - Clausulas `handle_event`/`handle_info` com mesmo nome DEVEM ser agrupadas adjacentes — separar gera warning
+> - Opts de timeout/heap_size DEVEM ter cap rigido: `min(user_value, @hard_cap)` — previne DoS
+> - `Exception.message(e)` pode expor internals — SEMPRE truncar antes de retornar ao usuario
+> - Funcoes que navegam maps aninhados de specs/configs DEVEM checar nil em cada nivel
+> - Deps de um app umbrella usados em outro geram warnings Dialyzer — adicionar a `.dialyzer_ignore.exs` proativamente
+> - Helpers de teste DEVEM usar assinaturas reais — `grep` uso existente antes de escrever novos
+> - Antes de adicionar branch a `cond`/`case` com 3+ branches, extrair para function clauses — previne Credo cyclomatic
+> - Regex de LLM DEVE usar `[\r\n]` e catch-all defensivo
 
 ## Fontes de Discovery
 - `docs/discovery/07-observability.md` (OpenTelemetry, PromEx, Loki, Grafana, Sentry)

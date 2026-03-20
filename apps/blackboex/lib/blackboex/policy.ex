@@ -61,6 +61,24 @@ defmodule Blackboex.Policy do
       allow role: :owner
       allow role: :admin
     end
+
+    action :generate_tests do
+      allow role: :owner
+      allow role: :admin
+      allow role: :member
+    end
+
+    action :run_tests do
+      allow role: :owner
+      allow role: :admin
+      allow role: :member
+    end
+
+    action :generate_docs do
+      allow role: :owner
+      allow role: :admin
+      allow role: :member
+    end
   end
 
   object :membership do

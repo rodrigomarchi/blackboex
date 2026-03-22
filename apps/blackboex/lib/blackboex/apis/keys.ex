@@ -161,6 +161,73 @@ defmodule Blackboex.Apis.Keys do
     :ok
   end
 
+  @doc "Lists all API keys for an organization, with preloaded API association."
+  @spec list_org_keys(Ecto.UUID.t()) :: [ApiKey.t()]
+  def list_org_keys(organization_id) do
+    ApiKey
+    |> where([k], k.organization_id == ^organization_id)
+    |> order_by([k], desc: k.inserted_at)
+    |> preload(:api)
+    |> Repo.all()
+  end
+
+  @doc "Gets a single API key by ID with preloaded API."
+  @spec get_key(Ecto.UUID.t()) :: ApiKey.t() | nil
+  def get_key(id) do
+    ApiKey
+    |> preload(:api)
+    |> Repo.get(id)
+  end
+
+  @doc "Gets metrics for a specific API key from invocation logs."
+  @spec key_metrics(Ecto.UUID.t(), atom()) :: map()
+  def key_metrics(api_key_id, period \\ :week) do
+    since = period_to_datetime(period)
+
+    query =
+      from l in Blackboex.Apis.InvocationLog,
+        where: l.api_key_id == ^api_key_id and l.inserted_at >= ^since,
+        select: %{
+          total_requests: count(l.id),
+          errors: fragment("count(*) filter (where ? >= 400)", l.status_code),
+          avg_latency: avg(l.duration_ms)
+        }
+
+    result = Repo.one(query) || %{total_requests: 0, errors: 0, avg_latency: nil}
+
+    total = result.total_requests
+    errors = result.errors
+
+    success_rate =
+      if total > 0 do
+        ((total - errors) / total * 100)
+        |> to_float()
+        |> Float.round(1)
+      else
+        100.0
+      end
+
+    avg_latency = to_float(result.avg_latency)
+
+    %{
+      total_requests: result.total_requests,
+      errors: result.errors,
+      avg_latency: avg_latency,
+      success_rate: success_rate
+    }
+  end
+
+  defp to_float(nil), do: nil
+  defp to_float(%Decimal{} = d), do: Decimal.to_float(d)
+  defp to_float(n) when is_integer(n), do: n / 1
+  defp to_float(n) when is_float(n), do: n
+
+  @spec period_to_datetime(atom()) :: NaiveDateTime.t()
+  defp period_to_datetime(:day), do: NaiveDateTime.utc_now() |> NaiveDateTime.add(-1, :day)
+  defp period_to_datetime(:week), do: NaiveDateTime.utc_now() |> NaiveDateTime.add(-7, :day)
+  defp period_to_datetime(:month), do: NaiveDateTime.utc_now() |> NaiveDateTime.add(-30, :day)
+  defp period_to_datetime(_), do: NaiveDateTime.utc_now() |> NaiveDateTime.add(-7, :day)
+
   defp generate_key do
     hex = :crypto.strong_rand_bytes(div(@hex_chars, 2)) |> Base.encode16(case: :lower)
     @key_prefix <> hex

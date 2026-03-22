@@ -24,7 +24,7 @@ defmodule BlackboexWeb.Components.CommandPalette do
       <div class="fixed inset-0 bg-black/15" phx-click="toggle_command_palette" />
 
       <%!-- Palette --%>
-      <div class="relative z-10 w-full max-w-md rounded-lg border bg-card shadow-2xl overflow-hidden backdrop-blur-sm">
+      <div class="modal-panel relative z-10 w-full max-w-md rounded-lg border shadow-2xl overflow-hidden">
         <form phx-change="command_palette_search" phx-submit="command_palette_exec_first">
           <div class="border-b px-3 py-2">
             <input

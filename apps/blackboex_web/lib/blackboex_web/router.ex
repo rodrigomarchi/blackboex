@@ -78,17 +78,43 @@ defmodule BlackboexWeb.Router do
     pipe_through [:browser, :require_authenticated_user, :require_platform_admin, :audit_context]
 
     live_session :admin,
+      layout: {BlackboexWeb.Layouts, :admin_bare},
       on_mount: [
         {BlackboexWeb.UserAuth, :require_authenticated},
         {BlackboexWeb.Hooks.SetOrganization, :default},
         Backpex.InitAssigns
       ] do
       live "/", DashboardLive, :index
+
+      # Core
       live_resources "/users", UserLive
       live_resources "/organizations", OrganizationLive
+      live_resources "/memberships", MembershipLive
       live_resources "/apis", ApiLive
       live_resources "/subscriptions", SubscriptionLive, only: [:index, :show]
+
+      # API data
+      live_resources "/api-keys", ApiKeyLive, only: [:index, :show]
+      live_resources "/api-conversations", ApiConversationLive, only: [:index, :show]
+      live_resources "/data-store-entries", DataStoreEntryLive
+      live_resources "/invocation-logs", InvocationLogLive, only: [:index, :show]
+      live_resources "/metric-rollups", MetricRollupLive, only: [:index, :show]
+
+      # Billing
+      live_resources "/daily-usage", DailyUsageLive, only: [:index, :show]
+      live_resources "/usage-events", UsageEventLive, only: [:index, :show]
+      live_resources "/processed-events", ProcessedEventLive, only: [:index, :show]
+
+      # Testing
+      live_resources "/test-requests", TestRequestLive, only: [:index, :show]
+      live_resources "/test-suites", TestSuiteLive, only: [:index, :show]
+
+      # LLM
+      live_resources "/llm-usage", LlmUsageLive, only: [:index, :show]
+
+      # Audit
       live_resources "/audit-logs", AuditLogLive, only: [:index, :show]
+      live_resources "/versions", VersionLive, only: [:index, :show]
     end
   end
 
@@ -108,6 +134,8 @@ defmodule BlackboexWeb.Router do
       live "/apis/new", ApiLive.New, :new
       live "/apis/:id", ApiLive.Show, :show
       live "/apis/:id/analytics", ApiLive.Analytics, :analytics
+      live "/api-keys", ApiKeyLive.Index, :index
+      live "/api-keys/:id", ApiKeyLive.Show, :show
       live "/billing", BillingLive.Plans, :index
       live "/billing/manage", BillingLive.Manage, :manage
       live "/settings", SettingsLive, :index

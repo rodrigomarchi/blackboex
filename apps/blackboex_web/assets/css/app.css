@@ -97,7 +97,7 @@
 @custom-variant phx-submit-loading (.phx-submit-loading&, .phx-submit-loading &);
 @custom-variant phx-change-loading (.phx-change-loading&, .phx-change-loading &);
 
-/* Use the data attribute for dark mode  */
+/* Use the data attribute for dark mode */
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 
 /* Make LiveView wrapper divs transparent for layout */
@@ -108,6 +108,30 @@
    container and uses its internal scrollbar instead. */
 #monaco-container [id^="lme-code-"] {
   height: 100% !important;
+}
+
+/* Modal/dialog panels: solid opaque background, no see-through */
+.modal-panel {
+  background-color: #ffffff !important;
+  color: #1f2937 !important;
+}
+[data-theme="dark"] .modal-panel,
+:where([data-theme="dark"], [data-theme="dark"] *) .modal-panel {
+  background-color: #1e1e2e !important;
+  color: #e5e7eb !important;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .modal-panel {
+    background-color: #1e1e2e !important;
+    color: #e5e7eb !important;
+  }
+}
+
+/* Hide Backpex mobile drawer sidebar on desktop */
+@media (min-width: 768px) {
+  #backpex-app-shell > .drawer-side {
+    display: none;
+  }
 }
 
 /* This file is for your main application CSS */

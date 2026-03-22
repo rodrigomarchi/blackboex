@@ -445,16 +445,16 @@ defmodule BlackboexWeb.ApiLive.Edit do
         </button>
 
         <%= if @plain_key_flash do %>
-          <div class="rounded border border-amber-500 bg-amber-50 dark:bg-amber-950 p-2 text-xs space-y-1">
-            <p class="font-semibold text-amber-800 dark:text-amber-200">
+          <div class="rounded border-2 border-primary bg-muted p-2 text-xs space-y-1">
+            <p class="font-semibold text-foreground">
               Copy this key now — it won't be shown again:
             </p>
-            <code class="block bg-amber-100 dark:bg-amber-900 text-amber-900 dark:text-amber-100 p-1.5 rounded font-mono text-xs break-all select-all">
+            <code class="block bg-accent text-accent-foreground p-1.5 rounded font-mono text-xs break-all select-all">
               {@plain_key_flash}
             </code>
             <button
               phx-click="dismiss_key_flash"
-              class="text-amber-600 dark:text-amber-400 hover:underline text-[10px]"
+              class="text-primary hover:underline text-[10px]"
             >
               Dismiss
             </button>
@@ -1543,12 +1543,14 @@ defmodule BlackboexWeb.ApiLive.Edit do
 
         attrs =
           if schema.request,
-            do: Map.put(attrs, :example_request, SchemaExtractor.generate_example(schema.request)),
+            do:
+              Map.put(attrs, :example_request, SchemaExtractor.generate_example(schema.request)),
             else: attrs
 
         attrs =
           if schema.response,
-            do: Map.put(attrs, :example_response, SchemaExtractor.generate_example(schema.response)),
+            do:
+              Map.put(attrs, :example_response, SchemaExtractor.generate_example(schema.response)),
             else: attrs
 
         attrs

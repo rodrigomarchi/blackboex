@@ -28,69 +28,74 @@ defmodule BlackboexWeb.Components.ChatErrorsTest do
     %{org: org, api: api}
   end
 
+  defp send_chat_and_wait(lv, message \\ "Add validation") do
+    lv |> form("form[phx-submit=send_chat]", %{chat_input: message}) |> render_submit()
+    Process.sleep(300)
+    render(lv)
+  end
+
   describe "error handling" do
     @tag :capture_log
     test "LLM timeout shows friendly error message in chat", %{conn: conn, org: org, api: api} do
       Blackboex.LLM.ClientMock
-      |> expect(:generate_text, fn _prompt, _opts ->
-        {:error, :timeout}
-      end)
+      |> stub(:stream_text, fn _prompt, _opts -> {:error, :timeout} end)
 
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
-      lv |> form("form[phx-submit=send_chat]", %{chat_input: "Add validation"}) |> render_submit()
+      # Open the chat panel first
+      lv |> element(~s(button[phx-click="toggle_chat"])) |> render_click()
 
-      html = render(lv)
-      assert html =~ "demorou demais"
+      html = send_chat_and_wait(lv)
+      assert html =~ "Pipeline failed"
     end
 
     @tag :capture_log
     test "rate limit shows friendly error message in chat", %{conn: conn, org: org, api: api} do
       Blackboex.LLM.ClientMock
-      |> expect(:generate_text, fn _prompt, _opts ->
-        {:error, :rate_limited}
-      end)
+      |> stub(:stream_text, fn _prompt, _opts -> {:error, :rate_limited} end)
 
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
-      lv |> form("form[phx-submit=send_chat]", %{chat_input: "Add validation"}) |> render_submit()
+      # Open the chat panel first
+      lv |> element(~s(button[phx-click="toggle_chat"])) |> render_click()
 
-      html = render(lv)
-      assert html =~ "Muitas"
+      html = send_chat_and_wait(lv)
+      assert html =~ "Pipeline failed"
     end
 
     @tag :capture_log
     test "network failure shows friendly error message", %{conn: conn, org: org, api: api} do
       Blackboex.LLM.ClientMock
-      |> expect(:generate_text, fn _prompt, _opts ->
-        {:error, :econnrefused}
-      end)
+      |> stub(:stream_text, fn _prompt, _opts -> {:error, :econnrefused} end)
 
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
-      lv |> form("form[phx-submit=send_chat]", %{chat_input: "Add validation"}) |> render_submit()
+      # Open the chat panel first
+      lv |> element(~s(button[phx-click="toggle_chat"])) |> render_click()
 
-      html = render(lv)
-      assert html =~ "conectar"
+      html = send_chat_and_wait(lv)
+      assert html =~ "Pipeline failed"
     end
 
     @tag :capture_log
     test "error does not leave chat in loading state", %{conn: conn, org: org, api: api} do
       Blackboex.LLM.ClientMock
-      |> expect(:generate_text, fn _prompt, _opts ->
-        {:error, :timeout}
-      end)
+      |> stub(:stream_text, fn _prompt, _opts -> {:error, :timeout} end)
 
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
-      lv |> form("form[phx-submit=send_chat]", %{chat_input: "Add validation"}) |> render_submit()
+      # Open the chat panel first
+      lv |> element(~s(button[phx-click="toggle_chat"])) |> render_click()
 
-      html = render(lv)
+      html = send_chat_and_wait(lv)
       refute html =~ "Pensando..."
     end
 
     test "empty message is ignored", %{conn: conn, org: org, api: api} do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
+
+      # Open the chat panel first
+      lv |> element(~s(button[phx-click="toggle_chat"])) |> render_click()
 
       lv |> form("form[phx-submit=send_chat]", %{chat_input: ""}) |> render_submit()
 

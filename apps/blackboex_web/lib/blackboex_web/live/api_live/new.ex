@@ -10,10 +10,13 @@ defmodule BlackboexWeb.ApiLive.New do
 
   alias Blackboex.Apis
   alias Blackboex.Billing.Enforcement
-  alias Blackboex.CodeGen.{GenerationResult, Pipeline}
+  alias Blackboex.CodeGen.{GenerationResult, Pipeline, UnifiedPipeline}
   alias Blackboex.LLM
   alias Blackboex.LLM.{Config, Prompts, RateLimiter, StreamHandler}
   alias Blackboex.Telemetry.Events
+
+  import BlackboexWeb.Components.PipelineStatus
+  import BlackboexWeb.Components.ValidationDashboard
 
   @max_description_length 10_000
 
@@ -30,7 +33,13 @@ defmodule BlackboexWeb.ApiLive.New do
        error: nil,
        show_billing_link: false,
        save_form: to_form(%{"name" => "", "slug" => ""}),
-       generation_meta: nil
+       generation_meta: nil,
+       pipeline_ref: nil,
+       pipeline_status: nil,
+       validating: false,
+       validation_report: nil,
+       test_code: nil,
+       pipeline_tokens: ""
      )}
   end
 
@@ -91,12 +100,36 @@ defmodule BlackboexWeb.ApiLive.New do
         </div>
       <% end %>
 
+      <%!-- Validation progress --%>
+      <%= if @validating do %>
+        <div class="rounded-lg border bg-card p-6 text-card-foreground shadow-sm space-y-4">
+          <h2 class="text-lg font-semibold flex items-center gap-2">
+            <.icon name="hero-arrow-path" class="size-4 animate-spin" /> Validating...
+          </h2>
+          <.pipeline_progress_steps status={@pipeline_status || :formatting} show_cancel={false} />
+          <%= if @pipeline_tokens != "" do %>
+            <pre class="overflow-x-auto rounded-md bg-muted p-4 text-xs max-h-40 overflow-y-auto"><code>{@pipeline_tokens}</code></pre>
+          <% end %>
+        </div>
+      <% end %>
+
       <%= if @generated_code do %>
         <div class="rounded-lg border bg-card p-6 text-card-foreground shadow-sm space-y-4">
           <h2 class="text-lg font-semibold">Generated Code</h2>
           <pre class="overflow-x-auto rounded-md bg-muted p-4 text-sm"><code>{@generated_code}</code></pre>
 
-          <form id="save-form" phx-submit="save" class="space-y-4">
+          <%!-- Test code --%>
+          <%= if @test_code do %>
+            <h2 class="text-lg font-semibold">Generated Tests</h2>
+            <pre class="overflow-x-auto rounded-md bg-muted p-4 text-sm max-h-60 overflow-y-auto"><code>{@test_code}</code></pre>
+          <% end %>
+
+          <%!-- Validation results --%>
+          <%= if @validation_report do %>
+            <.validation_dashboard report={@validation_report} />
+          <% end %>
+
+          <form id="save-form" phx-submit="save" class={["space-y-4", if(@validating, do: "opacity-50 pointer-events-none")]}>
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <label for="api-name" class="text-sm font-medium">Name</label>
@@ -126,9 +159,14 @@ defmodule BlackboexWeb.ApiLive.New do
             </div>
             <button
               type="submit"
-              class="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90"
+              disabled={@validating}
+              class="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90 disabled:opacity-50"
             >
-              <.icon name="hero-document-check" class="mr-2 size-4" /> Save as Draft
+              <%= if @validating do %>
+                <.icon name="hero-arrow-path" class="mr-2 size-4 animate-spin" /> Validating...
+              <% else %>
+                <.icon name="hero-document-check" class="mr-2 size-4" /> Save as Draft
+              <% end %>
             </button>
           </form>
         </div>
@@ -157,6 +195,11 @@ defmodule BlackboexWeb.ApiLive.New do
   end
 
   @impl true
+  def handle_event("save", _params, %{assigns: %{validating: true}} = socket) do
+    {:noreply, put_flash(socket, :error, "Wait for validation to complete")}
+  end
+
+  @impl true
   def handle_event("save", %{"name" => name, "slug" => slug}, socket) do
     scope = socket.assigns.current_scope
     org = scope.organization
@@ -169,6 +212,7 @@ defmodule BlackboexWeb.ApiLive.New do
            slug: slug,
            description: socket.assigns.description,
            source_code: socket.assigns.generated_code,
+           test_code: socket.assigns.test_code,
            template_type: to_string(socket.assigns.generation_result.template),
            organization_id: org.id,
            user_id: user.id
@@ -219,6 +263,17 @@ defmodule BlackboexWeb.ApiLive.New do
           duration_ms: duration_ms
         }
 
+        # Auto-trigger validation pipeline
+        lv_pid = self()
+
+        task =
+          Task.async(fn ->
+            UnifiedPipeline.validate_and_test(code, meta.template,
+              progress_callback: fn p -> send(lv_pid, {:pipeline_progress, p}) end,
+              token_callback: fn t -> send(lv_pid, {:pipeline_token, t}) end
+            )
+          end)
+
         {:noreply,
          assign(socket,
            generating: false,
@@ -226,7 +281,11 @@ defmodule BlackboexWeb.ApiLive.New do
            generation_result: result,
            streaming_tokens: "",
            save_form: to_form(%{"name" => "", "slug" => ""}),
-           generation_meta: nil
+           generation_meta: nil,
+           validating: true,
+           pipeline_ref: task.ref,
+           pipeline_status: :formatting,
+           pipeline_tokens: ""
          )}
 
       {:error, _} ->
@@ -251,6 +310,75 @@ defmodule BlackboexWeb.ApiLive.New do
        streaming_tokens: "",
        generation_meta: nil
      )}
+  end
+
+  # Pipeline progress
+  @impl true
+  def handle_info({:pipeline_progress, progress}, socket) do
+    {:noreply, assign(socket, pipeline_status: progress.step)}
+  end
+
+  # Pipeline streaming tokens
+  @impl true
+  def handle_info({:pipeline_token, token}, socket) do
+    {:noreply, assign(socket, pipeline_tokens: socket.assigns.pipeline_tokens <> token)}
+  end
+
+  # Pipeline completed
+  @impl true
+  def handle_info({ref, {:ok, %{validation: _} = result}}, socket) when is_reference(ref) do
+    if ref == socket.assigns.pipeline_ref do
+      Process.demonitor(ref, [:flush])
+
+      {:noreply,
+       assign(socket,
+         validating: false,
+         pipeline_ref: nil,
+         pipeline_status: nil,
+         pipeline_tokens: "",
+         generated_code: result.code,
+         test_code: result.test_code,
+         validation_report: result.validation
+       )}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  # Pipeline failed
+  @impl true
+  def handle_info({ref, {:error, reason}}, socket) when is_reference(ref) do
+    if ref == socket.assigns.pipeline_ref do
+      Process.demonitor(ref, [:flush])
+      Logger.warning("Validation pipeline failed: #{inspect(reason)}")
+
+      {:noreply,
+       socket
+       |> assign(
+         validating: false,
+         pipeline_ref: nil,
+         pipeline_status: nil,
+         pipeline_tokens: ""
+       )
+       |> put_flash(:error, "Validation failed: #{inspect(reason)}")}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  # Pipeline task crash
+  @impl true
+  def handle_info({:DOWN, ref, :process, _pid, reason}, socket) do
+    if ref == socket.assigns[:pipeline_ref] do
+      Logger.warning("Validation pipeline crashed: #{inspect(reason)}")
+
+      {:noreply,
+       socket
+       |> assign(validating: false, pipeline_ref: nil, pipeline_status: nil)
+       |> put_flash(:error, "Validation pipeline crashed")}
+    else
+      {:noreply, socket}
+    end
   end
 
   @impl true

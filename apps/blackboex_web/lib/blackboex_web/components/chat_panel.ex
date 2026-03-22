@@ -1,12 +1,15 @@
 defmodule BlackboexWeb.Components.ChatPanel do
   @moduledoc """
   LiveComponent for the chat panel used in conversational API editing.
-  Displays message history and provides input for sending instructions to the LLM.
+  Displays message history, streaming tokens, pipeline progress, and pending edits.
   """
 
   use BlackboexWeb, :live_component
 
   alias Blackboex.Apis.DiffEngine
+
+  import BlackboexWeb.Components.PipelineStatus
+  import BlackboexWeb.Components.ValidationDashboard, only: [validation_badge: 1]
 
   @impl true
   def render(assigns) do
@@ -24,7 +27,7 @@ defmodule BlackboexWeb.Components.ChatPanel do
       </div>
 
       <div class="flex-1 overflow-y-auto p-3 space-y-3" id="chat-messages">
-        <%= if @messages == [] and @pending_edit == nil do %>
+        <%= if @messages == [] and @pending_edit == nil and @streaming_tokens == "" do %>
           <p class="text-xs text-muted-foreground text-center py-8">
             Descreva as mudanças que deseja no código.
           </p>
@@ -47,7 +50,27 @@ defmodule BlackboexWeb.Components.ChatPanel do
           <% end %>
         <% end %>
 
-        <%= if @loading do %>
+        <%!-- Streaming tokens (real-time LLM output) --%>
+        <%= if @loading && @streaming_tokens != "" do %>
+          <div class="flex justify-start">
+            <div class="max-w-[85%] rounded-lg bg-muted px-3 py-2 text-xs">
+              <pre class="whitespace-pre-wrap font-mono text-[11px]"><code>{@streaming_tokens}</code></pre>
+              <span class="inline-block w-1.5 h-3.5 bg-primary animate-pulse ml-0.5" />
+            </div>
+          </div>
+        <% end %>
+
+        <%!-- Pipeline progress (after streaming, during validation) --%>
+        <%= if @pipeline_status && @pipeline_status not in [:generating_code, :done, :failed] && @loading do %>
+          <div class="flex justify-start">
+            <div class="rounded-lg border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950 px-3 py-2">
+              <.pipeline_progress_steps status={@pipeline_status} />
+            </div>
+          </div>
+        <% end %>
+
+        <%!-- Loading state (no streaming yet) --%>
+        <%= if @loading && @streaming_tokens == "" && @pipeline_status in [nil, :generating_code] do %>
           <div class="flex justify-start">
             <div class="bg-muted rounded-lg px-3 py-2 text-xs text-muted-foreground animate-pulse">
               Pensando...
@@ -55,10 +78,13 @@ defmodule BlackboexWeb.Components.ChatPanel do
           </div>
         <% end %>
 
+        <%!-- Pending edit with validation --%>
         <%= if @pending_edit do %>
-          <div class="rounded-lg border border-blue-200 bg-blue-50 p-3 space-y-2">
-            <p class="text-xs text-blue-700 font-medium">Mudança proposta:</p>
-            <p class="text-xs text-blue-600">{@pending_edit.explanation}</p>
+          <div class="rounded-lg border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950 p-3 space-y-2">
+            <p class="text-xs text-blue-700 dark:text-blue-300 font-medium">Mudança proposta:</p>
+            <p class="text-xs text-blue-600 dark:text-blue-400">{@pending_edit.explanation}</p>
+
+            <%!-- Code diff --%>
             <div class="rounded border bg-background p-2 text-xs font-mono overflow-x-auto max-h-60 overflow-y-auto">
               <%= for {op, lines} <- @pending_edit.diff, line <- lines do %>
                 <div class={diff_line_class(op)}>
@@ -66,9 +92,25 @@ defmodule BlackboexWeb.Components.ChatPanel do
                 </div>
               <% end %>
             </div>
+
+            <%!-- Validation badges --%>
+            <%= if @pending_edit[:validation] do %>
+              <div class="flex flex-wrap gap-1.5">
+                <.validation_badge check="Compile" status={@pending_edit.validation.compilation} />
+                <.validation_badge check="Format" status={@pending_edit.validation.format} />
+                <.validation_badge check="Credo" status={@pending_edit.validation.credo} />
+                <.validation_badge
+                  check="Tests"
+                  status={@pending_edit.validation.tests}
+                  detail={test_summary(@pending_edit.validation.test_results)}
+                />
+              </div>
+            <% end %>
+
             <p class="text-xs text-muted-foreground">
               {format_diff_summary(@pending_edit.diff)}
             </p>
+
             <div class="flex gap-2">
               <button
                 phx-click="accept_edit"
@@ -123,8 +165,10 @@ defmodule BlackboexWeb.Components.ChatPanel do
     """
   end
 
-  defp diff_line_class(:ins), do: "bg-green-100 text-green-800"
-  defp diff_line_class(:del), do: "bg-red-100 text-red-800"
+  defp diff_line_class(:ins),
+    do: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+
+  defp diff_line_class(:del), do: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
   defp diff_line_class(:eq), do: ""
 
   defp diff_prefix(:ins), do: "+"
@@ -132,6 +176,14 @@ defmodule BlackboexWeb.Components.ChatPanel do
   defp diff_prefix(:eq), do: " "
 
   defp format_diff_summary(diff), do: DiffEngine.format_diff_summary(diff)
+
+  defp test_summary(test_results) when is_list(test_results) and test_results != [] do
+    passed = Enum.count(test_results, &(&1.status == "passed"))
+    total = length(test_results)
+    "#{passed}/#{total}"
+  end
+
+  defp test_summary(_), do: nil
 
   defp quick_actions("crud") do
     ["Adicionar validação", "Adicionar filtro", "Adicionar paginação", "Adicionar error handling"]

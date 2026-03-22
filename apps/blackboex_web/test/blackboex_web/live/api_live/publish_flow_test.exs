@@ -31,32 +31,30 @@ defmodule BlackboexWeb.ApiLive.PublishFlowTest do
     %{org: org, api: api}
   end
 
+  defp compile_directly(api) do
+    code = "def handle(_), do: %{published: true}"
+    {:ok, _module} = Compiler.compile(api, code)
+    {:ok, _api} = Apis.update_api(api, %{status: "compiled", source_code: code})
+  end
+
   describe "full publish flow" do
     test "compile -> publish -> key created -> URL shown", %{conn: conn, org: org, api: api} do
+      # Compile the API directly
+      compile_directly(api)
+
+      # Mount with compiled status
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
-      # Change code and compile via save_and_compile
-      lv
-      |> render_hook("code_changed", %{"value" => "def handle(_), do: %{published: true}"})
-
-      html = lv |> element("button", "Save & Compile") |> render_click()
-
-      # Verify compilation succeeded
-      assert html =~ "Compiled successfully"
-
-      # Remount to pick up fresh api status from DB
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-
-      # Switch to publish tab
-      lv |> element(~s(button[phx-click="switch_tab"][phx-value-tab="publish"])) |> render_click()
+      # Open the Config panel (publish section is inside)
+      lv |> element(~s(button[phx-click="toggle_config"])) |> render_click()
 
       html = render(lv)
       assert html =~ "Publish API"
 
-      # Publish
+      # Publish (after publish, the handler opens the config panel with keys loaded)
       html = lv |> element(~s(button[phx-click="publish"])) |> render_click()
 
-      # After publish, we're redirected to keys tab showing the new key
+      # After publish, the config panel shows the key
       assert html =~ "published"
       assert html =~ "bb_live_"
 
@@ -69,11 +67,7 @@ defmodule BlackboexWeb.ApiLive.PublishFlowTest do
       updated_api = Apis.get_api(org.id, api.id)
       assert updated_api.status == "published"
 
-      # Switch back to publish tab to verify URL is shown
-      lv
-      |> element(~s(button[phx-click="switch_tab"][phx-value-tab="publish"]))
-      |> render_click()
-
+      # The config panel is already open and shows the URL
       html = render(lv)
       assert html =~ "/api/puborg/pub-api"
 
@@ -86,20 +80,14 @@ defmodule BlackboexWeb.ApiLive.PublishFlowTest do
 
   describe "unpublish flow" do
     test "unpublish -> API removed from registry", %{conn: conn, org: org, api: api} do
+      # Compile directly
+      compile_directly(api)
+
+      # Mount with compiled status
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
-      # Compile
-      lv
-      |> render_hook("code_changed", %{"value" => "def handle(_), do: %{published: true}"})
-
-      html = lv |> element("button", "Save & Compile") |> render_click()
-      assert html =~ "Compiled successfully"
-
-      # Remount to pick up compiled status
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-
-      # Switch to publish tab and publish
-      lv |> element(~s(button[phx-click="switch_tab"][phx-value-tab="publish"])) |> render_click()
+      # Open config panel and publish
+      lv |> element(~s(button[phx-click="toggle_config"])) |> render_click()
       lv |> element(~s(button[phx-click="publish"])) |> render_click()
 
       # Verify it's published
@@ -109,8 +97,8 @@ defmodule BlackboexWeb.ApiLive.PublishFlowTest do
       # Remount to get fresh published state
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
-      # Switch to publish tab
-      lv |> element(~s(button[phx-click="switch_tab"][phx-value-tab="publish"])) |> render_click()
+      # Open config panel to see Unpublish button
+      lv |> element(~s(button[phx-click="toggle_config"])) |> render_click()
 
       html = render(lv)
       assert html =~ "Unpublish"

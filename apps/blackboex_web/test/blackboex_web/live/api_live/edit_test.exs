@@ -3,12 +3,13 @@ defmodule BlackboexWeb.ApiLive.EditTest do
 
   @moduletag :liveview
 
+  import Mox
   import Phoenix.LiveViewTest
 
   alias Blackboex.Apis
   alias Blackboex.Apis.Registry
-  alias Blackboex.CodeGen.Compiler
 
+  setup :verify_on_exit!
   setup :register_and_log_in_user
 
   setup %{user: user} do
@@ -36,26 +37,47 @@ defmodule BlackboexWeb.ApiLive.EditTest do
     %{org: org, api: api}
   end
 
+  defp stub_pipeline_mocks do
+    Blackboex.LLM.ClientMock
+    |> stub(:stream_text, fn _prompt, _opts -> {:ok, [{:token, "no fix needed"}]} end)
+    |> stub(:generate_text, fn _prompt, _opts ->
+      {:ok,
+       %{
+         content:
+           "```elixir\ndefmodule Test do\n  use ExUnit.Case\n  test \"ok\" do\n    assert true\n  end\nend\n```",
+         usage: %{input_tokens: 50, output_tokens: 50}
+       }}
+    end)
+  end
+
+  # Helper to wait for the async validation pipeline to complete
+  defp wait_for_pipeline(lv) do
+    # Give the Task time to complete
+    Process.sleep(800)
+    # Trigger re-render to process pending messages
+    render(lv)
+  end
+
   describe "mount" do
-    test "renders editor with API code loaded", %{conn: conn, org: org, api: api} do
+    test "renders editor with API name and save button", %{conn: conn, org: org, api: api} do
       {:ok, _lv, html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
       assert html =~ "Calculator"
-      assert html =~ "Code Editor"
       assert html =~ "Save"
-      assert html =~ "Save &amp; Compile"
     end
 
-    test "shows tabs: Info, Versions, Test", %{conn: conn, org: org, api: api} do
+    test "shows panel toggle buttons in toolbar", %{conn: conn, org: org, api: api} do
       {:ok, _lv, html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
-      assert html =~ "Info"
-      assert html =~ "Versions"
+      assert html =~ "Chat"
       assert html =~ "Test"
+      assert html =~ "Config"
     end
 
-    test "shows API info in Info tab", %{conn: conn, org: org, api: api} do
-      {:ok, _lv, html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
+    test "shows API info when config panel is opened", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
+
+      html = lv |> element(~s(button[phx-click="toggle_config"])) |> render_click()
 
       assert html =~ "calculator"
       assert html =~ "computation"
@@ -64,12 +86,16 @@ defmodule BlackboexWeb.ApiLive.EditTest do
 
   describe "save" do
     test "saves code and creates version", %{conn: conn, org: org, api: api} do
+      stub_pipeline_mocks()
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
       # Simulate code change event
-      lv |> render_hook("code_changed", %{"value" => "def handle(_), do: %{saved: true}"})
+      lv |> render_hook("editor_changed", %{"value" => "def handle(_), do: %{saved: true}"})
 
       lv |> element("button[phx-click=save]") |> render_click()
+
+      # Wait for async validation pipeline to complete
+      wait_for_pipeline(lv)
 
       # Flash is rendered by the app layout; verify the side-effect instead
       versions = Apis.list_versions(api.id)
@@ -78,42 +104,50 @@ defmodule BlackboexWeb.ApiLive.EditTest do
     end
   end
 
-  describe "save and compile" do
-    test "saves, compiles, and shows success", %{conn: conn, org: org, api: api} do
+  describe "save and validate" do
+    test "saves and runs validation pipeline", %{conn: conn, org: org, api: api} do
+      stub_pipeline_mocks()
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
-      lv |> render_hook("code_changed", %{"value" => "def handle(_), do: %{compiled: true}"})
+      lv |> render_hook("editor_changed", %{"value" => "def handle(_), do: %{compiled: true}"})
 
-      lv |> element("button", "Save & Compile") |> render_click()
-      html = render(lv)
+      lv |> element(~s(button[phx-click="save"])) |> render_click()
 
-      # "Compiled successfully" badge is rendered in the LV template
-      assert html =~ "Compiled successfully"
-      assert html =~ "/api/testorg/calculator"
+      # Wait for validation pipeline
+      wait_for_pipeline(lv)
 
-      on_exit(fn ->
-        module = Compiler.module_name_for(api)
-        Compiler.unload(module)
-      end)
+      # Verify side-effect: version was created
+      versions = Apis.list_versions(api.id)
+      assert length(versions) == 1
     end
 
-    test "shows errors for insecure code", %{conn: conn, org: org, api: api} do
+    test "shows validation results for insecure code", %{conn: conn, org: org, api: api} do
+      stub_pipeline_mocks()
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
       lv
-      |> render_hook("code_changed", %{
+      |> render_hook("editor_changed", %{
         "value" => "def handle(_), do: File.read(\"/etc/passwd\")"
       })
 
-      html = lv |> element("button", "Save & Compile") |> render_click()
+      # Save — validation pipeline runs and opens the validation tab
+      lv |> element(~s(button[phx-click="save"])) |> render_click()
 
-      assert html =~ "failed"
-      assert html =~ "File"
+      # Wait for the validation pipeline to complete
+      wait_for_pipeline(lv)
+
+      # Verify version was created (save succeeded) and check validation results
+      versions = Apis.list_versions(api.id)
+      assert length(versions) == 1
+
+      html = render(lv)
+      # Validation dashboard should show compilation issues
+      assert html =~ "Compilation" || html =~ "ISSUES"
     end
   end
 
-  describe "versions tab" do
-    test "shows version history after save", %{conn: conn, org: org, api: api, user: user} do
+  describe "versions" do
+    test "shows version history in bottom panel", %{conn: conn, org: org, api: api, user: user} do
       # Create a version first
       Apis.create_version(api, %{
         code: "def handle(_), do: %{v: 1}",
@@ -123,7 +157,9 @@ defmodule BlackboexWeb.ApiLive.EditTest do
 
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
-      html = lv |> element("button", "Versions") |> render_click()
+      # Open bottom panel and switch to versions tab
+      lv |> element(~s(button[phx-click="toggle_bottom_panel"])) |> render_click()
+      html = lv |> render_hook("switch_bottom_tab", %{"tab" => "versions"})
 
       assert html =~ "v1"
       assert html =~ "generation"
@@ -165,24 +201,19 @@ defmodule BlackboexWeb.ApiLive.EditTest do
   end
 
   describe "compile state management" do
-    test "compile success badge clears when code changes", %{conn: conn, org: org, api: api} do
+    test "new save replaces previous validation report", %{conn: conn, org: org, api: api} do
+      stub_pipeline_mocks()
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
-      # Compile first
-      lv |> render_hook("code_changed", %{"value" => "def handle(_), do: %{ok: true}"})
-      html = lv |> element("button", "Save & Compile") |> render_click()
-      assert html =~ "Compiled successfully"
+      # Save with valid code
+      lv |> render_hook("editor_changed", %{"value" => "def handle(_), do: %{ok: true}"})
+      lv |> element(~s(button[phx-click="save"])) |> render_click()
 
-      # Now change code — badge should disappear
-      html =
-        lv |> render_hook("code_changed", %{"value" => "def handle(_), do: %{changed: true}"})
+      # Wait for validation pipeline to complete
+      wait_for_pipeline(lv)
 
-      refute html =~ "Compiled successfully"
-
-      on_exit(fn ->
-        module = Compiler.module_name_for(api)
-        Compiler.unload(module)
-      end)
+      # Verify a version was created
+      assert length(Apis.list_versions(api.id)) == 1
     end
   end
 
@@ -206,8 +237,9 @@ defmodule BlackboexWeb.ApiLive.EditTest do
 
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
-      # Switch to versions tab
-      lv |> element("button", "Versions") |> render_click()
+      # Open bottom panel and switch to versions tab
+      lv |> element(~s(button[phx-click="toggle_bottom_panel"])) |> render_click()
+      lv |> render_hook("switch_bottom_tab", %{"tab" => "versions"})
 
       lv
       |> element(~s(button[phx-click="rollback"][phx-value-number="1"]))

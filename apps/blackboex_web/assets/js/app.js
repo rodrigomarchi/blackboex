@@ -27,11 +27,103 @@ import { CodeEditorHook } from "live_monaco_editor/priv/static/live_monaco_edito
 import { Hooks as BackpexHooks } from "backpex"
 import topbar from "../vendor/topbar"
 
+// Keyboard shortcuts hook for the API editor page
+const KeyboardShortcuts = {
+  mounted() {
+    this.handleKeyDown = (e) => {
+      const isMeta = e.metaKey || e.ctrlKey
+
+      // Always handle Cmd+K (toggle command palette)
+      if (isMeta && e.key === "k") {
+        e.preventDefault()
+        this.pushEvent("toggle_command_palette", {})
+        return
+      }
+
+      // When command palette is open, only handle Escape
+      const palette = document.querySelector("[data-command-palette]")
+      if (palette) {
+        if (e.key === "Escape") {
+          e.preventDefault()
+          this.pushEvent("toggle_command_palette", {})
+        }
+        return
+      }
+
+      if (isMeta && e.key === "s" && e.shiftKey) {
+        e.preventDefault()
+        this.pushEvent("save", {})
+      } else if (isMeta && e.key === "s") {
+        e.preventDefault()
+        this.pushEvent("save", {})
+      } else if (isMeta && e.key === "l") {
+        e.preventDefault()
+        this.pushEvent("toggle_chat", {})
+      } else if (isMeta && e.key === "j") {
+        e.preventDefault()
+        this.pushEvent("toggle_bottom_panel", {})
+      } else if (isMeta && e.key === "i" && !e.shiftKey) {
+        e.preventDefault()
+        this.pushEvent("toggle_config", {})
+      } else if (isMeta && e.key === "Enter") {
+        e.preventDefault()
+        this.pushEvent("send_request", {})
+      } else if (e.key === "Escape") {
+        this.pushEvent("close_panels", {})
+      }
+    }
+
+    window.addEventListener("keydown", this.handleKeyDown)
+  },
+
+  destroyed() {
+    window.removeEventListener("keydown", this.handleKeyDown)
+  }
+}
+
+// Auto-focus hook for command palette input
+const AutoFocus = {
+  mounted() { this.el.focus() },
+  updated() { this.el.focus() }
+}
+
+// Command palette keyboard navigation (arrows + Enter + Escape)
+const CommandPaletteNav = {
+  mounted() {
+    this.el.focus()
+
+    this.el.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowDown") {
+        e.preventDefault()
+        this.pushEvent("command_palette_navigate", { direction: "down" })
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault()
+        this.pushEvent("command_palette_navigate", { direction: "up" })
+      }
+      // Enter is handled by phx-submit on the form
+      // Escape is handled by the KeyboardShortcuts hook
+    })
+  },
+
+  updated() {
+    this.el.focus()
+
+    // Scroll the selected item into view
+    const list = document.getElementById("command-palette-list")
+    if (list) {
+      const selected = list.querySelector("[class*='bg-base-200']")
+      if (selected) {
+        selected.scrollIntoView({ block: "nearest" })
+      }
+    }
+  }
+}
+
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks, CodeEditorHook, ...BackpexHooks},
+  hooks: {...colocatedHooks, CodeEditorHook, KeyboardShortcuts, AutoFocus, CommandPaletteNav, ...BackpexHooks},
 })
 
 // Show progress bar on live navigation and form submits
@@ -47,6 +139,70 @@ window.addEventListener("phx:copy_to_clipboard", (event) => {
   if (navigator.clipboard && event.detail.text) {
     navigator.clipboard.writeText(event.detail.text)
   }
+})
+
+// Force Monaco editor to recalculate layout when panels toggle.
+// Monaco doesn't automatically detect container size changes.
+const relayoutMonaco = () => {
+  // Monaco stores editor instances on the window.monaco global
+  if (window.monaco && window.monaco.editor) {
+    const editors = window.monaco.editor.getEditors()
+    if (editors) {
+      editors.forEach(e => e.layout())
+    }
+  }
+}
+
+// Use MutationObserver on the editor root to detect panel open/close
+const setupMonacoRelayout = () => {
+  const root = document.getElementById("editor-root")
+  if (!root) return
+
+  const observer = new MutationObserver(() => {
+    // Debounce to avoid rapid relayout calls
+    clearTimeout(window._monacoRelayoutTimer)
+    window._monacoRelayoutTimer = setTimeout(relayoutMonaco, 50)
+  })
+
+  observer.observe(root, { childList: true, subtree: true })
+}
+
+// Sync Monaco editor theme with app theme (light/dark)
+const syncMonacoTheme = () => {
+  if (!window.monaco || !window.monaco.editor) return
+
+  const theme = document.documentElement.getAttribute("data-theme")
+  const isLight = theme === "light" ||
+    (!theme && window.matchMedia("(prefers-color-scheme: light)").matches)
+
+  // "default" is the dark theme defined by LiveMonacoEditor, "vs" is Monaco's built-in light theme
+  window.monaco.editor.setTheme(isLight ? "vs" : "default")
+}
+
+// Relayout Monaco after panels toggle or tab switch
+const setupMonacoResizeObserver = () => {
+  const container = document.getElementById("monaco-container")
+  if (!container || container._resizeObserverAttached) return
+
+  const observer = new ResizeObserver(() => {
+    clearTimeout(window._monacoResizeTimer)
+    window._monacoResizeTimer = setTimeout(relayoutMonaco, 30)
+  })
+  observer.observe(container)
+  container._resizeObserverAttached = true
+}
+
+// Setup after LiveView connects
+window.addEventListener("phx:page-loading-stop", () => {
+  setTimeout(setupMonacoRelayout, 100)
+  setTimeout(setupMonacoResizeObserver, 150)
+  setTimeout(syncMonacoTheme, 200)
+})
+
+// Re-sync when theme changes
+window.addEventListener("phx:set-theme", () => setTimeout(syncMonacoTheme, 50))
+window.addEventListener("storage", (e) => {
+  if (e.key === "phx:theme") setTimeout(syncMonacoTheme, 50)
 })
 
 // expose liveSocket on window for web console debug logs and latency simulation:

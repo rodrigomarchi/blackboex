@@ -34,61 +34,57 @@ defmodule BlackboexWeb.Components.ChatDiffTest do
     %{org: org, api: api}
   end
 
-  defp trigger_chat_edit(lv) do
+  defp open_chat(lv) do
+    lv |> element(~s(button[phx-click="toggle_chat"])) |> render_click()
+  end
+
+  defp mock_and_trigger_chat(lv) do
+    response = "Updated.\n\n```elixir\n#{@updated_code}\n```"
+    stream = [{:token, response}]
+
+    Blackboex.LLM.ClientMock
+    |> stub(:stream_text, fn _prompt, _opts -> {:ok, stream} end)
+    |> stub(:generate_text, fn _prompt, _opts ->
+      {:ok,
+       %{
+         content:
+           "```elixir\ndefmodule Test do\n  use ExUnit.Case\n  test \"ok\" do\n    assert true\n  end\nend\n```",
+         usage: %{input_tokens: 50, output_tokens: 50}
+       }}
+    end)
+
     lv |> form("form[phx-submit=send_chat]", %{chat_input: "Add validation"}) |> render_submit()
+    Process.sleep(300)
+    render(lv)
   end
 
   describe "ChatDiff rendering" do
     test "renders added lines in green", %{conn: conn, org: org, api: api} do
-      Blackboex.LLM.ClientMock
-      |> expect(:generate_text, fn _prompt, _opts ->
-        {:ok,
-         %{
-           content: "Updated.\n\n```elixir\n#{@updated_code}\n```",
-           usage: %{input_tokens: 100, output_tokens: 200}
-         }}
-      end)
-
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-      trigger_chat_edit(lv)
+      open_chat(lv)
 
-      html = render(lv)
+      html = mock_and_trigger_chat(lv)
+
       # Added lines should have green styling
       assert html =~ "bg-green"
     end
 
     test "renders removed lines in red", %{conn: conn, org: org, api: api} do
-      Blackboex.LLM.ClientMock
-      |> expect(:generate_text, fn _prompt, _opts ->
-        {:ok,
-         %{
-           content: "Updated.\n\n```elixir\n#{@updated_code}\n```",
-           usage: %{input_tokens: 100, output_tokens: 200}
-         }}
-      end)
-
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-      trigger_chat_edit(lv)
+      open_chat(lv)
 
-      html = render(lv)
+      html = mock_and_trigger_chat(lv)
+
       # Removed lines should have red styling
       assert html =~ "bg-red"
     end
 
     test "shows diff summary", %{conn: conn, org: org, api: api} do
-      Blackboex.LLM.ClientMock
-      |> expect(:generate_text, fn _prompt, _opts ->
-        {:ok,
-         %{
-           content: "Updated.\n\n```elixir\n#{@updated_code}\n```",
-           usage: %{input_tokens: 100, output_tokens: 200}
-         }}
-      end)
-
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-      trigger_chat_edit(lv)
+      open_chat(lv)
 
-      html = render(lv)
+      html = mock_and_trigger_chat(lv)
+
       # Should show some indication of changes
       assert html =~ "added" || html =~ "removed" || html =~ "+"
     end

@@ -142,6 +142,26 @@ defmodule BlackboexWeb.Layouts do
   end
 
   @doc """
+  Editor layout for the API code editor page.
+  Full-width, full-height, minimal chrome — the editor page manages its own toolbar.
+  """
+  attr :flash, :map, required: true
+
+  attr :current_scope, :map,
+    default: nil,
+    doc: "the current scope"
+
+  def editor(assigns) do
+    ~H"""
+    <div class="h-screen overflow-hidden bg-background text-foreground">
+      {@inner_content}
+    </div>
+
+    <.flash_group flash={@flash} />
+    """
+  end
+
+  @doc """
   Admin layout for Backpex admin panel.
   Uses Backpex's app_shell component with sidebar navigation.
   """

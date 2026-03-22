@@ -14,6 +14,29 @@ defmodule Blackboex.Testing.TestGenerator do
 
   @max_retries 3
 
+  @doc "Generate tests for raw source code with a template type string."
+  @spec generate_tests_for_code(String.t(), String.t(), keyword()) ::
+          {:ok, %{code: String.t(), usage: map()}}
+          | {:error, :generation_failed | :compile_error | :no_code_found}
+  def generate_tests_for_code(source_code, template_type, opts \\ [])
+      when is_binary(source_code) and is_binary(template_type) do
+    api = %Api{
+      id: Ecto.UUID.generate(),
+      name: "GeneratedAPI",
+      slug: "generated-api",
+      description: "Auto-generated API for test generation",
+      source_code: source_code,
+      template_type: template_type,
+      method: "POST",
+      requires_auth: false,
+      organization_id: Ecto.UUID.generate(),
+      user_id: 0
+    }
+
+    generate_tests(api, opts)
+  end
+
+  @doc "Generate tests for an API struct using the LLM."
   @spec generate_tests(Api.t(), keyword()) ::
           {:ok, %{code: String.t(), usage: map()}}
           | {:error, :generation_failed | :compile_error | :no_code_found}

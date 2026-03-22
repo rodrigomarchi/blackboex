@@ -3,8 +3,16 @@ defmodule Blackboex.CodeGen.GenerationResult do
   Struct representing the result of an LLM code generation.
   """
 
+  @type validation :: %{
+          format: :pass | :warn | :error,
+          credo: :pass | :warn | :error,
+          issues: [String.t()]
+        }
+
   @type t :: %__MODULE__{
           code: String.t(),
+          test_code: String.t() | nil,
+          validation: validation() | nil,
           template: atom(),
           description: String.t(),
           provider: String.t(),
@@ -21,6 +29,8 @@ defmodule Blackboex.CodeGen.GenerationResult do
   @enforce_keys [:code, :template, :description, :provider, :tokens_used]
   defstruct [
     :code,
+    :test_code,
+    :validation,
     :template,
     :description,
     :provider,

@@ -53,6 +53,9 @@ defmodule BlackboexWeb.Live.BillingEnforcementTest do
     test "free plan user at LLM limit sees error flash", %{conn: conn, org: org, api: api} do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
+      # Open the chat panel first
+      lv |> element(~s(button[phx-click="toggle_chat"])) |> render_click()
+
       lv
       |> form("form[phx-submit=send_chat]", %{chat_input: "Add error handling"})
       |> render_submit()
@@ -67,20 +70,23 @@ defmodule BlackboexWeb.Live.BillingEnforcementTest do
     end
   end
 
-  describe "billing enforcement on test generation" do
-    test "free plan user at LLM limit sees error flash", %{conn: conn, org: org, api: api} do
+  describe "billing enforcement on chat edit (rate limited)" do
+    test "free plan user at LLM limit sees no pending edit", %{conn: conn, org: org, api: api} do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
-      # Switch to auto_tests tab where the generate button lives
+      # Open the chat panel
+      lv |> element(~s(button[phx-click="toggle_chat"])) |> render_click()
+
+      # Send a chat message — billing enforcement blocks the LLM call
       lv
-      |> element(~s(button[phx-click="switch_tab"][phx-value-tab="auto_tests"]))
-      |> render_click()
+      |> form("form[phx-submit=send_chat]", %{chat_input: "Generate tests"})
+      |> render_submit()
 
-      lv |> element(~s(button[phx-click="generate_tests"])) |> render_click()
-
-      # Flash is rendered by app layout; verify test generation was not started
       html = render(lv)
-      refute html =~ "Generating"
+
+      # No pending edit should exist (LLM call was blocked)
+      refute html =~ "accept_edit"
+      assert Apis.list_versions(api.id) == []
     end
   end
 
@@ -92,8 +98,8 @@ defmodule BlackboexWeb.Live.BillingEnforcementTest do
 
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
-      # Switch to publish tab where the generate docs button lives
-      lv |> element(~s(button[phx-click="switch_tab"][phx-value-tab="publish"])) |> render_click()
+      # Open config panel where the generate docs button lives (in the publish section)
+      lv |> element(~s(button[phx-click="toggle_config"])) |> render_click()
 
       lv |> element(~s(button[phx-click="generate_docs"])) |> render_click()
 

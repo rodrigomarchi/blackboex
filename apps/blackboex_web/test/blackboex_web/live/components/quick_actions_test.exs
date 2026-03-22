@@ -16,6 +16,10 @@ defmodule BlackboexWeb.Components.QuickActionsTest do
     %{org: org, user: user}
   end
 
+  defp open_chat(lv) do
+    lv |> element(~s(button[phx-click="toggle_chat"])) |> render_click()
+  end
+
   describe "quick actions" do
     test "renders general quick action buttons for computation template", %{
       conn: conn,
@@ -33,6 +37,7 @@ defmodule BlackboexWeb.Components.QuickActionsTest do
         })
 
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
+      open_chat(lv)
 
       html = render(lv)
       assert html =~ "quick_action"
@@ -54,6 +59,7 @@ defmodule BlackboexWeb.Components.QuickActionsTest do
         })
 
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
+      open_chat(lv)
 
       html = render(lv)
       # CRUD-specific actions
@@ -76,6 +82,7 @@ defmodule BlackboexWeb.Components.QuickActionsTest do
         })
 
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
+      open_chat(lv)
 
       html = render(lv)
       # Webhook-specific actions

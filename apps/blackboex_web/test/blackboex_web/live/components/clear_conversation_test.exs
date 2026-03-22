@@ -27,9 +27,14 @@ defmodule BlackboexWeb.Components.ClearConversationTest do
     %{org: org, api: api}
   end
 
+  defp open_chat(lv) do
+    lv |> element(~s(button[phx-click="toggle_chat"])) |> render_click()
+  end
+
   describe "clear conversation" do
     test "clear button is present in chat panel", %{conn: conn, org: org, api: api} do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
+      open_chat(lv)
 
       html = render(lv)
       assert html =~ "clear_conversation"
@@ -41,6 +46,7 @@ defmodule BlackboexWeb.Components.ClearConversationTest do
       {:ok, _conv} = Conversations.append_message(conv, "assistant", "Hi there")
 
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
+      open_chat(lv)
 
       # Verify messages exist
       html = render(lv)
@@ -55,17 +61,18 @@ defmodule BlackboexWeb.Components.ClearConversationTest do
       assert html =~ "Descreva"
     end
 
-    test "code remains intact after clearing", %{conn: conn, org: org, api: api} do
+    test "editor page remains functional after clearing", %{conn: conn, org: org, api: api} do
       {:ok, conv} = Conversations.get_or_create_conversation(api.id)
       {:ok, _conv} = Conversations.append_message(conv, "user", "Hello")
 
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
+      open_chat(lv)
 
       lv |> element("button[phx-click=clear_conversation]") |> render_click()
 
-      # Code should still be present
+      # Editor page should still be functional — toolbar with API name present
       html = render(lv)
-      assert html =~ "Code Editor"
+      assert html =~ api.name
     end
 
     test "clears messages in database", %{conn: conn, org: org, api: api} do
@@ -73,6 +80,7 @@ defmodule BlackboexWeb.Components.ClearConversationTest do
       {:ok, _conv} = Conversations.append_message(conv, "user", "Hello")
 
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
+      open_chat(lv)
 
       lv |> element("button[phx-click=clear_conversation]") |> render_click()
 

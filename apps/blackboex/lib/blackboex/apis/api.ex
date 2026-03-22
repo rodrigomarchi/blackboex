@@ -22,6 +22,7 @@ defmodule Blackboex.Apis.Api do
     field :slug, :string
     field :description, :string
     field :source_code, :string
+    field :test_code, :string
     field :template_type, :string, default: "computation"
     field :status, :string, default: "draft"
     field :method, :string, default: "POST"
@@ -46,6 +47,7 @@ defmodule Blackboex.Apis.Api do
       :slug,
       :description,
       :source_code,
+      :test_code,
       :template_type,
       :status,
       :method,

@@ -107,13 +107,21 @@ defmodule BlackboexWeb.Router do
       live "/apis", ApiLive.Index, :index
       live "/apis/new", ApiLive.New, :new
       live "/apis/:id", ApiLive.Show, :show
-      live "/apis/:id/edit", ApiLive.Edit, :edit
       live "/apis/:id/analytics", ApiLive.Analytics, :analytics
       live "/billing", BillingLive.Plans, :index
       live "/billing/manage", BillingLive.Manage, :manage
       live "/settings", SettingsLive, :index
       live "/users/settings", UserLive.Settings, :edit
       live "/users/settings/confirm-email/:token", UserLive.Settings, :confirm_email
+    end
+
+    live_session :editor,
+      layout: {BlackboexWeb.Layouts, :editor},
+      on_mount: [
+        {BlackboexWeb.UserAuth, :require_authenticated},
+        {BlackboexWeb.Hooks.SetOrganization, :default}
+      ] do
+      live "/apis/:id/edit", ApiLive.Edit, :edit
     end
 
     post "/users/update-password", UserSessionController, :update_password

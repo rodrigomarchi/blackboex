@@ -76,7 +76,7 @@ defmodule BlackboexWeb.ApiLive.NewTest do
     @tag :capture_log
     test "shows error when generation fails", %{conn: conn} do
       Blackboex.LLM.ClientMock
-      |> expect(:stream_text, fn _prompt, _opts ->
+      |> stub(:stream_text, fn _prompt, _opts ->
         {:error, :api_error}
       end)
 
@@ -134,14 +134,22 @@ defmodule BlackboexWeb.ApiLive.NewTest do
 
   defp mock_stream_text(content) do
     Blackboex.LLM.ClientMock
-    |> expect(:stream_text, fn _prompt, _opts ->
+    |> stub(:stream_text, fn _prompt, _opts ->
       {:ok, [{:token, content}]}
+    end)
+    |> stub(:generate_text, fn _prompt, _opts ->
+      {:ok,
+       %{
+         content:
+           "```elixir\ndefmodule Test do\n  use ExUnit.Case\n  test \"ok\" do\n    assert true\n  end\nend\n```",
+         usage: %{input_tokens: 50, output_tokens: 50}
+       }}
     end)
   end
 
   defp wait_for_generation(view) do
-    # Allow the streaming Task to complete and send result back to LiveView
-    Process.sleep(150)
+    # Allow the streaming Task and validation pipeline to complete
+    Process.sleep(300)
     render(view)
   end
 end

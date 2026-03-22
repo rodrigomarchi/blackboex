@@ -27,9 +27,14 @@ defmodule BlackboexWeb.Components.ChatPanelTest do
     %{org: org, api: api}
   end
 
+  defp open_chat(lv) do
+    lv |> element(~s(button[phx-click="toggle_chat"])) |> render_click()
+  end
+
   describe "ChatPanel rendering" do
     test "renders empty message list on mount", %{conn: conn, org: org, api: api} do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
+      open_chat(lv)
 
       html = render(lv)
       assert html =~ "Chat"
@@ -42,6 +47,7 @@ defmodule BlackboexWeb.Components.ChatPanelTest do
       {:ok, _conv} = Conversations.append_message(conv, "assistant", "Here is the updated code")
 
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
+      open_chat(lv)
 
       html = render(lv)
       assert html =~ "Add validation"
@@ -58,6 +64,7 @@ defmodule BlackboexWeb.Components.ChatPanelTest do
       {:ok, _conv} = Conversations.append_message(conv, "assistant", "Bot reply")
 
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
+      open_chat(lv)
 
       html = render(lv)
       # Both messages render
@@ -70,6 +77,7 @@ defmodule BlackboexWeb.Components.ChatPanelTest do
 
     test "has input text and send button", %{conn: conn, org: org, api: api} do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
+      open_chat(lv)
 
       html = render(lv)
       assert html =~ "chat_input"
@@ -82,6 +90,7 @@ defmodule BlackboexWeb.Components.ChatPanelTest do
       {:ok, _conv} = Conversations.append_message(conv, "user", xss_payload)
 
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
+      open_chat(lv)
 
       html = render(lv)
       # Phoenix should escape the HTML — raw <script> must NOT appear
@@ -91,14 +100,34 @@ defmodule BlackboexWeb.Components.ChatPanelTest do
     end
   end
 
-  describe "3-panel layout" do
-    test "renders Chat, Editor, and Info/Versions panels", %{conn: conn, org: org, api: api} do
+  describe "IDE layout" do
+    test "renders Chat, Config, and Test panel toggle buttons", %{
+      conn: conn,
+      org: org,
+      api: api
+    } do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
       html = render(lv)
+      # Toolbar always shows toggle buttons for Chat, Test, Config
       assert html =~ "Chat"
-      assert html =~ "Code Editor"
-      assert html =~ "Info"
+      assert html =~ "Test"
+      assert html =~ "Config"
+    end
+
+    test "opening config panel shows Informações", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
+      lv |> element(~s(button[phx-click="toggle_config"])) |> render_click()
+
+      html = render(lv)
+      assert html =~ "Informações"
+    end
+
+    test "opening bottom panel shows Versions tab", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
+      lv |> element(~s(button[phx-click="toggle_bottom_panel"])) |> render_click()
+
+      html = render(lv)
       assert html =~ "Versions"
     end
   end

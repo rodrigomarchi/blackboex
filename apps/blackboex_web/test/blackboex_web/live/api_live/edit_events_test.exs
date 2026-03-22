@@ -3,12 +3,13 @@ defmodule BlackboexWeb.ApiLive.EditEventsTest do
 
   @moduletag :liveview
 
+  import Mox
   import Phoenix.LiveViewTest
 
   alias Blackboex.Apis
   alias Blackboex.Apis.Registry
-  alias Blackboex.CodeGen.Compiler
 
+  setup :verify_on_exit!
   setup :register_and_log_in_user
 
   setup %{user: user} do
@@ -37,12 +38,31 @@ defmodule BlackboexWeb.ApiLive.EditEventsTest do
     %{org: org, api: api}
   end
 
+  # ── Helper to open the bottom panel (test tab is default) ──
+
+  defp open_bottom_panel(lv) do
+    lv |> element(~s(button[phx-click="toggle_bottom_panel"])) |> render_click()
+  end
+
+  defp stub_pipeline_mocks do
+    Blackboex.LLM.ClientMock
+    |> stub(:stream_text, fn _prompt, _opts -> {:ok, [{:token, "no fix needed"}]} end)
+    |> stub(:generate_text, fn _prompt, _opts ->
+      {:ok,
+       %{
+         content:
+           "```elixir\ndefmodule Test do\n  use ExUnit.Case\n  test \"ok\" do\n    assert true\n  end\nend\n```",
+         usage: %{input_tokens: 50, output_tokens: 50}
+       }}
+    end)
+  end
+
   # --- Request Builder Events (Test Tab) ---
 
   describe "add_param" do
     test "adds a parameter row", %{conn: conn, org: org, api: api} do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-      lv |> element("[phx-click=switch_tab][phx-value-tab=test]") |> render_click()
+      open_bottom_panel(lv)
       render_click(lv, "switch_request_tab", %{"tab" => "params"})
 
       # Initially there are no params
@@ -54,7 +74,7 @@ defmodule BlackboexWeb.ApiLive.EditEventsTest do
 
     test "respects the 50 item limit", %{conn: conn, org: org, api: api} do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-      lv |> element("[phx-click=switch_tab][phx-value-tab=test]") |> render_click()
+      open_bottom_panel(lv)
       render_click(lv, "switch_request_tab", %{"tab" => "params"})
 
       # Add 50 params to reach the limit
@@ -72,7 +92,7 @@ defmodule BlackboexWeb.ApiLive.EditEventsTest do
   describe "remove_param" do
     test "removes a parameter by id", %{conn: conn, org: org, api: api} do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-      lv |> element("[phx-click=switch_tab][phx-value-tab=test]") |> render_click()
+      open_bottom_panel(lv)
       render_click(lv, "switch_request_tab", %{"tab" => "params"})
 
       # Add two params
@@ -98,7 +118,7 @@ defmodule BlackboexWeb.ApiLive.EditEventsTest do
   describe "add_header" do
     test "adds a header row", %{conn: conn, org: org, api: api} do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-      lv |> element("[phx-click=switch_tab][phx-value-tab=test]") |> render_click()
+      open_bottom_panel(lv)
 
       # Switch to headers sub-tab
       render_click(lv, "switch_request_tab", %{"tab" => "headers"})
@@ -115,7 +135,7 @@ defmodule BlackboexWeb.ApiLive.EditEventsTest do
 
     test "respects the 50 item limit", %{conn: conn, org: org, api: api} do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-      lv |> element("[phx-click=switch_tab][phx-value-tab=test]") |> render_click()
+      open_bottom_panel(lv)
       render_click(lv, "switch_request_tab", %{"tab" => "headers"})
 
       # Already has 1 default header (Content-Type), so add 49 more to reach 50
@@ -133,7 +153,7 @@ defmodule BlackboexWeb.ApiLive.EditEventsTest do
   describe "remove_header" do
     test "removes a header by id", %{conn: conn, org: org, api: api} do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-      lv |> element("[phx-click=switch_tab][phx-value-tab=test]") |> render_click()
+      open_bottom_panel(lv)
       render_click(lv, "switch_request_tab", %{"tab" => "headers"})
 
       # Add a header (there's already 1 default Content-Type header)
@@ -159,7 +179,7 @@ defmodule BlackboexWeb.ApiLive.EditEventsTest do
   describe "update_test_method" do
     test "changes the HTTP method", %{conn: conn, org: org, api: api} do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-      lv |> element("[phx-click=switch_tab][phx-value-tab=test]") |> render_click()
+      open_bottom_panel(lv)
 
       # Default method comes from api.method || "GET"
       html = render_click(lv, "update_test_method", %{"method" => "POST"})
@@ -169,7 +189,7 @@ defmodule BlackboexWeb.ApiLive.EditEventsTest do
 
     test "ignores invalid method", %{conn: conn, org: org, api: api} do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-      lv |> element("[phx-click=switch_tab][phx-value-tab=test]") |> render_click()
+      open_bottom_panel(lv)
 
       render_click(lv, "update_test_method", %{"method" => "HACK"})
       html = render(lv)
@@ -180,7 +200,7 @@ defmodule BlackboexWeb.ApiLive.EditEventsTest do
   describe "update_test_body" do
     test "invalid JSON shows error", %{conn: conn, org: org, api: api} do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-      lv |> element("[phx-click=switch_tab][phx-value-tab=test]") |> render_click()
+      open_bottom_panel(lv)
       render_click(lv, "switch_request_tab", %{"tab" => "body"})
 
       html = render_click(lv, "update_test_body", %{"test_body_json" => "{invalid json"})
@@ -189,7 +209,7 @@ defmodule BlackboexWeb.ApiLive.EditEventsTest do
 
     test "valid JSON clears error", %{conn: conn, org: org, api: api} do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-      lv |> element("[phx-click=switch_tab][phx-value-tab=test]") |> render_click()
+      open_bottom_panel(lv)
       render_click(lv, "switch_request_tab", %{"tab" => "body"})
 
       # First set invalid JSON
@@ -204,10 +224,11 @@ defmodule BlackboexWeb.ApiLive.EditEventsTest do
 
   describe "save idempotency" do
     test "saving flag prevents duplicate saves", %{conn: conn, org: org, api: api} do
+      stub_pipeline_mocks()
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
       # Change code so save actually does something
-      lv |> render_hook("code_changed", %{"value" => "def handle(_), do: %{v: 1}"})
+      lv |> render_hook("editor_changed", %{"value" => "def handle(_), do: %{v: 1}"})
 
       # First save should work
       lv |> element("button[phx-click=save]") |> render_click()
@@ -216,32 +237,31 @@ defmodule BlackboexWeb.ApiLive.EditEventsTest do
       assert length(Apis.list_versions(api.id)) == 1
 
       # Change code again for second save
-      lv |> render_hook("code_changed", %{"value" => "def handle(_), do: %{v: 2}"})
+      lv |> render_hook("editor_changed", %{"value" => "def handle(_), do: %{v: 2}"})
       lv |> element("button[phx-click=save]") |> render_click()
 
       # Second save should also create a version (saving flag was reset)
       assert length(Apis.list_versions(api.id)) == 2
     end
 
-    test "save_and_compile also guards against duplicate saves", %{
+    test "save runs validation pipeline", %{
       conn: conn,
       org: org,
       api: api
     } do
+      stub_pipeline_mocks()
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
-      lv |> render_hook("code_changed", %{"value" => "def handle(_), do: %{ok: true}"})
+      lv |> render_hook("editor_changed", %{"value" => "def handle(_), do: %{ok: true}"})
 
-      # First save_and_compile should work
-      lv |> element("button", "Save & Compile") |> render_click()
-      html = render(lv)
-      # "Compiled successfully" badge is rendered in the LV template
-      assert html =~ "Compiled successfully"
+      # Click the Save button which triggers validation pipeline
+      lv |> element(~s(button[phx-click="save"])) |> render_click()
 
-      on_exit(fn ->
-        module = Compiler.module_name_for(api)
-        Compiler.unload(module)
-      end)
+      # Wait for async validation pipeline
+      Process.sleep(500)
+
+      # Verify version was created
+      assert length(Apis.list_versions(api.id)) == 1
     end
   end
 
@@ -250,7 +270,7 @@ defmodule BlackboexWeb.ApiLive.EditEventsTest do
   describe "send_request" do
     test "send_request sets loading state", %{conn: conn, org: org, api: api} do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-      lv |> element("[phx-click=switch_tab][phx-value-tab=test]") |> render_click()
+      open_bottom_panel(lv)
 
       # Send request (the API is not compiled, so it will return an error via async)
       html = render_click(lv, "send_request")
@@ -271,7 +291,7 @@ defmodule BlackboexWeb.ApiLive.EditEventsTest do
       api: api
     } do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-      lv |> element("[phx-click=switch_tab][phx-value-tab=test]") |> render_click()
+      open_bottom_panel(lv)
 
       # First send sets test_loading: true
       render_click(lv, "send_request")

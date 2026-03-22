@@ -101,55 +101,55 @@ defmodule Blackboex.Apis do
   @spec create_version(Api.t(), map()) :: {:ok, ApiVersion.t()} | {:error, Ecto.Changeset.t()}
   def create_version(%Api{} = api, attrs) do
     code = attrs[:code] || attrs["code"] || ""
+    test_code = attrs[:test_code] || attrs["test_code"]
 
     Ecto.Multi.new()
-    |> Ecto.Multi.run(:next_number, fn repo, _changes ->
-      # Calculate version number inside transaction to avoid race conditions
-      result =
-        ApiVersion
-        |> where([v], v.api_id == ^api.id)
-        |> select([v], max(v.version_number))
-        |> repo.one()
-
-      {:ok, (result || 0) + 1}
-    end)
-    |> Ecto.Multi.run(:diff_summary, fn repo, _changes ->
-      latest =
-        ApiVersion
-        |> where([v], v.api_id == ^api.id)
-        |> order_by([v], desc: v.version_number)
-        |> limit(1)
-        |> repo.one()
-
-      summary =
-        if latest do
-          diff = DiffEngine.compute_diff(latest.code, code)
-          DiffEngine.format_diff_summary(diff)
-        else
-          nil
-        end
-
-      {:ok, summary}
-    end)
+    |> Ecto.Multi.run(:next_number, &next_version_number(&1, &2, api.id))
+    |> Ecto.Multi.run(:diff_summary, &compute_diff_summary(&1, &2, api.id, code))
     |> Ecto.Multi.insert(:version, fn %{next_number: number, diff_summary: summary} ->
       ApiVersion.changeset(
         %ApiVersion{},
-        Map.merge(attrs, %{
-          api_id: api.id,
-          version_number: number,
-          diff_summary: summary
-        })
+        Map.merge(attrs, %{api_id: api.id, version_number: number, diff_summary: summary})
       )
     end)
-    |> Ecto.Multi.update(:api, Api.changeset(api, %{source_code: code}))
+    |> Ecto.Multi.update(:api, Api.changeset(api, %{source_code: code, test_code: test_code}))
     |> Repo.transaction()
-    |> case do
-      {:ok, %{version: version}} -> {:ok, version}
-      {:error, :version, changeset, _} -> {:error, changeset}
-      {:error, :api, changeset, _} -> {:error, changeset}
-      {:error, _step, reason, _} -> {:error, reason}
-    end
+    |> unwrap_version_transaction()
   end
+
+  defp next_version_number(repo, _changes, api_id) do
+    result =
+      ApiVersion
+      |> where([v], v.api_id == ^api_id)
+      |> select([v], max(v.version_number))
+      |> repo.one()
+
+    {:ok, (result || 0) + 1}
+  end
+
+  defp compute_diff_summary(repo, _changes, api_id, code) do
+    latest =
+      ApiVersion
+      |> where([v], v.api_id == ^api_id)
+      |> order_by([v], desc: v.version_number)
+      |> limit(1)
+      |> repo.one()
+
+    summary = compute_diff_for_latest(latest, code)
+    {:ok, summary}
+  end
+
+  defp compute_diff_for_latest(nil, _code), do: nil
+
+  defp compute_diff_for_latest(latest, code) do
+    diff = DiffEngine.compute_diff(latest.code, code)
+    DiffEngine.format_diff_summary(diff)
+  end
+
+  defp unwrap_version_transaction({:ok, %{version: version}}), do: {:ok, version}
+  defp unwrap_version_transaction({:error, :version, changeset, _}), do: {:error, changeset}
+  defp unwrap_version_transaction({:error, :api, changeset, _}), do: {:error, changeset}
+  defp unwrap_version_transaction({:error, _step, reason, _}), do: {:error, reason}
 
   @spec list_versions(Ecto.UUID.t()) :: [ApiVersion.t()]
   def list_versions(api_id) do
@@ -185,6 +185,7 @@ defmodule Blackboex.Apis do
       target ->
         create_version(api, %{
           code: target.code,
+          test_code: target.test_code,
           source: "rollback",
           prompt: "Rollback to version #{target_version_number}",
           created_by_id: created_by_id

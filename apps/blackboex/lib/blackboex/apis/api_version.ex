@@ -17,6 +17,7 @@ defmodule Blackboex.Apis.ApiVersion do
   schema "api_versions" do
     field :version_number, :integer
     field :code, :string
+    field :test_code, :string
     field :source, :string
     field :prompt, :string
     field :llm_response, :string
@@ -37,6 +38,7 @@ defmodule Blackboex.Apis.ApiVersion do
       :api_id,
       :version_number,
       :code,
+      :test_code,
       :source,
       :prompt,
       :llm_response,

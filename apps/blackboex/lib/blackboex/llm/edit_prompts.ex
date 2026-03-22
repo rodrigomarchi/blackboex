@@ -38,10 +38,23 @@ defmodule Blackboex.LLM.EditPrompts do
     ## Prohibited Modules (NEVER use these)
     #{Enum.join(Prompts.prohibited_modules(), ", ")}
 
+    ## Code Quality Requirements
+    - Every public function MUST have @doc with a clear description of what it does
+    - Every public function MUST have @spec with proper typespecs
+    - Private functions (defp) SHOULD have @spec but @doc is optional
+    - Use descriptive variable names (not single letters like x, y)
+    - Add inline comments only where logic is non-obvious
+    - Follow Elixir standard formatting conventions (mix format compatible)
+    - Avoid long lines (max 120 chars)
+    - Use pattern matching in function heads instead of conditionals when appropriate
+    - Group related functions together
+
     ## Output Format
     1. First, briefly explain what you changed and why (1-3 sentences).
     2. Then return the COMPLETE updated code in a single ```elixir code block.
     3. The code block must contain ALL function definitions — do not omit unchanged functions.
+    4. The returned code MUST include @doc and @spec on ALL public functions.
+    5. The code MUST be compatible with `mix format` and `mix credo --strict`.
     """
   end
 

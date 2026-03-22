@@ -145,7 +145,7 @@ defmodule Blackboex.CodeGen.Compiler do
   defp format_compile_errors(diagnostics, error) do
     diag_messages =
       diagnostics
-      |> Enum.filter(&(&1.severity == :error))
+      |> Enum.filter(&(&1.severity in [:error, :warning]))
       |> Enum.map(& &1.message)
 
     case diag_messages do

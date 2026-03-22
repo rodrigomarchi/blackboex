@@ -12,7 +12,7 @@ defmodule Blackboex.Testing.SandboxCase do
   defmacro __using__(_opts) do
     quote do
       import ExUnit.Assertions
-      import Blackboex.Testing.SandboxCase, only: [test: 2]
+      import Blackboex.Testing.SandboxCase, only: [test: 2, describe: 2]
     end
   end
 
@@ -29,5 +29,14 @@ defmodule Blackboex.Testing.SandboxCase do
         unquote(block)
       end
     end
+  end
+
+  @doc """
+  Groups tests under a description. Compatible with ExUnit.Case.describe/2.
+  In sandbox mode, the block is simply executed (no ExUnit grouping needed).
+  """
+  @spec describe(String.t(), keyword()) :: Macro.t()
+  defmacro describe(_message, do: block) do
+    block
   end
 end

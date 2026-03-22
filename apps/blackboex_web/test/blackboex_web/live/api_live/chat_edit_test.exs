@@ -45,9 +45,12 @@ defmodule BlackboexWeb.ApiLive.ChatEditTest do
       end
       """
 
-      mock_generate_text_with_code(proposed_code, "Added sum field")
+      mock_stream_text_with_code(proposed_code, "Added sum field")
 
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
+
+      # Open the chat panel first
+      lv |> element(~s(button[phx-click="toggle_chat"])) |> render_click()
 
       # Send a chat message
       lv
@@ -84,9 +87,12 @@ defmodule BlackboexWeb.ApiLive.ChatEditTest do
       end
       """
 
-      mock_generate_text_with_code(proposed_code, "Changed to multiplication")
+      mock_stream_text_with_code(proposed_code, "Changed to multiplication")
 
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
+
+      # Open the chat panel first
+      lv |> element(~s(button[phx-click="toggle_chat"])) |> render_click()
 
       lv
       |> form("form[phx-submit=send_chat]", %{chat_input: "Change to multiplication"})
@@ -111,23 +117,24 @@ defmodule BlackboexWeb.ApiLive.ChatEditTest do
     end
   end
 
-  defp mock_generate_text_with_code(code, explanation) do
-    response_content = """
-    #{explanation}
-
-    ```elixir
-    #{String.trim(code)}
-    ```
-    """
+  defp mock_stream_text_with_code(code, explanation) do
+    response = "#{explanation}\n\n```elixir\n#{String.trim(code)}\n```"
+    stream = [{:token, response}]
 
     Blackboex.LLM.ClientMock
-    |> expect(:generate_text, fn _prompt, _opts ->
-      {:ok, %{content: response_content, usage: %{input_tokens: 100, output_tokens: 50}}}
+    |> stub(:stream_text, fn _prompt, _opts -> {:ok, stream} end)
+    |> stub(:generate_text, fn _prompt, _opts ->
+      {:ok,
+       %{
+         content:
+           "```elixir\ndefmodule Test do\n  use ExUnit.Case\n  test \"ok\" do\n    assert true\n  end\nend\n```",
+         usage: %{input_tokens: 50, output_tokens: 50}
+       }}
     end)
   end
 
   defp wait_for_chat(view) do
-    Process.sleep(150)
+    Process.sleep(300)
     render(view)
   end
 end

@@ -20,8 +20,13 @@ defmodule Blackboex.LLM.StreamHandler do
     client = Config.client()
 
     case client.stream_text(prompt, opts) do
+      {:ok, %ReqLLM.StreamResponse{} = response} ->
+        full_response = consume_stream(caller, response)
+        send(caller, {:llm_done, full_response})
+
       {:ok, stream} ->
-        full_response = consume_stream(caller, stream)
+        # Fallback for mock/test streams returning plain enumerables
+        full_response = consume_plain_stream(caller, stream)
         send(caller, {:llm_done, full_response})
 
       {:error, reason} ->
@@ -29,7 +34,16 @@ defmodule Blackboex.LLM.StreamHandler do
     end
   end
 
-  defp consume_stream(caller, stream) do
+  defp consume_stream(caller, %ReqLLM.StreamResponse{} = response) do
+    response
+    |> ReqLLM.StreamResponse.tokens()
+    |> Enum.reduce("", fn token, acc ->
+      send(caller, {:llm_token, token})
+      acc <> token
+    end)
+  end
+
+  defp consume_plain_stream(caller, stream) do
     Enum.reduce(stream, "", fn {:token, token}, acc ->
       send(caller, {:llm_token, token})
       acc <> token

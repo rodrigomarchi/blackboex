@@ -31,8 +31,8 @@ defmodule BlackboexWeb.ApiLive.ApiKeysTest do
     test "create -> rotate -> revoke", %{conn: conn, org: org, api: api} do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
-      # Switch to keys tab
-      lv |> element(~s(button[phx-click="switch_tab"][phx-value-tab="keys"])) |> render_click()
+      # Open the Config panel (keys section is inside)
+      lv |> element(~s(button[phx-click="toggle_config"])) |> render_click()
 
       html = render(lv)
       assert html =~ "No keys yet"

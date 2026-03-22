@@ -53,4 +53,7 @@ defmodule Blackboex.Testing.TestSuite do
     |> validate_length(:test_code, max: @max_test_code_bytes)
     |> foreign_key_constraint(:api_id)
   end
+
+  @spec admin_changeset(t(), map(), map()) :: Ecto.Changeset.t()
+  def admin_changeset(struct, _attrs, _metadata), do: change(struct)
 end

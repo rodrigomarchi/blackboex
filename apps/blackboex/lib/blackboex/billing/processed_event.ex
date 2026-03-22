@@ -27,4 +27,7 @@ defmodule Blackboex.Billing.ProcessedEvent do
     |> validate_length(:event_type, max: 255)
     |> unique_constraint(:event_id)
   end
+
+  @spec admin_changeset(t(), map(), map()) :: Ecto.Changeset.t()
+  def admin_changeset(struct, _attrs, _metadata), do: change(struct)
 end

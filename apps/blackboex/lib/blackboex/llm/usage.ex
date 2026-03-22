@@ -44,4 +44,7 @@ defmodule Blackboex.LLM.Usage do
     ])
     |> validate_required([:provider, :model, :operation])
   end
+
+  @spec admin_changeset(t(), map(), map()) :: Ecto.Changeset.t()
+  def admin_changeset(struct, _attrs, _metadata), do: change(struct)
 end

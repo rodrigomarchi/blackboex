@@ -28,4 +28,11 @@ defmodule Blackboex.Organizations.Membership do
     |> foreign_key_constraint(:organization_id)
     |> unique_constraint([:user_id, :organization_id])
   end
+
+  @spec admin_changeset(t(), map(), map()) :: Ecto.Changeset.t()
+  def admin_changeset(struct, attrs, _metadata) do
+    struct
+    |> cast(attrs, [:role])
+    |> validate_required([:role])
+  end
 end

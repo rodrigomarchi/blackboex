@@ -77,8 +77,13 @@ defmodule Blackboex.CodeGen.SchemaExtractor do
   defp sample_value(:map), do: %{}
   defp sample_value(:date), do: Date.utc_today() |> Date.to_iso8601()
   defp sample_value(:time), do: Time.utc_now() |> Time.truncate(:second) |> Time.to_iso8601()
-  defp sample_value(:utc_datetime), do: DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.to_iso8601()
-  defp sample_value(:naive_datetime), do: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second) |> NaiveDateTime.to_iso8601()
+
+  defp sample_value(:utc_datetime),
+    do: DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.to_iso8601()
+
+  defp sample_value(:naive_datetime),
+    do: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second) |> NaiveDateTime.to_iso8601()
+
   defp sample_value(:binary), do: ""
   defp sample_value(_), do: "value"
 

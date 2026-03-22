@@ -30,4 +30,7 @@ defmodule Blackboex.Audit.Version do
     |> cast(params, [:patch, :entity_id, :entity_schema, :action, :recorded_at, :rollback])
     |> cast(params, [:actor_id, :ip_address])
   end
+
+  @spec admin_changeset(t(), map(), map()) :: Ecto.Changeset.t()
+  def admin_changeset(struct, _attrs, _metadata), do: change(struct)
 end

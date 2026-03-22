@@ -45,4 +45,7 @@ defmodule Blackboex.Billing.UsageEvent do
       end
     end)
   end
+
+  @spec admin_changeset(t(), map(), map()) :: Ecto.Changeset.t()
+  def admin_changeset(struct, _attrs, _metadata), do: change(struct)
 end

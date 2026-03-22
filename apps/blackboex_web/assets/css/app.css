@@ -127,11 +127,4 @@
   }
 }
 
-/* Hide Backpex mobile drawer sidebar on desktop */
-@media (min-width: 768px) {
-  #backpex-app-shell > .drawer-side {
-    display: none;
-  }
-}
-
 /* This file is for your main application CSS */

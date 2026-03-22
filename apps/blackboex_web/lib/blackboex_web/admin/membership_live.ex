@@ -1,0 +1,59 @@
+defmodule BlackboexWeb.Admin.MembershipLive do
+  @moduledoc """
+  Backpex LiveResource for managing organization memberships in the admin panel.
+  Edit limited to role changes only.
+  """
+
+  use Backpex.LiveResource,
+    adapter_config: [
+      schema: Blackboex.Organizations.Membership,
+      repo: Blackboex.Repo,
+      update_changeset: &Blackboex.Organizations.Membership.admin_changeset/3,
+      create_changeset: &Blackboex.Organizations.Membership.admin_changeset/3
+    ],
+    layout: {BlackboexWeb.Layouts, :admin}
+
+  @impl Backpex.LiveResource
+  def singular_name, do: "Membership"
+
+  @impl Backpex.LiveResource
+  def plural_name, do: "Memberships"
+
+  @impl Backpex.LiveResource
+  def fields do
+    [
+      role: %{
+        module: Backpex.Fields.Select,
+        label: "Role",
+        options: [Owner: :owner, Admin: :admin, Member: :member]
+      },
+      user_id: %{
+        module: Backpex.Fields.Text,
+        label: "User ID",
+        readonly: true
+      },
+      organization_id: %{
+        module: Backpex.Fields.Text,
+        label: "Organization ID",
+        readonly: true,
+        only: [:show]
+      },
+      inserted_at: %{
+        module: Backpex.Fields.DateTime,
+        label: "Created",
+        only: [:index, :show]
+      }
+    ]
+  end
+
+  @impl Backpex.LiveResource
+  def can?(assigns, :index, _item), do: platform_admin?(assigns)
+  def can?(assigns, :show, _item), do: platform_admin?(assigns)
+  def can?(assigns, :edit, _item), do: platform_admin?(assigns)
+  def can?(_assigns, :new, _item), do: false
+  def can?(_assigns, :delete, _item), do: false
+  def can?(_assigns, _action, _item), do: false
+
+  defp platform_admin?(%{current_scope: %{user: %{is_platform_admin: true}}}), do: true
+  defp platform_admin?(_), do: false
+end

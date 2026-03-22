@@ -273,7 +273,10 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
 
     Analytics.log_invocation(%{
       api_id: metadata.api_id,
-      api_key_id: get_in(result_conn.assigns, [:api_key, :id]),
+      api_key_id: case result_conn.assigns do
+        %{api_key: %{id: id}} -> id
+        _ -> nil
+      end,
       method: conn.method,
       path: "/" <> Enum.join(conn.path_info, "/"),
       status_code: result_conn.status,

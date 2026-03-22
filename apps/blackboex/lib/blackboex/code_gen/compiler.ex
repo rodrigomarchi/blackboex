@@ -145,7 +145,8 @@ defmodule Blackboex.CodeGen.Compiler do
         if Enum.any?(compiled_modules, fn {mod, _} -> mod == module_name end) do
           {:ok, module_name}
         else
-          {:error, {:compilation, "Main module #{inspect(module_name)} not found in compiled output"}}
+          {:error,
+           {:compilation, "Main module #{inspect(module_name)} not found in compiled output"}}
         end
 
       {:error, error} ->

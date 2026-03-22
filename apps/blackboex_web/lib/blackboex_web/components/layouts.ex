@@ -173,8 +173,10 @@ defmodule BlackboexWeb.Layouts do
 
   def admin_bare(assigns) do
     ~H"""
-    {@inner_content}
-    <.flash_group flash={@flash} />
+    <div id="admin-layout">
+      {@inner_content}
+      <.flash_group flash={@flash} />
+    </div>
     """
   end
 

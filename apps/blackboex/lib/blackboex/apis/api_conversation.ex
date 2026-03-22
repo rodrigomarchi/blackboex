@@ -67,4 +67,7 @@ defmodule Blackboex.Apis.ApiConversation do
       _ -> true
     end)
   end
+
+  @spec admin_changeset(t(), map(), map()) :: Ecto.Changeset.t()
+  def admin_changeset(struct, _attrs, _metadata), do: change(struct)
 end

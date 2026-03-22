@@ -169,7 +169,8 @@ defmodule Blackboex.Docs.OpenApiGenerator do
         "bearerAuth" => %{
           "type" => "http",
           "scheme" => "bearer",
-          "description" => "API key for authentication. Use your bb_live_* key as the Bearer token."
+          "description" =>
+            "API key for authentication. Use your bb_live_* key as the Bearer token."
         }
       }
     }

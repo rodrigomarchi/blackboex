@@ -48,4 +48,7 @@ defmodule Blackboex.Apis.ApiKey do
     |> foreign_key_constraint(:api_id)
     |> foreign_key_constraint(:organization_id)
   end
+
+  @spec admin_changeset(t(), map(), map()) :: Ecto.Changeset.t()
+  def admin_changeset(struct, _attrs, _metadata), do: change(struct)
 end

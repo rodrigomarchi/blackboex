@@ -46,4 +46,7 @@ defmodule Blackboex.Billing.DailyUsage do
     |> unique_constraint([:organization_id, :date])
     |> foreign_key_constraint(:organization_id)
   end
+
+  @spec admin_changeset(t(), map(), map()) :: Ecto.Changeset.t()
+  def admin_changeset(struct, _attrs, _metadata), do: change(struct)
 end

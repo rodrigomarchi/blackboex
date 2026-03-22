@@ -27,4 +27,11 @@ defmodule Blackboex.Apis.DataStore.Entry do
     |> validate_required([:api_id, :key, :value])
     |> unique_constraint([:api_id, :key])
   end
+
+  @spec admin_changeset(t(), map(), map()) :: Ecto.Changeset.t()
+  def admin_changeset(struct, attrs, _metadata) do
+    struct
+    |> cast(attrs, [:key, :value])
+    |> validate_required([:key, :value])
+  end
 end

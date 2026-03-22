@@ -52,4 +52,7 @@ defmodule Blackboex.Testing.TestRequest do
     |> validate_json_size(:headers)
     |> validate_json_size(:response_headers)
   end
+
+  @spec admin_changeset(t(), map(), map()) :: Ecto.Changeset.t()
+  def admin_changeset(struct, _attrs, _metadata), do: change(struct)
 end

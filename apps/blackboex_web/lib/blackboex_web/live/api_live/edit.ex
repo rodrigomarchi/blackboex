@@ -1555,12 +1555,21 @@ defmodule BlackboexWeb.ApiLive.Edit do
     api = socket.assigns.api
     code = socket.assigns.code
     test_code = socket.assigns.test_code
+    has_changes = code != (api.source_code || "") or test_code != (api.test_code || "")
 
-    # Skip if no changes
-    if code == (api.source_code || "") and test_code == (api.test_code || "") do
-      {:noreply, socket}
-    else
+    if has_changes do
       save_and_run_pipeline(socket, api, code, test_code)
+    else
+      # No code changes — still run validation pipeline without creating a new version
+      task = start_validation_pipeline(api, code, test_code)
+
+      {:noreply,
+       assign(socket,
+         pipeline_ref: task.ref,
+         pipeline_status: :formatting,
+         bottom_panel_open: true,
+         bottom_tab: "validation"
+       )}
     end
   end
 

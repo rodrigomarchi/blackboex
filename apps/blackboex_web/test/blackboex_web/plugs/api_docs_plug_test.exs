@@ -107,15 +107,17 @@ defmodule BlackboexWeb.Plugs.ApiDocsPlugTest do
       assert conn.status == 404
     end
 
-    test "does NOT serve docs for private published API", %{conn: conn, org: org, user: user} do
+    test "serves docs for private published API (docs available for all compiled APIs)", %{
+      conn: conn,
+      org: org,
+      user: user
+    } do
       create_published_api(org, user, visibility: "private")
 
       conn = get(conn, "/api/docsorg/docs-api/openapi.json")
-      # Private API: docs path falls through to run_pipeline (not served as docs)
-      # The API handler will try to execute normally, resulting in non-200
-      refute conn.status == 200 and
-               get_resp_header(conn, "content-type") |> hd() =~ "application/json" and
-               match?(%{"openapi" => _}, Jason.decode!(conn.resp_body))
+      assert conn.status == 200
+      assert get_resp_header(conn, "content-type") |> hd() =~ "application/json"
+      assert %{"openapi" => _} = Jason.decode!(conn.resp_body)
     end
   end
 

@@ -43,7 +43,7 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
 
   defp dispatch(conn, org_slug, slug, rest) do
     case {resolve_api(org_slug, slug), rest} do
-      {{:ok, _mod, _meta, %{status: "published", visibility: "public"} = api}, [doc_path]}
+      {{:ok, _mod, _meta, api}, [doc_path]}
       when doc_path in @doc_paths ->
         serve_docs(conn, api, org_slug, slug, doc_path)
 

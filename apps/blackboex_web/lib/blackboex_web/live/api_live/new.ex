@@ -129,7 +129,11 @@ defmodule BlackboexWeb.ApiLive.New do
             <.validation_dashboard report={@validation_report} />
           <% end %>
 
-          <form id="save-form" phx-submit="save" class={["space-y-4", if(@validating, do: "opacity-50 pointer-events-none")]}>
+          <form
+            id="save-form"
+            phx-submit="save"
+            class={["space-y-4", if(@validating, do: "opacity-50 pointer-events-none")]}
+          >
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <label for="api-name" class="text-sm font-medium">Name</label>

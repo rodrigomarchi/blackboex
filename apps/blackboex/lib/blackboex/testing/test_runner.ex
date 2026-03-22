@@ -1,7 +1,10 @@
 defmodule Blackboex.Testing.TestRunner do
   @moduledoc """
   Executes ExUnit test code in an isolated process with timeout and memory limits.
-  Compiles test modules, runs each test function, and captures results.
+
+  When `handler_code` is provided, it is compiled into a `Handler` module before
+  the tests run, so tests can call `Handler.handle(params)` directly without
+  duplicating the handler source code.
   """
 
   require Logger
@@ -37,13 +40,14 @@ defmodule Blackboex.Testing.TestRunner do
   defp execute_tests(test_code, opts) do
     timeout = opts |> Keyword.get(:timeout, @default_timeout) |> min(@max_timeout)
     max_heap = opts |> Keyword.get(:max_heap_size, @max_heap_size) |> min(@max_heap_cap)
+    handler_code = Keyword.get(opts, :handler_code)
 
     task =
       Task.Supervisor.async_nolink(
         Blackboex.SandboxTaskSupervisor,
         fn ->
           Process.flag(:max_heap_size, %{size: max_heap, kill: true, error_logger: true})
-          run_in_process(test_code)
+          run_in_process(test_code, handler_code)
         end
       )
 
@@ -63,29 +67,28 @@ defmodule Blackboex.Testing.TestRunner do
     end
   end
 
-  defp run_in_process(test_code) do
-    # Prevent auto-registration with ExUnit by replacing `use ExUnit.Case`
-    # with just the assertion imports. This avoids leaking test modules
-    # into the global ExUnit runner.
+  defp run_in_process(test_code, handler_code) do
+    # Compile handler code into a Handler module so tests can call Handler.handle/1
+    handler_modules = compile_handler_module(handler_code)
+
+    # Prevent auto-registration with ExUnit
     safe_code = deregister_exunit(test_code)
 
     compiled_modules = Code.compile_string(safe_code)
     module_names = Enum.map(compiled_modules, fn {mod, _binary} -> mod end)
 
-    # Find test functions (named "test ..." by ExUnit macro or manually)
     all_test_fns =
       Enum.flat_map(module_names, fn mod ->
         extract_test_functions(mod)
         |> Enum.map(fn fun_name -> {mod, fun_name} end)
       end)
 
-    # Fail if no test functions found — prevents silent false positives
     if all_test_fns == [] do
-      purge_modules(module_names)
+      purge_modules(module_names ++ handler_modules)
       {:error, :compile_error, "No test functions found in compiled code"}
     else
       results = Enum.map(all_test_fns, fn {mod, fun_name} -> run_single_test(mod, fun_name) end)
-      purge_modules(module_names)
+      purge_modules(module_names ++ handler_modules)
       {:ok, results}
     end
   rescue
@@ -97,6 +100,23 @@ defmodule Blackboex.Testing.TestRunner do
       {:error, :compile_error, truncate_message(Exception.message(e))}
   end
 
+  defp compile_handler_module(nil), do: []
+
+  defp compile_handler_module(handler_code) do
+    module_code = """
+    defmodule Handler do
+      #{handler_code}
+    end
+    """
+
+    compiled = Code.compile_string(module_code)
+    Enum.map(compiled, fn {mod, _binary} -> mod end)
+  rescue
+    e ->
+      Logger.warning("Failed to compile Handler module: #{Exception.message(e)}")
+      []
+  end
+
   defp purge_modules(module_names) do
     for mod <- module_names do
       :code.purge(mod)
@@ -105,8 +125,6 @@ defmodule Blackboex.Testing.TestRunner do
   end
 
   defp deregister_exunit(code) do
-    # Replace `use ExUnit.Case` with our sandbox module that provides
-    # the `test` macro and assertions without registering with ExUnit.Server
     code
     |> String.replace(
       ~r/use ExUnit\.Case\b[^\n]*/,
@@ -140,7 +158,6 @@ defmodule Blackboex.Testing.TestRunner do
 
     elapsed = System.monotonic_time(:microsecond) - start_time
 
-    # Convert "test some name" atom to human-readable name
     display_name =
       fun_name
       |> Atom.to_string()

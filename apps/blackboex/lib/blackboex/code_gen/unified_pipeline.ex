@@ -142,7 +142,7 @@ defmodule Blackboex.CodeGen.UnifiedPipeline do
       if test_code && test_code != "" do
         notify_progress(ctx, :running_tests, 0, "Running tests...")
 
-        case TestRunner.run(test_code) do
+        case TestRunner.run(test_code, handler_code: formatted_code) do
           {:ok, results} -> results
           {:error, _, msg} -> [%{name: "compile", status: "failed", error: msg}]
         end
@@ -236,7 +236,7 @@ defmodule Blackboex.CodeGen.UnifiedPipeline do
        ) do
     notify_progress(ctx, :running_tests, attempt, "Running tests...")
 
-    case run_tests(test_code) do
+    case run_tests(test_code, ctx.code) do
       {:ok, test_results} ->
         validation =
           build_validation_report(compile_ok, format_result, credo_result, test_results)
@@ -355,8 +355,8 @@ defmodule Blackboex.CodeGen.UnifiedPipeline do
     end
   end
 
-  defp run_tests(test_code) do
-    case TestRunner.run(test_code) do
+  defp run_tests(test_code, handler_code) do
+    case TestRunner.run(test_code, handler_code: handler_code) do
       {:ok, results} ->
         {:ok, results}
 
@@ -412,7 +412,7 @@ defmodule Blackboex.CodeGen.UnifiedPipeline do
   end
 
   defp evaluate_fixed_tests(ctx, code, fixed_test_code, attempt) do
-    case run_tests(fixed_test_code) do
+    case run_tests(fixed_test_code, code) do
       {:ok, new_results} ->
         if Enum.all?(new_results, &(&1.status == "passed")) do
           build_fixed_tests_result(ctx, code, fixed_test_code, new_results, attempt)

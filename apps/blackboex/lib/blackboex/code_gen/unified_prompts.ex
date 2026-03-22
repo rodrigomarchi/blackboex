@@ -64,12 +64,13 @@ defmodule Blackboex.CodeGen.UnifiedPrompts do
 
     ## Rules
     1. Return a complete ExUnit test module with `use ExUnit.Case`.
-    2. Tests MUST call handler functions DIRECTLY — NO HTTP requests.
-    3. The handler functions must be defined INSIDE the test module.
-    4. Include a @moduledoc describing what is being tested.
-    5. Use descriptive test names.
-    6. Do NOT use Req, HTTPoison, File, System, Code, Process, or I/O modules.
-    7. The code MUST be compatible with `mix format`.
+    2. Call handler functions via `Handler.handle(...)` — do NOT redefine them.
+    3. The `Handler` module is compiled separately and available at runtime.
+    4. DO NOT copy handler function definitions into the test module.
+    5. Include a @moduledoc describing what is being tested.
+    6. Use descriptive test names.
+    7. Do NOT use Req, HTTPoison, File, System, Code, Process, or I/O modules.
+    8. The code MUST be compatible with `mix format`.
 
     Return the fixed test code in a single ```elixir code block.
     """

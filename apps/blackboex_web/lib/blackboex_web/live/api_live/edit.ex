@@ -569,10 +569,34 @@ defmodule BlackboexWeb.ApiLive.Edit do
           </p>
         <% end %>
 
-        <%!-- Documentation --%>
-        <%= if @api.status in ["compiled", "published"] do %>
-          <div class="border-t pt-3 mt-3">
-            <h4 class="text-xs font-semibold text-muted-foreground uppercase mb-2">Documentation</h4>
+        <%!-- Documentation & OpenAPI --%>
+        <div class="border-t pt-3 mt-3">
+          <h4 class="text-xs font-semibold text-muted-foreground uppercase mb-2">
+            API Documentation
+          </h4>
+
+          <%!-- OpenAPI links — available for any compiled API --%>
+          <%= if @api.status in ["compiled", "published"] do %>
+            <div class="flex flex-col gap-1 mb-2">
+              <a
+                href={"/api/#{@org.slug}/#{@api.slug}/docs"}
+                target="_blank"
+                class="flex items-center gap-1.5 text-xs text-primary hover:underline"
+              >
+                <.icon name="hero-document-text" class="size-3.5" /> Swagger UI
+              </a>
+              <a
+                href={"/api/#{@org.slug}/#{@api.slug}/openapi.json"}
+                target="_blank"
+                class="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground hover:underline"
+              >
+                <.icon name="hero-code-bracket" class="size-3.5" /> OpenAPI JSON
+              </a>
+            </div>
+          <% end %>
+
+          <%!-- Markdown docs generation --%>
+          <%= if @api.status in ["compiled", "published"] do %>
             <button
               phx-click="generate_docs"
               disabled={@doc_generating}
@@ -585,18 +609,12 @@ defmodule BlackboexWeb.ApiLive.Edit do
             <%= if @api.documentation_md do %>
               <p class="text-[10px] text-green-600 mt-1">Documentation available on public page</p>
             <% end %>
-
-            <%= if @api.status == "published" and @api.visibility == "public" do %>
-              <a
-                href={"/api/#{@org.slug}/#{@api.slug}/docs"}
-                target="_blank"
-                class="block text-xs text-primary hover:underline mt-1"
-              >
-                View Swagger UI
-              </a>
-            <% end %>
-          </div>
-        <% end %>
+          <% else %>
+            <p class="text-xs text-muted-foreground">
+              Save to compile the API and enable documentation.
+            </p>
+          <% end %>
+        </div>
       </div>
     </details>
     """

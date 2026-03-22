@@ -42,7 +42,7 @@ defmodule Blackboex.CodeGen.Pipeline do
     end
   end
 
-  defp do_generate_inner(description, opts) do
+  defp do_generate_inner(description, _opts) do
     client = Config.client()
     provider = Config.default_provider()
     start_time = System.monotonic_time(:millisecond)
@@ -51,7 +51,9 @@ defmodule Blackboex.CodeGen.Pipeline do
     prompt = Prompts.build_generation_prompt(description, template)
     system = Prompts.system_prompt()
 
-    case client.generate_text(prompt, Keyword.merge(opts, model: provider.model, system: system)) do
+    llm_opts = [model: provider.model, system: system]
+
+    case client.generate_text(prompt, llm_opts) do
       {:ok, %{content: content, usage: usage}} ->
         case extract_code(content) do
           {:ok, code} ->

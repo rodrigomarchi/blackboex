@@ -50,16 +50,24 @@ defmodule BlackboexWeb.Plugs.ApiDocsPlug do
   defp swagger_ui_html(title, spec_url) do
     """
     <!DOCTYPE html>
-    <html lang="en">
+    <html lang="en" data-theme="">
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>#{html_escape(title)} - API Documentation</title>
       <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css">
       <style>
-        body { margin: 0; background: #1a1a2e; }
+        /* Reset: isolate from any parent theme */
+        *, *::before, *::after { color-scheme: light; }
+        html, body {
+          margin: 0;
+          padding: 0;
+          background: #fafafa;
+          color: #3b4151;
+          font-family: sans-serif;
+        }
         .swagger-ui .topbar { display: none; }
-        .swagger-ui { max-width: 1200px; margin: 0 auto; }
+        .swagger-ui { max-width: 1200px; margin: 0 auto; padding: 20px; }
       </style>
     </head>
     <body>
@@ -73,7 +81,7 @@ defmodule BlackboexWeb.Plugs.ApiDocsPlug do
           layout: 'BaseLayout',
           deepLinking: true,
           tryItOutEnabled: true,
-          syntaxHighlight: { theme: 'monokai' }
+          syntaxHighlight: { theme: 'agate' }
         });
       </script>
     </body>

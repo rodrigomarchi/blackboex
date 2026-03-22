@@ -31,8 +31,51 @@ defmodule Blackboex.CodeGen.Sandbox do
           | {:error, {:runtime, term()}}
           | {:error, {:exception, String.t()}}
   def execute_plug(module, conn, opts \\ []) do
+    # Plug.Conn is tied to the HTTP process — it CANNOT be used from a
+    # Task process (Bandit raises "Adapter functions must be called by
+    # stream owner"). We execute the Plug in the current process with
+    # a timeout watchdog in a separate process instead.
     plug_opts = module.init([])
-    run_sandboxed(fn -> module.call(conn, plug_opts) end, opts)
+    timeout = Keyword.get(opts, :timeout, @default_timeout)
+
+    Tracer.with_span "blackboex.sandbox.execute" do
+      start_time = System.monotonic_time(:millisecond)
+
+      # Watchdog: kills this process if handler takes too long
+      caller = self()
+      watchdog = spawn(fn -> watchdog_timer(caller, timeout) end)
+
+      result =
+        try do
+          result_conn = module.call(conn, plug_opts)
+          {:ok, result_conn}
+        rescue
+          error ->
+            {:error, {:exception, Exception.message(error)}}
+        catch
+          :exit, :killed -> {:error, :timeout}
+          :exit, reason -> {:error, {:runtime, reason}}
+        after
+          Process.exit(watchdog, :kill)
+        end
+
+      duration_ms = System.monotonic_time(:millisecond) - start_time
+      api_id = Keyword.get(opts, :api_id)
+      Tracer.set_attributes([{"blackboex.api_id", api_id || "unknown"}])
+      Events.emit_sandbox_execute(%{duration_ms: duration_ms, api_id: api_id})
+
+      result
+    end
+  end
+
+  defp watchdog_timer(target, timeout) do
+    Process.monitor(target)
+
+    receive do
+      {:DOWN, _, :process, ^target, _} -> :ok
+    after
+      timeout -> Process.exit(target, :kill)
+    end
   end
 
   defp run_sandboxed(fun, opts) do

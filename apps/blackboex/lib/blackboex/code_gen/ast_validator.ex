@@ -19,7 +19,14 @@ defmodule Blackboex.CodeGen.ASTValidator do
     # HTTP clients — prevent SSRF and data exfiltration
     Req,
     Req.Request,
-    HTTPoison
+    HTTPoison,
+    # Ecto database modules — DTOs allowed, but no DB access
+    Ecto.Repo,
+    Ecto.Query,
+    Ecto.Adapters.SQL,
+    Ecto.Migration,
+    Ecto.Migrator,
+    Ecto.Multi
   ]
 
   @blocked_erlang_modules [
@@ -54,7 +61,8 @@ defmodule Blackboex.CodeGen.ASTValidator do
   @blocked_function_calls %{
     String => [:to_atom, :to_existing_atom],
     Kernel => [:send, :apply, :spawn, :spawn_link, :spawn_monitor, :exit, :throw],
-    List => [:to_atom]
+    List => [:to_atom],
+    Ecto.Changeset => [:unsafe_validate_unique]
   }
 
   @max_atoms 500

@@ -166,11 +166,10 @@ defmodule Blackboex.Docs.OpenApiGenerator do
   defp build_components(%Api{requires_auth: true}) do
     %{
       "securitySchemes" => %{
-        "apiKey" => %{
-          "type" => "apiKey",
-          "in" => "header",
-          "name" => "X-Api-Key",
-          "description" => "API key for authentication (prefix: bb_live_)"
+        "bearerAuth" => %{
+          "type" => "http",
+          "scheme" => "bearer",
+          "description" => "API key for authentication. Use your bb_live_* key as the Bearer token."
         }
       }
     }
@@ -178,7 +177,7 @@ defmodule Blackboex.Docs.OpenApiGenerator do
 
   defp build_components(_api), do: %{}
 
-  defp build_security(%Api{requires_auth: true}), do: [%{"apiKey" => []}]
+  defp build_security(%Api{requires_auth: true}), do: [%{"bearerAuth" => []}]
   defp build_security(_api), do: []
 
   defp param_schema_to_json_schema(nil), do: %{"type" => "object"}

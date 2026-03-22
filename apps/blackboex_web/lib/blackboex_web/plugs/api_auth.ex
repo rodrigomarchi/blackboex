@@ -44,17 +44,33 @@ defmodule BlackboexWeb.Plugs.ApiAuth do
   end
 
   defp extract_key(conn) do
+    with :miss <- extract_bearer(conn),
+         :miss <- extract_x_api_key(conn),
+         :miss <- extract_query_param(conn) do
+      {:error, :missing_key}
+    end
+  end
+
+  defp extract_bearer(conn) do
     case get_req_header(conn, "authorization") do
-      ["Bearer " <> key] ->
-        {:ok, String.trim(key)}
+      ["Bearer " <> key] -> {:ok, String.trim(key)}
+      _ -> :miss
+    end
+  end
 
-      _ ->
-        conn = Plug.Conn.fetch_query_params(conn)
+  defp extract_x_api_key(conn) do
+    case get_req_header(conn, "x-api-key") do
+      [key] when key != "" -> {:ok, String.trim(key)}
+      _ -> :miss
+    end
+  end
 
-        case conn.query_params do
-          %{"api_key" => key} -> {:ok, key}
-          _ -> {:error, :missing_key}
-        end
+  defp extract_query_param(conn) do
+    conn = Plug.Conn.fetch_query_params(conn)
+
+    case conn.query_params do
+      %{"api_key" => key} -> {:ok, key}
+      _ -> :miss
     end
   end
 end

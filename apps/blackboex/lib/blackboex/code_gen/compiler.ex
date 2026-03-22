@@ -63,6 +63,9 @@ defmodule Blackboex.CodeGen.Compiler do
     Module.concat([Blackboex.DynamicApi, "Api_#{safe_id}"])
   end
 
+  # Only these module names are allowed in defmodule within handler code
+  @allowed_dto_modules ~w(Request Response Params)
+
   defp check_handler_style(source_code) do
     issues =
       []
@@ -86,11 +89,27 @@ defmodule Blackboex.CodeGen.Compiler do
         ~r/\bconn\b/,
         "references conn — handler must be a pure function receiving params and returning a map"
       )
+      |> check_defmodule(source_code)
 
     case issues do
       [] -> :ok
       errors -> {:error, {:validation, Enum.reverse(errors)}}
     end
+  end
+
+  defp check_defmodule(acc, source_code) do
+    # Find all defmodule occurrences and check that they only define allowed DTO modules
+    Regex.scan(~r/\bdefmodule\s+(\w+)\b/, source_code)
+    |> Enum.reduce(acc, fn [_full, name], issues ->
+      if name in @allowed_dto_modules do
+        issues
+      else
+        [
+          "defines disallowed module #{name} — only Request, Response, Params are allowed"
+          | issues
+        ]
+      end
+    end)
   end
 
   defp check_pattern(acc, code, pattern, message) do
@@ -122,8 +141,12 @@ defmodule Blackboex.CodeGen.Compiler do
     {result, diagnostics} = capture_diagnostics(fn -> Code.compile_quoted(ast) end)
 
     case result do
-      {:ok, [{^module_name, _binary}]} ->
-        {:ok, module_name}
+      {:ok, compiled_modules} when is_list(compiled_modules) ->
+        if Enum.any?(compiled_modules, fn {mod, _} -> mod == module_name end) do
+          {:ok, module_name}
+        else
+          {:error, {:compilation, "Main module #{inspect(module_name)} not found in compiled output"}}
+        end
 
       {:error, error} ->
         errors = format_compile_errors(diagnostics, error)

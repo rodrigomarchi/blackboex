@@ -16,6 +16,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
   alias Blackboex.Apis.Registry
   alias Blackboex.Billing.Enforcement
   alias Blackboex.CodeGen.Compiler
+  alias Blackboex.CodeGen.SchemaExtractor
   alias Blackboex.CodeGen.UnifiedPipeline
   alias Blackboex.Docs.DocGenerator
   alias Blackboex.LLM
@@ -444,14 +445,16 @@ defmodule BlackboexWeb.ApiLive.Edit do
         </button>
 
         <%= if @plain_key_flash do %>
-          <div class="rounded border border-amber-500 bg-amber-50 p-2 text-xs space-y-1">
-            <p class="font-semibold text-amber-800">Copy this key now — it won't be shown again:</p>
-            <code class="block bg-white p-1 rounded font-mono text-xs break-all select-all">
+          <div class="rounded border border-amber-500 bg-amber-50 dark:bg-amber-950 p-2 text-xs space-y-1">
+            <p class="font-semibold text-amber-800 dark:text-amber-200">
+              Copy this key now — it won't be shown again:
+            </p>
+            <code class="block bg-amber-100 dark:bg-amber-900 text-amber-900 dark:text-amber-100 p-1.5 rounded font-mono text-xs break-all select-all">
               {@plain_key_flash}
             </code>
             <button
               phx-click="dismiss_key_flash"
-              class="text-amber-600 hover:underline text-[10px]"
+              class="text-amber-600 dark:text-amber-400 hover:underline text-[10px]"
             >
               Dismiss
             </button>
@@ -1521,7 +1524,10 @@ defmodule BlackboexWeb.ApiLive.Edit do
     case Compiler.compile(api, code) do
       {:ok, module} ->
         Registry.register(api.id, module, org_slug: org.slug, slug: api.slug)
-        Apis.update_api(api, %{status: "compiled"})
+
+        # Extract schema from compiled module and populate example_request/param_schema
+        schema_attrs = extract_schema_attrs(module)
+        Apis.update_api(api, Map.merge(%{status: "compiled"}, schema_attrs))
 
       _ ->
         :ok
@@ -1529,6 +1535,28 @@ defmodule BlackboexWeb.ApiLive.Edit do
   end
 
   defp maybe_register_compiled(_api, _org, _code, _pending_edit), do: :ok
+
+  defp extract_schema_attrs(module) do
+    case SchemaExtractor.extract(module) do
+      {:ok, schema} ->
+        attrs = %{param_schema: SchemaExtractor.to_param_schema(schema)}
+
+        attrs =
+          if schema.request,
+            do: Map.put(attrs, :example_request, SchemaExtractor.generate_example(schema.request)),
+            else: attrs
+
+        attrs =
+          if schema.response,
+            do: Map.put(attrs, :example_response, SchemaExtractor.generate_example(schema.response)),
+            else: attrs
+
+        attrs
+
+      {:error, _} ->
+        %{}
+    end
+  end
 
   defp do_chat_request(socket, conversation, message) do
     org = socket.assigns.org
@@ -1823,6 +1851,9 @@ defmodule BlackboexWeb.ApiLive.Edit do
       %{validation: result.validation}
     )
 
+    # Reload API to get updated example_request/param_schema from schema extraction
+    updated_api = Apis.get_api(socket.assigns.org.id, socket.assigns.api.id)
+
     {:noreply,
      socket
      |> assign(
@@ -1832,7 +1863,8 @@ defmodule BlackboexWeb.ApiLive.Edit do
        pipeline_ref: nil,
        pipeline_status: nil,
        streaming_tokens: "",
-       api: Apis.get_api(socket.assigns.org.id, socket.assigns.api.id)
+       api: updated_api,
+       test_body_json: default_test_body(updated_api)
      )}
   end
 

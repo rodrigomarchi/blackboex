@@ -82,5 +82,9 @@
     </Backpex.HTML.Layout.sidebar_section>
   </:sidebar>
   <Backpex.HTML.Layout.flash_messages flash={@flash} />
-  {@inner_content}
+  <%= if assigns[:inner_content] != nil and assigns[:inner_content] != [] do %>
+    {render_slot(@inner_content)}
+  <% else %>
+    {render_slot(@inner_block)}
+  <% end %>
 </Backpex.HTML.Layout.app_shell>

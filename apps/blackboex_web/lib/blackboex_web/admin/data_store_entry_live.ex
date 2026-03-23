@@ -28,8 +28,24 @@ defmodule BlackboexWeb.Admin.DataStoreEntryLive do
         searchable: true
       },
       value: %{
-        module: Backpex.Fields.Textarea,
-        label: "Value"
+        module: Backpex.Fields.Text,
+        label: "Value",
+        readonly: true,
+        only: [:show],
+        render: fn assigns ->
+          value = Map.get(assigns.item, :value)
+
+          text =
+            if is_map(value) or is_list(value),
+              do: inspect(value, pretty: true, limit: :infinity),
+              else: to_string(value || "")
+
+          assigns = Phoenix.Component.assign(assigns, :text, text)
+
+          ~H"""
+          <pre class="text-xs whitespace-pre-wrap max-h-96 overflow-auto"><%= @text %></pre>
+          """
+        end
       },
       api_id: %{
         module: Backpex.Fields.Text,

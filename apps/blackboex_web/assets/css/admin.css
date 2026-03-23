@@ -1,8 +1,9 @@
-@import "tailwindcss";
+@import "tailwindcss" source(none);
 
 @source "../../lib/blackboex_web/admin";
 @source "../../lib/blackboex_web/components/layouts/admin*";
-@source "../../deps/backpex/lib";
+@source "../../lib/blackboex_web/components/layouts";
+@source "../../../../deps/backpex/lib";
 
 @plugin "../vendor/heroicons";
 

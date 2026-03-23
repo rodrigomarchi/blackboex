@@ -42,10 +42,24 @@ defmodule BlackboexWeb.Admin.TestRequestLive do
         label: "Duration (ms)"
       },
       headers: %{
-        module: Backpex.Fields.Textarea,
+        module: Backpex.Fields.Text,
         label: "Request Headers",
         readonly: true,
-        only: [:show]
+        only: [:show],
+        render: fn assigns ->
+          value = Map.get(assigns.item, :headers)
+
+          text =
+            if is_map(value) or is_list(value),
+              do: inspect(value, pretty: true, limit: :infinity),
+              else: to_string(value || "")
+
+          assigns = Phoenix.Component.assign(assigns, :text, text)
+
+          ~H"""
+          <pre class="text-xs whitespace-pre-wrap max-h-96 overflow-auto"><%= @text %></pre>
+          """
+        end
       },
       body: %{
         module: Backpex.Fields.Textarea,
@@ -54,10 +68,24 @@ defmodule BlackboexWeb.Admin.TestRequestLive do
         only: [:show]
       },
       response_headers: %{
-        module: Backpex.Fields.Textarea,
+        module: Backpex.Fields.Text,
         label: "Response Headers",
         readonly: true,
-        only: [:show]
+        only: [:show],
+        render: fn assigns ->
+          value = Map.get(assigns.item, :response_headers)
+
+          text =
+            if is_map(value) or is_list(value),
+              do: inspect(value, pretty: true, limit: :infinity),
+              else: to_string(value || "")
+
+          assigns = Phoenix.Component.assign(assigns, :text, text)
+
+          ~H"""
+          <pre class="text-xs whitespace-pre-wrap max-h-96 overflow-auto"><%= @text %></pre>
+          """
+        end
       },
       response_body: %{
         module: Backpex.Fields.Textarea,

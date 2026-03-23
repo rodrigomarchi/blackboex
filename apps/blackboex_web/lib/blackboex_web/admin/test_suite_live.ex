@@ -61,10 +61,24 @@ defmodule BlackboexWeb.Admin.TestSuiteLive do
         only: [:show]
       },
       results: %{
-        module: Backpex.Fields.Textarea,
+        module: Backpex.Fields.Text,
         label: "Results",
         readonly: true,
-        only: [:show]
+        only: [:show],
+        render: fn assigns ->
+          value = Map.get(assigns.item, :results)
+
+          text =
+            if is_map(value) or is_list(value),
+              do: inspect(value, pretty: true, limit: :infinity),
+              else: to_string(value || "")
+
+          assigns = Phoenix.Component.assign(assigns, :text, text)
+
+          ~H"""
+          <pre class="text-xs whitespace-pre-wrap max-h-96 overflow-auto"><%= @text %></pre>
+          """
+        end
       },
       api_id: %{
         module: Backpex.Fields.Text,

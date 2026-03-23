@@ -57,10 +57,19 @@ defmodule BlackboexWeb.Admin.VersionLive do
         only: [:show]
       },
       patch: %{
-        module: Backpex.Fields.Textarea,
+        module: Backpex.Fields.Text,
         label: "Patch",
         readonly: true,
-        only: [:show]
+        only: [:show],
+        render: fn assigns ->
+          patch = assigns.item.patch
+          text = if is_map(patch), do: inspect(patch, pretty: true), else: to_string(patch)
+          assigns = Phoenix.Component.assign(assigns, :text, text)
+
+          ~H"""
+          <pre class="text-xs whitespace-pre-wrap"><%= @text %></pre>
+          """
+        end
       }
     ]
   end

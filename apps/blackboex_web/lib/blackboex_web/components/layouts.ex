@@ -163,16 +163,6 @@ defmodule BlackboexWeb.Layouts do
     """
   end
 
-  @doc """
-  Admin layout for Backpex admin panel.
-  Template at layouts/admin.html.heex — uses Backpex app_shell with sidebar.
-  """
-  attr :flash, :map, required: true
-  attr :current_url, :string, required: true
-  attr :live_resource, :atom, default: nil
-
-  def admin(assigns)
-
   attr :navigate, :string, required: true
   attr :icon, :string, required: true
   slot :inner_block, required: true

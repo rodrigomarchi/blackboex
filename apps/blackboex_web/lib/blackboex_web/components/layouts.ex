@@ -164,144 +164,14 @@ defmodule BlackboexWeb.Layouts do
   end
 
   @doc """
-  Bare layout for the admin live_session.
-  Backpex LiveResources apply their own layout via the `<.layout>` component,
-  so this just passes through the content with flash messages.
+  Admin layout for Backpex admin panel.
+  Template at layouts/admin.html.heex — uses Backpex app_shell with sidebar.
   """
   attr :flash, :map, required: true
-  attr :current_scope, :map, default: nil
+  attr :current_url, :string, required: true
+  attr :live_resource, :atom, default: nil
 
-  def admin_bare(assigns) do
-    ~H"""
-    <div id="admin-layout">
-      {@inner_content}
-      <.flash_group flash={@flash} />
-    </div>
-    """
-  end
-
-  @doc """
-  Admin layout for Backpex admin panel.
-  Uses Backpex's app_shell component with sidebar navigation.
-  Called by Backpex LiveResources (content in @inner_content) and
-  directly by the dashboard LiveView (content in @inner_block).
-  """
-  slot :inner_block
-  slot :inner_content
-
-  def admin(assigns) do
-    ~H"""
-    <Backpex.HTML.Layout.app_shell>
-      <:topbar>
-        <a href="/" class="text-lg font-semibold">BlackBoex Admin</a>
-      </:topbar>
-      <:sidebar>
-        <li>
-          <.link href={~p"/admin"} class="flex items-center gap-2">
-            <.icon name="hero-chart-bar" class="size-4" /> Dashboard
-          </.link>
-        </li>
-        <li class="menu-title mt-3">Core</li>
-        <li>
-          <.link href={~p"/admin/users"} class="flex items-center gap-2">
-            <.icon name="hero-users" class="size-4" /> Users
-          </.link>
-        </li>
-        <li>
-          <.link href={~p"/admin/organizations"} class="flex items-center gap-2">
-            <.icon name="hero-building-office" class="size-4" /> Organizations
-          </.link>
-        </li>
-        <li>
-          <.link href={~p"/admin/memberships"} class="flex items-center gap-2">
-            <.icon name="hero-user-group" class="size-4" /> Memberships
-          </.link>
-        </li>
-        <li>
-          <.link href={~p"/admin/apis"} class="flex items-center gap-2">
-            <.icon name="hero-bolt" class="size-4" /> APIs
-          </.link>
-        </li>
-        <li>
-          <.link href={~p"/admin/subscriptions"} class="flex items-center gap-2">
-            <.icon name="hero-credit-card" class="size-4" /> Subscriptions
-          </.link>
-        </li>
-        <li class="menu-title mt-3">API Data</li>
-        <li>
-          <.link href={~p"/admin/api-keys"} class="flex items-center gap-2">
-            <.icon name="hero-key" class="size-4" /> API Keys
-          </.link>
-        </li>
-        <li>
-          <.link href={~p"/admin/api-conversations"} class="flex items-center gap-2">
-            <.icon name="hero-chat-bubble-left-right" class="size-4" /> Conversations
-          </.link>
-        </li>
-        <li>
-          <.link href={~p"/admin/data-store-entries"} class="flex items-center gap-2">
-            <.icon name="hero-circle-stack" class="size-4" /> Data Store
-          </.link>
-        </li>
-        <li>
-          <.link href={~p"/admin/invocation-logs"} class="flex items-center gap-2">
-            <.icon name="hero-arrow-path" class="size-4" /> Invocation Logs
-          </.link>
-        </li>
-        <li>
-          <.link href={~p"/admin/metric-rollups"} class="flex items-center gap-2">
-            <.icon name="hero-chart-bar" class="size-4" /> Metric Rollups
-          </.link>
-        </li>
-        <li class="menu-title mt-3">Billing</li>
-        <li>
-          <.link href={~p"/admin/daily-usage"} class="flex items-center gap-2">
-            <.icon name="hero-calendar-days" class="size-4" /> Daily Usage
-          </.link>
-        </li>
-        <li>
-          <.link href={~p"/admin/usage-events"} class="flex items-center gap-2">
-            <.icon name="hero-signal" class="size-4" /> Usage Events
-          </.link>
-        </li>
-        <li>
-          <.link href={~p"/admin/processed-events"} class="flex items-center gap-2">
-            <.icon name="hero-check-badge" class="size-4" /> Processed Events
-          </.link>
-        </li>
-        <li class="menu-title mt-3">Testing</li>
-        <li>
-          <.link href={~p"/admin/test-requests"} class="flex items-center gap-2">
-            <.icon name="hero-beaker" class="size-4" /> Test Requests
-          </.link>
-        </li>
-        <li>
-          <.link href={~p"/admin/test-suites"} class="flex items-center gap-2">
-            <.icon name="hero-clipboard-document-check" class="size-4" /> Test Suites
-          </.link>
-        </li>
-        <li class="menu-title mt-3">LLM & Audit</li>
-        <li>
-          <.link href={~p"/admin/llm-usage"} class="flex items-center gap-2">
-            <.icon name="hero-cpu-chip" class="size-4" /> LLM Usage
-          </.link>
-        </li>
-        <li>
-          <.link href={~p"/admin/audit-logs"} class="flex items-center gap-2">
-            <.icon name="hero-document-text" class="size-4" /> Audit Logs
-          </.link>
-        </li>
-        <li>
-          <.link href={~p"/admin/versions"} class="flex items-center gap-2">
-            <.icon name="hero-clock" class="size-4" /> Versions
-          </.link>
-        </li>
-      </:sidebar>
-      {render_slot(@inner_block)}
-      {render_slot(@inner_content)}
-    </Backpex.HTML.Layout.app_shell>
-    """
-  end
+  def admin(assigns)
 
   attr :navigate, :string, required: true
   attr :icon, :string, required: true

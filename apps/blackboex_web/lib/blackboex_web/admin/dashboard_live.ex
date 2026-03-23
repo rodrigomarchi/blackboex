@@ -18,9 +18,8 @@ defmodule BlackboexWeb.Admin.DashboardLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <BlackboexWeb.Layouts.admin>
-      <div class="max-w-5xl mx-auto py-8">
-        <h1 class="text-2xl font-bold mb-8">Admin Dashboard</h1>
+    <div class="max-w-5xl mx-auto py-8">
+      <h1 class="text-2xl font-bold mb-8">Admin Dashboard</h1>
 
         <h2 class="text-lg font-semibold mb-4">Core</h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -140,8 +139,7 @@ defmodule BlackboexWeb.Admin.DashboardLive do
             href={~p"/admin/versions"}
           />
         </div>
-      </div>
-    </BlackboexWeb.Layouts.admin>
+    </div>
     """
   end
 

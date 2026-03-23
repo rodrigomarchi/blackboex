@@ -49,6 +49,12 @@ config :esbuild,
       ~w(js/app.js --bundle --target=es2022 --outdir=../priv/static/assets/js --external:/fonts/* --external:/images/* --alias:@=.),
     cd: Path.expand("../apps/blackboex_web/assets", __DIR__),
     env: %{"NODE_PATH" => [Path.expand("../deps", __DIR__), Mix.Project.build_path()]}
+  ],
+  blackboex_admin: [
+    args:
+      ~w(js/admin.js --bundle --target=es2022 --outdir=../priv/static/assets/js --external:/fonts/* --external:/images/* --alias:@=.),
+    cd: Path.expand("../apps/blackboex_web/assets", __DIR__),
+    env: %{"NODE_PATH" => [Path.expand("../deps", __DIR__), Mix.Project.build_path()]}
   ]
 
 # Configure tailwind (the version is required)
@@ -60,10 +66,20 @@ config :tailwind,
       --output=priv/static/assets/css/app.css
     ),
     cd: Path.expand("../apps/blackboex_web", __DIR__)
+  ],
+  blackboex_admin: [
+    args: ~w(
+      --input=assets/css/admin.css
+      --output=priv/static/assets/css/admin.css
+    ),
+    cd: Path.expand("../apps/blackboex_web", __DIR__)
   ]
 
 # Backpex admin panel
-config :backpex, :pubsub_server, Blackboex.PubSub
+config :backpex,
+  pubsub_server: Blackboex.PubSub,
+  translator_function: {BlackboexWeb.CoreComponents, :translate_backpex},
+  error_translator_function: {BlackboexWeb.CoreComponents, :translate_error}
 
 # ExAudit row-level audit tracking
 config :ex_audit,

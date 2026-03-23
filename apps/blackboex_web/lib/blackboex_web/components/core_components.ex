@@ -496,4 +496,12 @@ defmodule BlackboexWeb.CoreComponents do
   def translate_errors(errors, field) when is_list(errors) do
     for {^field, {msg, opts}} <- errors, do: translate_error({msg, opts})
   end
+
+  @doc """
+  Translates Backpex interface strings.
+  """
+  @spec translate_backpex({String.t(), map()}) :: String.t()
+  def translate_backpex({msg, opts}) do
+    Gettext.dgettext(BlackboexWeb.Gettext, "backpex", msg, opts)
+  end
 end

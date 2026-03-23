@@ -26,6 +26,10 @@ defmodule BlackboexWeb.Router do
     plug BlackboexWeb.Plugs.RequirePlatformAdmin
   end
 
+  pipeline :admin_layout do
+    plug :put_root_layout, html: {BlackboexWeb.Layouts, :admin_root}
+  end
+
   scope "/", BlackboexWeb do
     pipe_through :browser
 
@@ -75,10 +79,10 @@ defmodule BlackboexWeb.Router do
 
   # Admin panel — platform admins only
   scope "/admin", BlackboexWeb.Admin do
-    pipe_through [:browser, :require_authenticated_user, :require_platform_admin, :audit_context]
+    pipe_through [:browser, :admin_layout, :require_authenticated_user, :require_platform_admin, :audit_context]
 
     live_session :admin,
-      layout: {BlackboexWeb.Layouts, :admin_bare},
+      layout: false,
       on_mount: [
         {BlackboexWeb.UserAuth, :require_authenticated},
         {BlackboexWeb.Hooks.SetOrganization, :default},

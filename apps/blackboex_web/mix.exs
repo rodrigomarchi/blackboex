@@ -86,10 +86,18 @@ defmodule BlackboexWeb.MixProject do
       setup: ["deps.get", "assets.setup", "assets.build"],
       test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
       "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],
-      "assets.build": ["compile", "tailwind blackboex_web", "esbuild blackboex_web"],
+      "assets.build": [
+        "compile",
+        "tailwind blackboex_web",
+        "tailwind blackboex_admin",
+        "esbuild blackboex_web",
+        "esbuild blackboex_admin"
+      ],
       "assets.deploy": [
         "tailwind blackboex_web --minify",
+        "tailwind blackboex_admin --minify",
         "esbuild blackboex_web --minify",
+        "esbuild blackboex_admin --minify",
         "phx.digest"
       ]
     ]

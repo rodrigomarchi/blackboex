@@ -24,8 +24,7 @@ defmodule BlackboexWeb.Admin.ApiConversationLive do
     [
       api_id: %{
         module: Backpex.Fields.Text,
-        label: "API ID",
-        readonly: true
+        label: "API ID"
       },
       messages: %{
         module: Backpex.Fields.Text,
@@ -76,9 +75,7 @@ defmodule BlackboexWeb.Admin.ApiConversationLive do
   end
 
   @impl Backpex.LiveResource
-  def can?(assigns, :index, _item), do: platform_admin?(assigns)
-  def can?(assigns, :show, _item), do: platform_admin?(assigns)
-  def can?(_assigns, _action, _item), do: false
+  def can?(assigns, _action, _item), do: platform_admin?(assigns)
 
   defp platform_admin?(%{current_scope: %{user: %{is_platform_admin: true}}}), do: true
   defp platform_admin?(_), do: false

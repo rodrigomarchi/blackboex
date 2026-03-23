@@ -31,8 +31,6 @@ defmodule Blackboex.Organizations.Membership do
 
   @spec admin_changeset(t(), map(), map()) :: Ecto.Changeset.t()
   def admin_changeset(struct, attrs, _metadata) do
-    struct
-    |> cast(attrs, [:role])
-    |> validate_required([:role])
+    changeset(struct, attrs)
   end
 end

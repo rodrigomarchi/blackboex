@@ -121,7 +121,8 @@ defmodule Blackboex.Accounts.User do
   @spec admin_changeset(t(), map(), map()) :: Ecto.Changeset.t()
   def admin_changeset(user, attrs, _metadata) do
     user
-    |> cast(attrs, [:is_platform_admin])
+    |> cast(attrs, [:email, :is_platform_admin, :confirmed_at])
+    |> validate_required([:email])
   end
 
   @doc """

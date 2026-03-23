@@ -26,6 +26,12 @@ defmodule BlackboexWeb.Admin.DashboardLive do
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <.stat_card title="Users" value={@stats.users} icon="hero-users" href={~p"/admin/users"} />
           <.stat_card
+            title="User Tokens"
+            value={@stats.user_tokens}
+            icon="hero-finger-print"
+            href={~p"/admin/user-tokens"}
+          />
+          <.stat_card
             title="Organizations"
             value={@stats.organizations}
             icon="hero-building-office"
@@ -54,6 +60,12 @@ defmodule BlackboexWeb.Admin.DashboardLive do
             value={@stats.api_keys}
             icon="hero-key"
             href={~p"/admin/api-keys"}
+          />
+          <.stat_card
+            title="API Versions"
+            value={@stats.api_versions}
+            icon="hero-code-bracket"
+            href={~p"/admin/api-versions"}
           />
           <.stat_card
             title="Conversations"
@@ -183,6 +195,7 @@ defmodule BlackboexWeb.Admin.DashboardLive do
     %{
       # Core
       users: Repo.aggregate(Blackboex.Accounts.User, :count),
+      user_tokens: Repo.aggregate(Blackboex.Accounts.UserToken, :count),
       organizations: Repo.aggregate(Blackboex.Organizations.Organization, :count),
       memberships: Repo.aggregate(Blackboex.Organizations.Membership, :count),
       apis: Repo.aggregate(Blackboex.Apis.Api, :count),
@@ -193,6 +206,7 @@ defmodule BlackboexWeb.Admin.DashboardLive do
       subscriptions: Repo.aggregate(Blackboex.Billing.Subscription, :count),
       # API data
       api_keys: Repo.aggregate(Blackboex.Apis.ApiKey, :count),
+      api_versions: Repo.aggregate(Blackboex.Apis.ApiVersion, :count),
       api_conversations: Repo.aggregate(Blackboex.Apis.ApiConversation, :count),
       data_store_entries: Repo.aggregate(Blackboex.Apis.DataStore.Entry, :count),
       invocation_logs: Repo.aggregate(Blackboex.Apis.InvocationLog, :count),

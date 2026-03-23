@@ -25,6 +25,14 @@ defmodule Blackboex.Accounts.UserToken do
     timestamps(updated_at: false)
   end
 
+  @type t :: %__MODULE__{}
+
+  @spec admin_changeset(t(), map(), map()) :: Ecto.Changeset.t()
+  def admin_changeset(struct, attrs, _metadata) do
+    struct
+    |> Ecto.Changeset.cast(attrs, [:context, :sent_to, :authenticated_at, :user_id])
+  end
+
   @doc """
   Generates a token that will be stored in a signed place,
   such as session or cookie. As they are signed, those

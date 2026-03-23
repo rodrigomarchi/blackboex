@@ -44,8 +44,7 @@ defmodule BlackboexWeb.Admin.MetricRollupLive do
       },
       p95_duration_ms: %{
         module: Backpex.Fields.Number,
-        label: "P95 Duration (ms)",
-        only: [:show]
+        label: "P95 Duration (ms)"
       },
       unique_consumers: %{
         module: Backpex.Fields.Number,
@@ -53,22 +52,18 @@ defmodule BlackboexWeb.Admin.MetricRollupLive do
       },
       api_id: %{
         module: Backpex.Fields.Text,
-        label: "API ID",
-        readonly: true,
-        only: [:show]
+        label: "API ID"
       },
       inserted_at: %{
         module: Backpex.Fields.DateTime,
         label: "Created",
-        only: [:show]
+        only: [:index, :show]
       }
     ]
   end
 
   @impl Backpex.LiveResource
-  def can?(assigns, :index, _item), do: platform_admin?(assigns)
-  def can?(assigns, :show, _item), do: platform_admin?(assigns)
-  def can?(_assigns, _action, _item), do: false
+  def can?(assigns, _action, _item), do: platform_admin?(assigns)
 
   defp platform_admin?(%{current_scope: %{user: %{is_platform_admin: true}}}), do: true
   defp platform_admin?(_), do: false

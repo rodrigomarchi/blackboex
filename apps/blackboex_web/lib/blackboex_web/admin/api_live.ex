@@ -28,17 +28,120 @@ defmodule BlackboexWeb.Admin.ApiLive do
       },
       slug: %{
         module: Backpex.Fields.Text,
-        label: "Slug",
-        readonly: true
+        label: "Slug"
       },
       status: %{
-        module: Backpex.Fields.Text,
-        label: "Status"
+        module: Backpex.Fields.Select,
+        label: "Status",
+        options: [
+          Draft: "draft",
+          Compiled: "compiled",
+          Published: "published",
+          Archived: "archived"
+        ]
       },
       visibility: %{
-        module: Backpex.Fields.Text,
+        module: Backpex.Fields.Select,
         label: "Visibility",
-        only: [:index, :show]
+        options: [Private: "private", Public: "public"]
+      },
+      description: %{
+        module: Backpex.Fields.Text,
+        label: "Description"
+      },
+      template_type: %{
+        module: Backpex.Fields.Select,
+        label: "Template Type",
+        options: [Computation: "computation", CRUD: "crud", Webhook: "webhook"]
+      },
+      method: %{
+        module: Backpex.Fields.Select,
+        label: "HTTP Method",
+        options: [GET: "GET", POST: "POST", PUT: "PUT", PATCH: "PATCH", DELETE: "DELETE"]
+      },
+      requires_auth: %{
+        module: Backpex.Fields.Boolean,
+        label: "Requires Auth"
+      },
+      source_code: %{
+        module: Backpex.Fields.Textarea,
+        label: "Source Code"
+      },
+      test_code: %{
+        module: Backpex.Fields.Textarea,
+        label: "Test Code"
+      },
+      documentation_md: %{
+        module: Backpex.Fields.Textarea,
+        label: "Documentation"
+      },
+      param_schema: %{
+        module: Backpex.Fields.Text,
+        label: "Param Schema",
+        readonly: true,
+        only: [:show],
+        render: fn assigns ->
+          value = Map.get(assigns.item, :param_schema)
+
+          text =
+            if is_map(value) and value != %{},
+              do: Jason.encode!(value, pretty: true),
+              else: "—"
+
+          assigns = Phoenix.Component.assign(assigns, :text, text)
+
+          ~H"""
+          <pre class="text-xs whitespace-pre-wrap max-h-96 overflow-auto"><%= @text %></pre>
+          """
+        end
+      },
+      example_request: %{
+        module: Backpex.Fields.Text,
+        label: "Example Request",
+        readonly: true,
+        only: [:show],
+        render: fn assigns ->
+          value = Map.get(assigns.item, :example_request)
+
+          text =
+            if is_map(value) and value != %{},
+              do: Jason.encode!(value, pretty: true),
+              else: "—"
+
+          assigns = Phoenix.Component.assign(assigns, :text, text)
+
+          ~H"""
+          <pre class="text-xs whitespace-pre-wrap max-h-96 overflow-auto"><%= @text %></pre>
+          """
+        end
+      },
+      example_response: %{
+        module: Backpex.Fields.Text,
+        label: "Example Response",
+        readonly: true,
+        only: [:show],
+        render: fn assigns ->
+          value = Map.get(assigns.item, :example_response)
+
+          text =
+            if is_map(value) and value != %{},
+              do: Jason.encode!(value, pretty: true),
+              else: "—"
+
+          assigns = Phoenix.Component.assign(assigns, :text, text)
+
+          ~H"""
+          <pre class="text-xs whitespace-pre-wrap max-h-96 overflow-auto"><%= @text %></pre>
+          """
+        end
+      },
+      organization_id: %{
+        module: Backpex.Fields.Text,
+        label: "Organization ID"
+      },
+      user_id: %{
+        module: Backpex.Fields.Text,
+        label: "User ID"
       },
       inserted_at: %{
         module: Backpex.Fields.DateTime,
@@ -49,12 +152,7 @@ defmodule BlackboexWeb.Admin.ApiLive do
   end
 
   @impl Backpex.LiveResource
-  def can?(assigns, :index, _item), do: platform_admin?(assigns)
-  def can?(assigns, :show, _item), do: platform_admin?(assigns)
-  def can?(assigns, :edit, _item), do: platform_admin?(assigns)
-  def can?(_assigns, :new, _item), do: false
-  def can?(_assigns, :delete, _item), do: false
-  def can?(_assigns, _action, _item), do: false
+  def can?(assigns, _action, _item), do: platform_admin?(assigns)
 
   defp platform_admin?(%{current_scope: %{user: %{is_platform_admin: true}}}), do: true
   defp platform_admin?(_), do: false

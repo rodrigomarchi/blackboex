@@ -30,8 +30,6 @@ defmodule Blackboex.Apis.DataStore.Entry do
 
   @spec admin_changeset(t(), map(), map()) :: Ecto.Changeset.t()
   def admin_changeset(struct, attrs, _metadata) do
-    struct
-    |> cast(attrs, [:key, :value])
-    |> validate_required([:key, :value])
+    changeset(struct, attrs)
   end
 end

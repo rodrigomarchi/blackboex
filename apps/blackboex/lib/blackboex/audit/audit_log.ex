@@ -30,8 +30,8 @@ defmodule Blackboex.Audit.AuditLog do
   Admin changeset for Backpex. Audit logs are immutable — no edits allowed.
   """
   @spec admin_changeset(t(), map(), map()) :: Ecto.Changeset.t()
-  def admin_changeset(audit_log, _attrs, _metadata) do
-    change(audit_log)
+  def admin_changeset(audit_log, attrs, _metadata) do
+    changeset(audit_log, attrs)
   end
 
   @spec changeset(t(), map()) :: Ecto.Changeset.t()

@@ -85,9 +85,7 @@ defmodule Blackboex.Apis.Api do
   """
   @spec admin_changeset(t(), map(), map()) :: Ecto.Changeset.t()
   def admin_changeset(api, attrs, _metadata) do
-    api
-    |> cast(attrs, [:name, :status, :visibility])
-    |> validate_required([:name])
+    changeset(api, attrs)
   end
 
   defp maybe_generate_slug(changeset) do

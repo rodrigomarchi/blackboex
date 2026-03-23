@@ -52,26 +52,19 @@ defmodule BlackboexWeb.Admin.LlmUsageLive do
       },
       duration_ms: %{
         module: Backpex.Fields.Number,
-        label: "Duration (ms)",
-        only: [:show]
+        label: "Duration (ms)"
       },
       user_id: %{
         module: Backpex.Fields.Text,
-        label: "User ID",
-        readonly: true,
-        only: [:show]
+        label: "User ID"
       },
       organization_id: %{
         module: Backpex.Fields.Text,
-        label: "Organization ID",
-        readonly: true,
-        only: [:show]
+        label: "Organization ID"
       },
       api_id: %{
         module: Backpex.Fields.Text,
-        label: "API ID",
-        readonly: true,
-        only: [:show]
+        label: "API ID"
       },
       inserted_at: %{
         module: Backpex.Fields.DateTime,
@@ -81,9 +74,7 @@ defmodule BlackboexWeb.Admin.LlmUsageLive do
   end
 
   @impl Backpex.LiveResource
-  def can?(assigns, :index, _item), do: platform_admin?(assigns)
-  def can?(assigns, :show, _item), do: platform_admin?(assigns)
-  def can?(_assigns, _action, _item), do: false
+  def can?(assigns, _action, _item), do: platform_admin?(assigns)
 
   defp platform_admin?(%{current_scope: %{user: %{is_platform_admin: true}}}), do: true
   defp platform_admin?(_), do: false

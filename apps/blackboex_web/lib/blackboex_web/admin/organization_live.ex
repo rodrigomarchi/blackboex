@@ -29,8 +29,7 @@ defmodule BlackboexWeb.Admin.OrganizationLive do
       slug: %{
         module: Backpex.Fields.Text,
         label: "Slug",
-        searchable: true,
-        readonly: true
+        searchable: true
       },
       plan: %{
         module: Backpex.Fields.Select,
@@ -46,12 +45,7 @@ defmodule BlackboexWeb.Admin.OrganizationLive do
   end
 
   @impl Backpex.LiveResource
-  def can?(assigns, :index, _item), do: platform_admin?(assigns)
-  def can?(assigns, :show, _item), do: platform_admin?(assigns)
-  def can?(assigns, :edit, _item), do: platform_admin?(assigns)
-  def can?(_assigns, :new, _item), do: false
-  def can?(_assigns, :delete, _item), do: false
-  def can?(_assigns, _action, _item), do: false
+  def can?(assigns, _action, _item), do: platform_admin?(assigns)
 
   defp platform_admin?(%{current_scope: %{user: %{is_platform_admin: true}}}), do: true
   defp platform_admin?(_), do: false

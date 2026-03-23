@@ -79,7 +79,13 @@ defmodule BlackboexWeb.Router do
 
   # Admin panel — platform admins only
   scope "/admin", BlackboexWeb.Admin do
-    pipe_through [:browser, :admin_layout, :require_authenticated_user, :require_platform_admin, :audit_context]
+    pipe_through [
+      :browser,
+      :admin_layout,
+      :require_authenticated_user,
+      :require_platform_admin,
+      :audit_context
+    ]
 
     live_session :admin,
       layout: false,
@@ -92,33 +98,35 @@ defmodule BlackboexWeb.Router do
 
       # Core
       live_resources "/users", UserLive
+      live_resources "/user-tokens", UserTokenLive
       live_resources "/organizations", OrganizationLive
       live_resources "/memberships", MembershipLive
       live_resources "/apis", ApiLive
-      live_resources "/subscriptions", SubscriptionLive, only: [:index, :show]
+      live_resources "/subscriptions", SubscriptionLive
 
       # API data
-      live_resources "/api-keys", ApiKeyLive, only: [:index, :show]
-      live_resources "/api-conversations", ApiConversationLive, only: [:index, :show]
+      live_resources "/api-keys", ApiKeyLive
+      live_resources "/api-versions", ApiVersionLive
+      live_resources "/api-conversations", ApiConversationLive
       live_resources "/data-store-entries", DataStoreEntryLive
-      live_resources "/invocation-logs", InvocationLogLive, only: [:index, :show]
-      live_resources "/metric-rollups", MetricRollupLive, only: [:index, :show]
+      live_resources "/invocation-logs", InvocationLogLive
+      live_resources "/metric-rollups", MetricRollupLive
 
       # Billing
-      live_resources "/daily-usage", DailyUsageLive, only: [:index, :show]
-      live_resources "/usage-events", UsageEventLive, only: [:index, :show]
-      live_resources "/processed-events", ProcessedEventLive, only: [:index, :show]
+      live_resources "/daily-usage", DailyUsageLive
+      live_resources "/usage-events", UsageEventLive
+      live_resources "/processed-events", ProcessedEventLive
 
       # Testing
-      live_resources "/test-requests", TestRequestLive, only: [:index, :show]
-      live_resources "/test-suites", TestSuiteLive, only: [:index, :show]
+      live_resources "/test-requests", TestRequestLive
+      live_resources "/test-suites", TestSuiteLive
 
       # LLM
-      live_resources "/llm-usage", LlmUsageLive, only: [:index, :show]
+      live_resources "/llm-usage", LlmUsageLive
 
       # Audit
-      live_resources "/audit-logs", AuditLogLive, only: [:index, :show]
-      live_resources "/versions", VersionLive, only: [:index, :show]
+      live_resources "/audit-logs", AuditLogLive
+      live_resources "/versions", VersionLive
     end
   end
 

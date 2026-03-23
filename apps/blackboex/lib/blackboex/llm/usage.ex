@@ -46,5 +46,5 @@ defmodule Blackboex.LLM.Usage do
   end
 
   @spec admin_changeset(t(), map(), map()) :: Ecto.Changeset.t()
-  def admin_changeset(struct, _attrs, _metadata), do: change(struct)
+  def admin_changeset(struct, attrs, _metadata), do: changeset(struct, attrs)
 end

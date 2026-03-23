@@ -43,7 +43,7 @@ defmodule Blackboex.Organizations.Organization do
   @spec admin_changeset(t(), map(), map()) :: Ecto.Changeset.t()
   def admin_changeset(organization, attrs, _metadata) do
     organization
-    |> cast(attrs, [:name, :plan])
+    |> cast(attrs, [:name, :slug, :plan])
     |> validate_required([:name])
   end
 

@@ -52,4 +52,7 @@ defmodule Blackboex.Apis.ApiVersion do
     |> validate_inclusion(:compilation_status, @valid_compilation_statuses)
     |> unique_constraint([:api_id, :version_number])
   end
+
+  @spec admin_changeset(t(), map(), map()) :: Ecto.Changeset.t()
+  def admin_changeset(struct, attrs, _metadata), do: changeset(struct, attrs)
 end

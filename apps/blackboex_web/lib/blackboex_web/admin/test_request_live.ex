@@ -63,9 +63,7 @@ defmodule BlackboexWeb.Admin.TestRequestLive do
       },
       body: %{
         module: Backpex.Fields.Textarea,
-        label: "Request Body",
-        readonly: true,
-        only: [:show]
+        label: "Request Body"
       },
       response_headers: %{
         module: Backpex.Fields.Text,
@@ -89,21 +87,15 @@ defmodule BlackboexWeb.Admin.TestRequestLive do
       },
       response_body: %{
         module: Backpex.Fields.Textarea,
-        label: "Response Body",
-        readonly: true,
-        only: [:show]
+        label: "Response Body"
       },
       api_id: %{
         module: Backpex.Fields.Text,
-        label: "API ID",
-        readonly: true,
-        only: [:show]
+        label: "API ID"
       },
       user_id: %{
         module: Backpex.Fields.Text,
-        label: "User ID",
-        readonly: true,
-        only: [:show]
+        label: "User ID"
       },
       inserted_at: %{
         module: Backpex.Fields.DateTime,
@@ -113,9 +105,7 @@ defmodule BlackboexWeb.Admin.TestRequestLive do
   end
 
   @impl Backpex.LiveResource
-  def can?(assigns, :index, _item), do: platform_admin?(assigns)
-  def can?(assigns, :show, _item), do: platform_admin?(assigns)
-  def can?(_assigns, _action, _item), do: false
+  def can?(assigns, _action, _item), do: platform_admin?(assigns)
 
   defp platform_admin?(%{current_scope: %{user: %{is_platform_admin: true}}}), do: true
   defp platform_admin?(_), do: false

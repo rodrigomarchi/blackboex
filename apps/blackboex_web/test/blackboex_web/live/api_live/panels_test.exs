@@ -30,11 +30,6 @@ defmodule BlackboexWeb.ApiLive.PanelsTest do
     %{org: org, api: api}
   end
 
-  # Use toolbar-specific selectors to avoid matching panel close buttons
-  defp toolbar_chat(lv), do: lv |> element(~s|button[title="Chat (⌘L)"]|)
-  defp toolbar_test(lv), do: lv |> element(~s|button[title="Testing (⌘J)"]|)
-  defp toolbar_config(lv), do: lv |> element(~s|button[title="Configurações (⌘I)"]|)
-
   defp stub_pipeline_mocks do
     Blackboex.LLM.ClientMock
     |> stub(:stream_text, fn _prompt, _opts ->
@@ -55,23 +50,23 @@ defmodule BlackboexWeb.ApiLive.PanelsTest do
     render(lv)
   end
 
-  describe "panel toggling" do
-    test "chat panel opens and closes", %{conn: conn, org: org, api: api} do
+  describe "tab switching" do
+    test "chat sidebar opens and closes", %{conn: conn, org: org, api: api} do
       {:ok, lv, html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
       refute html =~ "Descreva as mudanças"
 
-      html = toolbar_chat(lv) |> render_click()
+      html = render_click(lv, "toggle_chat", %{})
       assert html =~ "Descreva as mudanças"
 
-      html = toolbar_chat(lv) |> render_click()
+      html = render_click(lv, "toggle_chat", %{})
       refute html =~ "Descreva as mudanças"
     end
 
-    test "config panel opens and shows all sections", %{conn: conn, org: org, api: api} do
+    test "config tab shows all sections", %{conn: conn, org: org, api: api} do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
-      html = toolbar_config(lv) |> render_click()
+      html = render_click(lv, "switch_tab", %{"tab" => "config"})
 
       assert html =~ "Informações"
       assert html =~ "API Keys"
@@ -80,92 +75,38 @@ defmodule BlackboexWeb.ApiLive.PanelsTest do
       assert html =~ "computation"
     end
 
-    test "bottom panel opens on test tab by default", %{conn: conn, org: org, api: api} do
+    test "run tab shows request builder", %{conn: conn, org: org, api: api} do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
-      html = toolbar_test(lv) |> render_click()
+      html = render_click(lv, "switch_tab", %{"tab" => "run"})
 
-      assert html =~ "Enviar"
       assert html =~ "History"
     end
 
-    test "switching right panel from chat to config", %{conn: conn, org: org, api: api} do
+    test "switching between tabs", %{conn: conn, org: org, api: api} do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
-      html = toolbar_chat(lv) |> render_click()
-      assert html =~ "Descreva as mudanças"
-      refute html =~ "Informações"
-
-      html = toolbar_config(lv) |> render_click()
-      refute html =~ "Descreva as mudanças"
-      assert html =~ "Informações"
-    end
-
-    test "escape closes panels in order: right then bottom", %{conn: conn, org: org, api: api} do
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-
-      toolbar_chat(lv) |> render_click()
-      toolbar_test(lv) |> render_click()
-
-      # First escape closes right panel (chat)
-      html = lv |> render_hook("close_panels", %{})
-      refute html =~ "Descreva as mudanças"
-      assert html =~ "Enviar"
-
-      # Second escape closes bottom panel
-      html = lv |> render_hook("close_panels", %{})
-      refute html =~ "Enviar"
-    end
-
-    test "escape with no panels open is a no-op", %{conn: conn, org: org, api: api} do
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-
-      html_before = render(lv)
-      lv |> render_hook("close_panels", %{})
-      html_after = render(lv)
-
-      assert html_before == html_after
-    end
-
-    test "bottom panel remembers tab after close/reopen", %{conn: conn, org: org, api: api} do
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-
-      toolbar_test(lv) |> render_click()
-      lv |> render_hook("switch_bottom_tab", %{"tab" => "versions"})
-      toolbar_test(lv) |> render_click()
-
-      html = toolbar_test(lv) |> render_click()
-      assert html =~ "No versions yet"
-    end
-
-    test "switching between all bottom panel tabs", %{conn: conn, org: org, api: api} do
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-
-      toolbar_test(lv) |> render_click()
-
-      html = lv |> render_hook("switch_bottom_tab", %{"tab" => "validation"})
+      html = render_click(lv, "switch_tab", %{"tab" => "validation"})
       assert html =~ "Validation"
 
-      html = lv |> render_hook("switch_bottom_tab", %{"tab" => "versions"})
+      html = render_click(lv, "switch_tab", %{"tab" => "versions"})
       assert html =~ "No versions yet"
 
-      html = lv |> render_hook("switch_bottom_tab", %{"tab" => "test"})
-      assert html =~ "Enviar"
+      html = render_click(lv, "switch_tab", %{"tab" => "run"})
+      assert html =~ "History"
+
+      html = render_click(lv, "switch_tab", %{"tab" => "code"})
+      assert html =~ "Code"
     end
 
-    test "panel close buttons work", %{conn: conn, org: org, api: api} do
+    test "chat sidebar stays open while switching tabs", %{conn: conn, org: org, api: api} do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
-      # Open and close chat via its X button
-      toolbar_chat(lv) |> render_click()
-      # The right panel has a close button with phx-click="toggle_chat" without title attr
-      html = lv |> render_hook("toggle_chat", %{})
-      refute html =~ "Descreva as mudanças"
+      render_click(lv, "toggle_chat", %{})
+      html = render_click(lv, "switch_tab", %{"tab" => "config"})
 
-      # Open and close bottom panel via its X button
-      toolbar_test(lv) |> render_click()
-      html = lv |> render_hook("toggle_bottom_panel", %{})
-      refute html =~ "Enviar"
+      assert html =~ "Descreva as mudanças"
+      assert html =~ "Informações"
     end
   end
 
@@ -228,7 +169,7 @@ defmodule BlackboexWeb.ApiLive.PanelsTest do
     test "escape closes palette before other panels", %{conn: conn, org: org, api: api} do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
-      toolbar_chat(lv) |> render_click()
+      render_click(lv, "toggle_chat", %{})
       lv |> element(~s(button[phx-click="toggle_command_palette"])) |> render_click()
 
       html = lv |> render_hook("close_panels", %{})
@@ -244,12 +185,10 @@ defmodule BlackboexWeb.ApiLive.PanelsTest do
 
       lv |> render_hook("toggle_command_palette", %{})
 
-      # Compile directly and update status
       code = "def handle(_), do: %{ok: true}"
       {:ok, _module} = Blackboex.CodeGen.Compiler.compile(api, code)
       {:ok, _api} = Apis.update_api(api, %{status: "compiled", source_code: code})
 
-      # Remount to pick up compiled status from DB
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
       html = lv |> element(~s(button[phx-click="toggle_command_palette"])) |> render_click()
@@ -266,7 +205,7 @@ defmodule BlackboexWeb.ApiLive.PanelsTest do
     test "shows history section with snippets", %{conn: conn, org: org, api: api} do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
-      html = toolbar_test(lv) |> render_click()
+      html = render_click(lv, "switch_tab", %{"tab" => "run"})
 
       assert html =~ "History"
       assert html =~ "curl"
@@ -278,7 +217,7 @@ defmodule BlackboexWeb.ApiLive.PanelsTest do
     test "clear button hidden when no history", %{conn: conn, org: org, api: api} do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
-      html = toolbar_test(lv) |> render_click()
+      html = render_click(lv, "switch_tab", %{"tab" => "run"})
       refute html =~ "Limpar"
     end
   end
@@ -288,15 +227,12 @@ defmodule BlackboexWeb.ApiLive.PanelsTest do
       {:ok, _lv, html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
       assert html =~ "draft"
 
-      # Compile directly and update status
       code = "def handle(_), do: %{ok: true}"
       {:ok, _module} = Blackboex.CodeGen.Compiler.compile(api, code)
       {:ok, _api} = Apis.update_api(api, %{status: "compiled", source_code: code})
 
-      # Remount to pick up compiled status from DB
       {:ok, _lv, html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
-      # Status badge should now show "compiled" not "draft"
       assert html =~ "compiled"
 
       on_exit(fn ->

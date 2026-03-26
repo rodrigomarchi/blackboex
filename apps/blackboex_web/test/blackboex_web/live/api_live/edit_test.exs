@@ -77,7 +77,7 @@ defmodule BlackboexWeb.ApiLive.EditTest do
     test "shows API info when config panel is opened", %{conn: conn, org: org, api: api} do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
-      html = lv |> element(~s(button[phx-click="toggle_config"])) |> render_click()
+      html = lv |> render_click("switch_tab", %{"tab" => "config"})
 
       assert html =~ "calculator"
       assert html =~ "computation"
@@ -158,8 +158,8 @@ defmodule BlackboexWeb.ApiLive.EditTest do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
       # Open bottom panel and switch to versions tab
-      lv |> element(~s(button[phx-click="toggle_bottom_panel"])) |> render_click()
-      html = lv |> render_hook("switch_bottom_tab", %{"tab" => "versions"})
+      lv |> render_click("switch_tab", %{"tab" => "run"})
+      html = lv |> render_click("switch_tab", %{"tab" => "versions"})
 
       assert html =~ "v1"
       assert html =~ "generation"
@@ -238,8 +238,8 @@ defmodule BlackboexWeb.ApiLive.EditTest do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
       # Open bottom panel and switch to versions tab
-      lv |> element(~s(button[phx-click="toggle_bottom_panel"])) |> render_click()
-      lv |> render_hook("switch_bottom_tab", %{"tab" => "versions"})
+      lv |> render_click("switch_tab", %{"tab" => "run"})
+      lv |> render_click("switch_tab", %{"tab" => "versions"})
 
       lv
       |> element(~s(button[phx-click="rollback"][phx-value-number="1"]))

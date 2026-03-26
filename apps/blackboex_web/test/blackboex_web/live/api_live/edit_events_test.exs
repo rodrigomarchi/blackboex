@@ -41,7 +41,7 @@ defmodule BlackboexWeb.ApiLive.EditEventsTest do
   # ── Helper to open the bottom panel (test tab is default) ──
 
   defp open_bottom_panel(lv) do
-    lv |> element(~s(button[phx-click="toggle_bottom_panel"])) |> render_click()
+    lv |> render_click("switch_tab", %{"tab" => "run"})
   end
 
   defp stub_pipeline_mocks do

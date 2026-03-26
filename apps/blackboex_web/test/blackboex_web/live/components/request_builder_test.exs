@@ -33,7 +33,7 @@ defmodule BlackboexWeb.Components.RequestBuilderTest do
   describe "RequestBuilder rendering" do
     test "renders method selector with all HTTP methods", %{conn: conn, org: org, api: api} do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-      lv |> element(~s(button[phx-click="toggle_bottom_panel"])) |> render_click()
+      lv |> render_click("switch_tab", %{"tab" => "run"})
       html = render(lv)
 
       assert html =~ "GET"
@@ -45,7 +45,7 @@ defmodule BlackboexWeb.Components.RequestBuilderTest do
 
     test "renders URL field pre-filled with API path", %{conn: conn, org: org, api: api} do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-      lv |> element(~s(button[phx-click="toggle_bottom_panel"])) |> render_click()
+      lv |> render_click("switch_tab", %{"tab" => "run"})
       html = render(lv)
 
       assert html =~ "/api/#{org.slug}/#{api.slug}"
@@ -53,7 +53,7 @@ defmodule BlackboexWeb.Components.RequestBuilderTest do
 
     test "renders sub-tabs for Params, Headers, Body, Auth", %{conn: conn, org: org, api: api} do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-      lv |> element(~s(button[phx-click="toggle_bottom_panel"])) |> render_click()
+      lv |> render_click("switch_tab", %{"tab" => "run"})
       html = render(lv)
 
       assert html =~ "Params"
@@ -64,7 +64,7 @@ defmodule BlackboexWeb.Components.RequestBuilderTest do
 
     test "renders Send button", %{conn: conn, org: org, api: api} do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-      lv |> element(~s(button[phx-click="toggle_bottom_panel"])) |> render_click()
+      lv |> render_click("switch_tab", %{"tab" => "run"})
       html = render(lv)
 
       assert html =~ "Enviar"
@@ -102,7 +102,7 @@ defmodule BlackboexWeb.Components.RequestBuilderTest do
 
       # Open edit page for the FIRST api
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-      lv |> element(~s(button[phx-click="toggle_bottom_panel"])) |> render_click()
+      lv |> render_click("switch_tab", %{"tab" => "run"})
 
       # Try to load history item from the OTHER api — should be rejected
       html = render_click(lv, "load_history_item", %{"id" => other_request.id})
@@ -114,7 +114,7 @@ defmodule BlackboexWeb.Components.RequestBuilderTest do
   describe "input validation" do
     test "ignores invalid method values", %{conn: conn, org: org, api: api} do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-      lv |> element(~s(button[phx-click="toggle_bottom_panel"])) |> render_click()
+      lv |> render_click("switch_tab", %{"tab" => "run"})
 
       # Send an invalid method — should be ignored
       render_click(lv, "update_test_method", %{"method" => "INVALID"})
@@ -125,7 +125,7 @@ defmodule BlackboexWeb.Components.RequestBuilderTest do
 
     test "ignores invalid snippet language", %{conn: conn, org: org, api: api} do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-      lv |> element(~s(button[phx-click="toggle_bottom_panel"])) |> render_click()
+      lv |> render_click("switch_tab", %{"tab" => "run"})
 
       # Should not crash
       render_click(lv, "copy_snippet", %{"language" => "php"})

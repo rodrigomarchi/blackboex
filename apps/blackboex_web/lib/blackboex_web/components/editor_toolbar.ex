@@ -1,15 +1,13 @@
 defmodule BlackboexWeb.Components.EditorToolbar do
   @moduledoc """
   Compact toolbar for the API code editor page.
-  Shows API name, status, save actions, and panel toggle buttons.
+  Shows API name, status, save actions, and command palette trigger.
   """
   use BlackboexWeb, :html
 
   attr :api, :map, required: true
   attr :code, :string, required: true
   attr :saving, :boolean, default: false
-  attr :right_panel, :atom, default: nil
-  attr :bottom_panel_open, :boolean, default: false
   attr :selected_version, :map, default: nil
   attr :generation_status, :string, default: nil
 
@@ -66,37 +64,7 @@ defmodule BlackboexWeb.Components.EditorToolbar do
 
       <div class="flex-1" />
 
-      <%!-- Panel toggle buttons --%>
-      <div class="flex items-center gap-0.5 rounded-lg border p-0.5">
-        <button
-          phx-click="toggle_chat"
-          class={panel_btn_class(@right_panel == :chat)}
-          title="Chat (⌘L)"
-        >
-          <.icon name="hero-chat-bubble-left-right" class="size-3.5" />
-          <span class="hidden md:inline ml-1">Chat</span>
-        </button>
-        <button
-          phx-click="toggle_bottom_panel"
-          class={panel_btn_class(@bottom_panel_open)}
-          title="Testing (⌘J)"
-        >
-          <.icon name="hero-beaker" class="size-3.5" />
-          <span class="hidden md:inline ml-1">Test</span>
-        </button>
-        <button
-          phx-click="toggle_config"
-          class={panel_btn_class(@right_panel == :config)}
-          title="Configurações (⌘I)"
-        >
-          <.icon name="hero-cog-6-tooth" class="size-3.5" />
-          <span class="hidden md:inline ml-1">Config</span>
-        </button>
-      </div>
-
-      <div class="h-4 w-px bg-border" />
-
-      <%!-- Save button (Save = Compile + Validate) --%>
+      <%!-- Save button --%>
       <button
         phx-click="save"
         disabled={@saving or @generation_status in ~w(pending generating validating)}
@@ -118,14 +86,6 @@ defmodule BlackboexWeb.Components.EditorToolbar do
       </button>
     </header>
     """
-  end
-
-  defp panel_btn_class(active?) do
-    base = "rounded px-2 py-1 text-xs font-medium transition-colors inline-flex items-center"
-
-    if active?,
-      do: "#{base} bg-primary text-primary-foreground",
-      else: "#{base} text-muted-foreground hover:text-foreground hover:bg-base-200"
   end
 
   defp status_color("draft"), do: "border bg-muted text-muted-foreground"

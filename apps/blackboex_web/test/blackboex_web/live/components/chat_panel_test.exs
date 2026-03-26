@@ -117,7 +117,7 @@ defmodule BlackboexWeb.Components.ChatPanelTest do
 
     test "opening config panel shows Informações", %{conn: conn, org: org, api: api} do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-      lv |> element(~s(button[phx-click="toggle_config"])) |> render_click()
+      lv |> render_click("switch_tab", %{"tab" => "config"})
 
       html = render(lv)
       assert html =~ "Informações"
@@ -125,7 +125,7 @@ defmodule BlackboexWeb.Components.ChatPanelTest do
 
     test "opening bottom panel shows Versions tab", %{conn: conn, org: org, api: api} do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-      lv |> element(~s(button[phx-click="toggle_bottom_panel"])) |> render_click()
+      lv |> render_click("switch_tab", %{"tab" => "run"})
 
       html = render(lv)
       assert html =~ "Versions"

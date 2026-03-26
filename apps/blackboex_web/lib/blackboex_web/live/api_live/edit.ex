@@ -29,8 +29,6 @@ defmodule BlackboexWeb.ApiLive.Edit do
 
   import BlackboexWeb.Components.EditorToolbar
   import BlackboexWeb.Components.StatusBar
-  import BlackboexWeb.Components.BottomPanel
-  import BlackboexWeb.Components.RightPanel
   import BlackboexWeb.Components.CommandPalette
   import BlackboexWeb.Components.ValidationDashboard
 
@@ -78,8 +76,8 @@ defmodule BlackboexWeb.ApiLive.Edit do
            chat_conversation: conversation,
            pending_edit: nil,
            streaming_tokens: "",
-           # Editor assigns
-           editor_tab: "code",
+           # Tab state
+           active_tab: "code",
            # Pipeline assigns
            pipeline_ref: nil,
            pipeline_status: nil,
@@ -111,24 +109,33 @@ defmodule BlackboexWeb.ApiLive.Edit do
            keys_loaded: false,
            plain_key_flash: nil,
            metrics: nil,
-           # Panel state
-           right_panel: if(generating?, do: :chat, else: nil),
-           bottom_panel_open: false,
-           bottom_tab: "test",
            command_palette_open: false,
            command_palette_query: "",
            command_palette_selected: 0,
            # Generation state
            generation_status: api.generation_status,
-           generation_tokens: ""
+           generation_tokens: "",
+           # Chat sidebar
+           chat_open: generating?
          )}
     end
   end
 
   # ── Render ─────────────────────────────────────────────────────────────
 
+  @tabs [
+    %{id: "code", label: "Code"},
+    %{id: "tests", label: "Tests"},
+    %{id: "validation", label: "Validation"},
+    %{id: "versions", label: "Versions"},
+    %{id: "run", label: "Run"},
+    %{id: "config", label: "Config"}
+  ]
+
   @impl true
   def render(assigns) do
+    assigns = assign(assigns, :tabs, @tabs)
+
     ~H"""
     <div class="flex flex-col h-full" id="editor-root" phx-hook="KeyboardShortcuts">
       <%!-- Toolbar --%>
@@ -136,33 +143,31 @@ defmodule BlackboexWeb.ApiLive.Edit do
         api={@api}
         code={@code}
         saving={@saving}
-        right_panel={@right_panel}
-        bottom_panel_open={@bottom_panel_open}
         selected_version={@selected_version}
         generation_status={@generation_status}
       />
 
-      <%!-- Main area: editor + panels --%>
+      <%!-- Main area: tabs + chat sidebar --%>
       <div class="flex flex-1 min-h-0">
-        <%!-- Editor column (editor + bottom panel stacked vertically) --%>
+        <%!-- Tab content column --%>
         <div class="flex flex-col flex-1 min-w-0">
-          <%!-- Editor Tab Bar --%>
+          <%!-- Tab Bar --%>
           <div class="flex items-center border-b px-2 shrink-0 bg-card">
             <button
-              :for={tab <- ~w(code tests)}
-              phx-click="switch_editor_tab"
-              phx-value-tab={tab}
+              :for={tab <- @tabs}
+              phx-click="switch_tab"
+              phx-value-tab={tab.id}
               class={[
                 "px-3 py-1.5 text-xs font-medium border-b-2 transition-colors",
-                if(tab == @editor_tab,
+                if(tab.id == @active_tab,
                   do: "border-primary text-primary",
                   else: "border-transparent text-muted-foreground hover:text-foreground"
                 )
               ]}
             >
-              {editor_tab_label(tab)}
+              {tab.label}
               <span
-                :if={tab == "tests" && @test_summary}
+                :if={tab.id == "tests" && @test_summary}
                 class={[
                   "ml-1 inline-flex rounded-full px-1.5 text-[10px] font-semibold",
                   test_summary_class(@test_summary)
@@ -170,52 +175,58 @@ defmodule BlackboexWeb.ApiLive.Edit do
               >
                 {@test_summary}
               </span>
+              <span
+                :if={tab.id == "validation" && @validation_report}
+                class={[
+                  "ml-1 inline-flex rounded-full px-1.5 text-[10px] font-semibold",
+                  if(@validation_report.overall == :pass,
+                    do: "bg-green-100 text-green-700",
+                    else: "bg-red-100 text-red-700"
+                  )
+                ]}
+              >
+                {if @validation_report.overall == :pass, do: "✓", else: "!"}
+              </span>
+            </button>
+
+            <div class="flex-1" />
+
+            <%!-- Chat toggle in tab bar --%>
+            <button
+              phx-click="toggle_chat"
+              class={[
+                "px-3 py-1.5 text-xs font-medium border-b-2 transition-colors inline-flex items-center gap-1",
+                if(@chat_open,
+                  do: "border-primary text-primary",
+                  else: "border-transparent text-muted-foreground hover:text-foreground"
+                )
+              ]}
+            >
+              <.icon name="hero-chat-bubble-left-right" class="size-3.5" /> Chat
             </button>
           </div>
 
-          <%!-- Monaco Editor --%>
-          <div
-            id="monaco-container"
-            phx-hook="MonacoStreaming"
-            style="flex: 1 1 0%; min-height: 0; position: relative;"
-          >
-            <LiveMonacoEditor.code_editor
-              path={"api_#{@api.id}.ex"}
-              value={editor_value(@editor_tab, @code, @test_code)}
-              change="editor_changed"
-              style="position: absolute; top: 0; left: 0; right: 0; bottom: 0;"
-              opts={
-                Map.merge(LiveMonacoEditor.default_opts(), %{
-                  "language" => "elixir",
-                  "fontSize" => 14,
-                  "minimap" => %{"enabled" => false},
-                  "wordWrap" => "on",
-                  "scrollBeyondLastLine" => false,
-                  "automaticLayout" => true,
-                  "scrollbar" => %{"alwaysConsumeMouseWheel" => true},
-                  "readOnly" =>
-                    @selected_version != nil or
-                      @generation_status in ["pending", "generating", "validating"]
-                })
-              }
-            />
-
+          <%!-- Content Area --%>
+          <div class="flex-1 min-h-0 relative">
+            {render_tab_content(assigns)}
           </div>
-
-          <%!-- Bottom Panel --%>
-          <.bottom_panel
-            :if={@bottom_panel_open}
-            active_tab={@bottom_tab}
-            validation_report={@validation_report}
-          >
-            {render_bottom_content(assigns)}
-          </.bottom_panel>
         </div>
 
-        <%!-- Right Panel --%>
-        <.right_panel :if={@right_panel} mode={@right_panel}>
-          {render_right_content(assigns)}
-        </.right_panel>
+        <%!-- Chat Sidebar --%>
+        <div :if={@chat_open} class="w-[340px] shrink-0 border-l flex flex-col">
+          <.live_component
+            module={BlackboexWeb.Components.ChatPanel}
+            id="chat-panel"
+            messages={@chat_messages}
+            input={@chat_input}
+            loading={@chat_loading or @generation_status in ["pending", "generating", "validating"]}
+            api_id={@api.id}
+            pending_edit={@pending_edit}
+            template_type={@api.template_type}
+            streaming_tokens={@streaming_tokens}
+            pipeline_status={@pipeline_status || generation_to_pipeline_status(@generation_status)}
+          />
+        </div>
       </div>
 
       <%!-- Status Bar --%>
@@ -232,109 +243,53 @@ defmodule BlackboexWeb.ApiLive.Edit do
     """
   end
 
-  # ── Bottom Panel Content ───────────────────────────────────────────────
+  # ── Tab Content ───────────────────────────────────────────────────────
 
-  defp render_bottom_content(%{bottom_tab: "test"} = assigns) do
+  defp render_tab_content(%{active_tab: tab} = assigns) when tab in ["code", "tests"] do
     ~H"""
-    <div class="flex gap-3 h-full">
-      <%!-- Request Builder --%>
-      <div class="flex-1 min-w-0 overflow-auto">
-        <.live_component
-          module={BlackboexWeb.Components.RequestBuilder}
-          id="request-builder"
-          method={@test_method}
-          url={@test_url}
-          params={@test_params}
-          headers={@test_headers}
-          body_json={@test_body_json}
-          body_error={@test_body_error}
-          api_key={@test_api_key}
-          loading={@test_loading}
-          active_tab={@request_tab}
-        />
-      </div>
-
-      <%!-- Response Viewer --%>
-      <div class="flex-1 min-w-0 overflow-auto">
-        <.live_component
-          module={BlackboexWeb.Components.ResponseViewer}
-          id="response-viewer"
-          response={@test_response}
-          loading={@test_loading}
-          error={@test_error}
-          violations={@test_violations}
-          response_tab={@response_tab}
-        />
-      </div>
-
-      <%!-- Test History Sidebar --%>
-      <div class="w-52 shrink-0 border-l pl-3 overflow-y-auto">
-        <div class="flex items-center justify-between mb-2">
-          <h4 class="text-xs font-semibold text-muted-foreground uppercase">History</h4>
-          <button
-            :if={@test_history != []}
-            phx-click="clear_history"
-            data-confirm="Limpar histórico de requests?"
-            class="text-[10px] text-destructive hover:underline"
-          >
-            Limpar
-          </button>
-        </div>
-
-        <div class="flex flex-wrap gap-1 mb-2">
-          <button
-            :for={lang <- ~w(curl python javascript elixir ruby go)}
-            phx-click="copy_snippet"
-            phx-value-language={lang}
-            class="rounded border px-1.5 py-0.5 text-[10px] hover:bg-accent"
-          >
-            {lang}
-          </button>
-        </div>
-
-        <%= if @test_history == [] do %>
-          <p class="text-[10px] text-muted-foreground">No requests yet</p>
-        <% else %>
-          <div class="space-y-1">
-            <div
-              :for={item <- @test_history}
-              phx-click="load_history_item"
-              phx-value-id={item.id}
-              class="rounded border p-1.5 text-[10px] cursor-pointer hover:bg-accent"
-            >
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-1">
-                  <span class="font-semibold">{item.method}</span>
-                  <span class="text-muted-foreground truncate max-w-[60px]">{item.path}</span>
-                </div>
-                <span class={[
-                  "inline-flex rounded-full px-1 py-0 text-[9px] font-semibold",
-                  history_status_color(item.response_status)
-                ]}>
-                  {item.response_status}
-                </span>
-              </div>
-              <div class="text-muted-foreground mt-0.5">{item.duration_ms}ms</div>
-            </div>
-          </div>
-        <% end %>
-      </div>
+    <div
+      id="monaco-container"
+      phx-hook="MonacoStreaming"
+      style="position: absolute; top: 0; left: 0; right: 0; bottom: 0;"
+    >
+      <LiveMonacoEditor.code_editor
+        path={"api_#{@api.id}.ex"}
+        value={editor_value(@active_tab, @code, @test_code)}
+        change="editor_changed"
+        style="position: absolute; top: 0; left: 0; right: 0; bottom: 0;"
+        opts={
+          Map.merge(LiveMonacoEditor.default_opts(), %{
+            "language" => "elixir",
+            "fontSize" => 14,
+            "minimap" => %{"enabled" => false},
+            "wordWrap" => "on",
+            "scrollBeyondLastLine" => false,
+            "automaticLayout" => true,
+            "scrollbar" => %{"alwaysConsumeMouseWheel" => true},
+            "readOnly" =>
+              @selected_version != nil or
+                @generation_status in ["pending", "generating", "validating"]
+          })
+        }
+      />
     </div>
     """
   end
 
-  defp render_bottom_content(%{bottom_tab: "validation"} = assigns) do
+  defp render_tab_content(%{active_tab: "validation"} = assigns) do
     ~H"""
-    <.validation_dashboard
-      report={@validation_report}
-      loading={@pipeline_status != nil && @pipeline_status != :done}
-    />
+    <div class="p-4 overflow-y-auto h-full">
+      <.validation_dashboard
+        report={@validation_report}
+        loading={@pipeline_status != nil && @pipeline_status != :done}
+      />
+    </div>
     """
   end
 
-  defp render_bottom_content(%{bottom_tab: "versions"} = assigns) do
+  defp render_tab_content(%{active_tab: "versions"} = assigns) do
     ~H"""
-    <div class="space-y-2">
+    <div class="p-4 overflow-y-auto h-full space-y-2">
       <%= if @versions == [] do %>
         <p class="text-sm text-muted-foreground">
           No versions yet. Save to create the first version.
@@ -342,7 +297,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
       <% else %>
         <%= for version <- @versions do %>
           <div class={[
-            "rounded border p-2 text-xs space-y-1",
+            "rounded border p-3 text-xs space-y-1",
             if(@selected_version && @selected_version.id == version.id,
               do: "border-primary bg-primary/5",
               else: ""
@@ -386,28 +341,98 @@ defmodule BlackboexWeb.ApiLive.Edit do
     """
   end
 
-  # ── Right Panel Content ────────────────────────────────────────────────
-
-  defp render_right_content(%{right_panel: :chat} = assigns) do
+  defp render_tab_content(%{active_tab: "run"} = assigns) do
     ~H"""
-    <.live_component
-      module={BlackboexWeb.Components.ChatPanel}
-      id="chat-panel"
-      messages={@chat_messages}
-      input={@chat_input}
-      loading={@chat_loading or @generation_status in ["pending", "generating", "validating"]}
-      api_id={@api.id}
-      pending_edit={@pending_edit}
-      template_type={@api.template_type}
-      streaming_tokens={@streaming_tokens}
-      pipeline_status={@pipeline_status || generation_to_pipeline_status(@generation_status)}
-    />
+    <div class="flex gap-4 h-full p-4 overflow-hidden">
+      <%!-- Request Builder --%>
+      <div class="flex-1 min-w-0 overflow-auto">
+        <.live_component
+          module={BlackboexWeb.Components.RequestBuilder}
+          id="request-builder"
+          method={@test_method}
+          url={@test_url}
+          params={@test_params}
+          headers={@test_headers}
+          body_json={@test_body_json}
+          body_error={@test_body_error}
+          api_key={@test_api_key}
+          loading={@test_loading}
+          active_tab={@request_tab}
+        />
+      </div>
+
+      <%!-- Response Viewer --%>
+      <div class="flex-1 min-w-0 overflow-auto">
+        <.live_component
+          module={BlackboexWeb.Components.ResponseViewer}
+          id="response-viewer"
+          response={@test_response}
+          loading={@test_loading}
+          error={@test_error}
+          violations={@test_violations}
+          response_tab={@response_tab}
+        />
+      </div>
+
+      <%!-- Test History --%>
+      <div class="w-52 shrink-0 border-l pl-3 overflow-y-auto">
+        <div class="flex items-center justify-between mb-2">
+          <h4 class="text-xs font-semibold text-muted-foreground uppercase">History</h4>
+          <button
+            :if={@test_history != []}
+            phx-click="clear_history"
+            data-confirm="Limpar histórico de requests?"
+            class="text-[10px] text-destructive hover:underline"
+          >
+            Limpar
+          </button>
+        </div>
+
+        <div class="flex flex-wrap gap-1 mb-2">
+          <button
+            :for={lang <- ~w(curl python javascript elixir ruby go)}
+            phx-click="copy_snippet"
+            phx-value-language={lang}
+            class="rounded border px-1.5 py-0.5 text-[10px] hover:bg-accent"
+          >
+            {lang}
+          </button>
+        </div>
+
+        <%= if @test_history == [] do %>
+          <p class="text-[10px] text-muted-foreground">No requests yet</p>
+        <% else %>
+          <div class="space-y-1">
+            <div
+              :for={item <- @test_history}
+              phx-click="load_history_item"
+              phx-value-id={item.id}
+              class="rounded border p-1.5 text-[10px] cursor-pointer hover:bg-accent"
+            >
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-1">
+                  <span class="font-semibold">{item.method}</span>
+                  <span class="text-muted-foreground truncate max-w-[80px]">{item.path}</span>
+                </div>
+                <span class={[
+                  "inline-flex rounded-full px-1 py-0 text-[9px] font-semibold",
+                  history_status_color(item.response_status)
+                ]}>
+                  {item.response_status}
+                </span>
+              </div>
+              <div class="text-muted-foreground mt-0.5">{item.duration_ms}ms</div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
     """
   end
 
-  defp render_right_content(%{right_panel: :config} = assigns) do
+  defp render_tab_content(%{active_tab: "config"} = assigns) do
     ~H"""
-    <div class="p-4 space-y-4 overflow-y-auto h-full">
+    <div class="p-4 space-y-4 overflow-y-auto h-full max-w-2xl">
       {render_config_info(assigns)}
       {render_config_keys(assigns)}
       {render_config_publish(assigns)}
@@ -642,27 +667,42 @@ defmodule BlackboexWeb.ApiLive.Edit do
     """
   end
 
-  # ── Panel Toggle Events ────────────────────────────────────────────────
+  # ── Tab Events ────────────────────────────────────────────────────────
+
+  @valid_tabs ~w(code tests validation versions run config)
 
   @impl true
-  def handle_event("toggle_chat", _params, socket) do
-    {:noreply, toggle_right_panel(socket, :chat)}
+  def handle_event("switch_tab", %{"tab" => tab}, socket) when tab in @valid_tabs do
+    socket =
+      socket
+      |> assign(active_tab: tab)
+      |> lazy_load_tab(tab)
+
+    # When switching to code/tests, push the value to Monaco
+    socket =
+      case tab do
+        "code" -> push_editor_value(socket, socket.assigns.code)
+        "tests" -> push_editor_value(socket, socket.assigns.test_code)
+        _ -> socket
+      end
+
+    {:noreply, socket}
   end
 
   @impl true
+  def handle_event("toggle_chat", _params, socket) do
+    {:noreply, assign(socket, chat_open: !socket.assigns.chat_open)}
+  end
+
+  # Keep old events as aliases for compatibility (command palette, keyboard shortcuts)
+  @impl true
   def handle_event("toggle_config", _params, socket) do
-    {:noreply, toggle_right_panel(socket, :config)}
+    {:noreply, socket |> assign(active_tab: "config") |> lazy_load_tab("config")}
   end
 
   @impl true
   def handle_event("toggle_bottom_panel", _params, socket) do
-    new_open = !socket.assigns.bottom_panel_open
-    socket = assign(socket, bottom_panel_open: new_open)
-
-    socket =
-      if new_open, do: lazy_load_bottom_tab(socket, socket.assigns.bottom_tab), else: socket
-
-    {:noreply, socket}
+    {:noreply, assign(socket, active_tab: "run")}
   end
 
   @impl true
@@ -677,32 +717,11 @@ defmodule BlackboexWeb.ApiLive.Edit do
 
   @impl true
   def handle_event("close_panels", _params, socket) do
-    cond do
-      socket.assigns.command_palette_open ->
-        {:noreply, assign(socket, command_palette_open: false, command_palette_query: "")}
-
-      socket.assigns.right_panel != nil ->
-        {:noreply, assign(socket, right_panel: nil)}
-
-      socket.assigns.bottom_panel_open ->
-        {:noreply, assign(socket, bottom_panel_open: false)}
-
-      true ->
-        {:noreply, socket}
+    if socket.assigns.command_palette_open do
+      {:noreply, assign(socket, command_palette_open: false, command_palette_query: "")}
+    else
+      {:noreply, socket}
     end
-  end
-
-  @valid_bottom_tabs ~w(test validation versions)
-
-  @impl true
-  def handle_event("switch_bottom_tab", %{"tab" => tab}, socket)
-      when tab in @valid_bottom_tabs do
-    socket =
-      socket
-      |> assign(bottom_tab: tab)
-      |> lazy_load_bottom_tab(tab)
-
-    {:noreply, socket}
   end
 
   # ── Command Palette Events ────────────────────────────────────────────
@@ -758,23 +777,15 @@ defmodule BlackboexWeb.ApiLive.Edit do
 
   @impl true
   def handle_event("switch_editor_tab", %{"tab" => tab}, socket) when tab in ~w(code tests) do
-    value =
-      case tab do
-        "code" -> socket.assigns.code
-        "tests" -> socket.assigns.test_code
-      end
-
-    {:noreply,
-     socket
-     |> assign(editor_tab: tab)
-     |> push_editor_value(value)}
+    handle_event("switch_tab", %{"tab" => tab}, socket)
   end
 
   @impl true
   def handle_event("editor_changed", %{"value" => value}, socket) do
-    case socket.assigns.editor_tab do
+    case socket.assigns.active_tab do
       "code" -> {:noreply, assign(socket, code: value)}
       "tests" -> {:noreply, assign(socket, test_code: value)}
+      _ -> {:noreply, socket}
     end
   end
 
@@ -840,8 +851,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
            selected_version: nil,
            pipeline_ref: task.ref,
            pipeline_status: :formatting,
-           bottom_panel_open: true,
-           bottom_tab: "validation"
+           active_tab: "validation"
          )
          |> push_editor_value(code)
          |> put_flash(:info, "Rolled back to v#{number}")}
@@ -864,7 +874,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
          |> assign(
            api: published_api,
            plain_key_flash: plain_key,
-           right_panel: :config,
+           active_tab: "config",
            api_keys: Keys.list_keys(published_api.id),
            keys_loaded: true
          )
@@ -1083,8 +1093,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
        test_loading: true,
        test_error: nil,
        test_ref: task.ref,
-       bottom_panel_open: true,
-       bottom_tab: "test"
+       active_tab: "run"
      )}
   end
 
@@ -1117,8 +1126,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
        test_loading: true,
        test_error: nil,
        test_ref: task.ref,
-       bottom_panel_open: true,
-       bottom_tab: "test"
+       active_tab: "run"
      )}
   end
 
@@ -1132,8 +1140,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
        test_body_json: body,
        test_body_error: nil,
        request_tab: "body",
-       bottom_panel_open: true,
-       bottom_tab: "test"
+       active_tab: "run"
      )}
   end
 
@@ -1560,8 +1567,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
        test_summary:
          if(result.validation, do: format_test_summary(result.validation.test_results), else: nil),
        versions: Apis.list_versions(api.id),
-       bottom_panel_open: result.validation != nil,
-       bottom_tab: "validation"
+       active_tab: if(result.validation, do: "validation", else: "code")
      )
      |> push_editor_value(result.code)
      |> put_flash(:info, "API generated successfully")}
@@ -1608,27 +1614,6 @@ defmodule BlackboexWeb.ApiLive.Edit do
   end
 
   # ── Private Helpers ────────────────────────────────────────────────────
-
-  defp toggle_right_panel(socket, mode) do
-    if socket.assigns.right_panel == mode do
-      assign(socket, right_panel: nil)
-    else
-      socket
-      |> assign(right_panel: mode)
-      |> lazy_load_right_panel(mode)
-    end
-  end
-
-  defp lazy_load_right_panel(socket, :config) do
-    socket
-    |> lazy_load_tab("keys")
-    |> lazy_load_tab("publish")
-  end
-
-  defp lazy_load_right_panel(socket, _), do: socket
-
-  defp lazy_load_bottom_tab(socket, "test"), do: lazy_load_tab(socket, "test")
-  defp lazy_load_bottom_tab(socket, _), do: socket
 
   defp execute_command(socket, "quick_test_get") do
     handle_event("quick_test", %{"method" => "GET"}, socket)
@@ -1780,8 +1765,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
        assign(socket,
          pipeline_ref: task.ref,
          pipeline_status: :formatting,
-         bottom_panel_open: true,
-         bottom_tab: "validation"
+         active_tab: "validation"
        )}
     end
   end
@@ -1807,8 +1791,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
            versions: Apis.list_versions(api.id),
            pipeline_ref: task.ref,
            pipeline_status: :formatting,
-           bottom_panel_open: true,
-           bottom_tab: "validation"
+           active_tab: "validation"
          )
          |> put_flash(:info, "Saved")}
 
@@ -1851,6 +1834,16 @@ defmodule BlackboexWeb.ApiLive.Edit do
       api_id: socket.assigns.api.id,
       duration_ms: 0
     })
+  end
+
+  defp lazy_load_tab(socket, "run") do
+    lazy_load_tab(socket, "test")
+  end
+
+  defp lazy_load_tab(socket, "config") do
+    socket
+    |> lazy_load_tab("keys")
+    |> lazy_load_tab("publish")
   end
 
   defp lazy_load_tab(socket, "test") when not socket.assigns.history_loaded do
@@ -2061,9 +2054,6 @@ defmodule BlackboexWeb.ApiLive.Edit do
   defp format_test_summary(_), do: nil
 
   # ── Editor Tab Helpers ──────────────────────────────────────────────
-
-  defp editor_tab_label("code"), do: "Code"
-  defp editor_tab_label("tests"), do: "Tests"
 
   defp editor_value("code", code, _test_code), do: code
   defp editor_value("tests", _code, test_code), do: test_code

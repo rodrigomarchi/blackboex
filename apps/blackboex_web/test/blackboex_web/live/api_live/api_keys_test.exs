@@ -32,7 +32,7 @@ defmodule BlackboexWeb.ApiLive.ApiKeysTest do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
       # Open the Config panel (keys section is inside)
-      lv |> element(~s(button[phx-click="toggle_config"])) |> render_click()
+      lv |> render_click("switch_tab", %{"tab" => "config"})
 
       html = render(lv)
       assert html =~ "No keys yet"

@@ -46,7 +46,7 @@ defmodule BlackboexWeb.ApiLive.PublishFlowTest do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
       # Open the Config panel (publish section is inside)
-      lv |> element(~s(button[phx-click="toggle_config"])) |> render_click()
+      lv |> render_click("switch_tab", %{"tab" => "config"})
 
       html = render(lv)
       assert html =~ "Publish API"
@@ -87,7 +87,7 @@ defmodule BlackboexWeb.ApiLive.PublishFlowTest do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
       # Open config panel and publish
-      lv |> element(~s(button[phx-click="toggle_config"])) |> render_click()
+      lv |> render_click("switch_tab", %{"tab" => "config"})
       lv |> element(~s(button[phx-click="publish"])) |> render_click()
 
       # Verify it's published
@@ -98,7 +98,7 @@ defmodule BlackboexWeb.ApiLive.PublishFlowTest do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
       # Open config panel to see Unpublish button
-      lv |> element(~s(button[phx-click="toggle_config"])) |> render_click()
+      lv |> render_click("switch_tab", %{"tab" => "config"})
 
       html = render(lv)
       assert html =~ "Unpublish"

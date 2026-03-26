@@ -58,7 +58,7 @@ defmodule BlackboexWeb.Components.ClearConversationTest do
       html = render(lv)
       refute html =~ "Hello"
       refute html =~ "Hi there"
-      assert html =~ "Descreva"
+      assert html =~ "Describe the changes"
     end
 
     test "editor page remains functional after clearing", %{conn: conn, org: org, api: api} do

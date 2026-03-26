@@ -33,7 +33,7 @@ defmodule BlackboexWeb.Components.CommandPalette do
               name="command_query"
               value={@query}
               phx-debounce="50"
-              placeholder="Buscar comando..."
+              placeholder="Search commands..."
               class="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
               autofocus
               autocomplete="off"
@@ -65,7 +65,7 @@ defmodule BlackboexWeb.Components.CommandPalette do
             :if={@filtered_commands == []}
             class="px-3 py-4 text-sm text-muted-foreground text-center"
           >
-            Nenhum comando encontrado
+            No commands found
           </p>
         </div>
       </div>
@@ -81,12 +81,12 @@ defmodule BlackboexWeb.Components.CommandPalette do
     %{label: "Generate Documentation", shortcut: nil, event: "generate_docs", group: :doc},
     %{label: "Quick Test GET /", shortcut: nil, event: "quick_test_get", group: :test},
     %{
-      label: "Quick Test POST / com exemplo",
+      label: "Quick Test POST / with example",
       shortcut: nil,
       event: "quick_test_post",
       group: :test
     },
-    %{label: "Gerar dados de exemplo", shortcut: nil, event: "generate_sample", group: :test},
+    %{label: "Generate sample data", shortcut: nil, event: "generate_sample", group: :test},
     %{label: "Copy curl snippet", shortcut: nil, event: "copy_snippet_curl", group: :snippet},
     %{label: "Copy Python snippet", shortcut: nil, event: "copy_snippet_python", group: :snippet},
     %{

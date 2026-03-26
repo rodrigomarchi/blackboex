@@ -88,7 +88,7 @@ defmodule BlackboexWeb.Components.ChatErrorsTest do
       lv |> element(~s(button[phx-click="toggle_chat"])) |> render_click()
 
       html = send_chat_and_wait(lv)
-      refute html =~ "Pensando..."
+      refute html =~ "Thinking..."
     end
 
     test "empty message is ignored", %{conn: conn, org: org, api: api} do
@@ -100,7 +100,7 @@ defmodule BlackboexWeb.Components.ChatErrorsTest do
       lv |> form("form[phx-submit=send_chat]", %{chat_input: ""}) |> render_submit()
 
       html = render(lv)
-      assert html =~ "Descreva"
+      assert html =~ "Describe the changes"
     end
   end
 end

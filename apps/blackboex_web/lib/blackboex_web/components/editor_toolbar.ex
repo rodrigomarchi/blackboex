@@ -18,7 +18,7 @@ defmodule BlackboexWeb.Components.EditorToolbar do
       <.link
         navigate={~p"/apis/#{@api.id}"}
         class="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent"
-        title="Voltar"
+        title="Back"
       >
         <.icon name="hero-arrow-left" class="size-4" />
       </.link>

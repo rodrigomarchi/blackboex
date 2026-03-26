@@ -81,7 +81,7 @@ defmodule BlackboexWeb.Components.ChatPanelTest do
 
       html = render(lv)
       assert html =~ "chat_input"
-      assert html =~ "Enviar"
+      assert html =~ "Send"
     end
 
     test "escapes HTML in message content (XSS prevention)", %{conn: conn, org: org, api: api} do

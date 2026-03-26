@@ -63,8 +63,8 @@ defmodule BlackboexWeb.ApiLive.ChatEditTest do
       html = render(lv)
 
       # Should show pending edit with accept/reject buttons
-      assert html =~ "Aceitar"
-      assert html =~ "Rejeitar"
+      assert html =~ "Accept"
+      assert html =~ "Reject"
 
       # Accept the edit
       lv |> element(~s(button[phx-click="accept_edit"])) |> render_click()
@@ -101,8 +101,8 @@ defmodule BlackboexWeb.ApiLive.ChatEditTest do
       wait_for_chat(lv)
 
       html = render(lv)
-      assert html =~ "Aceitar"
-      assert html =~ "Rejeitar"
+      assert html =~ "Accept"
+      assert html =~ "Reject"
 
       # Reject the edit
       lv |> element(~s(button[phx-click="reject_edit"])) |> render_click()
@@ -110,7 +110,7 @@ defmodule BlackboexWeb.ApiLive.ChatEditTest do
       html = render(lv)
 
       # Accept/Reject buttons should be gone
-      refute html =~ "Aceitar"
+      refute html =~ "Accept"
 
       # No version should have been created
       assert Apis.list_versions(api.id) == []

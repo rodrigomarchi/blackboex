@@ -69,7 +69,7 @@ defmodule BlackboexWeb.Components.ChatStreamingTest do
       html = send_chat_and_wait(lv)
 
       # After response, diff should be available
-      assert html =~ "Aceitar"
+      assert html =~ "Accept"
     end
 
     test "after stream complete, diff and buttons appear", %{conn: conn, org: org, api: api} do
@@ -80,8 +80,8 @@ defmodule BlackboexWeb.Components.ChatStreamingTest do
 
       html = send_chat_and_wait(lv)
 
-      assert html =~ "Aceitar"
-      assert html =~ "Rejeitar"
+      assert html =~ "Accept"
+      assert html =~ "Reject"
       assert html =~ "bg-green"
     end
 

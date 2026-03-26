@@ -97,8 +97,8 @@ defmodule BlackboexWeb.Components.ChatFlowTest do
       open_chat(lv)
 
       html = send_chat_and_wait(lv)
-      assert html =~ "Aceitar"
-      assert html =~ "Rejeitar"
+      assert html =~ "Accept"
+      assert html =~ "Reject"
     end
   end
 

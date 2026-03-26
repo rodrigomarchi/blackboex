@@ -67,7 +67,7 @@ defmodule BlackboexWeb.Components.RequestBuilderTest do
       lv |> render_click("switch_tab", %{"tab" => "run"})
       html = render(lv)
 
-      assert html =~ "Enviar"
+      assert html =~ "Send"
     end
   end
 
@@ -130,7 +130,7 @@ defmodule BlackboexWeb.Components.RequestBuilderTest do
       # Should not crash
       render_click(lv, "copy_snippet", %{"language" => "php"})
       html = render(lv)
-      assert html =~ "Enviar"
+      assert html =~ "Send"
     end
   end
 end

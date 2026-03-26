@@ -51,9 +51,9 @@ defmodule BlackboexWeb.Components.RequestBuilder do
               >
               </path>
             </svg>
-            Enviando...
+            Sending...
           <% else %>
-            Enviar
+            Send
           <% end %>
         </button>
       </div>

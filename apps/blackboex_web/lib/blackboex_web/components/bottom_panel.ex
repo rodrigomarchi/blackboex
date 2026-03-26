@@ -46,7 +46,7 @@ defmodule BlackboexWeb.Components.BottomPanel do
         <button
           phx-click="toggle_bottom_panel"
           class="p-1 text-muted-foreground hover:text-foreground rounded hover:bg-accent"
-          title="Fechar"
+          title="Close"
         >
           <.icon name="hero-x-mark" class="size-3.5" />
         </button>

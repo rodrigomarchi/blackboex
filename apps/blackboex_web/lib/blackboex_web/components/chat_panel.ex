@@ -20,16 +20,16 @@ defmodule BlackboexWeb.Components.ChatPanel do
         <button
           phx-click="clear_conversation"
           class="text-xs text-muted-foreground hover:text-foreground"
-          data-confirm="Limpar conversa? O código não será afetado."
+          data-confirm="Clear conversation? Code will not be affected."
         >
-          Nova conversa
+          New conversation
         </button>
       </div>
 
       <div class="flex-1 overflow-y-auto p-3 space-y-3" id="chat-messages">
         <%= if @messages == [] and @pending_edit == nil and @streaming_tokens == "" do %>
           <p class="text-xs text-muted-foreground text-center py-8">
-            Descreva as mudanças que deseja no código.
+            Describe the changes you want in the code.
           </p>
         <% else %>
           <%= for msg <- @messages do %>
@@ -73,7 +73,7 @@ defmodule BlackboexWeb.Components.ChatPanel do
         <%= if @loading && @streaming_tokens == "" && @pipeline_status in [nil, :generating_code] do %>
           <div class="flex justify-start">
             <div class="bg-muted rounded-lg px-3 py-2 text-xs text-muted-foreground animate-pulse">
-              Pensando...
+              Thinking...
             </div>
           </div>
         <% end %>
@@ -81,7 +81,7 @@ defmodule BlackboexWeb.Components.ChatPanel do
         <%!-- Pending edit with validation --%>
         <%= if @pending_edit do %>
           <div class="rounded-lg border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950 p-3 space-y-2">
-            <p class="text-xs text-blue-700 dark:text-blue-300 font-medium">Mudança proposta:</p>
+            <p class="text-xs text-blue-700 dark:text-blue-300 font-medium">Proposed change:</p>
             <p class="text-xs text-blue-600 dark:text-blue-400">{@pending_edit.explanation}</p>
 
             <%!-- Code diff --%>
@@ -116,13 +116,13 @@ defmodule BlackboexWeb.Components.ChatPanel do
                 phx-click="accept_edit"
                 class="rounded-md bg-green-600 px-3 py-1 text-xs font-medium text-white hover:bg-green-700"
               >
-                Aceitar
+                Accept
               </button>
               <button
                 phx-click="reject_edit"
                 class="rounded-md border border-red-300 px-3 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
               >
-                Rejeitar
+                Reject
               </button>
             </div>
           </div>
@@ -147,7 +147,7 @@ defmodule BlackboexWeb.Components.ChatPanel do
             type="text"
             name="chat_input"
             value={@input}
-            placeholder="Descreva as mudanças..."
+            placeholder="Describe the changes..."
             class="flex-1 rounded-md border bg-background px-3 py-1.5 text-xs"
             autocomplete="off"
             disabled={@loading}
@@ -157,7 +157,7 @@ defmodule BlackboexWeb.Components.ChatPanel do
             disabled={@loading}
             class="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           >
-            Enviar
+            Send
           </button>
         </form>
       </div>
@@ -186,14 +186,14 @@ defmodule BlackboexWeb.Components.ChatPanel do
   defp test_summary(_), do: nil
 
   defp quick_actions("crud") do
-    ["Adicionar validação", "Adicionar filtro", "Adicionar paginação", "Adicionar error handling"]
+    ["Add validation", "Add filter", "Add pagination", "Add error handling"]
   end
 
   defp quick_actions("webhook") do
-    ["Adicionar validação", "Validar assinatura", "Adicionar error handling"]
+    ["Add validation", "Validate signature", "Add error handling"]
   end
 
   defp quick_actions(_template_type) do
-    ["Adicionar validação", "Otimizar performance", "Adicionar error handling"]
+    ["Add validation", "Optimize performance", "Add error handling"]
   end
 end

@@ -14,12 +14,12 @@ defmodule BlackboexWeb.Components.RightPanel do
     <div class="flex flex-col h-full w-[340px] shrink-0 border-l bg-card overflow-hidden">
       <div class="flex items-center justify-between border-b px-3 py-2 shrink-0">
         <h2 class="text-sm font-semibold">
-          {if @mode == :chat, do: "Chat", else: "Configurações"}
+          {if @mode == :chat, do: "Chat", else: "Settings"}
         </h2>
         <button
           phx-click={if @mode == :chat, do: "toggle_chat", else: "toggle_config"}
           class="p-1 text-muted-foreground hover:text-foreground rounded hover:bg-accent"
-          title="Fechar (Esc)"
+          title="Close (Esc)"
         >
           <.icon name="hero-x-mark" class="size-3.5" />
         </button>

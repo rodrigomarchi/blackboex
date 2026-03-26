@@ -63,7 +63,7 @@ defmodule BlackboexWeb.Components.QuickActionsTest do
 
       html = render(lv)
       # CRUD-specific actions
-      assert html =~ "filtro" || html =~ "paginação" || html =~ "Filtro" || html =~ "Paginação"
+      assert html =~ "filter" || html =~ "pagination" || html =~ "Filter" || html =~ "Pagination"
     end
 
     test "renders webhook-specific quick actions for webhook template", %{
@@ -86,7 +86,7 @@ defmodule BlackboexWeb.Components.QuickActionsTest do
 
       html = render(lv)
       # Webhook-specific actions
-      assert html =~ "assinatura" || html =~ "Assinatura" || html =~ "signature"
+      assert html =~ "signature" || html =~ "Signature"
     end
   end
 end

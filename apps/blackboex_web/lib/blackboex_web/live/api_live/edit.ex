@@ -383,10 +383,10 @@ defmodule BlackboexWeb.ApiLive.Edit do
           <button
             :if={@test_history != []}
             phx-click="clear_history"
-            data-confirm="Limpar histórico de requests?"
+            data-confirm="Clear request history?"
             class="text-[10px] text-destructive hover:underline"
           >
-            Limpar
+            Clear
           </button>
         </div>
 
@@ -1458,11 +1458,11 @@ defmodule BlackboexWeb.ApiLive.Edit do
 
       {:error, :too_many_messages} ->
         {:noreply,
-         put_flash(socket, :error, "Conversa muito longa. Use 'Nova conversa' para recomeçar.")}
+         put_flash(socket, :error, "Conversation too long. Use 'New conversation' to start over.")}
 
       {:error, reason} ->
         Logger.warning("Failed to append user message: #{inspect(reason)}")
-        {:noreply, put_flash(socket, :error, "Falha ao enviar mensagem")}
+        {:noreply, put_flash(socket, :error, "Failed to send message")}
     end
   end
 
@@ -1502,7 +1502,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
 
       {:error, changeset} ->
         Logger.error("Failed to clear conversation: #{inspect(changeset)}")
-        {:noreply, put_flash(socket, :error, "Falha ao limpar conversa")}
+        {:noreply, put_flash(socket, :error, "Failed to clear conversation")}
     end
   end
 
@@ -1659,7 +1659,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
          assign(socket,
            test_loading: false,
            test_ref: nil,
-           test_error: "URL não permitida. Apenas /api/{username}/{slug}/* é aceito."
+           test_error: "URL not allowed. Only /api/{username}/{slug}/* is accepted."
          )}
 
       {:error, :timeout} ->
@@ -1667,7 +1667,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
          assign(socket,
            test_loading: false,
            test_ref: nil,
-           test_error: "Timeout: a requisição demorou demais."
+           test_error: "Timeout: the request took too long."
          )}
 
       {:error, reason} ->
@@ -1677,7 +1677,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
          assign(socket,
            test_loading: false,
            test_ref: nil,
-           test_error: "Erro de conexão. Verifique se a API está compilada."
+           test_error: "Connection error. Check if the API is compiled."
          )}
     end
   end
@@ -1902,7 +1902,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
       end
 
     {:ok, conversation} =
-      Conversations.append_message(conversation, "assistant", "Código gerado com sucesso.")
+      Conversations.append_message(conversation, "assistant", "Code generated successfully.")
 
     {:noreply,
      socket
@@ -2016,11 +2016,11 @@ defmodule BlackboexWeb.ApiLive.Edit do
            validation_report: socket.assigns.pending_edit[:validation]
          )
          |> push_editor_value(proposed_code)
-         |> put_flash(:info, "Mudança aceita e versão criada")}
+         |> put_flash(:info, "Change accepted and version created")}
 
       {:error, changeset} ->
         Logger.error("Failed to create chat_edit version: #{inspect(changeset)}")
-        {:noreply, put_flash(socket, :error, "Falha ao criar versão")}
+        {:noreply, put_flash(socket, :error, "Failed to create version")}
     end
   end
 

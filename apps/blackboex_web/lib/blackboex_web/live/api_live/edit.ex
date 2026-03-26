@@ -129,7 +129,9 @@ defmodule BlackboexWeb.ApiLive.Edit do
     %{id: "validation", label: "Validation"},
     %{id: "versions", label: "Versions"},
     %{id: "run", label: "Run"},
-    %{id: "config", label: "Config"}
+    %{id: "keys", label: "API Keys"},
+    %{id: "publish", label: "Publish"},
+    %{id: "info", label: "Info"}
   ]
 
   @impl true
@@ -430,246 +432,477 @@ defmodule BlackboexWeb.ApiLive.Edit do
     """
   end
 
-  defp render_tab_content(%{active_tab: "config"} = assigns) do
-    ~H"""
-    <div class="p-4 space-y-4 overflow-y-auto h-full max-w-2xl">
-      {render_config_info(assigns)}
-      {render_config_keys(assigns)}
-      {render_config_publish(assigns)}
-    </div>
-    """
-  end
+  # ── API Keys Tab ──────────────────────────────────────────────────────
 
-  defp render_config_info(assigns) do
+  defp render_tab_content(%{active_tab: "keys"} = assigns) do
     ~H"""
-    <details open>
-      <summary class="text-xs font-semibold text-muted-foreground uppercase cursor-pointer py-2 select-none">
-        Informações
-      </summary>
-      <div class="space-y-2 text-sm pb-4">
-        <div>
-          <span class="text-muted-foreground">Name:</span>
-          <span class="font-medium ml-1">{@api.name}</span>
-        </div>
-        <div>
-          <span class="text-muted-foreground">Slug:</span>
-          <code class="ml-1">{@api.slug}</code>
-        </div>
-        <div>
-          <span class="text-muted-foreground">Template:</span>
-          <span class="ml-1">{@api.template_type}</span>
-        </div>
-        <div>
-          <span class="text-muted-foreground">Status:</span>
-          <span class="ml-1">{@api.status}</span>
-        </div>
-        <%= if @api.status in ["compiled", "published"] do %>
-          <div>
-            <span class="text-muted-foreground">URL:</span>
-            <code class="ml-1">/api/{@org.slug}/{@api.slug}</code>
-          </div>
-        <% end %>
-      </div>
-    </details>
-    """
-  end
-
-  defp render_config_keys(assigns) do
-    ~H"""
-    <details>
-      <summary class="text-xs font-semibold text-muted-foreground uppercase cursor-pointer py-2 select-none border-t pt-4">
-        API Keys
-      </summary>
-      <div class="space-y-3 pb-4">
+    <div class="p-4 overflow-y-auto h-full max-w-3xl space-y-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-sm font-semibold">API Keys</h2>
         <button
           phx-click="create_key"
-          class="rounded bg-primary px-2 py-1 text-xs text-primary-foreground hover:bg-primary/90"
+          class="inline-flex items-center rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
         >
-          New Key
+          <.icon name="hero-plus" class="size-3 mr-1" /> Create Key
         </button>
+      </div>
 
-        <%= if @plain_key_flash do %>
-          <div class="rounded border-2 border-primary bg-muted p-2 text-xs space-y-1">
-            <p class="font-semibold text-foreground">
-              Copy this key now — it won't be shown again:
-            </p>
-            <code class="block bg-accent text-accent-foreground p-1.5 rounded font-mono text-xs break-all select-all">
+      <%= if @plain_key_flash do %>
+        <div class="rounded-lg border-2 border-amber-500 bg-amber-50 dark:bg-amber-950 p-4 space-y-2">
+          <p class="text-sm font-semibold text-amber-800 dark:text-amber-200">
+            Copy this key now — it won't be shown again
+          </p>
+          <div class="flex items-center gap-2">
+            <code class="flex-1 rounded bg-background p-2 font-mono text-xs break-all select-all border">
               {@plain_key_flash}
             </code>
             <button
-              phx-click="dismiss_key_flash"
-              class="text-primary hover:underline text-[10px]"
+              phx-click="copy_key"
+              class="shrink-0 rounded border px-2 py-1 text-xs hover:bg-accent"
             >
-              Dismiss
+              Copy
             </button>
           </div>
-        <% end %>
+          <button
+            phx-click="dismiss_key_flash"
+            class="text-xs text-muted-foreground hover:underline"
+          >
+            Dismiss
+          </button>
+        </div>
+      <% end %>
 
-        <%= if @api_keys == [] do %>
-          <p class="text-xs text-muted-foreground">No keys yet</p>
-        <% else %>
-          <div class="space-y-1">
-            <div :for={key <- @api_keys} class="rounded border p-2 text-xs space-y-1">
-              <div class="flex items-center justify-between">
-                <code class="font-mono text-muted-foreground">{key.key_prefix}...</code>
+      <%= if @api_keys == [] do %>
+        <div class="rounded-lg border border-dashed p-8 text-center">
+          <.icon name="hero-key" class="size-8 mx-auto text-muted-foreground mb-3" />
+          <p class="text-sm font-medium">No API keys yet</p>
+          <p class="text-xs text-muted-foreground mt-1">
+            Keys are required to call published APIs. Create one to get started.
+          </p>
+        </div>
+      <% else %>
+        <div class="space-y-3">
+          <div :for={key <- @api_keys} class="rounded-lg border p-4 space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <code class="font-mono text-sm">{key.key_prefix}...</code>
                 <span class={[
-                  "rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
+                  "inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold",
                   if(key.revoked_at,
-                    do: "bg-red-100 text-red-700",
-                    else: "bg-green-100 text-green-700"
+                    do: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
+                    else: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
                   )
                 ]}>
                   {if key.revoked_at, do: "Revoked", else: "Active"}
                 </span>
+                <span :if={key.label} class="text-xs text-muted-foreground">{key.label}</span>
               </div>
-              <p :if={key.label} class="text-muted-foreground">{key.label}</p>
-              <div class="flex gap-2">
+              <div :if={!key.revoked_at} class="flex items-center gap-2">
                 <button
-                  :if={!key.revoked_at}
-                  phx-click="revoke_key"
-                  phx-value-key-id={key.id}
-                  data-confirm="Revoke this key? This cannot be undone."
-                  class="text-destructive hover:underline text-[10px]"
-                >
-                  Revoke
-                </button>
-                <button
-                  :if={!key.revoked_at}
                   phx-click="rotate_key"
                   phx-value-key-id={key.id}
                   data-confirm="Rotate this key? The old key will be revoked immediately."
-                  class="text-blue-600 hover:underline text-[10px]"
+                  class="rounded border px-2 py-1 text-xs hover:bg-accent"
                 >
                   Rotate
                 </button>
+                <button
+                  phx-click="revoke_key"
+                  phx-value-key-id={key.id}
+                  data-confirm="Revoke this key? This cannot be undone."
+                  class="rounded border border-destructive/50 px-2 py-1 text-xs text-destructive hover:bg-destructive/10"
+                >
+                  Revoke
+                </button>
               </div>
             </div>
+
+            <div class="grid grid-cols-3 gap-4 text-xs text-muted-foreground">
+              <div>
+                <span class="block text-[10px] uppercase tracking-wide">Created</span>
+                {Calendar.strftime(key.inserted_at, "%Y-%m-%d")}
+              </div>
+              <div>
+                <span class="block text-[10px] uppercase tracking-wide">Last used</span>
+                {if key.last_used_at, do: time_ago(key.last_used_at), else: "never"}
+              </div>
+              <div>
+                <span class="block text-[10px] uppercase tracking-wide">
+                  {if key.revoked_at, do: "Revoked", else: "Expires"}
+                </span>
+                {cond do
+                  key.revoked_at -> Calendar.strftime(key.revoked_at, "%Y-%m-%d")
+                  key.expires_at -> Calendar.strftime(key.expires_at, "%Y-%m-%d")
+                  true -> "never"
+                end}
+              </div>
+            </div>
+
+            <%= if !key.revoked_at && key.metrics do %>
+              <div class="grid grid-cols-4 gap-2">
+                <div class="rounded border p-2 text-center">
+                  <p class="text-sm font-bold">{key.metrics.total_requests}</p>
+                  <p class="text-[10px] text-muted-foreground">Requests</p>
+                </div>
+                <div class="rounded border p-2 text-center">
+                  <p class="text-sm font-bold">{key.metrics.success_rate}%</p>
+                  <p class="text-[10px] text-muted-foreground">Success</p>
+                </div>
+                <div class="rounded border p-2 text-center">
+                  <p class="text-sm font-bold">{key.metrics.avg_latency}ms</p>
+                  <p class="text-[10px] text-muted-foreground">Latency</p>
+                </div>
+                <div class="rounded border p-2 text-center">
+                  <p class="text-sm font-bold">{key.metrics.errors}</p>
+                  <p class="text-[10px] text-muted-foreground">Errors</p>
+                </div>
+              </div>
+              <p class="text-[10px] text-muted-foreground">Last 7 days</p>
+            <% end %>
           </div>
-        <% end %>
-      </div>
-    </details>
+        </div>
+      <% end %>
+    </div>
     """
   end
 
-  defp render_config_publish(assigns) do
+  # ── Publish Tab ─────────────────────────────────────────────────────
+
+  defp render_tab_content(%{active_tab: "publish"} = assigns) do
     ~H"""
-    <details>
-      <summary class="text-xs font-semibold text-muted-foreground uppercase cursor-pointer py-2 select-none border-t pt-4">
-        Publicação
-      </summary>
-      <div class="space-y-3 pb-4">
-        <div class="space-y-2 text-xs">
-          <div>
-            <span class="text-muted-foreground">Status:</span>
+    <div class="p-4 overflow-y-auto h-full max-w-3xl space-y-6">
+      <h2 class="text-sm font-semibold">Publication</h2>
+
+      <%!-- Status card --%>
+      <div class="rounded-lg border p-4 space-y-2">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-muted-foreground">Status</span>
             <span class={[
-              "inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ml-1",
+              "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold",
               status_color(@api.status)
             ]}>
               {@api.status}
             </span>
           </div>
-          <div>
-            <span class="text-muted-foreground">URL:</span>
-            <code class="ml-1 font-mono">/api/{@org.slug}/{@api.slug}</code>
-          </div>
-        </div>
-
-        <%= if @api.status == "compiled" do %>
-          <button
-            phx-click="publish"
-            class="w-full rounded bg-blue-600 px-3 py-2 text-xs font-medium text-white hover:bg-blue-700"
-          >
-            Publish API
-          </button>
-        <% end %>
-
-        <%= if @api.status == "published" do %>
-          <%= if @metrics do %>
-            <div class="grid grid-cols-3 gap-2">
-              <div class="rounded border p-2 text-center">
-                <p class="text-lg font-bold">{@metrics.count_24h}</p>
-                <p class="text-[10px] text-muted-foreground">24h calls</p>
-              </div>
-              <div class="rounded border p-2 text-center">
-                <p class="text-lg font-bold">{@metrics.success_rate}%</p>
-                <p class="text-[10px] text-muted-foreground">Success</p>
-              </div>
-              <div class="rounded border p-2 text-center">
-                <p class="text-lg font-bold">{@metrics.avg_latency}ms</p>
-                <p class="text-[10px] text-muted-foreground">Avg latency</p>
-              </div>
-            </div>
-          <% end %>
-
-          <button
-            phx-click="unpublish"
-            data-confirm="Unpublish this API? It will no longer be accessible."
-            class="w-full rounded border border-destructive px-3 py-2 text-xs font-medium text-destructive hover:bg-destructive/10"
-          >
-            Unpublish
-          </button>
-        <% end %>
-
-        <%= if @api.status == "draft" do %>
-          <p class="text-xs text-muted-foreground">
-            Compile the API first before publishing.
-          </p>
-        <% end %>
-
-        <%!-- Documentation & OpenAPI --%>
-        <div class="border-t pt-3 mt-3">
-          <h4 class="text-xs font-semibold text-muted-foreground uppercase mb-2">
-            API Documentation
-          </h4>
-
-          <%!-- OpenAPI links — available for any compiled API --%>
-          <%= if @api.status in ["compiled", "published"] do %>
-            <div class="flex flex-col gap-1 mb-2">
-              <a
-                href={"/api/#{@org.slug}/#{@api.slug}/docs"}
-                target="_blank"
-                class="flex items-center gap-1.5 text-xs text-primary hover:underline"
-              >
-                <.icon name="hero-document-text" class="size-3.5" /> Swagger UI
-              </a>
-              <a
-                href={"/api/#{@org.slug}/#{@api.slug}/openapi.json"}
-                target="_blank"
-                class="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground hover:underline"
-              >
-                <.icon name="hero-code-bracket" class="size-3.5" /> OpenAPI JSON
-              </a>
-            </div>
-          <% end %>
-
-          <%!-- Markdown docs generation --%>
-          <%= if @api.status in ["compiled", "published"] do %>
+          <%= if @api.status == "compiled" do %>
             <button
-              phx-click="generate_docs"
-              disabled={@doc_generating}
-              class="w-full rounded border px-3 py-1.5 text-xs font-medium hover:bg-accent disabled:opacity-50"
+              phx-click="publish"
+              class="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700"
             >
-              {if @doc_generating,
-                do: "Generating...",
-                else: if(@api.documentation_md, do: "Regenerate Docs", else: "Generate Docs")}
+              Publish API
             </button>
-            <%= if @api.documentation_md do %>
-              <p class="text-[10px] text-green-600 mt-1">Documentation available on public page</p>
-            <% end %>
-          <% else %>
-            <p class="text-xs text-muted-foreground">
-              Save to compile the API and enable documentation.
-            </p>
+          <% end %>
+          <%= if @api.status == "published" do %>
+            <button
+              phx-click="unpublish"
+              data-confirm="Unpublish this API? It will no longer be accessible."
+              class="rounded-md border border-destructive px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10"
+            >
+              Unpublish
+            </button>
+          <% end %>
+        </div>
+        <div class="flex items-center gap-2 text-xs">
+          <span class="text-muted-foreground">URL</span>
+          <code class="font-mono">/api/{@org.slug}/{@api.slug}</code>
+          <button
+            phx-click="copy_url"
+            class="text-primary hover:underline text-[10px]"
+          >
+            Copy
+          </button>
+          <%= if @api.status == "draft" do %>
+            <span class="text-muted-foreground">(preview)</span>
           <% end %>
         </div>
       </div>
-    </details>
+
+      <%= if @api.status == "draft" do %>
+        <p class="text-sm text-muted-foreground">
+          Save the API to compile it. Once compiled, you can publish.
+        </p>
+      <% end %>
+
+      <%= if @api.status == "compiled" do %>
+        <p class="text-sm text-muted-foreground">
+          Ready to publish. A default API key will be created automatically.
+        </p>
+      <% end %>
+
+      <%!-- Metrics --%>
+      <%= if @api.status == "published" && @metrics do %>
+        <div>
+          <h3 class="text-xs font-semibold text-muted-foreground uppercase mb-3">Metrics (24h)</h3>
+          <div class="grid grid-cols-4 gap-3">
+            <div class="rounded-lg border p-3 text-center">
+              <p class="text-xl font-bold">{@metrics.count_24h}</p>
+              <p class="text-[10px] text-muted-foreground">Total Calls</p>
+            </div>
+            <div class="rounded-lg border p-3 text-center">
+              <p class="text-xl font-bold">{@metrics.success_rate}%</p>
+              <p class="text-[10px] text-muted-foreground">Success Rate</p>
+            </div>
+            <div class="rounded-lg border p-3 text-center">
+              <p class="text-xl font-bold">{@metrics.avg_latency}ms</p>
+              <p class="text-[10px] text-muted-foreground">Avg Latency</p>
+            </div>
+            <div class="rounded-lg border p-3 text-center">
+              <p class="text-xl font-bold">{@metrics[:error_count] || 0}</p>
+              <p class="text-[10px] text-muted-foreground">Errors</p>
+            </div>
+          </div>
+        </div>
+      <% end %>
+
+      <%!-- Documentation --%>
+      <%= if @api.status in ["compiled", "published"] do %>
+        <div>
+          <h3 class="text-xs font-semibold text-muted-foreground uppercase mb-3">Documentation</h3>
+          <div class="space-y-2">
+            <div class="flex items-center justify-between rounded border p-3">
+              <div class="flex items-center gap-2">
+                <.icon name="hero-document-text" class="size-4 text-muted-foreground" />
+                <span class="text-sm">Swagger UI</span>
+              </div>
+              <a
+                href={"/api/#{@org.slug}/#{@api.slug}/docs"}
+                target="_blank"
+                class="text-xs text-primary hover:underline"
+              >
+                Open
+              </a>
+            </div>
+            <div class="flex items-center justify-between rounded border p-3">
+              <div class="flex items-center gap-2">
+                <.icon name="hero-code-bracket" class="size-4 text-muted-foreground" />
+                <span class="text-sm">OpenAPI JSON</span>
+              </div>
+              <a
+                href={"/api/#{@org.slug}/#{@api.slug}/openapi.json"}
+                target="_blank"
+                class="text-xs text-primary hover:underline"
+              >
+                Open
+              </a>
+            </div>
+            <div class="flex items-center justify-between rounded border p-3">
+              <div class="flex items-center gap-2">
+                <.icon name="hero-document-check" class="size-4 text-muted-foreground" />
+                <span class="text-sm">Markdown Docs</span>
+                <%= if @api.documentation_md do %>
+                  <span class="text-[10px] text-green-600 font-medium">Generated</span>
+                <% end %>
+              </div>
+              <button
+                phx-click="generate_docs"
+                disabled={@doc_generating}
+                class="text-xs text-primary hover:underline disabled:opacity-50"
+              >
+                {if @doc_generating,
+                  do: "Generating...",
+                  else: if(@api.documentation_md, do: "Regenerate", else: "Generate")}
+              </button>
+            </div>
+          </div>
+        </div>
+      <% end %>
+
+      <%!-- Settings --%>
+      <div>
+        <h3 class="text-xs font-semibold text-muted-foreground uppercase mb-3">Settings</h3>
+        <form phx-submit="save_publish_settings" class="space-y-3">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="text-xs font-medium">HTTP Method</label>
+              <select
+                name="method"
+                class="mt-1 w-full rounded-md border bg-background px-3 py-1.5 text-sm"
+              >
+                <option
+                  :for={m <- ~w(GET POST PUT PATCH DELETE)}
+                  value={m}
+                  selected={m == @api.method}
+                >
+                  {m}
+                </option>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs font-medium">Visibility</label>
+              <select
+                name="visibility"
+                class="mt-1 w-full rounded-md border bg-background px-3 py-1.5 text-sm"
+              >
+                <option value="private" selected={@api.visibility == "private"}>Private</option>
+                <option value="public" selected={@api.visibility == "public"}>Public</option>
+              </select>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="requires_auth"
+              name="requires_auth"
+              value="true"
+              checked={@api.requires_auth}
+              class="rounded border"
+            />
+            <label for="requires_auth" class="text-xs font-medium">
+              Require authentication (API key)
+            </label>
+          </div>
+          <button
+            type="submit"
+            class="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            Save Settings
+          </button>
+        </form>
+      </div>
+    </div>
+    """
+  end
+
+  # ── Info Tab ────────────────────────────────────────────────────────
+
+  defp render_tab_content(%{active_tab: "info"} = assigns) do
+    ~H"""
+    <div class="p-4 overflow-y-auto h-full max-w-3xl space-y-6">
+      <h2 class="text-sm font-semibold">API Information</h2>
+
+      <%!-- General --%>
+      <div>
+        <h3 class="text-xs font-semibold text-muted-foreground uppercase mb-3">General</h3>
+        <form phx-submit="update_info" class="space-y-3">
+          <div>
+            <label class="text-xs font-medium">Name</label>
+            <input
+              type="text"
+              name="name"
+              value={@api.name}
+              maxlength="200"
+              class="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm"
+            />
+          </div>
+          <div>
+            <label class="text-xs font-medium">Description</label>
+            <textarea
+              name="description"
+              rows="3"
+              maxlength="10000"
+              class="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm"
+            >{@api.description}</textarea>
+          </div>
+          <div class="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span class="text-xs text-muted-foreground">Slug</span>
+              <p class="font-mono">{@api.slug}</p>
+            </div>
+            <div>
+              <span class="text-xs text-muted-foreground">Template</span>
+              <p>{@api.template_type}</p>
+            </div>
+            <div>
+              <span class="text-xs text-muted-foreground">Created</span>
+              <p>{Calendar.strftime(@api.inserted_at, "%Y-%m-%d %H:%M")}</p>
+            </div>
+            <div>
+              <span class="text-xs text-muted-foreground">Last modified</span>
+              <p>{Calendar.strftime(@api.updated_at, "%Y-%m-%d %H:%M")}</p>
+            </div>
+          </div>
+          <button
+            type="submit"
+            class="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            Save Changes
+          </button>
+        </form>
+      </div>
+
+      <%!-- Code Stats --%>
+      <div>
+        <h3 class="text-xs font-semibold text-muted-foreground uppercase mb-3">Code Stats</h3>
+        <div class="grid grid-cols-4 gap-3">
+          <div class="rounded-lg border p-3 text-center">
+            <p class="text-xl font-bold">{count_lines(@api.source_code)}</p>
+            <p class="text-[10px] text-muted-foreground">Source Lines</p>
+          </div>
+          <div class="rounded-lg border p-3 text-center">
+            <p class="text-xl font-bold">{count_lines(@api.test_code)}</p>
+            <p class="text-[10px] text-muted-foreground">Test Lines</p>
+          </div>
+          <div class="rounded-lg border p-3 text-center">
+            <p class="text-xl font-bold">{length(@versions)}</p>
+            <p class="text-[10px] text-muted-foreground">Versions</p>
+          </div>
+          <div class="rounded-lg border p-3 text-center">
+            <p class="text-xl font-bold">
+              {if @versions != [], do: "v#{hd(@versions).version_number}", else: "-"}
+            </p>
+            <p class="text-[10px] text-muted-foreground">Latest</p>
+          </div>
+        </div>
+      </div>
+
+      <%!-- Request/Response Schema --%>
+      <%= if @api.param_schema || @api.example_request || @api.example_response do %>
+        <div>
+          <h3 class="text-xs font-semibold text-muted-foreground uppercase mb-3">
+            Request/Response Schema
+          </h3>
+          <div class="space-y-3">
+            <%= if @api.param_schema do %>
+              <div>
+                <span class="text-xs font-medium">Param Schema</span>
+                <pre class="mt-1 rounded-md bg-muted p-3 text-xs font-mono overflow-x-auto"><code>{format_json(@api.param_schema)}</code></pre>
+              </div>
+            <% end %>
+            <div class="grid grid-cols-2 gap-3">
+              <%= if @api.example_request do %>
+                <div>
+                  <span class="text-xs font-medium">Example Request</span>
+                  <pre class="mt-1 rounded-md bg-muted p-3 text-xs font-mono overflow-x-auto"><code>{format_json(@api.example_request)}</code></pre>
+                </div>
+              <% end %>
+              <%= if @api.example_response do %>
+                <div>
+                  <span class="text-xs font-medium">Example Response</span>
+                  <pre class="mt-1 rounded-md bg-muted p-3 text-xs font-mono overflow-x-auto"><code>{format_json(@api.example_response)}</code></pre>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      <% end %>
+
+      <%!-- Danger Zone --%>
+      <div>
+        <h3 class="text-xs font-semibold text-muted-foreground uppercase mb-3">Danger Zone</h3>
+        <div class="rounded-lg border border-destructive/30 p-4 flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium">Archive this API</p>
+            <p class="text-xs text-muted-foreground">
+              Removes from active list. Published APIs will be unpublished first.
+            </p>
+          </div>
+          <button
+            phx-click="archive_api"
+            data-confirm="Archive this API? Published APIs will be unpublished. This cannot be undone."
+            class="rounded-md border border-destructive px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10"
+          >
+            Archive API
+          </button>
+        </div>
+      </div>
+    </div>
     """
   end
 
   # ── Tab Events ────────────────────────────────────────────────────────
 
-  @valid_tabs ~w(code tests validation versions run config)
+  @valid_tabs ~w(code tests validation versions run keys publish info)
 
   @impl true
   def handle_event("switch_tab", %{"tab" => tab}, socket) when tab in @valid_tabs do
@@ -697,7 +930,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
   # Keep old events as aliases for compatibility (command palette, keyboard shortcuts)
   @impl true
   def handle_event("toggle_config", _params, socket) do
-    {:noreply, socket |> assign(active_tab: "config") |> lazy_load_tab("config")}
+    {:noreply, socket |> assign(active_tab: "publish") |> lazy_load_tab("publish")}
   end
 
   @impl true
@@ -874,8 +1107,8 @@ defmodule BlackboexWeb.ApiLive.Edit do
          |> assign(
            api: published_api,
            plain_key_flash: plain_key,
-           active_tab: "config",
-           api_keys: Keys.list_keys(published_api.id),
+           active_tab: "keys",
+           api_keys: enrich_keys_with_metrics(Keys.list_keys(published_api.id)),
            keys_loaded: true
          )
          |> lazy_load_tab("publish")
@@ -914,7 +1147,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
 
     case Keys.create_key(api, %{label: "API Key", organization_id: org.id}) do
       {:ok, plain_key, _api_key} ->
-        keys = Keys.list_keys(api.id)
+        keys = enrich_keys_with_metrics(Keys.list_keys(api.id))
         {:noreply, assign(socket, api_keys: keys, plain_key_flash: plain_key)}
 
       {:error, _changeset} ->
@@ -930,7 +1163,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
     if key do
       case Keys.revoke_key(key) do
         {:ok, _} ->
-          keys = Keys.list_keys(api.id)
+          keys = enrich_keys_with_metrics(Keys.list_keys(api.id))
           {:noreply, assign(socket, api_keys: keys)}
 
         {:error, _} ->
@@ -949,7 +1182,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
     if key do
       case Keys.rotate_key(key) do
         {:ok, plain_key, _new_key} ->
-          keys = Keys.list_keys(api.id)
+          keys = enrich_keys_with_metrics(Keys.list_keys(api.id))
           {:noreply, assign(socket, api_keys: keys, plain_key_flash: plain_key)}
 
         {:error, _} ->
@@ -1288,6 +1521,78 @@ defmodule BlackboexWeb.ApiLive.Edit do
        chat_loading: false,
        streaming_tokens: ""
      )}
+  end
+
+  # ── Info & Settings Events ───────────────────────────────────────────
+
+  @impl true
+  def handle_event("update_info", %{"name" => name, "description" => description}, socket) do
+    case Apis.update_api(socket.assigns.api, %{
+           name: String.trim(name),
+           description: String.trim(description)
+         }) do
+      {:ok, api} ->
+        {:noreply,
+         socket
+         |> assign(api: api, page_title: "Edit: #{api.name}")
+         |> put_flash(:info, "API info updated")}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Failed to update API info")}
+    end
+  end
+
+  @impl true
+  def handle_event("save_publish_settings", params, socket) do
+    attrs = %{
+      method: params["method"],
+      visibility: params["visibility"],
+      requires_auth: params["requires_auth"] == "true"
+    }
+
+    case Apis.update_api(socket.assigns.api, attrs) do
+      {:ok, api} ->
+        {:noreply,
+         socket
+         |> assign(api: api, test_url: "/api/#{socket.assigns.org.slug}/#{api.slug}")
+         |> put_flash(:info, "Settings saved")}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Failed to save settings")}
+    end
+  end
+
+  @impl true
+  def handle_event("copy_url", _params, socket) do
+    url = "/api/#{socket.assigns.org.slug}/#{socket.assigns.api.slug}"
+    {:noreply, push_event(socket, "copy_to_clipboard", %{text: url})}
+  end
+
+  @impl true
+  def handle_event("copy_key", _params, socket) do
+    if socket.assigns.plain_key_flash do
+      {:noreply, push_event(socket, "copy_to_clipboard", %{text: socket.assigns.plain_key_flash})}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_event("archive_api", _params, socket) do
+    api = socket.assigns.api
+
+    if api.status == "published", do: Apis.unpublish(api)
+
+    case Apis.update_api(api, %{status: "archived"}) do
+      {:ok, _api} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "API archived")
+         |> push_navigate(to: ~p"/apis")}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Failed to archive API")}
+    end
   end
 
   # ── Doc Generation Events ─────────────────────────────────────────────
@@ -1889,19 +2194,13 @@ defmodule BlackboexWeb.ApiLive.Edit do
     lazy_load_tab(socket, "test")
   end
 
-  defp lazy_load_tab(socket, "config") do
-    socket
-    |> lazy_load_tab("keys")
-    |> lazy_load_tab("publish")
-  end
-
   defp lazy_load_tab(socket, "test") when not socket.assigns.history_loaded do
     history = Testing.list_test_requests(socket.assigns.api.id)
     assign(socket, test_history: history, history_loaded: true)
   end
 
   defp lazy_load_tab(socket, "keys") when not socket.assigns.keys_loaded do
-    keys = Keys.list_keys(socket.assigns.api.id)
+    keys = enrich_keys_with_metrics(Keys.list_keys(socket.assigns.api.id))
     assign(socket, api_keys: keys, keys_loaded: true)
   end
 
@@ -1911,7 +2210,8 @@ defmodule BlackboexWeb.ApiLive.Edit do
     metrics = %{
       count_24h: Analytics.invocations_count(api_id, period: :day),
       success_rate: Analytics.success_rate(api_id, period: :day),
-      avg_latency: Analytics.avg_latency(api_id, period: :day)
+      avg_latency: Analytics.avg_latency(api_id, period: :day),
+      error_count: Analytics.error_count(api_id, period: :day)
     }
 
     assign(socket, metrics: metrics)
@@ -2115,6 +2415,39 @@ defmodule BlackboexWeb.ApiLive.Edit do
 
   defp editor_value("code", code, _test_code), do: code
   defp editor_value("tests", _code, test_code), do: test_code
+
+  defp count_lines(nil), do: 0
+  defp count_lines(""), do: 0
+  defp count_lines(code), do: code |> String.split("\n") |> length()
+
+  defp format_json(nil), do: ""
+  defp format_json(map) when is_map(map), do: Jason.encode!(map, pretty: true)
+  defp format_json(other), do: inspect(other)
+
+  defp time_ago(nil), do: "never"
+
+  defp time_ago(%NaiveDateTime{} = dt) do
+    diff = NaiveDateTime.diff(NaiveDateTime.utc_now(), dt, :second)
+
+    cond do
+      diff < 60 -> "just now"
+      diff < 3600 -> "#{div(diff, 60)} min ago"
+      diff < 86_400 -> "#{div(diff, 3600)} hours ago"
+      true -> "#{div(diff, 86_400)} days ago"
+    end
+  end
+
+  defp time_ago(_), do: "unknown"
+
+  defp enrich_keys_with_metrics(keys) do
+    Enum.map(keys, fn key ->
+      if key.revoked_at do
+        Map.put(key, :metrics, nil)
+      else
+        Map.put(key, :metrics, Keys.key_metrics(key.id))
+      end
+    end)
+  end
 
   defp generation_to_pipeline_status("pending"), do: :generating_code
   defp generation_to_pipeline_status("generating"), do: :generating_code

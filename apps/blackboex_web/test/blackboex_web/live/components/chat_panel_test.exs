@@ -101,7 +101,7 @@ defmodule BlackboexWeb.Components.ChatPanelTest do
   end
 
   describe "IDE layout" do
-    test "renders Chat, Config, and Test panel toggle buttons", %{
+    test "renders all tabs including Chat toggle", %{
       conn: conn,
       org: org,
       api: api
@@ -109,18 +109,17 @@ defmodule BlackboexWeb.Components.ChatPanelTest do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
       html = render(lv)
-      # Toolbar always shows toggle buttons for Chat, Test, Config
       assert html =~ "Chat"
-      assert html =~ "Test"
-      assert html =~ "Config"
+      assert html =~ "Publish"
+      assert html =~ "API Keys"
     end
 
-    test "opening config panel shows Informações", %{conn: conn, org: org, api: api} do
+    test "publish tab shows publication section", %{conn: conn, org: org, api: api} do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-      lv |> render_click("switch_tab", %{"tab" => "config"})
+      lv |> render_click("switch_tab", %{"tab" => "publish"})
 
       html = render(lv)
-      assert html =~ "Informações"
+      assert html =~ "Publication"
     end
 
     test "opening bottom panel shows Versions tab", %{conn: conn, org: org, api: api} do

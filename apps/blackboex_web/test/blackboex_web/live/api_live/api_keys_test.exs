@@ -32,10 +32,10 @@ defmodule BlackboexWeb.ApiLive.ApiKeysTest do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
       # Open the Config panel (keys section is inside)
-      lv |> render_click("switch_tab", %{"tab" => "config"})
+      lv |> render_click("switch_tab", %{"tab" => "keys"})
 
       html = render(lv)
-      assert html =~ "No keys yet"
+      assert html =~ "No API keys yet"
 
       # Create a key
       html = lv |> element(~s(button[phx-click="create_key"])) |> render_click()

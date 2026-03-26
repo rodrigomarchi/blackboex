@@ -99,7 +99,7 @@ defmodule BlackboexWeb.Live.BillingEnforcementTest do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
       # Open config panel where the generate docs button lives (in the publish section)
-      lv |> render_click("switch_tab", %{"tab" => "config"})
+      lv |> render_click("switch_tab", %{"tab" => "publish"})
 
       lv |> element(~s(button[phx-click="generate_docs"])) |> render_click()
 

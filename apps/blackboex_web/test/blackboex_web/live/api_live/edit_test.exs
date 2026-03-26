@@ -66,18 +66,21 @@ defmodule BlackboexWeb.ApiLive.EditTest do
       assert html =~ "Save"
     end
 
-    test "shows panel toggle buttons in toolbar", %{conn: conn, org: org, api: api} do
+    test "shows all tabs in tab bar", %{conn: conn, org: org, api: api} do
       {:ok, _lv, html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
-      assert html =~ "Chat"
-      assert html =~ "Test"
-      assert html =~ "Config"
+      assert html =~ "Code"
+      assert html =~ "Tests"
+      assert html =~ "Validation"
+      assert html =~ "API Keys"
+      assert html =~ "Publish"
+      assert html =~ "Info"
     end
 
-    test "shows API info when config panel is opened", %{conn: conn, org: org, api: api} do
+    test "shows API info in info tab", %{conn: conn, org: org, api: api} do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
-      html = lv |> render_click("switch_tab", %{"tab" => "config"})
+      html = lv |> render_click("switch_tab", %{"tab" => "info"})
 
       assert html =~ "calculator"
       assert html =~ "computation"

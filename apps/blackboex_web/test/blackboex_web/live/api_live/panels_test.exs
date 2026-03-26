@@ -63,14 +63,18 @@ defmodule BlackboexWeb.ApiLive.PanelsTest do
       refute html =~ "Descreva as mudanças"
     end
 
-    test "config tab shows all sections", %{conn: conn, org: org, api: api} do
+    test "publish tab shows publication section", %{conn: conn, org: org, api: api} do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
-      html = render_click(lv, "switch_tab", %{"tab" => "config"})
+      html = render_click(lv, "switch_tab", %{"tab" => "publish"})
+      assert html =~ "Publication"
+      assert html =~ "Settings"
+    end
 
-      assert html =~ "Informações"
-      assert html =~ "API Keys"
-      assert html =~ "Publicação"
+    test "info tab shows API information", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
+
+      html = render_click(lv, "switch_tab", %{"tab" => "info"})
       assert html =~ "calculator"
       assert html =~ "computation"
     end
@@ -103,10 +107,10 @@ defmodule BlackboexWeb.ApiLive.PanelsTest do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
       render_click(lv, "toggle_chat", %{})
-      html = render_click(lv, "switch_tab", %{"tab" => "config"})
+      html = render_click(lv, "switch_tab", %{"tab" => "publish"})
 
       assert html =~ "Descreva as mudanças"
-      assert html =~ "Informações"
+      assert html =~ "Publication"
     end
   end
 

@@ -13,7 +13,13 @@ defmodule Blackboex.CodeGen.GenerationWorker do
   4. Save source_code + test_code to the API record and create version v1
   """
 
-  use Oban.Worker, queue: :generation, max_attempts: 2, unique: [keys: [:api_id]]
+  use Oban.Worker,
+    queue: :generation,
+    max_attempts: 2,
+    unique: [keys: [:api_id]]
+
+  @impl Oban.Worker
+  def timeout(_job), do: :timer.minutes(5)
 
   require Logger
 

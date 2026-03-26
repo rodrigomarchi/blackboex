@@ -105,6 +105,10 @@ defmodule BlackboexWeb.Components.ChatPanel do
                   detail={test_summary(@pending_edit.validation.test_results)}
                 />
               </div>
+            <% else %>
+              <p class="text-[10px] text-muted-foreground italic">
+                Validation will run after you accept.
+              </p>
             <% end %>
 
             <p class="text-xs text-muted-foreground">

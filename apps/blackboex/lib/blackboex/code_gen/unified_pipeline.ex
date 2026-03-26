@@ -16,6 +16,7 @@ defmodule Blackboex.CodeGen.UnifiedPipeline do
   require Logger
 
   alias Blackboex.Apis.Api
+  alias Blackboex.Apis.DiffEngine
   alias Blackboex.CodeGen.Compiler
   alias Blackboex.CodeGen.Linter
   alias Blackboex.CodeGen.UnifiedPrompts
@@ -111,6 +112,80 @@ defmodule Blackboex.CodeGen.UnifiedPipeline do
 
           {:error, _} = error ->
             error
+        end
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  @doc """
+  Generate code via chat edit WITHOUT running validation.
+  Returns the proposed code and explanation immediately for user review.
+  Validation runs separately after the user accepts the change.
+  """
+  @spec generate_edit_only(Api.t(), String.t(), String.t(), [map()], keyword()) ::
+          {:ok, %{code: String.t(), explanation: String.t(), usage: map()}} | {:error, term()}
+  def generate_edit_only(%Api{} = api, current_code, instruction, history, opts \\ []) do
+    template_type = safe_template_atom(api.template_type)
+    ctx = build_context(current_code, nil, template_type, opts)
+
+    notify_progress(ctx, :generating_code, 0, "Generating code changes...")
+
+    case generate_code_streaming(current_code, instruction, history, ctx) do
+      {:ok, new_code, explanation, _usage} ->
+        {:ok, %{code: new_code, explanation: explanation, usage: %{}}}
+
+      {:error, {:search_mismatch, failed_search}} ->
+        # Retry: ask LLM to fix the SEARCH block
+        retry_search_replace(ctx, current_code, instruction, failed_search)
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp retry_search_replace(ctx, current_code, instruction, failed_search) do
+    notify_progress(ctx, :generating_code, 1, "Retrying with corrected search...")
+    client = Config.client()
+    prompt = EditPrompts.build_search_retry_prompt(current_code, instruction, failed_search)
+    system = EditPrompts.system_prompt()
+
+    case client.stream_text(prompt, system: system) do
+      {:ok, stream} ->
+        full_response = consume_stream(stream, ctx.token_callback)
+
+        case apply_edit_response(full_response, current_code) do
+          {:ok, new_code, explanation, _} ->
+            {:ok, %{code: new_code, explanation: explanation, usage: %{}}}
+
+          {:error, _} ->
+            # Final fallback: ask for complete code
+            fallback_to_full_code(ctx, current_code, instruction)
+        end
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp fallback_to_full_code(ctx, current_code, instruction) do
+    notify_progress(ctx, :generating_code, 2, "Falling back to full code generation...")
+    client = Config.client()
+    prompt = EditPrompts.build_edit_prompt(current_code, instruction, [])
+    system = EditPrompts.fallback_system_prompt()
+
+    case client.stream_text(prompt, system: system) do
+      {:ok, stream} ->
+        full_response = consume_stream(stream, ctx.token_callback)
+
+        case EditPrompts.extract_code_block(full_response) do
+          nil ->
+            {:error, :no_code_found}
+
+          code ->
+            explanation = EditPrompts.extract_explanation(full_response)
+            {:ok, %{code: String.trim(code), explanation: explanation, usage: %{}}}
         end
 
       {:error, reason} ->
@@ -339,17 +414,26 @@ defmodule Blackboex.CodeGen.UnifiedPipeline do
     case client.stream_text(prompt, system: system) do
       {:ok, stream} ->
         full_response = consume_stream(stream, ctx.token_callback)
-        parse_code_response(full_response)
+        apply_edit_response(full_response, current_code)
 
       {:error, reason} ->
         {:error, reason}
     end
   end
 
-  defp parse_code_response(full_response) do
+  defp apply_edit_response(full_response, current_code) do
     case EditPrompts.parse_response(full_response) do
-      {:ok, code, explanation} -> {:ok, code, explanation, %{}}
-      {:error, :no_code_found} -> {:error, :no_code_found}
+      {:ok, :search_replace, blocks, explanation} ->
+        case DiffEngine.apply_search_replace(current_code, blocks) do
+          {:ok, new_code} -> {:ok, new_code, explanation, %{}}
+          {:error, :search_not_found, failed} -> {:error, {:search_mismatch, failed}}
+        end
+
+      {:ok, :full_code, code, explanation} ->
+        {:ok, code, explanation, %{}}
+
+      {:error, :no_changes_found} ->
+        {:error, :no_changes_found}
     end
   end
 

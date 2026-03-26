@@ -1,6 +1,6 @@
 defmodule Blackboex.Apis.DiffEngine do
   @moduledoc """
-  Computes line-level diffs between code versions using List.myers_difference/2.
+  Computes line-level diffs and applies search/replace edits.
   """
 
   @spec compute_diff(String.t(), String.t()) :: [{:eq | :ins | :del, [String.t()]}]
@@ -28,6 +28,52 @@ defmodule Blackboex.Apis.DiffEngine do
     case parts do
       [] -> "no changes"
       _ -> Enum.join(parts, ", ")
+    end
+  end
+
+  @doc """
+  Applies SEARCH/REPLACE blocks to code. Each block's SEARCH text must match
+  a contiguous section of the code exactly. Tries exact match first, then
+  fuzzy match ignoring trailing whitespace.
+  """
+  @spec apply_search_replace(String.t(), [%{search: String.t(), replace: String.t()}]) ::
+          {:ok, String.t()} | {:error, :search_not_found, String.t()}
+  def apply_search_replace(code, blocks) do
+    Enum.reduce_while(blocks, {:ok, code}, fn block, {:ok, current} ->
+      cond do
+        String.contains?(current, block.search) ->
+          {:cont, {:ok, String.replace(current, block.search, block.replace, global: false)}}
+
+        String.contains?(normalize_ws(current), normalize_ws(block.search)) ->
+          {:cont, {:ok, replace_fuzzy(current, block.search, block.replace)}}
+
+        true ->
+          {:halt, {:error, :search_not_found, block.search}}
+      end
+    end)
+  end
+
+  defp normalize_ws(text) do
+    text
+    |> String.split("\n")
+    |> Enum.map(&String.trim_trailing/1)
+    |> Enum.join("\n")
+  end
+
+  defp replace_fuzzy(code, search, replace) do
+    normalized_code = normalize_ws(code)
+    normalized_search = normalize_ws(search)
+
+    case :binary.match(normalized_code, normalized_search) do
+      {start, len} ->
+        # Find the corresponding position in the original code
+        before = binary_part(code, 0, start)
+        after_pos = start + len
+        after_text = binary_part(code, after_pos, byte_size(code) - after_pos)
+        before <> replace <> after_text
+
+      :nomatch ->
+        code
     end
   end
 end

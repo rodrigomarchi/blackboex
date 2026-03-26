@@ -125,6 +125,8 @@ defmodule BlackboexWeb.ApiLive.Edit do
            command_palette_open: false,
            command_palette_query: "",
            command_palette_selected: 0,
+           # Edit rollback state
+           pre_edit_code: nil,
            # Generation state
            generation_status: api.generation_status,
            generation_tokens: "",
@@ -243,7 +245,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
             api_id={@api.id}
             pending_edit={@pending_edit}
             template_type={@api.template_type}
-            streaming_tokens={if(@chat_loading, do: @streaming_tokens, else: "")}
+            streaming_tokens=""
             pipeline_status={@pipeline_status || generation_to_pipeline_status(@generation_status)}
           />
         </div>
@@ -1524,7 +1526,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
     {:noreply,
      socket
      |> push_event("copy_to_clipboard", %{text: snippet})
-     |> put_flash(:info, "Snippet #{lang} copiado!")}
+     |> put_flash(:info, "#{lang} snippet copied!")}
   end
 
   def handle_event("copy_snippet", _params, socket), do: {:noreply, socket}
@@ -1641,8 +1643,19 @@ defmodule BlackboexWeb.ApiLive.Edit do
   @impl true
   def handle_event("cancel_pipeline", _params, socket) do
     if ref = socket.assigns.pipeline_ref do
-      Task.shutdown(ref, :brutal_kill)
+      Process.demonitor(ref, [:flush])
     end
+
+    # Rollback code if this was a chat edit in progress
+    socket =
+      if previous = socket.assigns[:pre_edit_code] do
+        socket
+        |> assign(code: previous, pre_edit_code: nil)
+        |> push_editor_value(previous)
+        |> put_flash(:info, "Edit cancelled, code reverted")
+      else
+        socket
+      end
 
     {:noreply,
      assign(socket,
@@ -1709,19 +1722,26 @@ defmodule BlackboexWeb.ApiLive.Edit do
 
   @impl true
   def handle_event("archive_api", _params, socket) do
-    api = socket.assigns.api
+    org = socket.assigns.org
 
-    if api.status == "published", do: Apis.unpublish(api)
+    case Apis.get_api(org.id, socket.assigns.api.id) do
+      nil ->
+        {:noreply, put_flash(socket, :error, "API not found")}
 
-    case Apis.update_api(api, %{status: "archived"}) do
-      {:ok, _api} ->
+      api ->
+        if api.status == "published" do
+          case Apis.unpublish(api) do
+            {:ok, api} -> Apis.update_api(api, %{status: "archived"})
+            _ -> Apis.update_api(api, %{status: "archived"})
+          end
+        else
+          Apis.update_api(api, %{status: "archived"})
+        end
+
         {:noreply,
          socket
          |> put_flash(:info, "API archived")
          |> push_navigate(to: ~p"/apis")}
-
-      {:error, _changeset} ->
-        {:noreply, put_flash(socket, :error, "Failed to archive API")}
     end
   end
 
@@ -1840,10 +1860,20 @@ defmodule BlackboexWeb.ApiLive.Edit do
     {:noreply, assign(socket, pipeline_status: progress.step)}
   end
 
-  # Pipeline task completed successfully
+  # Pipeline task completed with validation (save/create pipeline)
   @impl true
   def handle_info(
         {ref, {:ok, %{code: _, validation: _} = result}},
+        %{assigns: %{pipeline_ref: ref}} = socket
+      ) do
+    Process.demonitor(ref, [:flush])
+    handle_pipeline_result(socket, result)
+  end
+
+  # Pipeline task completed without validation (chat edit proposal)
+  @impl true
+  def handle_info(
+        {ref, {:ok, %{code: _, explanation: _} = result}},
         %{assigns: %{pipeline_ref: ref}} = socket
       ) do
     Process.demonitor(ref, [:flush])
@@ -2045,14 +2075,14 @@ defmodule BlackboexWeb.ApiLive.Edit do
       if has_user_msg do
         conversation
       else
-        case Conversations.append_message(conversation, "user", api.description || "Generate API") do
+        case safe_append_message(conversation, "user", api.description || "Generate API") do
           {:ok, c} -> c
           _ -> conversation
         end
       end
 
-    {:ok, conversation} =
-      Conversations.append_message(conversation, "assistant", "Code generated successfully.")
+    conversation =
+      safe_append_message(conversation, "assistant", "Code generated successfully.")
 
     {:noreply,
      socket
@@ -2090,14 +2120,14 @@ defmodule BlackboexWeb.ApiLive.Edit do
       if has_user_msg do
         conversation
       else
-        case Conversations.append_message(conversation, "user", api.description || "Generate API") do
+        case safe_append_message(conversation, "user", api.description || "Generate API") do
           {:ok, c} -> c
           _ -> conversation
         end
       end
 
-    {:ok, conversation} =
-      Conversations.append_message(
+    conversation =
+      safe_append_message(
         conversation,
         "assistant",
         "Generation failed: #{reason}. You can try again via chat."
@@ -2136,43 +2166,48 @@ defmodule BlackboexWeb.ApiLive.Edit do
     handle_event(event_name, %{}, socket)
   end
 
-  defp do_accept_edit(socket, proposed_code, proposed_test_code, instruction) do
-    scope = socket.assigns.current_scope
+  defp do_accept_edit(socket, proposed_code, _proposed_test_code, _instruction) do
+    # Store previous code for rollback on cancel
+    previous_code = socket.assigns.code
+    api = socket.assigns.api
 
-    case Apis.create_version(socket.assigns.api, %{
-           code: proposed_code,
-           test_code: proposed_test_code,
-           source: "chat_edit",
-           prompt: instruction,
-           created_by_id: scope.user.id
-         }) do
-      {:ok, _version} ->
-        api = Apis.get_api(socket.assigns.org.id, socket.assigns.api.id)
+    # Apply code to Monaco immediately (version created after pipeline passes)
+    socket =
+      socket
+      |> assign(
+        code: proposed_code,
+        pending_edit: nil,
+        pre_edit_code: previous_code,
+        chat_loading: true
+      )
+      |> push_editor_value(proposed_code)
+      |> put_flash(:info, "Change applied. Running validation...")
 
-        maybe_register_compiled(
-          api,
-          socket.assigns.org,
-          proposed_code,
-          socket.assigns.pending_edit
+    # Run validation pipeline async
+    lv_pid = self()
+
+    template =
+      Map.get(
+        %{"computation" => :computation, "crud" => :crud, "webhook" => :webhook},
+        api.template_type,
+        :computation
+      )
+
+    task =
+      Task.async(fn ->
+        UnifiedPipeline.validate_and_test(proposed_code, template,
+          progress_callback: fn p -> send(lv_pid, {:pipeline_progress, p}) end,
+          test_token_callback: fn t -> send(lv_pid, {:test_generation_token, t}) end,
+          doc_token_callback: fn t -> send(lv_pid, {:doc_generation_token, t}) end
         )
+      end)
 
-        {:noreply,
-         socket
-         |> assign(
-           api: api,
-           code: proposed_code,
-           test_code: proposed_test_code || socket.assigns.test_code,
-           versions: Apis.list_versions(api.id),
-           pending_edit: nil,
-           validation_report: socket.assigns.pending_edit[:validation]
-         )
-         |> push_editor_value(proposed_code)
-         |> put_flash(:info, "Change accepted and version created")}
-
-      {:error, changeset} ->
-        Logger.error("Failed to create chat_edit version: #{inspect(changeset)}")
-        {:noreply, put_flash(socket, :error, "Failed to create version")}
-    end
+    {:noreply,
+     assign(socket,
+       pipeline_ref: task.ref,
+       pipeline_status: :formatting,
+       active_tab: "validation"
+     )}
   end
 
   defp maybe_register_compiled(api, org, code, %{validation: %{compilation: :pass}}) do
@@ -2245,7 +2280,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
 
     task =
       Task.async(fn ->
-        UnifiedPipeline.run_for_edit(api, code, message, conversation.messages,
+        UnifiedPipeline.generate_edit_only(api, code, message, conversation.messages,
           progress_callback: fn progress -> send(lv_pid, {:pipeline_progress, progress}) end,
           token_callback: fn token -> send(lv_pid, {:llm_token, token}) end
         )
@@ -2464,13 +2499,49 @@ defmodule BlackboexWeb.ApiLive.Edit do
 
   defp history_status_color(_), do: "bg-muted text-muted-foreground"
 
+  # Chat edit proposal — code only, no validation yet
+  defp handle_pipeline_result(socket, %{explanation: explanation} = result)
+       when is_binary(explanation) and not is_map_key(result, :validation) do
+    handle_chat_edit_proposal(socket, result)
+  end
+
+  # Chat edit with full validation (legacy path)
   defp handle_pipeline_result(socket, %{explanation: explanation} = result)
        when is_binary(explanation) do
     handle_chat_pipeline_result(socket, result)
   end
 
+  # Save pipeline result
   defp handle_pipeline_result(socket, result) do
     handle_save_pipeline_result(socket, result)
+  end
+
+  defp handle_chat_edit_proposal(socket, result) do
+    conversation = socket.assigns.chat_conversation
+    code_diff = DiffEngine.compute_diff(socket.assigns.code, result.code)
+
+    conversation =
+      safe_append_message(conversation, "assistant", result.explanation)
+
+    {:noreply,
+     socket
+     |> assign(
+       chat_conversation: conversation,
+       chat_messages: conversation.messages,
+       chat_loading: false,
+       pipeline_ref: nil,
+       pipeline_status: nil,
+       streaming_tokens: "",
+       pending_edit: %{
+         code: result.code,
+         test_code: nil,
+         diff: code_diff,
+         test_diff: [],
+         explanation: result.explanation,
+         instruction: "",
+         validation: nil
+       }
+     )}
   end
 
   defp handle_chat_pipeline_result(socket, result) do
@@ -2478,8 +2549,8 @@ defmodule BlackboexWeb.ApiLive.Edit do
     code_diff = DiffEngine.compute_diff(socket.assigns.code, result.code)
     test_diff = compute_test_diff(socket.assigns.test_code, result.test_code)
 
-    {:ok, conversation} =
-      Conversations.append_message(conversation, "assistant", result.explanation)
+    conversation =
+      safe_append_message(conversation, "assistant", result.explanation)
 
     test_summary = format_test_summary(result.validation.test_results)
 
@@ -2515,6 +2586,18 @@ defmodule BlackboexWeb.ApiLive.Edit do
       %{validation: result.validation}
     )
 
+    # If this was a chat edit accept, create the version now
+    if socket.assigns[:pre_edit_code] do
+      scope = socket.assigns.current_scope
+
+      Apis.create_version(socket.assigns.api, %{
+        code: result.code,
+        test_code: result.test_code || socket.assigns.test_code,
+        source: "chat_edit",
+        created_by_id: scope.user.id
+      })
+    end
+
     # Persist validation report + documentation to DB
     Apis.update_api(socket.assigns.api, %{
       validation_report: validation_to_map(result.validation),
@@ -2528,12 +2611,16 @@ defmodule BlackboexWeb.ApiLive.Edit do
      socket
      |> assign(
        code: result.code,
+       test_code: result.test_code || socket.assigns.test_code,
        validation_report: result.validation,
        test_summary: test_summary,
        pipeline_ref: nil,
        pipeline_status: nil,
        streaming_tokens: "",
+       chat_loading: false,
+       pre_edit_code: nil,
        api: updated_api,
+       versions: Apis.list_versions(updated_api.id),
        test_body_json: default_test_body(updated_api)
      )}
   end
@@ -2544,13 +2631,28 @@ defmodule BlackboexWeb.ApiLive.Edit do
   defp handle_pipeline_error(socket, reason) do
     Logger.warning("Pipeline failed: #{inspect(reason)}")
 
+    # If this was a chat edit, still create version (code was already applied)
+    # and rollback is available via cancel
+    if socket.assigns[:pre_edit_code] do
+      scope = socket.assigns.current_scope
+
+      Apis.create_version(socket.assigns.api, %{
+        code: socket.assigns.code,
+        test_code: socket.assigns.test_code,
+        source: "chat_edit",
+        created_by_id: scope.user.id
+      })
+    end
+
     {:noreply,
      socket
      |> assign(
        chat_loading: false,
        pipeline_ref: nil,
        pipeline_status: nil,
-       streaming_tokens: ""
+       streaming_tokens: "",
+       pre_edit_code: nil,
+       versions: Apis.list_versions(socket.assigns.api.id)
      )
      |> put_flash(:error, "Pipeline failed: #{inspect(reason)}")}
   end
@@ -2606,7 +2708,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
              tasklist: true,
              footnotes: true
            ],
-           render: [unsafe: true],
+           render: [unsafe: false],
            syntax_highlight: [
              formatter: {:html_inline, theme: "github_dark"}
            ]
@@ -2687,6 +2789,13 @@ defmodule BlackboexWeb.ApiLive.Edit do
 
   defp metrics_average([]), do: 0.0
   defp metrics_average(list), do: Enum.sum(list) / length(list)
+
+  defp safe_append_message(conversation, role, content) do
+    case Conversations.append_message(conversation, role, content) do
+      {:ok, updated} -> updated
+      _ -> conversation
+    end
+  end
 
   defp enrich_keys_with_metrics(keys) do
     Enum.map(keys, fn key ->

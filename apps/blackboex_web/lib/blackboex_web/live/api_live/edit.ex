@@ -2129,13 +2129,22 @@ defmodule BlackboexWeb.ApiLive.Edit do
 
   @impl true
   def handle_info({:test_generation_token, token}, socket) do
-    new_test_code = socket.assigns.test_code <> token
-    socket = assign(socket, test_code: new_test_code)
+    raw = (socket.assigns[:test_generation_raw] || "") <> token
+    clean_code = extract_streaming_code(raw)
+    prev_len = byte_size(socket.assigns.test_code)
 
-    # Only push to Monaco if tests tab is active
+    new_part =
+      binary_part(
+        clean_code,
+        min(prev_len, byte_size(clean_code)),
+        max(byte_size(clean_code) - prev_len, 0)
+      )
+
+    socket = assign(socket, test_code: clean_code, test_generation_raw: raw)
+
     socket =
-      if socket.assigns.active_tab == "tests" do
-        push_event(socket, "monaco:append_text", %{text: token})
+      if new_part != "" && socket.assigns.active_tab == "tests" do
+        push_event(socket, "monaco:append_text", %{text: new_part})
       else
         socket
       end

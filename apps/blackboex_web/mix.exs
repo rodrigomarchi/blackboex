@@ -66,6 +66,7 @@ defmodule BlackboexWeb.MixProject do
       {:telemetry_poller, "~> 1.0"},
       {:gettext, "~> 1.0"},
       {:blackboex, in_umbrella: true},
+      {:mdex, "~> 0.11"},
       {:jason, "~> 1.2"},
       {:bandit, "~> 1.5"},
       {:swoosh, "~> 1.5"},

@@ -115,6 +115,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
            # Generation state
            generation_status: api.generation_status,
            generation_tokens: "",
+           streaming_doc: "",
            # Chat sidebar
            chat_open: generating?
          )}
@@ -127,6 +128,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
     %{id: "code", label: "Code"},
     %{id: "tests", label: "Tests"},
     %{id: "validation", label: "Validation"},
+    %{id: "docs", label: "Docs"},
     %{id: "versions", label: "Versions"},
     %{id: "run", label: "Run"},
     %{id: "keys", label: "API Keys"},
@@ -285,6 +287,34 @@ defmodule BlackboexWeb.ApiLive.Edit do
         report={@validation_report}
         loading={@pipeline_status != nil && @pipeline_status != :done}
       />
+    </div>
+    """
+  end
+
+  defp render_tab_content(%{active_tab: "docs"} = assigns) do
+    doc_content = assigns.api.documentation_md || assigns.streaming_doc
+    assigns = assign(assigns, :doc_content, doc_content)
+
+    ~H"""
+    <div class="p-6 overflow-y-auto h-full">
+      <%= if @doc_content && @doc_content != "" do %>
+        <div class="prose prose-sm dark:prose-invert max-w-none">
+          {raw(render_markdown(@doc_content))}
+        </div>
+        <%= if @streaming_doc != "" and is_nil(@api.documentation_md) do %>
+          <div class="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+            <.icon name="hero-arrow-path" class="size-3 animate-spin" /> Generating...
+          </div>
+        <% end %>
+      <% else %>
+        <div class="flex flex-col items-center justify-center py-16 text-center">
+          <.icon name="hero-document-text" class="size-10 text-muted-foreground mb-4" />
+          <p class="text-sm font-medium">No documentation yet</p>
+          <p class="text-xs text-muted-foreground mt-1">
+            Documentation is generated automatically when you save or create the API.
+          </p>
+        </div>
+      <% end %>
     </div>
     """
   end
@@ -691,18 +721,19 @@ defmodule BlackboexWeb.ApiLive.Edit do
                 <.icon name="hero-document-check" class="size-4 text-muted-foreground" />
                 <span class="text-sm">Markdown Docs</span>
                 <%= if @api.documentation_md do %>
-                  <span class="text-[10px] text-green-600 font-medium">Generated</span>
+                  <span class="text-[10px] text-green-600 font-medium">Auto-generated</span>
+                <% else %>
+                  <span class="text-[10px] text-muted-foreground">Generated on save</span>
                 <% end %>
               </div>
-              <button
-                phx-click="generate_docs"
-                disabled={@doc_generating}
-                class="text-xs text-primary hover:underline disabled:opacity-50"
+              <.link
+                :if={@api.documentation_md}
+                phx-click="switch_tab"
+                phx-value-tab="docs"
+                class="text-xs text-primary hover:underline"
               >
-                {if @doc_generating,
-                  do: "Generating...",
-                  else: if(@api.documentation_md, do: "Regenerate", else: "Generate")}
-              </button>
+                View
+              </.link>
             </div>
           </div>
         </div>
@@ -902,7 +933,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
 
   # ── Tab Events ────────────────────────────────────────────────────────
 
-  @valid_tabs ~w(code tests validation versions run keys publish info)
+  @valid_tabs ~w(code tests validation docs versions run keys publish info)
 
   @impl true
   def handle_event("switch_tab", %{"tab" => tab}, socket) when tab in @valid_tabs do
@@ -1853,6 +1884,9 @@ defmodule BlackboexWeb.ApiLive.Edit do
         step when step in [:running_tests, :fixing_tests] ->
           assign(socket, active_tab: "tests")
 
+        :generating_docs ->
+          assign(socket, active_tab: "docs")
+
         :done ->
           assign(socket, active_tab: "validation")
 
@@ -1880,6 +1914,12 @@ defmodule BlackboexWeb.ApiLive.Edit do
       end
 
     {:noreply, socket}
+  end
+
+  @impl true
+  def handle_info({:doc_generation_token, token}, socket) do
+    new_doc = (socket.assigns[:streaming_doc] || "") <> token
+    {:noreply, assign(socket, streaming_doc: new_doc)}
   end
 
   @impl true
@@ -1913,6 +1953,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
        generation_status: "completed",
        generation_tokens: "",
        streaming_tokens: "",
+       streaming_doc: "",
        pipeline_status: nil,
        chat_loading: false,
        chat_messages: conversation.messages,
@@ -1921,7 +1962,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
        test_summary:
          if(result.validation, do: format_test_summary(result.validation.test_results), else: nil),
        versions: Apis.list_versions(api.id),
-       active_tab: if(result.validation, do: "validation", else: "code")
+       active_tab: "validation"
      )
      |> push_editor_value(result.code)
      |> put_flash(:info, "API generated successfully")}
@@ -2360,9 +2401,10 @@ defmodule BlackboexWeb.ApiLive.Edit do
       %{validation: result.validation}
     )
 
-    # Persist validation report to DB
+    # Persist validation report + documentation to DB
     Apis.update_api(socket.assigns.api, %{
-      validation_report: validation_to_map(result.validation)
+      validation_report: validation_to_map(result.validation),
+      documentation_md: result[:documentation_md]
     })
 
     # Reload API to get updated example_request/param_schema from schema extraction
@@ -2438,6 +2480,27 @@ defmodule BlackboexWeb.ApiLive.Edit do
   end
 
   defp time_ago(_), do: "unknown"
+
+  defp render_markdown(nil), do: ""
+
+  defp render_markdown(markdown) do
+    case MDEx.to_html(markdown,
+           extension: [
+             table: true,
+             strikethrough: true,
+             autolink: true,
+             tasklist: true,
+             footnotes: true
+           ],
+           render: [unsafe: true],
+           syntax_highlight: [
+             formatter: {:html_inline, theme: "github_dark"}
+           ]
+         ) do
+      {:ok, html} -> html
+      _ -> markdown
+    end
+  end
 
   defp enrich_keys_with_metrics(keys) do
     Enum.map(keys, fn key ->

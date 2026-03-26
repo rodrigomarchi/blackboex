@@ -90,22 +90,19 @@ defmodule BlackboexWeb.Live.BillingEnforcementTest do
     end
   end
 
-  describe "billing enforcement on doc generation" do
-    @tag :capture_log
-    test "free plan user at LLM limit sees error flash", %{conn: conn, org: org, api: api} do
-      # Doc generation requires compiled status
+  describe "docs auto-generation" do
+    test "publish tab shows docs are auto-generated on save", %{
+      conn: conn,
+      org: org,
+      api: api
+    } do
       {:ok, _api} = Apis.update_api(api, %{status: "compiled"})
 
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-
-      # Open config panel where the generate docs button lives (in the publish section)
       lv |> render_click("switch_tab", %{"tab" => "publish"})
 
-      lv |> element(~s(button[phx-click="generate_docs"])) |> render_click()
-
-      # Flash is rendered by app layout; verify doc generation was not started
       html = render(lv)
-      refute html =~ "Generating"
+      assert html =~ "Generated on save"
     end
   end
 end

@@ -21,6 +21,7 @@ defmodule Blackboex.CodeGen.UnifiedPipeline do
   alias Blackboex.CodeGen.UnifiedPrompts
   alias Blackboex.LLM.Config
   alias Blackboex.LLM.EditPrompts
+  alias Blackboex.Docs.DocGenerator
   alias Blackboex.Testing.TestGenerator
   alias Blackboex.Testing.TestRunner
 
@@ -40,6 +41,7 @@ defmodule Blackboex.CodeGen.UnifiedPipeline do
           | :running_tests
           | :fixing_code
           | :fixing_tests
+          | :generating_docs
           | :done
           | :failed
 
@@ -65,6 +67,7 @@ defmodule Blackboex.CodeGen.UnifiedPipeline do
           code: String.t(),
           test_code: String.t() | nil,
           explanation: String.t() | nil,
+          documentation_md: String.t() | nil,
           validation: validation_report(),
           template: atom(),
           usage: map()
@@ -153,6 +156,8 @@ defmodule Blackboex.CodeGen.UnifiedPipeline do
     validation =
       build_validation_report(compile_result, format_result, credo_result, test_results)
 
+    doc_md = generate_documentation(ctx, formatted_code)
+
     notify_progress(ctx, :done, 0, "Validation complete")
 
     {:ok,
@@ -160,6 +165,7 @@ defmodule Blackboex.CodeGen.UnifiedPipeline do
        code: formatted_code,
        test_code: test_code,
        explanation: nil,
+       documentation_md: doc_md,
        validation: validation,
        template: template_type,
        usage: %{}
@@ -274,11 +280,14 @@ defmodule Blackboex.CodeGen.UnifiedPipeline do
   end
 
   defp build_success_result(ctx, code, test_code, validation) do
+    doc_md = generate_documentation(ctx, code)
+
     {:ok,
      %{
        code: code,
        test_code: test_code,
        explanation: nil,
+       documentation_md: doc_md,
        validation: validation,
        template: ctx.template_type,
        usage: ctx.usage
@@ -353,6 +362,35 @@ defmodule Blackboex.CodeGen.UnifiedPipeline do
     case TestGenerator.generate_tests_for_code(ctx.code, template, opts) do
       {:ok, %{code: test_code, usage: usage}} -> {:ok, test_code, usage}
       {:error, reason} -> {:error, reason}
+    end
+  end
+
+  # ── Documentation Generation ──────────────────────────────────────────
+
+  defp generate_documentation(ctx, code) do
+    notify_progress(ctx, :generating_docs, 0, "Generating documentation...")
+
+    api = %Api{
+      id: Ecto.UUID.generate(),
+      name: "API",
+      slug: "api",
+      description: "",
+      source_code: code,
+      template_type: to_string(ctx.template_type),
+      method: "POST",
+      requires_auth: true,
+      organization_id: Ecto.UUID.generate(),
+      user_id: 0
+    }
+
+    opts =
+      if ctx[:doc_token_callback],
+        do: [token_callback: ctx.doc_token_callback],
+        else: []
+
+    case DocGenerator.generate(api, opts) do
+      {:ok, %{doc: doc}} -> doc
+      {:error, _reason} -> nil
     end
   end
 
@@ -560,6 +598,7 @@ defmodule Blackboex.CodeGen.UnifiedPipeline do
       progress_callback: Keyword.get(opts, :progress_callback),
       token_callback: Keyword.get(opts, :token_callback),
       test_token_callback: Keyword.get(opts, :test_token_callback),
+      doc_token_callback: Keyword.get(opts, :doc_token_callback),
       usage: %{}
     }
   end

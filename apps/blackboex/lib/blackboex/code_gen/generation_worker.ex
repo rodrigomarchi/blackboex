@@ -138,9 +138,14 @@ defmodule Blackboex.CodeGen.GenerationWorker do
       broadcast(api.id, {:test_generation_token, token})
     end
 
+    doc_token_callback = fn token ->
+      broadcast(api.id, {:doc_generation_token, token})
+    end
+
     case UnifiedPipeline.validate_and_test(code, template,
            progress_callback: progress_callback,
-           test_token_callback: test_token_callback
+           test_token_callback: test_token_callback,
+           doc_token_callback: doc_token_callback
          ) do
       {:ok, result} ->
         save_result(api, result, template, description, generation_meta, user_id, org_id)
@@ -157,7 +162,8 @@ defmodule Blackboex.CodeGen.GenerationWorker do
       template_type: to_string(template),
       generation_status: "completed",
       generation_error: nil,
-      validation_report: validation_to_map(result.validation)
+      validation_report: validation_to_map(result.validation),
+      documentation_md: result[:documentation_md]
     }
 
     case Apis.update_api(api, attrs) do
@@ -181,7 +187,8 @@ defmodule Blackboex.CodeGen.GenerationWorker do
              code: result.code,
              test_code: result.test_code,
              validation: result.validation,
-             template: template
+             template: template,
+             documentation_md: result[:documentation_md]
            }}
         )
 

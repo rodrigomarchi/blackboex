@@ -10,6 +10,7 @@
 /* A Tailwind plugin that makes "hero-#{ICON}" classes available.
    The heroicons installation itself is managed by your mix.exs */
 @plugin "../vendor/heroicons";
+@plugin "@tailwindcss/typography";
 
 /* daisyUI Tailwind Plugin. You can update this file by fetching the latest version with:
    curl -sLO https://github.com/saadeghi/daisyui/releases/latest/download/daisyui.js
@@ -125,6 +126,22 @@
     background-color: #1e1e2e !important;
     color: #e5e7eb !important;
   }
+}
+
+/* MDEx/Lumis syntax highlighting: prevent prose from overriding inline colors */
+.prose pre.lumis {
+  border-radius: 0.5rem;
+  padding: 1rem;
+  overflow-x: auto;
+}
+.prose pre.lumis code {
+  color: inherit;
+  background-color: transparent;
+  font-size: 0.8125rem;
+  line-height: 1.7;
+}
+.prose pre.lumis .line {
+  min-height: 1.25em;
 }
 
 /* This file is for your main application CSS */

@@ -145,11 +145,81 @@ const MonacoStreaming = {
   }
 }
 
+// Monaco Diff Editor hook — fullscreen side-by-side diff viewer
+const MonacoDiffEditor = {
+  mounted() {
+    this.diffEditor = null
+    this.originalModel = null
+    this.modifiedModel = null
+
+    this.handleEvent("open_diff", ({ original, modified, language }) => {
+      this._createDiffEditor(original, modified, language || "elixir")
+    })
+  },
+
+  updated() {
+    if (this.diffEditor) this.diffEditor.layout()
+  },
+
+  async _createDiffEditor(original, modified, language) {
+    this._dispose()
+
+    const monaco = await this._waitForMonaco()
+
+    this.originalModel = monaco.editor.createModel(original, language)
+    this.modifiedModel = monaco.editor.createModel(modified, language)
+
+    const theme = document.documentElement.getAttribute("data-theme")
+    const isLight = theme === "light" ||
+      (!theme && window.matchMedia("(prefers-color-scheme: light)").matches)
+
+    this.diffEditor = monaco.editor.createDiffEditor(this.el, {
+      automaticLayout: true,
+      readOnly: true,
+      originalEditable: false,
+      renderSideBySide: true,
+      theme: isLight ? "vs" : "default",
+      minimap: { enabled: false },
+      scrollBeyondLastLine: false,
+      fontSize: 13,
+      lineNumbers: "on",
+      enableSplitViewResizing: true,
+      ignoreTrimWhitespace: true,
+      renderIndicators: true,
+    })
+
+    this.diffEditor.setModel({
+      original: this.originalModel,
+      modified: this.modifiedModel,
+    })
+  },
+
+  _waitForMonaco() {
+    return new Promise((resolve, reject) => {
+      if (window.monaco) return resolve(window.monaco)
+      let attempts = 0
+      const interval = setInterval(() => {
+        attempts++
+        if (window.monaco) { clearInterval(interval); resolve(window.monaco) }
+        else if (attempts > 50) { clearInterval(interval); reject(new Error("Monaco not available")) }
+      }, 100)
+    })
+  },
+
+  _dispose() {
+    if (this.originalModel) { this.originalModel.dispose(); this.originalModel = null }
+    if (this.modifiedModel) { this.modifiedModel.dispose(); this.modifiedModel = null }
+    if (this.diffEditor) { this.diffEditor.dispose(); this.diffEditor = null }
+  },
+
+  destroyed() { this._dispose() },
+}
+
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks, CodeEditorHook, MonacoStreaming, KeyboardShortcuts, AutoFocus, CommandPaletteNav, ...BackpexHooks},
+  hooks: {...colocatedHooks, CodeEditorHook, MonacoStreaming, MonacoDiffEditor, KeyboardShortcuts, AutoFocus, CommandPaletteNav, ...BackpexHooks},
 })
 
 // Show progress bar on live navigation and form submits

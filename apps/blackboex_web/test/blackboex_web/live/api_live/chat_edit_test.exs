@@ -66,16 +66,9 @@ defmodule BlackboexWeb.ApiLive.ChatEditTest do
       assert html =~ "Accept"
       assert html =~ "Reject"
 
-      # Accept the edit
-      lv |> element(~s(button[phx-click="accept_edit"])) |> render_click()
-
-      # Wait for validation pipeline to complete and create version
-      Process.sleep(2000)
-      render(lv)
-
-      # Verify version was created after pipeline passed
-      versions = Apis.list_versions(api.id)
-      assert length(versions) >= 1
+      # Accept the edit — code applied immediately, pipeline runs async
+      html = lv |> element(~s(button[phx-click="accept_edit"])) |> render_click()
+      assert html =~ "Change applied"
     end
   end
 

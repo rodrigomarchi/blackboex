@@ -127,6 +127,8 @@ defmodule BlackboexWeb.ApiLive.Edit do
            command_palette_selected: 0,
            # Edit rollback state
            pre_edit_code: nil,
+           retry_attempted: nil,
+           diff_modal_open: false,
            # Generation state
            generation_status: api.generation_status,
            generation_tokens: "",
@@ -245,7 +247,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
             api_id={@api.id}
             pending_edit={@pending_edit}
             template_type={@api.template_type}
-            streaming_tokens=""
+            streaming_tokens={if(@chat_loading, do: @streaming_tokens, else: "")}
             pipeline_status={@pipeline_status || generation_to_pipeline_status(@generation_status)}
           />
         </div>
@@ -261,6 +263,48 @@ defmodule BlackboexWeb.ApiLive.Edit do
         api={@api}
         selected_index={@command_palette_selected}
       />
+
+      <%!-- Diff Modal (fullscreen Monaco diff editor) --%>
+      <div
+        :if={@diff_modal_open && @pending_edit}
+        class="fixed inset-0 z-50 flex flex-col bg-background"
+      >
+        <div class="flex items-center justify-between border-b px-4 py-2 shrink-0">
+          <div class="flex items-center gap-3">
+            <h2 class="text-sm font-semibold">Review Changes</h2>
+            <span class="text-xs text-muted-foreground">
+              {DiffEngine.format_diff_summary(@pending_edit.diff)}
+            </span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button
+              phx-click="accept_edit"
+              class="rounded-md bg-green-600 px-4 py-1.5 text-xs font-medium text-white hover:bg-green-700"
+            >
+              Accept Changes
+            </button>
+            <button
+              phx-click="reject_edit"
+              class="rounded-md border border-red-300 px-4 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
+            >
+              Reject
+            </button>
+            <button
+              phx-click="close_diff_modal"
+              class="rounded-md border px-4 py-1.5 text-xs hover:bg-accent"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+        <div
+          id="diff-editor-container"
+          phx-hook="MonacoDiffEditor"
+          class="flex-1 min-h-0"
+          phx-update="ignore"
+        >
+        </div>
+      </div>
     </div>
     """
   end
@@ -1605,13 +1649,34 @@ defmodule BlackboexWeb.ApiLive.Edit do
         {:noreply, socket}
 
       %{code: proposed_code, test_code: proposed_test_code, instruction: instruction} ->
+        socket = assign(socket, diff_modal_open: false)
         do_accept_edit(socket, proposed_code, proposed_test_code, instruction)
     end
   end
 
   @impl true
   def handle_event("reject_edit", _params, socket) do
-    {:noreply, assign(socket, pending_edit: nil)}
+    {:noreply, assign(socket, pending_edit: nil, diff_modal_open: false)}
+  end
+
+  @impl true
+  def handle_event("open_diff_modal", _params, socket) do
+    original = socket.assigns.code
+    modified = socket.assigns.pending_edit[:code] || original
+
+    {:noreply,
+     socket
+     |> assign(diff_modal_open: true)
+     |> push_event("open_diff", %{
+       original: original,
+       modified: modified,
+       language: "elixir"
+     })}
+  end
+
+  @impl true
+  def handle_event("close_diff_modal", _params, socket) do
+    {:noreply, assign(socket, diff_modal_open: false)}
   end
 
   @impl true
@@ -2631,31 +2696,120 @@ defmodule BlackboexWeb.ApiLive.Edit do
   defp handle_pipeline_error(socket, reason) do
     Logger.warning("Pipeline failed: #{inspect(reason)}")
 
-    # If this was a chat edit, still create version (code was already applied)
-    # and rollback is available via cancel
-    if socket.assigns[:pre_edit_code] do
-      scope = socket.assigns.current_scope
+    # If this was a chat edit and compilation failed, auto-retry with LLM
+    if socket.assigns[:pre_edit_code] && !socket.assigns[:retry_attempted] do
+      retry_compilation_with_llm(socket, reason)
+    else
+      # No retry possible or already retried — rollback
+      socket =
+        if previous = socket.assigns[:pre_edit_code] do
+          socket
+          |> assign(code: previous)
+          |> push_editor_value(previous)
+        else
+          socket
+        end
 
-      Apis.create_version(socket.assigns.api, %{
-        code: socket.assigns.code,
-        test_code: socket.assigns.test_code,
-        source: "chat_edit",
-        created_by_id: scope.user.id
-      })
+      {:noreply,
+       socket
+       |> assign(
+         chat_loading: false,
+         pipeline_ref: nil,
+         pipeline_status: nil,
+         streaming_tokens: "",
+         pre_edit_code: nil,
+         retry_attempted: nil
+       )
+       |> put_flash(:error, "Pipeline failed. Code reverted.")}
     end
+  end
+
+  defp retry_compilation_with_llm(socket, reason) do
+    api = socket.assigns.api
+    code = socket.assigns.code
+    lv_pid = self()
+
+    error_msg = format_pipeline_error(reason)
+
+    conversation = socket.assigns.chat_conversation
+
+    conversation =
+      safe_append_message(
+        conversation,
+        "assistant",
+        "Compilation failed: #{error_msg}. Retrying with fix..."
+      )
+
+    template =
+      Map.get(
+        %{"computation" => :computation, "crud" => :crud, "webhook" => :webhook},
+        api.template_type,
+        :computation
+      )
+
+    # Ask LLM to fix the code, getting full code back
+    task =
+      Task.async(fn ->
+        prompt = """
+        The following Elixir code has a compilation error:
+
+        ```elixir
+        #{code}
+        ```
+
+        Error: #{error_msg}
+
+        Please fix the error and return the COMPLETE corrected code in a single ```elixir code block.
+        """
+
+        client = Blackboex.LLM.Config.client()
+        system = Blackboex.LLM.EditPrompts.fallback_system_prompt()
+
+        case client.stream_text(prompt, system: system) do
+          {:ok, stream} ->
+            full =
+              Enum.reduce(stream, "", fn
+                {:token, token}, acc ->
+                  send(lv_pid, {:llm_token, token})
+                  acc <> token
+
+                _, acc ->
+                  acc
+              end)
+
+            case Blackboex.LLM.EditPrompts.extract_code_block(full) do
+              nil ->
+                {:error, :no_code_found}
+
+              fixed_code ->
+                UnifiedPipeline.validate_and_test(String.trim(fixed_code), template,
+                  progress_callback: fn p -> send(lv_pid, {:pipeline_progress, p}) end,
+                  test_token_callback: fn t -> send(lv_pid, {:test_generation_token, t}) end,
+                  doc_token_callback: fn t -> send(lv_pid, {:doc_generation_token, t}) end
+                )
+            end
+
+          {:error, reason} ->
+            {:error, reason}
+        end
+      end)
 
     {:noreply,
-     socket
-     |> assign(
-       chat_loading: false,
-       pipeline_ref: nil,
-       pipeline_status: nil,
+     assign(socket,
+       pipeline_ref: task.ref,
+       pipeline_status: :generating_code,
        streaming_tokens: "",
-       pre_edit_code: nil,
-       versions: Apis.list_versions(socket.assigns.api.id)
-     )
-     |> put_flash(:error, "Pipeline failed: #{inspect(reason)}")}
+       chat_loading: true,
+       chat_messages: conversation.messages,
+       chat_conversation: conversation,
+       retry_attempted: true
+     )}
   end
+
+  defp format_pipeline_error(:compilation_failed), do: "compilation failed"
+  defp format_pipeline_error(:max_retries_exceeded), do: "max retries exceeded"
+  defp format_pipeline_error(reason) when is_binary(reason), do: reason
+  defp format_pipeline_error(reason), do: inspect(reason, limit: 3)
 
   defp format_test_summary(test_results) when is_list(test_results) and test_results != [] do
     passed =

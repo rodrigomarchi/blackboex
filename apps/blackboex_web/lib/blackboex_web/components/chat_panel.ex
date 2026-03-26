@@ -84,14 +84,20 @@ defmodule BlackboexWeb.Components.ChatPanel do
             <p class="text-xs text-blue-700 dark:text-blue-300 font-medium">Proposed change:</p>
             <p class="text-xs text-blue-600 dark:text-blue-400">{@pending_edit.explanation}</p>
 
-            <%!-- Code diff --%>
-            <div class="rounded border bg-background p-2 text-xs font-mono overflow-x-auto max-h-60 overflow-y-auto">
+            <%!-- Code diff (compact preview) --%>
+            <div class="rounded border bg-background p-2 text-xs font-mono overflow-x-auto max-h-40 overflow-y-auto">
               <%= for {op, lines} <- @pending_edit.diff, line <- lines do %>
                 <div class={diff_line_class(op)}>
                   <span class="select-none text-muted-foreground mr-1">{diff_prefix(op)}</span>{line}
                 </div>
               <% end %>
             </div>
+            <button
+              phx-click="open_diff_modal"
+              class="text-[10px] text-primary hover:underline"
+            >
+              View full diff
+            </button>
 
             <%!-- Validation badges --%>
             <%= if @pending_edit[:validation] do %>

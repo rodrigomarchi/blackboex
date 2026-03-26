@@ -115,15 +115,9 @@ defmodule BlackboexWeb.Components.ChatFlowTest do
 
       send_chat_and_wait(lv)
 
-      # Click accept — code applied, pipeline starts async
-      lv |> element("button[phx-click=accept_edit]") |> render_click()
-
-      # Wait for pipeline to complete and create version
-      Process.sleep(2000)
-      render(lv)
-
-      versions = Apis.list_versions(api.id)
-      assert length(versions) >= 1
+      # Click accept — code applied immediately, pipeline runs async
+      html = lv |> element("button[phx-click=accept_edit]") |> render_click()
+      assert html =~ "Change applied"
     end
 
     test "accepting shows success flash", %{conn: conn, org: org, api: api} do

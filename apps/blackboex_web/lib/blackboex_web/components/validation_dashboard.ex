@@ -116,9 +116,19 @@ defmodule BlackboexWeb.Components.ValidationDashboard do
   attr :results, :list, default: []
 
   defp test_section(assigns) do
-    passed = Enum.count(assigns.results, &(&1.status == "passed"))
-    total = length(assigns.results)
-    assigns = assign(assigns, passed: passed, total: total)
+    # Normalize results to handle both atom and string keys (from DB JSONB)
+    results =
+      Enum.map(assigns.results, fn r ->
+        %{
+          status: r[:status] || r["status"],
+          name: r[:name] || r["name"],
+          error: r[:error] || r["error"]
+        }
+      end)
+
+    passed = Enum.count(results, &(&1.status == "passed"))
+    total = length(results)
+    assigns = assign(assigns, passed: passed, total: total, results: results)
 
     ~H"""
     <div class="rounded-md border p-2">

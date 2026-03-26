@@ -134,7 +134,14 @@ defmodule Blackboex.CodeGen.GenerationWorker do
       broadcast(api.id, {:generation_progress, progress})
     end
 
-    case UnifiedPipeline.validate_and_test(code, template, progress_callback: progress_callback) do
+    test_token_callback = fn token ->
+      broadcast(api.id, {:test_generation_token, token})
+    end
+
+    case UnifiedPipeline.validate_and_test(code, template,
+           progress_callback: progress_callback,
+           test_token_callback: test_token_callback
+         ) do
       {:ok, result} ->
         save_result(api, result, template, description, generation_meta, user_id, org_id)
 
@@ -149,17 +156,21 @@ defmodule Blackboex.CodeGen.GenerationWorker do
       test_code: result.test_code,
       template_type: to_string(template),
       generation_status: "completed",
-      generation_error: nil
+      generation_error: nil,
+      validation_report: validation_to_map(result.validation)
     }
 
     case Apis.update_api(api, attrs) do
       {:ok, updated_api} ->
-        Apis.create_version(updated_api, %{
-          code: result.code,
-          test_code: result.test_code,
-          source: "ai_generation",
-          prompt: description
-        })
+        case Apis.create_version(updated_api, %{
+               code: result.code,
+               test_code: result.test_code,
+               source: "generation",
+               prompt: description
+             }) do
+          {:ok, _version} -> :ok
+          {:error, reason} -> Logger.warning("Failed to create version: #{inspect(reason)}")
+        end
 
         maybe_record_usage(generation_meta, user_id, org_id)
 
@@ -223,4 +234,22 @@ defmodule Blackboex.CodeGen.GenerationWorker do
   end
 
   defp maybe_record_usage(_meta, _user_id, _org_id), do: :ok
+
+  @spec validation_to_map(map()) :: map()
+  defp validation_to_map(report) do
+    %{
+      "compilation" => to_string(report.compilation),
+      "compilation_errors" => report.compilation_errors,
+      "format" => to_string(report.format),
+      "format_issues" => report.format_issues,
+      "credo" => to_string(report.credo),
+      "credo_issues" => report.credo_issues,
+      "tests" => to_string(report.tests),
+      "test_results" =>
+        Enum.map(report.test_results, fn item ->
+          Map.new(item, fn {k, v} -> {to_string(k), v} end)
+        end),
+      "overall" => to_string(report.overall)
+    }
+  end
 end

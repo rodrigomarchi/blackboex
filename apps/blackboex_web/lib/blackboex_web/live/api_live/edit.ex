@@ -81,8 +81,8 @@ defmodule BlackboexWeb.ApiLive.Edit do
            # Pipeline assigns
            pipeline_ref: nil,
            pipeline_status: nil,
-           validation_report: nil,
-           test_summary: nil,
+           validation_report: restore_validation_report(api.validation_report),
+           test_summary: derive_test_summary(api.validation_report),
            # Test assigns
            test_method: api.method || "GET",
            test_url: "/api/#{org.slug}/#{api.slug}",
@@ -1520,12 +1520,61 @@ defmodule BlackboexWeb.ApiLive.Edit do
 
   @impl true
   def handle_info({:generation_status, status}, socket) do
-    {:noreply, assign(socket, generation_status: status)}
+    socket = assign(socket, generation_status: status)
+
+    # Switch to code tab when generation starts
+    socket =
+      if status == "generating" do
+        assign(socket, active_tab: "code")
+      else
+        socket
+      end
+
+    {:noreply, socket}
   end
 
   @impl true
   def handle_info({:generation_progress, progress}, socket) do
-    {:noreply, assign(socket, pipeline_status: progress.step)}
+    socket = assign(socket, pipeline_status: progress.step)
+
+    # Auto-switch tabs based on pipeline step
+    socket =
+      case progress.step do
+        :generating_tests ->
+          socket
+          |> assign(active_tab: "tests")
+          |> push_event("monaco:clear", %{})
+
+        step when step in [:running_tests, :fixing_tests] ->
+          assign(socket, active_tab: "tests")
+
+        :done ->
+          assign(socket, active_tab: "validation")
+
+        :failed ->
+          assign(socket, active_tab: "validation")
+
+        _ ->
+          socket
+      end
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_info({:test_generation_token, token}, socket) do
+    new_test_code = socket.assigns.test_code <> token
+    socket = assign(socket, test_code: new_test_code)
+
+    # Only push to Monaco if tests tab is active
+    socket =
+      if socket.assigns.active_tab == "tests" do
+        push_event(socket, "monaco:append_text", %{text: token})
+      else
+        socket
+      end
+
+    {:noreply, socket}
   end
 
   @impl true
@@ -2011,6 +2060,11 @@ defmodule BlackboexWeb.ApiLive.Edit do
       %{validation: result.validation}
     )
 
+    # Persist validation report to DB
+    Apis.update_api(socket.assigns.api, %{
+      validation_report: validation_to_map(result.validation)
+    })
+
     # Reload API to get updated example_request/param_schema from schema extraction
     updated_api = Apis.get_api(socket.assigns.org.id, socket.assigns.api.id)
 
@@ -2046,7 +2100,11 @@ defmodule BlackboexWeb.ApiLive.Edit do
   end
 
   defp format_test_summary(test_results) when is_list(test_results) and test_results != [] do
-    passed = Enum.count(test_results, &(&1.status == "passed"))
+    passed =
+      Enum.count(test_results, fn item ->
+        (item[:status] || item["status"]) == "passed"
+      end)
+
     total = length(test_results)
     "#{passed}/#{total}"
   end
@@ -2062,6 +2120,53 @@ defmodule BlackboexWeb.ApiLive.Edit do
   defp generation_to_pipeline_status("generating"), do: :generating_code
   defp generation_to_pipeline_status("validating"), do: :formatting
   defp generation_to_pipeline_status(_), do: nil
+
+  defp derive_test_summary(nil), do: nil
+
+  defp derive_test_summary(report) when is_map(report) do
+    format_test_summary(report["test_results"] || [])
+  end
+
+  defp restore_validation_report(nil), do: nil
+
+  defp restore_validation_report(report) when is_map(report) do
+    %{
+      compilation: safe_to_atom(report["compilation"]),
+      compilation_errors: report["compilation_errors"] || [],
+      format: safe_to_atom(report["format"]),
+      format_issues: report["format_issues"] || [],
+      credo: safe_to_atom(report["credo"]),
+      credo_issues: report["credo_issues"] || [],
+      tests: safe_to_atom(report["tests"]),
+      test_results: report["test_results"] || [],
+      overall: safe_to_atom(report["overall"])
+    }
+  end
+
+  defp safe_to_atom(nil), do: :pass
+  defp safe_to_atom(val) when is_atom(val), do: val
+  defp safe_to_atom(val) when val in ["pass", "fail", "skipped"], do: String.to_existing_atom(val)
+  defp safe_to_atom(_), do: :pass
+
+  @spec validation_to_map(map() | nil) :: map() | nil
+  defp validation_to_map(nil), do: nil
+
+  defp validation_to_map(report) do
+    %{
+      "compilation" => to_string(report.compilation),
+      "compilation_errors" => report.compilation_errors || [],
+      "format" => to_string(report.format),
+      "format_issues" => report.format_issues || [],
+      "credo" => to_string(report.credo),
+      "credo_issues" => report.credo_issues || [],
+      "tests" => to_string(report.tests),
+      "test_results" =>
+        Enum.map(report.test_results || [], fn item ->
+          Map.new(item, fn {k, v} -> {to_string(k), v} end)
+        end),
+      "overall" => to_string(report.overall)
+    }
+  end
 
   defp test_summary_class(summary) do
     if String.contains?(summary, "/") do

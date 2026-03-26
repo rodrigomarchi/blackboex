@@ -348,8 +348,9 @@ defmodule Blackboex.CodeGen.UnifiedPipeline do
 
   defp generate_tests(ctx) do
     template = to_string(ctx.template_type)
+    opts = if ctx[:test_token_callback], do: [token_callback: ctx.test_token_callback], else: []
 
-    case TestGenerator.generate_tests_for_code(ctx.code, template, []) do
+    case TestGenerator.generate_tests_for_code(ctx.code, template, opts) do
       {:ok, %{code: test_code, usage: usage}} -> {:ok, test_code, usage}
       {:error, reason} -> {:error, reason}
     end
@@ -558,6 +559,7 @@ defmodule Blackboex.CodeGen.UnifiedPipeline do
       template_type: template_type,
       progress_callback: Keyword.get(opts, :progress_callback),
       token_callback: Keyword.get(opts, :token_callback),
+      test_token_callback: Keyword.get(opts, :test_token_callback),
       usage: %{}
     }
   end

@@ -99,10 +99,42 @@ defmodule Blackboex.Testing.TestGenerator do
 
   defp call_llm(prompt, system, opts) do
     client = Keyword.get_lazy(opts, :client, &Config.client/0)
+    token_callback = Keyword.get(opts, :token_callback)
 
-    case client.generate_text(prompt, system: system) do
-      {:ok, %{content: content} = response} ->
-        {:ok, content, Map.get(response, :usage, %{})}
+    if token_callback do
+      call_llm_streaming(client, prompt, system, token_callback)
+    else
+      case client.generate_text(prompt, system: system) do
+        {:ok, %{content: content} = response} ->
+          {:ok, content, Map.get(response, :usage, %{})}
+
+        {:error, reason} ->
+          {:error, reason}
+      end
+    end
+  end
+
+  defp call_llm_streaming(client, prompt, system, token_callback) do
+    case client.stream_text(prompt, system: system) do
+      {:ok, %ReqLLM.StreamResponse{} = response} ->
+        full =
+          response
+          |> ReqLLM.StreamResponse.tokens()
+          |> Enum.reduce("", fn token, acc ->
+            token_callback.(token)
+            acc <> token
+          end)
+
+        {:ok, full, %{}}
+
+      {:ok, stream} ->
+        full =
+          Enum.reduce(stream, "", fn {:token, token}, acc ->
+            token_callback.(token)
+            acc <> token
+          end)
+
+        {:ok, full, %{}}
 
       {:error, reason} ->
         {:error, reason}

@@ -2180,6 +2180,17 @@ defmodule BlackboexWeb.ApiLive.Edit do
     conversation =
       safe_append_message(conversation, "assistant", "Code generated successfully.")
 
+    # Compile, register, and extract schemas (same as Save)
+    maybe_register_compiled(
+      api,
+      socket.assigns.org,
+      result.code,
+      %{validation: result.validation}
+    )
+
+    # Reload API to get compiled status + extracted schemas
+    api = Apis.get_api(socket.assigns.org.id, api.id)
+
     {:noreply,
      socket
      |> assign(
@@ -2201,7 +2212,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
        active_tab: "validation"
      )
      |> push_editor_value(result.code)
-     |> put_flash(:info, "API generated successfully")}
+     |> put_flash(:info, "API generated and compiled successfully")}
   end
 
   @impl true

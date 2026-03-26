@@ -267,7 +267,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
       <%!-- Diff Modal (fullscreen Monaco diff editor) --%>
       <div
         :if={@diff_modal_open && @pending_edit}
-        class="fixed inset-0 z-50 flex flex-col bg-background"
+        class="fixed inset-0 z-[100] flex flex-col bg-background"
       >
         <div class="flex items-center justify-between border-b px-4 py-2 shrink-0">
           <div class="flex items-center gap-3">
@@ -2049,14 +2049,36 @@ defmodule BlackboexWeb.ApiLive.Edit do
 
   @impl true
   def handle_info({:generation_token, token}, socket) do
-    {:noreply,
-     socket
-     |> assign(
-       code: socket.assigns.code <> token,
-       generation_tokens: socket.assigns.generation_tokens <> token,
-       streaming_tokens: socket.assigns.streaming_tokens <> token
-     )
-     |> push_event("monaco:append_text", %{text: token})}
+    # Accumulate raw tokens for extraction later
+    new_raw = socket.assigns.generation_tokens <> token
+
+    # Strip markdown fences for Monaco display — only show code inside ```elixir ... ```
+    code_only = extract_streaming_code(new_raw)
+    prev_code_len = byte_size(socket.assigns.code)
+
+    new_code_part =
+      binary_part(
+        code_only,
+        min(prev_code_len, byte_size(code_only)),
+        max(byte_size(code_only) - prev_code_len, 0)
+      )
+
+    socket =
+      socket
+      |> assign(
+        code: code_only,
+        generation_tokens: new_raw,
+        streaming_tokens: socket.assigns.streaming_tokens <> token
+      )
+
+    socket =
+      if new_code_part != "" do
+        push_event(socket, "monaco:append_text", %{text: new_code_part})
+      else
+        socket
+      end
+
+    {:noreply, socket}
   end
 
   @impl true
@@ -2948,6 +2970,14 @@ defmodule BlackboexWeb.ApiLive.Edit do
     case Conversations.append_message(conversation, role, content) do
       {:ok, updated} -> updated
       _ -> conversation
+    end
+  end
+
+  defp extract_streaming_code(raw) do
+    # If we see ```elixir\n, extract everything after it (and before closing ``` if present)
+    case Regex.run(~r/```(?:elixir)?\n(.*?)(?:```|$)/s, raw) do
+      [_, code] -> String.trim_trailing(code)
+      nil -> ""
     end
   end
 

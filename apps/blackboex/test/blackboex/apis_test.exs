@@ -126,7 +126,7 @@ defmodule Blackboex.ApisTest do
   end
 
   describe "publishing fields" do
-    test "defaults visibility to private and requires_auth to true", %{user: user, org: org} do
+    test "defaults visibility to private and requires_auth to false", %{user: user, org: org} do
       {:ok, api} =
         Apis.create_api(%{
           name: "My API",
@@ -135,7 +135,7 @@ defmodule Blackboex.ApisTest do
         })
 
       assert api.visibility == "private"
-      assert api.requires_auth == true
+      assert api.requires_auth == false
     end
 
     test "accepts visibility and requires_auth in changeset", %{user: user, org: org} do
@@ -167,7 +167,7 @@ defmodule Blackboex.ApisTest do
 
   describe "publish/2" do
     @tag :capture_log
-    test "publishes a compiled API and generates key", %{user: user, org: org} do
+    test "publishes a compiled API", %{user: user, org: org} do
       {:ok, api} =
         Apis.create_api(%{
           name: "Compiled API",
@@ -177,9 +177,8 @@ defmodule Blackboex.ApisTest do
           user_id: user.id
         })
 
-      assert {:ok, published, plain_key} = Apis.publish(api, org)
+      assert {:ok, published} = Apis.publish(api, org)
       assert published.status == "published"
-      assert String.starts_with?(plain_key, "bb_live_")
     end
 
     @tag :capture_log
@@ -239,7 +238,7 @@ defmodule Blackboex.ApisTest do
           user_id: user.id
         })
 
-      assert {:ok, published, _key} = Apis.publish(api, org)
+      assert {:ok, published} = Apis.publish(api, org)
       assert published.status == "published"
 
       assert {:ok, unpublished} = Apis.unpublish(published)

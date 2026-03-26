@@ -30,7 +30,7 @@ defmodule Blackboex.Apis.Api do
     field :example_request, :map
     field :example_response, :map
     field :visibility, :string, default: "private"
-    field :requires_auth, :boolean, default: true
+    field :requires_auth, :boolean, default: false
     field :documentation_md, :string
     field :generation_status, :string
     field :generation_error, :string

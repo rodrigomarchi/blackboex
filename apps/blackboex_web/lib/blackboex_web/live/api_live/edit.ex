@@ -1277,16 +1277,10 @@ defmodule BlackboexWeb.ApiLive.Edit do
     %{api: api, org: org} = socket.assigns
 
     case Apis.publish(api, org) do
-      {:ok, published_api, plain_key} ->
+      {:ok, published_api} ->
         {:noreply,
          socket
-         |> assign(
-           api: published_api,
-           plain_key_flash: plain_key,
-           active_tab: "keys",
-           api_keys: enrich_keys_with_metrics(Keys.list_keys(published_api.id)),
-           keys_loaded: true
-         )
+         |> assign(api: published_api)
          |> lazy_load_tab("publish")
          |> put_flash(:info, "API published successfully")}
 

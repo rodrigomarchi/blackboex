@@ -8,7 +8,6 @@ defmodule Blackboex.Apis do
   alias Blackboex.Apis.Api
   alias Blackboex.Apis.ApiVersion
   alias Blackboex.Apis.DiffEngine
-  alias Blackboex.Apis.Keys
   alias Blackboex.Apis.Registry
   alias Blackboex.Audit
   alias Blackboex.Billing.Enforcement
@@ -227,26 +226,14 @@ defmodule Blackboex.Apis do
   # --- Publishing ---
 
   @spec publish(Api.t(), Organization.t()) ::
-          {:ok, Api.t(), String.t()}
+          {:ok, Api.t()}
           | {:error, :not_compiled | :org_mismatch | Ecto.Changeset.t()}
   def publish(
         %Api{status: "compiled", organization_id: org_id} = api,
         %Organization{id: org_id} = org
       ) do
-    Ecto.Multi.new()
-    |> Ecto.Multi.update(:api, Api.changeset(api, %{status: "published"}))
-    |> Ecto.Multi.run(:key, fn _repo, %{api: published_api} ->
-      case Keys.create_key(published_api, %{
-             label: "Default key",
-             organization_id: org.id
-           }) do
-        {:ok, plain_key, api_key} -> {:ok, {plain_key, api_key}}
-        {:error, changeset} -> {:error, changeset}
-      end
-    end)
-    |> Repo.transaction()
-    |> case do
-      {:ok, %{api: published_api, key: {plain_key, _api_key}}} ->
+    case update_api(api, %{status: "published"}) do
+      {:ok, published_api} ->
         register_published_api(published_api, org)
 
         Task.Supervisor.start_child(Blackboex.LoggingSupervisor, fn ->
@@ -258,12 +245,9 @@ defmodule Blackboex.Apis do
           })
         end)
 
-        {:ok, published_api, plain_key}
+        {:ok, published_api}
 
-      {:error, :api, changeset, _} ->
-        {:error, changeset}
-
-      {:error, :key, changeset, _} ->
+      {:error, changeset} ->
         {:error, changeset}
     end
   end

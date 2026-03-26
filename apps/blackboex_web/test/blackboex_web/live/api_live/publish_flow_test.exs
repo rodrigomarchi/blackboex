@@ -54,14 +54,8 @@ defmodule BlackboexWeb.ApiLive.PublishFlowTest do
       # Publish (after publish, the handler opens the config panel with keys loaded)
       html = lv |> element(~s(button[phx-click="publish"])) |> render_click()
 
-      # After publish, the config panel shows the key
+      # After publish, status updated
       assert html =~ "published"
-      assert html =~ "bb_live_"
-
-      # Verify API key was created
-      keys = Keys.list_keys(api.id)
-      assert length(keys) == 1
-      assert is_nil(hd(keys).revoked_at)
 
       # Verify API status in DB
       updated_api = Apis.get_api(org.id, api.id)

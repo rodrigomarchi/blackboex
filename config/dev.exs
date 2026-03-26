@@ -27,7 +27,8 @@ config :blackboex_web, BlackboexWeb.Endpoint,
   secret_key_base: "1R2CsayqIa9hKa7syZAcBkUB84/JNZSaEuiRiRoU4prFcgzKfvo+bq2L+VrG61ef",
   watchers: [
     esbuild: {Esbuild, :install_and_run, [:blackboex_web, ~w(--sourcemap=inline --watch)]},
-    esbuild_admin: {Esbuild, :install_and_run, [:blackboex_admin, ~w(--sourcemap=inline --watch)]},
+    esbuild_admin:
+      {Esbuild, :install_and_run, [:blackboex_admin, ~w(--sourcemap=inline --watch)]},
     tailwind: {Tailwind, :install_and_run, [:blackboex_web, ~w(--watch)]},
     tailwind_admin: {Tailwind, :install_and_run, [:blackboex_admin, ~w(--watch)]}
   ]

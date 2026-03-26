@@ -11,6 +11,7 @@ defmodule BlackboexWeb.Components.EditorToolbar do
   attr :right_panel, :atom, default: nil
   attr :bottom_panel_open, :boolean, default: false
   attr :selected_version, :map, default: nil
+  attr :generation_status, :string, default: nil
 
   @spec editor_toolbar(map()) :: Phoenix.LiveView.Rendered.t()
   def editor_toolbar(assigns) do
@@ -49,6 +50,20 @@ defmodule BlackboexWeb.Components.EditorToolbar do
         v{@selected_version.version_number}
       </span>
 
+      <span
+        :if={@generation_status in ~w(pending generating validating)}
+        class="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-600 animate-pulse"
+      >
+        <.icon name="hero-arrow-path" class="size-3 animate-spin" /> generating
+      </span>
+
+      <span
+        :if={@generation_status == "failed"}
+        class="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-medium text-destructive"
+      >
+        generation failed
+      </span>
+
       <div class="flex-1" />
 
       <%!-- Panel toggle buttons --%>
@@ -84,7 +99,7 @@ defmodule BlackboexWeb.Components.EditorToolbar do
       <%!-- Save button (Save = Compile + Validate) --%>
       <button
         phx-click="save"
-        disabled={@saving}
+        disabled={@saving or @generation_status in ~w(pending generating validating)}
         class="inline-flex items-center rounded-md bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
       >
         <.icon name="hero-bolt" class="size-3 mr-1" /> Save

@@ -51,6 +51,14 @@ defmodule BlackboexWeb.ApiLive.Edit do
         versions = Apis.list_versions(api.id)
         {:ok, conversation} = Conversations.get_or_create_conversation(api.id)
 
+        generating? =
+          api.generation_status in ["pending", "generating", "validating"]
+
+        if generating? do
+          Phoenix.PubSub.subscribe(Blackboex.PubSub, "api:#{api.id}")
+          Process.send_after(self(), :check_generation_status, 5_000)
+        end
+
         {:ok,
          assign(socket,
            api: api,
@@ -103,13 +111,16 @@ defmodule BlackboexWeb.ApiLive.Edit do
            keys_loaded: false,
            plain_key_flash: nil,
            metrics: nil,
-           # Panel state (new)
-           right_panel: nil,
+           # Panel state
+           right_panel: if(generating?, do: :chat, else: nil),
            bottom_panel_open: false,
            bottom_tab: "test",
            command_palette_open: false,
            command_palette_query: "",
-           command_palette_selected: 0
+           command_palette_selected: 0,
+           # Generation state
+           generation_status: api.generation_status,
+           generation_tokens: ""
          )}
     end
   end
@@ -128,6 +139,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
         right_panel={@right_panel}
         bottom_panel_open={@bottom_panel_open}
         selected_version={@selected_version}
+        generation_status={@generation_status}
       />
 
       <%!-- Main area: editor + panels --%>
@@ -162,7 +174,11 @@ defmodule BlackboexWeb.ApiLive.Edit do
           </div>
 
           <%!-- Monaco Editor --%>
-          <div id="monaco-container" style="flex: 1 1 0%; min-height: 0; position: relative;">
+          <div
+            id="monaco-container"
+            phx-hook="MonacoStreaming"
+            style="flex: 1 1 0%; min-height: 0; position: relative;"
+          >
             <LiveMonacoEditor.code_editor
               path={"api_#{@api.id}.ex"}
               value={editor_value(@editor_tab, @code, @test_code)}
@@ -177,10 +193,13 @@ defmodule BlackboexWeb.ApiLive.Edit do
                   "scrollBeyondLastLine" => false,
                   "automaticLayout" => true,
                   "scrollbar" => %{"alwaysConsumeMouseWheel" => true},
-                  "readOnly" => @selected_version != nil
+                  "readOnly" =>
+                    @selected_version != nil or
+                      @generation_status in ["pending", "generating", "validating"]
                 })
               }
             />
+
           </div>
 
           <%!-- Bottom Panel --%>
@@ -376,12 +395,12 @@ defmodule BlackboexWeb.ApiLive.Edit do
       id="chat-panel"
       messages={@chat_messages}
       input={@chat_input}
-      loading={@chat_loading}
+      loading={@chat_loading or @generation_status in ["pending", "generating", "validating"]}
       api_id={@api.id}
       pending_edit={@pending_edit}
       template_type={@api.template_type}
       streaming_tokens={@streaming_tokens}
-      pipeline_status={@pipeline_status}
+      pipeline_status={@pipeline_status || generation_to_pipeline_status(@generation_status)}
     />
     """
   end
@@ -1442,6 +1461,152 @@ defmodule BlackboexWeb.ApiLive.Edit do
     {:noreply, assign(socket, doc_generating: false, doc_gen_ref: nil)}
   end
 
+  # ── Generation PubSub handlers ─────────────────────────────────────────
+
+  @impl true
+  def handle_info(:check_generation_status, socket) do
+    if socket.assigns.generation_status in ["pending", "generating", "validating"] do
+      api = Apis.get_api(socket.assigns.org.id, socket.assigns.api.id)
+
+      cond do
+        is_nil(api) ->
+          {:noreply, socket}
+
+        api.generation_status == "completed" ->
+          send(
+            self(),
+            {:generation_complete,
+             %{
+               code: api.source_code || "",
+               test_code: api.test_code,
+               validation: nil,
+               template: api.template_type
+             }}
+          )
+
+          {:noreply, socket}
+
+        api.generation_status == "failed" ->
+          send(self(), {:generation_failed, api.generation_error || "Generation failed"})
+          {:noreply, socket}
+
+        true ->
+          Process.send_after(self(), :check_generation_status, 5_000)
+          {:noreply, socket}
+      end
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_info({:generation_token, token}, socket) do
+    {:noreply,
+     socket
+     |> assign(
+       code: socket.assigns.code <> token,
+       generation_tokens: socket.assigns.generation_tokens <> token,
+       streaming_tokens: socket.assigns.streaming_tokens <> token
+     )
+     |> push_event("monaco:append_text", %{text: token})}
+  end
+
+  @impl true
+  def handle_info({:generation_status, status}, socket) do
+    {:noreply, assign(socket, generation_status: status)}
+  end
+
+  @impl true
+  def handle_info({:generation_progress, progress}, socket) do
+    {:noreply, assign(socket, pipeline_status: progress.step)}
+  end
+
+  @impl true
+  def handle_info({:generation_complete, result}, socket) do
+    api = Apis.get_api(socket.assigns.org.id, socket.assigns.api.id)
+
+    conversation = socket.assigns.chat_conversation
+
+    # Only add user message if not already present (it's seeded in mount)
+    has_user_msg = Enum.any?(conversation.messages, &(&1["role"] == "user"))
+
+    conversation =
+      if has_user_msg do
+        conversation
+      else
+        case Conversations.append_message(conversation, "user", api.description || "Generate API") do
+          {:ok, c} -> c
+          _ -> conversation
+        end
+      end
+
+    {:ok, conversation} =
+      Conversations.append_message(conversation, "assistant", "Código gerado com sucesso.")
+
+    {:noreply,
+     socket
+     |> assign(
+       api: api,
+       code: result.code,
+       test_code: result.test_code || "",
+       generation_status: "completed",
+       generation_tokens: "",
+       streaming_tokens: "",
+       pipeline_status: nil,
+       chat_loading: false,
+       chat_messages: conversation.messages,
+       chat_conversation: conversation,
+       validation_report: result.validation,
+       test_summary:
+         if(result.validation, do: format_test_summary(result.validation.test_results), else: nil),
+       versions: Apis.list_versions(api.id),
+       bottom_panel_open: result.validation != nil,
+       bottom_tab: "validation"
+     )
+     |> push_editor_value(result.code)
+     |> put_flash(:info, "API generated successfully")}
+  end
+
+  @impl true
+  def handle_info({:generation_failed, reason}, socket) do
+    api = Apis.get_api(socket.assigns.org.id, socket.assigns.api.id)
+
+    conversation = socket.assigns.chat_conversation
+
+    has_user_msg = Enum.any?(conversation.messages, &(&1["role"] == "user"))
+
+    conversation =
+      if has_user_msg do
+        conversation
+      else
+        case Conversations.append_message(conversation, "user", api.description || "Generate API") do
+          {:ok, c} -> c
+          _ -> conversation
+        end
+      end
+
+    {:ok, conversation} =
+      Conversations.append_message(
+        conversation,
+        "assistant",
+        "Generation failed: #{reason}. You can try again via chat."
+      )
+
+    {:noreply,
+     socket
+     |> assign(
+       api: api || socket.assigns.api,
+       generation_status: "failed",
+       generation_tokens: "",
+       streaming_tokens: "",
+       pipeline_status: nil,
+       chat_loading: false,
+       chat_messages: conversation.messages,
+       chat_conversation: conversation
+     )
+     |> put_flash(:error, "Code generation failed")}
+  end
+
   # ── Private Helpers ────────────────────────────────────────────────────
 
   defp toggle_right_panel(socket, mode) do
@@ -1902,6 +2067,11 @@ defmodule BlackboexWeb.ApiLive.Edit do
 
   defp editor_value("code", code, _test_code), do: code
   defp editor_value("tests", _code, test_code), do: test_code
+
+  defp generation_to_pipeline_status("pending"), do: :generating_code
+  defp generation_to_pipeline_status("generating"), do: :generating_code
+  defp generation_to_pipeline_status("validating"), do: :formatting
+  defp generation_to_pipeline_status(_), do: nil
 
   defp test_summary_class(summary) do
     if String.contains?(summary, "/") do

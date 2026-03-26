@@ -96,6 +96,18 @@ defmodule Blackboex.Apis do
     |> Repo.update()
   end
 
+  @spec delete_api(Api.t()) :: {:ok, Api.t()} | {:error, Ecto.Changeset.t()}
+  def delete_api(%Api{} = api) do
+    if api.status == "published" do
+      Registry.unregister(api.id)
+
+      module_name = Compiler.module_name_for(api)
+      Compiler.unload(module_name)
+    end
+
+    Repo.delete(api)
+  end
+
   # --- Versioning ---
 
   @spec create_version(Api.t(), map()) :: {:ok, ApiVersion.t()} | {:error, Ecto.Changeset.t()}

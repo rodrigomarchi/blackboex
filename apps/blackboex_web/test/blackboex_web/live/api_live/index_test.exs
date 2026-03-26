@@ -35,9 +35,9 @@ defmodule BlackboexWeb.ApiLive.IndexTest do
       assert html =~ "No APIs"
     end
 
-    test "has link to create new API", %{conn: conn} do
+    test "has button to create new API", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/apis")
-      assert has_element?(view, "a[href='/apis/new']")
+      assert has_element?(view, "button[phx-click='open_create_modal']")
     end
   end
 end

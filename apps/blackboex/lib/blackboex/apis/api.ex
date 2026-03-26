@@ -32,6 +32,8 @@ defmodule Blackboex.Apis.Api do
     field :visibility, :string, default: "private"
     field :requires_auth, :boolean, default: true
     field :documentation_md, :string
+    field :generation_status, :string
+    field :generation_error, :string
 
     belongs_to :organization, Blackboex.Organizations.Organization
     belongs_to :user, Blackboex.Accounts.User, type: :id
@@ -57,6 +59,8 @@ defmodule Blackboex.Apis.Api do
       :visibility,
       :requires_auth,
       :documentation_md,
+      :generation_status,
+      :generation_error,
       :organization_id,
       :user_id
     ])

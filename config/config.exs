@@ -107,7 +107,7 @@ config :fun_with_flags, :cache_bust_notifications,
 # Oban job processing
 config :blackboex, Oban,
   repo: Blackboex.Repo,
-  queues: [billing: 10, analytics: 5],
+  queues: [billing: 10, analytics: 5, generation: 3],
   plugins: [
     Oban.Plugins.Pruner,
     {Oban.Plugins.Cron,

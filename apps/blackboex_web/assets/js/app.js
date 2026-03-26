@@ -119,11 +119,37 @@ const CommandPaletteNav = {
   }
 }
 
+// Monaco streaming hook — appends text incrementally via model.applyEdits
+// instead of replacing the entire buffer with setValue
+const MonacoStreaming = {
+  mounted() {
+    this.handleEvent("monaco:append_text", ({ text }) => {
+      const editors = window.monaco?.editor?.getEditors() || []
+      const editor = editors[0]
+      if (!editor) return
+
+      const model = editor.getModel()
+      const lastLine = model.getLineCount()
+      const lastCol = model.getLineMaxColumn(lastLine)
+      const range = new window.monaco.Range(lastLine, lastCol, lastLine, lastCol)
+
+      model.applyEdits([{ range, text }])
+      editor.revealLine(model.getLineCount())
+    })
+
+    this.handleEvent("monaco:clear", () => {
+      const editors = window.monaco?.editor?.getEditors() || []
+      const editor = editors[0]
+      if (editor) editor.setValue("")
+    })
+  }
+}
+
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks, CodeEditorHook, KeyboardShortcuts, AutoFocus, CommandPaletteNav, ...BackpexHooks},
+  hooks: {...colocatedHooks, CodeEditorHook, MonacoStreaming, KeyboardShortcuts, AutoFocus, CommandPaletteNav, ...BackpexHooks},
 })
 
 // Show progress bar on live navigation and form submits

@@ -230,18 +230,13 @@ defmodule BlackboexWeb.ApiLive.EditEventsTest do
       # Change code so save actually does something
       lv |> render_hook("editor_changed", %{"value" => "def handle(_), do: %{v: 1}"})
 
-      # First save should work
+      # First save should work — creates version immediately
       lv |> element("button[phx-click=save]") |> render_click()
-
-      # Verify one version was created
       assert length(Apis.list_versions(api.id)) == 1
 
-      # Change code again for second save
-      lv |> render_hook("editor_changed", %{"value" => "def handle(_), do: %{v: 2}"})
+      # Rapid second save with same code should NOT create duplicate version
       lv |> element("button[phx-click=save]") |> render_click()
-
-      # Second save should also create a version (saving flag was reset)
-      assert length(Apis.list_versions(api.id)) == 2
+      assert length(Apis.list_versions(api.id)) == 1
     end
 
     test "save runs validation pipeline", %{

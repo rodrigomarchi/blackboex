@@ -12,7 +12,8 @@ defmodule BlackboexWeb.Components.PipelineStatus do
     :compiling,
     :linting,
     :generating_tests,
-    :running_tests
+    :running_tests,
+    :generating_docs
   ]
 
   @step_labels %{
@@ -22,6 +23,7 @@ defmodule BlackboexWeb.Components.PipelineStatus do
     linting: "Running linters",
     generating_tests: "Generating tests",
     running_tests: "Running tests",
+    generating_docs: "Generating docs",
     fixing_code: "Fixing code",
     fixing_tests: "Fixing tests",
     done: "Done",

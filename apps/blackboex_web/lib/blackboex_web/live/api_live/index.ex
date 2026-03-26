@@ -222,7 +222,7 @@ defmodule BlackboexWeb.ApiLive.Index do
               <div class="min-w-0 flex-1 space-y-1">
                 <div class="flex items-center gap-2">
                   <.link
-                    navigate={~p"/apis/#{row.api.id}"}
+                    navigate={~p"/apis/#{row.api.id}/edit"}
                     class="font-semibold hover:underline truncate"
                   >
                     {row.api.name}

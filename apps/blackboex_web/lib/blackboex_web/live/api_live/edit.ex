@@ -8,8 +8,11 @@ defmodule BlackboexWeb.ApiLive.Edit do
 
   require Logger
 
+  import Ecto.Query
+
   alias Blackboex.Apis
   alias Blackboex.Apis.Analytics
+  alias Blackboex.Apis.MetricRollup
   alias Blackboex.Apis.Conversations
   alias Blackboex.Apis.DiffEngine
   alias Blackboex.Apis.Keys
@@ -104,6 +107,16 @@ defmodule BlackboexWeb.ApiLive.Edit do
            test_ref: nil,
            doc_generating: false,
            doc_gen_ref: nil,
+           # Metrics assigns
+           metrics_period: "7d",
+           metrics_loaded: false,
+           invocation_data: [],
+           latency_data: [],
+           error_data: [],
+           total_invocations: 0,
+           total_errors: 0,
+           error_rate: 0.0,
+           avg_latency: 0,
            # Key/Publish assigns
            api_keys: [],
            keys_loaded: false,
@@ -131,10 +144,13 @@ defmodule BlackboexWeb.ApiLive.Edit do
     %{id: "docs", label: "Docs"},
     %{id: "versions", label: "Versions"},
     %{id: "run", label: "Run"},
+    %{id: "metrics", label: "Metrics"},
     %{id: "keys", label: "API Keys"},
     %{id: "publish", label: "Publish"},
     %{id: "info", label: "Info"}
   ]
+
+  @metric_periods %{"24h" => 1, "7d" => 7, "30d" => 30}
 
   @impl true
   def render(assigns) do
@@ -227,7 +243,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
             api_id={@api.id}
             pending_edit={@pending_edit}
             template_type={@api.template_type}
-            streaming_tokens={@streaming_tokens}
+            streaming_tokens={if(@chat_loading, do: @streaming_tokens, else: "")}
             pipeline_status={@pipeline_status || generation_to_pipeline_status(@generation_status)}
           />
         </div>
@@ -458,6 +474,89 @@ defmodule BlackboexWeb.ApiLive.Edit do
           </div>
         <% end %>
       </div>
+    </div>
+    """
+  end
+
+  # ── API Keys Tab ──────────────────────────────────────────────────────
+
+  # ── Metrics Tab ──────────────────────────────────────────────────────
+
+  defp render_tab_content(%{active_tab: "metrics"} = assigns) do
+    ~H"""
+    <div class="p-6 overflow-y-auto h-full space-y-6">
+      <div class="flex items-center justify-between">
+        <h2 class="text-sm font-semibold">Metrics</h2>
+        <div class="flex gap-1">
+          <button
+            :for={period <- ["24h", "7d", "30d"]}
+            phx-click="change_metrics_period"
+            phx-value-period={period}
+            class={[
+              "px-3 py-1 rounded-md text-xs font-medium",
+              if(@metrics_period == period,
+                do: "bg-primary text-primary-foreground",
+                else: "bg-muted text-muted-foreground hover:bg-accent"
+              )
+            ]}
+          >
+            {period}
+          </button>
+        </div>
+      </div>
+
+      <%!-- Stat Cards --%>
+      <div class="grid grid-cols-4 gap-4">
+        <div class="rounded-lg border p-4">
+          <p class="text-xs text-muted-foreground">Invocations</p>
+          <p class="text-2xl font-bold">{@total_invocations}</p>
+        </div>
+        <div class="rounded-lg border p-4">
+          <p class="text-xs text-muted-foreground">Errors</p>
+          <p class="text-2xl font-bold">{@total_errors}</p>
+        </div>
+        <div class="rounded-lg border p-4">
+          <p class="text-xs text-muted-foreground">Error Rate</p>
+          <p class="text-2xl font-bold">{@error_rate}%</p>
+        </div>
+        <div class="rounded-lg border p-4">
+          <p class="text-xs text-muted-foreground">Avg Latency</p>
+          <p class="text-2xl font-bold">{@avg_latency}ms</p>
+        </div>
+      </div>
+
+      <%= if @invocation_data == [] do %>
+        <div class="rounded-lg border border-dashed p-8 text-center">
+          <.icon name="hero-chart-bar" class="size-10 mx-auto text-muted-foreground mb-3" />
+          <p class="text-sm font-medium">No metrics data yet</p>
+          <p class="text-xs text-muted-foreground mt-1">
+            Publish and call your API to see stats. Data is aggregated hourly.
+          </p>
+        </div>
+      <% else %>
+        <div class="grid grid-cols-2 gap-4">
+          <div class="rounded-lg border p-4">
+            <BlackboexWeb.Components.Charts.bar_chart
+              data={@invocation_data}
+              title="Invocations"
+            />
+          </div>
+          <div class="rounded-lg border p-4">
+            <BlackboexWeb.Components.Charts.line_chart
+              data={@latency_data}
+              title="P95 Latency (ms)"
+              color="#f59e0b"
+            />
+          </div>
+        </div>
+        <div class="rounded-lg border p-4">
+          <BlackboexWeb.Components.Charts.bar_chart
+            data={@error_data}
+            title="Errors"
+            color="#ef4444"
+          />
+        </div>
+      <% end %>
     </div>
     """
   end
@@ -933,7 +1032,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
 
   # ── Tab Events ────────────────────────────────────────────────────────
 
-  @valid_tabs ~w(code tests validation docs versions run keys publish info)
+  @valid_tabs ~w(code tests validation docs versions run metrics keys publish info)
 
   @impl true
   def handle_event("switch_tab", %{"tab" => tab}, socket) when tab in @valid_tabs do
@@ -1626,6 +1725,17 @@ defmodule BlackboexWeb.ApiLive.Edit do
     end
   end
 
+  # ── Metrics Events ───────────────────────────────────────────────────
+
+  @impl true
+  def handle_event("change_metrics_period", %{"period" => period}, socket)
+      when is_map_key(@metric_periods, period) do
+    {:noreply,
+     socket
+     |> assign(metrics_period: period, metrics_loaded: false)
+     |> load_metrics_data()}
+  end
+
   # ── Doc Generation Events ─────────────────────────────────────────────
 
   @impl true
@@ -2235,6 +2345,10 @@ defmodule BlackboexWeb.ApiLive.Edit do
     lazy_load_tab(socket, "test")
   end
 
+  defp lazy_load_tab(socket, "metrics") when not socket.assigns.metrics_loaded do
+    load_metrics_data(socket)
+  end
+
   defp lazy_load_tab(socket, "test") when not socket.assigns.history_loaded do
     history = Testing.list_test_requests(socket.assigns.api.id)
     assign(socket, test_history: history, history_loaded: true)
@@ -2501,6 +2615,78 @@ defmodule BlackboexWeb.ApiLive.Edit do
       _ -> markdown
     end
   end
+
+  defp load_metrics_data(socket) do
+    api_id = socket.assigns.api.id
+    days = Map.fetch!(@metric_periods, socket.assigns.metrics_period)
+    start_date = Date.add(Date.utc_today(), -days)
+
+    rollups =
+      from(r in MetricRollup,
+        where: r.api_id == ^api_id and r.date >= ^start_date,
+        order_by: [asc: r.date, asc: r.hour]
+      )
+      |> Blackboex.Repo.all()
+
+    daily =
+      rollups
+      |> Enum.group_by(& &1.date)
+      |> Enum.sort_by(fn {date, _} -> date end)
+      |> Enum.map(fn {date, entries} ->
+        %{
+          label: Calendar.strftime(date, "%m/%d"),
+          invocations: Enum.sum(Enum.map(entries, & &1.invocations)),
+          errors: Enum.sum(Enum.map(entries, & &1.errors)),
+          p95: entries |> Enum.map(& &1.p95_duration_ms) |> Enum.max(fn -> 0.0 end),
+          avg_dur: entries |> Enum.map(& &1.avg_duration_ms) |> metrics_average()
+        }
+      end)
+
+    total_invocations = Enum.sum(Enum.map(daily, & &1.invocations))
+    total_errors = Enum.sum(Enum.map(daily, & &1.errors))
+
+    error_rate =
+      if total_invocations > 0,
+        do: Float.round(total_errors / total_invocations * 100, 1),
+        else: 0.0
+
+    period_atom =
+      case socket.assigns.metrics_period do
+        "24h" -> :day
+        "7d" -> :week
+        "30d" -> :month
+      end
+
+    avg_latency = Analytics.avg_latency(api_id, period: period_atom)
+
+    assign(socket,
+      invocation_data: Enum.map(daily, &%{label: &1.label, value: &1.invocations}),
+      latency_data: Enum.map(daily, &%{label: &1.label, value: round(&1.p95)}),
+      error_data: Enum.map(daily, &%{label: &1.label, value: &1.errors}),
+      total_invocations: total_invocations,
+      total_errors: total_errors,
+      error_rate: error_rate,
+      avg_latency: avg_latency,
+      metrics_loaded: true
+    )
+  rescue
+    error ->
+      Logger.error("Failed to load metrics: #{Exception.message(error)}")
+
+      assign(socket,
+        invocation_data: [],
+        latency_data: [],
+        error_data: [],
+        total_invocations: 0,
+        total_errors: 0,
+        error_rate: 0.0,
+        avg_latency: 0,
+        metrics_loaded: true
+      )
+  end
+
+  defp metrics_average([]), do: 0.0
+  defp metrics_average(list), do: Enum.sum(list) / length(list)
 
   defp enrich_keys_with_metrics(keys) do
     Enum.map(keys, fn key ->

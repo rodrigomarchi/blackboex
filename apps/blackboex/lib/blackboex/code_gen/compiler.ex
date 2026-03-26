@@ -142,17 +142,20 @@ defmodule Blackboex.CodeGen.Compiler do
 
     case result do
       {:ok, compiled_modules} when is_list(compiled_modules) ->
-        if Enum.any?(compiled_modules, fn {mod, _} -> mod == module_name end) do
-          {:ok, module_name}
-        else
-          {:error,
-           {:compilation, "Main module #{inspect(module_name)} not found in compiled output"}}
-        end
+        verify_module_compiled(compiled_modules, module_name)
 
       {:error, error} ->
         errors = format_compile_errors(diagnostics, error)
         Logger.error("Compilation failed: #{errors}")
         {:error, {:compilation, errors}}
+    end
+  end
+
+  defp verify_module_compiled(compiled_modules, module_name) do
+    if Enum.any?(compiled_modules, fn {mod, _} -> mod == module_name end) do
+      {:ok, module_name}
+    else
+      {:error, {:compilation, "Main module #{inspect(module_name)} not found in compiled output"}}
     end
   end
 

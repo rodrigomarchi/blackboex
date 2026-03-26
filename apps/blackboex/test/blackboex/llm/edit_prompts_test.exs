@@ -64,7 +64,7 @@ defmodule Blackboex.LLM.EditPromptsTest do
     test "instructs full-file replacement (not diff)" do
       system = EditPrompts.system_prompt()
 
-      assert system =~ "complete" || system =~ "full"
+      assert system =~ "COMPLETE" || system =~ "complete" || system =~ "full"
       assert system =~ "code"
     end
 

@@ -65,8 +65,8 @@ defmodule Blackboex.Docs.OpenApiGeneratorTest do
     test "security schemes present when requires_auth is true" do
       spec = OpenApiGenerator.generate(@base_api)
 
-      assert spec["components"]["securitySchemes"]["apiKey"]
-      assert spec["security"] == [%{"apiKey" => []}]
+      assert spec["components"]["securitySchemes"]["bearerAuth"]
+      assert spec["security"] == [%{"bearerAuth" => []}]
     end
 
     test "no security when requires_auth is false" do

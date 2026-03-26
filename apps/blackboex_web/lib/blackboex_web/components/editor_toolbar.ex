@@ -16,9 +16,9 @@ defmodule BlackboexWeb.Components.EditorToolbar do
     ~H"""
     <header class="flex h-11 shrink-0 items-center border-b bg-card px-3 gap-2">
       <.link
-        navigate={~p"/apis/#{@api.id}"}
+        navigate={~p"/apis"}
         class="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent"
-        title="Back"
+        title="Back to APIs"
       >
         <.icon name="hero-arrow-left" class="size-4" />
       </.link>

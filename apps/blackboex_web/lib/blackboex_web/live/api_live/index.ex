@@ -7,9 +7,7 @@ defmodule BlackboexWeb.ApiLive.Index do
   use BlackboexWeb, :live_view
 
   alias Blackboex.Apis
-  alias Blackboex.Apis.Conversations
   alias Blackboex.Apis.DashboardQueries
-  alias Blackboex.CodeGen.GenerationWorker
 
   @max_description_length 10_000
 
@@ -150,14 +148,8 @@ defmodule BlackboexWeb.ApiLive.Index do
 
   defp maybe_enqueue_generation(_api, "", _user_id, _org_id), do: :ok
 
-  defp maybe_enqueue_generation(api, description, user_id, org_id) do
-    # Seed the conversation with the user's prompt so the editor chat shows it immediately
-    {:ok, conversation} = Conversations.get_or_create_conversation(api.id)
-    Conversations.append_message(conversation, "user", description)
-
-    %{api_id: api.id, description: description, user_id: user_id, org_id: org_id}
-    |> GenerationWorker.new()
-    |> Oban.insert()
+  defp maybe_enqueue_generation(api, description, user_id, _org_id) do
+    Apis.start_agent_generation(api, description, user_id)
   end
 
   # ── Render ───────────────────────────────────────────────────────────────

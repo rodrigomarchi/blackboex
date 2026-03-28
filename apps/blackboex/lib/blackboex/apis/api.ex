@@ -39,6 +39,8 @@ defmodule Blackboex.Apis.Api do
     belongs_to :organization, Blackboex.Organizations.Organization
     belongs_to :user, Blackboex.Accounts.User, type: :id
 
+    has_one :conversation, Blackboex.Conversations.Conversation
+
     timestamps()
   end
 

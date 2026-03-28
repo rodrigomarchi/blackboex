@@ -107,7 +107,9 @@ defmodule BlackboexWeb.Router do
       # API data
       live_resources "/api-keys", ApiKeyLive
       live_resources "/api-versions", ApiVersionLive
-      live_resources "/api-conversations", ApiConversationLive
+      live_resources "/agent-conversations", AgentConversationLive
+      live_resources "/agent-runs", AgentRunLive
+      live_resources "/agent-events", AgentEventLive
       live_resources "/data-store-entries", DataStoreEntryLive
       live_resources "/invocation-logs", InvocationLogLive
       live_resources "/metric-rollups", MetricRollupLive

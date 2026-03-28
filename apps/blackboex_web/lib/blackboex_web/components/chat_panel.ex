@@ -69,6 +69,35 @@ defmodule BlackboexWeb.Components.ChatPanel do
           </div>
         <% end %>
 
+        <%!-- Agent events timeline --%>
+        <%= if @agent_events != [] do %>
+          <div class="rounded-lg border bg-muted/50 px-3 py-2 space-y-1">
+            <%= for event <- Enum.reverse(@agent_events) do %>
+              <div class="flex items-center gap-1.5 text-[11px]">
+                <%= case event do %>
+                  <% %{type: :tool_result, success: true, tool: tool, summary: summary} -> %>
+                    <span class="text-green-600">&#10003;</span>
+                    <span class="text-muted-foreground">{format_tool_name(tool)}</span>
+                    <span :if={summary} class="text-muted-foreground truncate max-w-[200px]">
+                      — {summary}
+                    </span>
+                  <% %{type: :tool_result, success: false, tool: tool, summary: summary} -> %>
+                    <span class="text-red-500">&#10007;</span>
+                    <span class="text-muted-foreground">{format_tool_name(tool)}</span>
+                    <span :if={summary} class="text-red-500 truncate max-w-[200px]">
+                      — {summary}
+                    </span>
+                  <% %{type: :message, content: content} -> %>
+                    <span class="text-blue-500">&#9679;</span>
+                    <span class="text-muted-foreground truncate max-w-[240px]">{content}</span>
+                  <% _ -> %>
+                    <span class="text-muted-foreground">&#9679;</span>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+
         <%!-- Loading state (no streaming yet) --%>
         <%= if @loading && @streaming_tokens == "" && @pipeline_status in [nil, :generating_code] do %>
           <div class="flex justify-start">
@@ -188,12 +217,26 @@ defmodule BlackboexWeb.Components.ChatPanel do
   defp format_diff_summary(diff), do: DiffEngine.format_diff_summary(diff)
 
   defp test_summary(test_results) when is_list(test_results) and test_results != [] do
-    passed = Enum.count(test_results, &(&1.status == "passed"))
+    passed =
+      Enum.count(test_results, fn
+        %{"status" => "passed"} -> true
+        %{status: "passed"} -> true
+        _ -> false
+      end)
+
     total = length(test_results)
     "#{passed}/#{total}"
   end
 
   defp test_summary(_), do: nil
+
+  defp format_tool_name("compile_code"), do: "Compiling"
+  defp format_tool_name("format_code"), do: "Formatting"
+  defp format_tool_name("lint_code"), do: "Linting"
+  defp format_tool_name("generate_tests"), do: "Generating tests"
+  defp format_tool_name("run_tests"), do: "Running tests"
+  defp format_tool_name("submit_code"), do: "Submitting"
+  defp format_tool_name(name), do: name
 
   defp quick_actions("crud") do
     ["Add validation", "Add filter", "Add pagination", "Add error handling"]

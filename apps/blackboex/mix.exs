@@ -61,7 +61,8 @@ defmodule Blackboex.MixProject do
       {:ex_json_schema, "~> 0.11"},
       {:ymlr, "~> 5.1"},
       {:mox, "~> 1.0", only: :test},
-      {:ex_machina, "~> 2.8", only: :test}
+      {:ex_machina, "~> 2.8", only: :test},
+      {:langchain, "~> 0.6.2"}
     ]
   end
 

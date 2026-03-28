@@ -112,7 +112,8 @@ config :blackboex, Oban,
     Oban.Plugins.Pruner,
     {Oban.Plugins.Cron,
      crontab: [
-       {"0 * * * *", Blackboex.Apis.MetricRollupWorker}
+       {"0 * * * *", Blackboex.Apis.MetricRollupWorker},
+       {"*/2 * * * *", Blackboex.Agent.RecoveryWorker}
      ]}
   ]
 

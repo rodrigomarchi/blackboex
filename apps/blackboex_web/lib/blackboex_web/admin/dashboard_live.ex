@@ -71,7 +71,7 @@ defmodule BlackboexWeb.Admin.DashboardLive do
             title="Conversations"
             value={@stats.api_conversations}
             icon="hero-chat-bubble-left-right"
-            href={~p"/admin/api-conversations"}
+            href={~p"/admin/agent-conversations"}
           />
           <.stat_card
             title="Data Store"
@@ -207,7 +207,7 @@ defmodule BlackboexWeb.Admin.DashboardLive do
       # API data
       api_keys: Repo.aggregate(Blackboex.Apis.ApiKey, :count),
       api_versions: Repo.aggregate(Blackboex.Apis.ApiVersion, :count),
-      api_conversations: Repo.aggregate(Blackboex.Apis.ApiConversation, :count),
+      api_conversations: Repo.aggregate(Blackboex.Conversations.Conversation, :count),
       data_store_entries: Repo.aggregate(Blackboex.Apis.DataStore.Entry, :count),
       invocation_logs: Repo.aggregate(Blackboex.Apis.InvocationLog, :count),
       metric_rollups: Repo.aggregate(Blackboex.Apis.MetricRollup, :count),

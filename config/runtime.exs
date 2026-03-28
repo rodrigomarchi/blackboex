@@ -29,6 +29,10 @@ config :req_llm,
   anthropic_api_key: System.get_env("ANTHROPIC_API_KEY"),
   openai_api_key: System.get_env("OPENAI_API_KEY")
 
+# LangChain API keys (used by agent pipeline)
+config :langchain,
+  anthropic_key: System.get_env("ANTHROPIC_API_KEY")
+
 # Structured JSON logging in production
 if config_env() == :prod do
   config :logger, :default_handler, formatter: {LoggerJSON.Formatters.Basic, []}

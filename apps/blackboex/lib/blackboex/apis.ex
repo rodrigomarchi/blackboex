@@ -293,4 +293,55 @@ defmodule Blackboex.Apis do
     error ->
       Logger.warning("Failed to register published API #{api.id}: #{inspect(error)}")
   end
+
+  # ── Agent Pipeline ───────────────────────────────────────────
+
+  @doc """
+  Starts an agent-based code generation run for an API.
+  Creates a conversation (if needed), a run, and starts the Agent.Session.
+
+  Returns `{:ok, run_id}` for the LiveView to subscribe to.
+  """
+  @spec start_agent_generation(Api.t(), String.t(), String.t() | integer()) ::
+          {:ok, String.t()} | {:error, term()}
+  def start_agent_generation(%Api{} = api, description, user_id) do
+    args = %{
+      "api_id" => api.id,
+      "organization_id" => api.organization_id,
+      "user_id" => user_id,
+      "run_type" => "generation",
+      "trigger_message" => description
+    }
+
+    update_api(api, %{generation_status: "generating"})
+
+    case args |> Blackboex.Agent.KickoffWorker.new() |> Oban.insert() do
+      {:ok, _job} -> {:ok, api.id}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  @doc """
+  Starts an agent-based code edit run for an API.
+
+  Returns `{:ok, run_id}` for the LiveView to subscribe to.
+  """
+  @spec start_agent_edit(Api.t(), String.t(), String.t() | integer()) ::
+          {:ok, String.t()} | {:error, term()}
+  def start_agent_edit(%Api{} = api, instruction, user_id) do
+    args = %{
+      "api_id" => api.id,
+      "organization_id" => api.organization_id,
+      "user_id" => user_id,
+      "run_type" => "edit",
+      "trigger_message" => instruction,
+      "current_code" => api.source_code,
+      "current_tests" => api.test_code
+    }
+
+    case args |> Blackboex.Agent.KickoffWorker.new() |> Oban.insert() do
+      {:ok, _job} -> {:ok, api.id}
+      {:error, reason} -> {:error, reason}
+    end
+  end
 end

@@ -75,6 +75,49 @@ defmodule Blackboex.Telemetry.Events do
     )
   end
 
+  @spec emit_agent_run(map()) :: :ok
+  def emit_agent_run(metadata) do
+    safe_execute(
+      [:blackboex, :agent, :run],
+      %{
+        duration: Map.get(metadata, :duration_ms, 0),
+        iteration_count: Map.get(metadata, :iteration_count, 0),
+        cost_cents: Map.get(metadata, :cost_cents, 0)
+      },
+      %{
+        run_id: metadata.run_id,
+        run_type: metadata.run_type,
+        status: metadata.status
+      }
+    )
+  end
+
+  @spec emit_agent_tool(map()) :: :ok
+  def emit_agent_tool(metadata) do
+    safe_execute(
+      [:blackboex, :agent, :tool],
+      %{duration: Map.get(metadata, :duration_ms, 0)},
+      %{
+        tool_name: metadata.tool_name,
+        success: metadata.success,
+        run_id: metadata.run_id
+      }
+    )
+  end
+
+  @spec emit_circuit_breaker(map()) :: :ok
+  def emit_circuit_breaker(metadata) do
+    safe_execute(
+      [:blackboex, :circuit_breaker, :state_change],
+      %{},
+      %{
+        provider: metadata.provider,
+        from_state: metadata.from_state,
+        to_state: metadata.to_state
+      }
+    )
+  end
+
   @spec safe_execute([atom()], map(), map()) :: :ok
   defp safe_execute(event, measurements, metadata) do
     :telemetry.execute(event, measurements, metadata)

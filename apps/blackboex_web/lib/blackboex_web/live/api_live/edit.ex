@@ -13,7 +13,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
   alias Blackboex.Apis
   alias Blackboex.Apis.Analytics
   alias Blackboex.Apis.MetricRollup
-  alias Blackboex.Apis.Conversations
+  alias Blackboex.Conversations, as: AgentConversations
   alias Blackboex.Apis.DiffEngine
   alias Blackboex.Apis.Keys
   alias Blackboex.Apis.Registry
@@ -50,15 +50,17 @@ defmodule BlackboexWeb.ApiLive.Edit do
 
       api ->
         versions = Apis.list_versions(api.id)
-        {:ok, conversation} = Conversations.get_or_create_conversation(api.id)
 
-        generating? =
-          api.generation_status in ["pending", "generating", "validating"]
+        # Agent pipeline: check for active run on reconnection
+        {agent_conversation, active_run_id} =
+          resolve_agent_state(api.id)
 
-        if generating? do
-          Phoenix.PubSub.subscribe(Blackboex.PubSub, "api:#{api.id}")
-          Process.send_after(self(), :check_generation_status, 5_000)
-        end
+        # Subscribe to API topic for agent_run_started
+        Phoenix.PubSub.subscribe(Blackboex.PubSub, "api:#{api.id}")
+
+        # Load chat messages from agent events
+        chat_messages =
+          load_agent_chat_messages(agent_conversation)
 
         {:ok,
          assign(socket,
@@ -73,10 +75,9 @@ defmodule BlackboexWeb.ApiLive.Edit do
            diff_old: nil,
            diff_new: nil,
            # Chat assigns
-           chat_messages: conversation.messages,
+           chat_messages: chat_messages,
            chat_input: "",
-           chat_loading: false,
-           chat_conversation: conversation,
+           chat_loading: active_run_id != nil,
            pending_edit: nil,
            streaming_tokens: "",
            # Tab state
@@ -127,14 +128,15 @@ defmodule BlackboexWeb.ApiLive.Edit do
            command_palette_selected: 0,
            # Edit rollback state
            pre_edit_code: nil,
-           retry_attempted: nil,
            diff_modal_open: false,
            # Generation state
            generation_status: api.generation_status,
-           generation_tokens: "",
-           streaming_doc: "",
            # Chat sidebar
-           chat_open: generating?
+           chat_open: active_run_id != nil,
+           # Agent pipeline assigns
+           current_run_id: active_run_id,
+           agent_events: [],
+           agent_conversation: agent_conversation
          )}
     end
   end
@@ -249,6 +251,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
             template_type={@api.template_type}
             streaming_tokens={if(@chat_loading, do: @streaming_tokens, else: "")}
             pipeline_status={@pipeline_status || generation_to_pipeline_status(@generation_status)}
+            agent_events={@agent_events}
           />
         </div>
       </div>
@@ -1620,19 +1623,11 @@ defmodule BlackboexWeb.ApiLive.Edit do
 
   @impl true
   def handle_event("send_chat", %{"chat_input" => message}, socket) do
-    conversation = socket.assigns.chat_conversation
-
-    case Conversations.append_message(conversation, "user", message) do
-      {:ok, conversation} ->
-        do_chat_request(socket, conversation, message)
-
-      {:error, :too_many_messages} ->
-        {:noreply,
-         put_flash(socket, :error, "Conversation too long. Use 'New conversation' to start over.")}
-
-      {:error, reason} ->
-        Logger.warning("Failed to append user message: #{inspect(reason)}")
-        {:noreply, put_flash(socket, :error, "Failed to send message")}
+    if socket.assigns.chat_loading do
+      # Prevent double submit while agent is running
+      {:noreply, socket}
+    else
+      do_agent_chat(socket, message)
     end
   end
 
@@ -1680,20 +1675,16 @@ defmodule BlackboexWeb.ApiLive.Edit do
 
   @impl true
   def handle_event("clear_conversation", _params, socket) do
-    conversation = socket.assigns.chat_conversation
-
-    case Conversations.clear_conversation(conversation) do
-      {:ok, cleared} ->
-        {:noreply,
-         assign(socket,
-           chat_conversation: cleared,
-           chat_messages: [],
-           pending_edit: nil
-         )}
-
-      {:error, changeset} ->
-        Logger.error("Failed to clear conversation: #{inspect(changeset)}")
-        {:noreply, put_flash(socket, :error, "Failed to clear conversation")}
+    if socket.assigns.chat_loading do
+      {:noreply, put_flash(socket, :error, "Cannot clear while agent is running")}
+    else
+      {:noreply,
+       assign(socket,
+         chat_messages: [],
+         pending_edit: nil,
+         agent_events: [],
+         streaming_tokens: ""
+       )}
     end
   end
 
@@ -1907,13 +1898,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
     {:noreply, assign(socket, test_loading: false, test_ref: nil)}
   end
 
-  # Streaming tokens from LLM
-  @impl true
-  def handle_info({:llm_token, token}, socket) do
-    {:noreply, assign(socket, streaming_tokens: socket.assigns.streaming_tokens <> token)}
-  end
-
-  # Pipeline progress updates
+  # Pipeline progress updates (used by validate_on_save)
   @impl true
   def handle_info({:pipeline_progress, progress}, socket) do
     {:noreply, assign(socket, pipeline_status: progress.step)}
@@ -1923,16 +1908,6 @@ defmodule BlackboexWeb.ApiLive.Edit do
   @impl true
   def handle_info(
         {ref, {:ok, %{code: _, validation: _} = result}},
-        %{assigns: %{pipeline_ref: ref}} = socket
-      ) do
-    Process.demonitor(ref, [:flush])
-    handle_pipeline_result(socket, result)
-  end
-
-  # Pipeline task completed without validation (chat edit proposal)
-  @impl true
-  def handle_info(
-        {ref, {:ok, %{code: _, explanation: _} = result}},
         %{assigns: %{pipeline_ref: ref}} = socket
       ) do
     Process.demonitor(ref, [:flush])
@@ -2003,251 +1978,131 @@ defmodule BlackboexWeb.ApiLive.Edit do
     {:noreply, assign(socket, doc_generating: false, doc_gen_ref: nil)}
   end
 
-  # ── Generation PubSub handlers ─────────────────────────────────────────
+  # ── Agent Pipeline PubSub handlers ────────────────────────────────────
 
   @impl true
-  def handle_info(:check_generation_status, socket) do
-    if socket.assigns.generation_status in ["pending", "generating", "validating"] do
-      api = Apis.get_api(socket.assigns.org.id, socket.assigns.api.id)
+  def handle_info({:agent_run_started, %{run_id: run_id, run_type: _type}}, socket) do
+    # Unsubscribe from previous run topic if exists (prevent subscription leak)
+    if old_run = socket.assigns.current_run_id do
+      Phoenix.PubSub.unsubscribe(Blackboex.PubSub, "run:#{old_run}")
+    end
 
-      cond do
-        is_nil(api) ->
-          {:noreply, socket}
+    Phoenix.PubSub.subscribe(Blackboex.PubSub, "run:#{run_id}")
+    {:noreply, assign(socket, current_run_id: run_id, chat_loading: true, agent_events: [])}
+  end
 
-        api.generation_status == "completed" ->
-          send(
-            self(),
-            {:generation_complete,
-             %{
-               code: api.source_code || "",
-               test_code: api.test_code,
-               validation: nil,
-               template: api.template_type
-             }}
-          )
-
-          {:noreply, socket}
-
-        api.generation_status == "failed" ->
-          send(self(), {:generation_failed, api.generation_error || "Generation failed"})
-          {:noreply, socket}
-
-        true ->
-          Process.send_after(self(), :check_generation_status, 5_000)
-          {:noreply, socket}
-      end
+  @impl true
+  def handle_info({:agent_streaming, %{delta: delta}}, socket) do
+    if socket.assigns.current_run_id do
+      new_tokens = socket.assigns.streaming_tokens <> delta
+      {:noreply, assign(socket, streaming_tokens: new_tokens)}
     else
+      # Ignore late-arriving streaming deltas after run completed
       {:noreply, socket}
     end
   end
 
   @impl true
-  def handle_info({:generation_token, token}, socket) do
-    # Accumulate raw tokens for extraction later
-    new_raw = socket.assigns.generation_tokens <> token
+  def handle_info({:agent_action, %{tool: tool_name}}, socket) do
+    {:noreply, assign(socket, pipeline_status: agent_tool_to_status(tool_name))}
+  end
 
-    # Strip markdown fences for Monaco display — only show code inside ```elixir ... ```
-    code_only = extract_streaming_code(new_raw)
-    prev_code_len = byte_size(socket.assigns.code)
+  @impl true
+  def handle_info({:tool_started, %{tool: tool_name}}, socket) do
+    {:noreply, assign(socket, pipeline_status: agent_tool_to_status(tool_name))}
+  end
 
-    new_code_part =
-      binary_part(
-        code_only,
-        min(prev_code_len, byte_size(code_only)),
-        max(byte_size(code_only) - prev_code_len, 0)
-      )
+  @impl true
+  def handle_info({:tool_result, %{tool: tool_name, success: success, summary: summary}}, socket) do
+    event = %{type: :tool_result, tool: tool_name, success: success, summary: summary}
+    {:noreply, assign(socket, agent_events: [event | socket.assigns.agent_events])}
+  end
+
+  @impl true
+  def handle_info({:guardrail_triggered, %{type: type}}, socket) do
+    {:noreply, put_flash(socket, :error, "Agent limit reached: #{type}")}
+  end
+
+  @impl true
+  def handle_info(
+        {:agent_completed, %{code: code, test_code: test_code, summary: summary, run_id: run_id}},
+        socket
+      ) do
+    # Unsubscribe from completed run topic
+    Phoenix.PubSub.unsubscribe(Blackboex.PubSub, "run:#{run_id}")
+
+    api = Apis.get_api(socket.assigns.org.id, socket.assigns.api.id)
 
     socket =
       socket
       |> assign(
-        code: code_only,
-        generation_tokens: new_raw,
-        streaming_tokens: socket.assigns.streaming_tokens <> token
+        api: api || socket.assigns.api,
+        chat_loading: false,
+        current_run_id: nil,
+        streaming_tokens: "",
+        pipeline_status: nil
       )
 
-    socket =
-      if new_code_part != "" do
-        push_event(socket, "monaco:append_text", %{text: new_code_part})
-      else
-        socket
-      end
+    if code do
+      # Show diff modal for review (code is already validated by agent)
+      code_diff = DiffEngine.compute_diff(socket.assigns.code, code)
 
-    {:noreply, socket}
+      assistant_msg = %{
+        "role" => "assistant",
+        "content" => summary || "Code updated successfully"
+      }
+
+      {:noreply,
+       socket
+       |> assign(
+         pending_edit: %{
+           code: code,
+           test_code: test_code,
+           diff: code_diff,
+           test_diff: [],
+           explanation: summary || "Agent completed",
+           instruction: summary,
+           validation: nil
+         },
+         diff_modal_open: true,
+         chat_messages: socket.assigns.chat_messages ++ [assistant_msg]
+       )
+       |> put_flash(:info, summary || "Code ready for review")}
+    else
+      {:noreply,
+       socket
+       |> assign(agent_events: [])
+       |> put_flash(:info, summary || "Agent completed")}
+    end
   end
 
   @impl true
-  def handle_info({:generation_status, status}, socket) do
-    socket = assign(socket, generation_status: status)
-
-    # Switch to code tab when generation starts
-    socket =
-      if status == "generating" do
-        assign(socket, active_tab: "code")
-      else
-        socket
-      end
-
-    {:noreply, socket}
-  end
-
-  @impl true
-  def handle_info({:generation_progress, progress}, socket) do
-    socket = assign(socket, pipeline_status: progress.step)
-
-    # Auto-switch tabs based on pipeline step
-    socket =
-      case progress.step do
-        :generating_tests ->
-          socket
-          |> assign(active_tab: "tests")
-          |> push_event("monaco:clear", %{})
-
-        step when step in [:running_tests, :fixing_tests] ->
-          assign(socket, active_tab: "tests")
-
-        :generating_docs ->
-          assign(socket, active_tab: "docs")
-
-        :done ->
-          assign(socket, active_tab: "validation")
-
-        :failed ->
-          assign(socket, active_tab: "validation")
-
-        _ ->
-          socket
-      end
-
-    {:noreply, socket}
-  end
-
-  @impl true
-  def handle_info({:test_generation_token, token}, socket) do
-    raw = (socket.assigns[:test_generation_raw] || "") <> token
-    clean_code = extract_streaming_code(raw)
-    prev_len = byte_size(socket.assigns.test_code)
-
-    new_part =
-      binary_part(
-        clean_code,
-        min(prev_len, byte_size(clean_code)),
-        max(byte_size(clean_code) - prev_len, 0)
-      )
-
-    socket = assign(socket, test_code: clean_code, test_generation_raw: raw)
-
-    socket =
-      if new_part != "" && socket.assigns.active_tab == "tests" do
-        push_event(socket, "monaco:append_text", %{text: new_part})
-      else
-        socket
-      end
-
-    {:noreply, socket}
-  end
-
-  @impl true
-  def handle_info({:doc_generation_token, token}, socket) do
-    new_doc = (socket.assigns[:streaming_doc] || "") <> token
-    {:noreply, assign(socket, streaming_doc: new_doc)}
-  end
-
-  @impl true
-  def handle_info({:generation_complete, result}, socket) do
-    api = Apis.get_api(socket.assigns.org.id, socket.assigns.api.id)
-
-    conversation = socket.assigns.chat_conversation
-
-    # Only add user message if not already present (it's seeded in mount)
-    has_user_msg = Enum.any?(conversation.messages, &(&1["role"] == "user"))
-
-    conversation =
-      if has_user_msg do
-        conversation
-      else
-        case safe_append_message(conversation, "user", api.description || "Generate API") do
-          {:ok, c} -> c
-          _ -> conversation
-        end
-      end
-
-    conversation =
-      safe_append_message(conversation, "assistant", "Code generated successfully.")
-
-    # Compile, register, and extract schemas (same as Save)
-    maybe_register_compiled(
-      api,
-      socket.assigns.org,
-      result.code,
-      %{validation: result.validation}
-    )
-
-    # Reload API to get compiled status + extracted schemas
-    api = Apis.get_api(socket.assigns.org.id, api.id)
+  def handle_info({:agent_failed, %{error: error, run_id: run_id}}, socket) do
+    # Unsubscribe from failed run topic
+    Phoenix.PubSub.unsubscribe(Blackboex.PubSub, "run:#{run_id}")
 
     {:noreply,
      socket
      |> assign(
-       api: api,
-       code: result.code,
-       test_code: result.test_code || "",
-       generation_status: "completed",
-       generation_tokens: "",
-       streaming_tokens: "",
-       streaming_doc: "",
-       pipeline_status: nil,
        chat_loading: false,
-       chat_messages: conversation.messages,
-       chat_conversation: conversation,
-       validation_report: result.validation,
-       test_summary:
-         if(result.validation, do: format_test_summary(result.validation.test_results), else: nil),
-       versions: Apis.list_versions(api.id),
-       active_tab: "validation"
+       current_run_id: nil,
+       pipeline_status: nil,
+       streaming_tokens: ""
      )
-     |> push_editor_value(result.code)
-     |> put_flash(:info, "API generated and compiled successfully")}
+     |> put_flash(:error, "Agent failed: #{error}")}
   end
 
   @impl true
-  def handle_info({:generation_failed, reason}, socket) do
-    api = Apis.get_api(socket.assigns.org.id, socket.assigns.api.id)
-
-    conversation = socket.assigns.chat_conversation
-
-    has_user_msg = Enum.any?(conversation.messages, &(&1["role"] == "user"))
-
-    conversation =
-      if has_user_msg do
-        conversation
-      else
-        case safe_append_message(conversation, "user", api.description || "Generate API") do
-          {:ok, c} -> c
-          _ -> conversation
-        end
-      end
-
-    conversation =
-      safe_append_message(
-        conversation,
-        "assistant",
-        "Generation failed: #{reason}. You can try again via chat."
-      )
-
-    {:noreply,
-     socket
-     |> assign(
-       api: api || socket.assigns.api,
-       generation_status: "failed",
-       generation_tokens: "",
-       streaming_tokens: "",
-       pipeline_status: nil,
-       chat_loading: false,
-       chat_messages: conversation.messages,
-       chat_conversation: conversation
-     )
-     |> put_flash(:error, "Code generation failed")}
+  def handle_info({:agent_message, %{role: "assistant", content: content}}, socket) do
+    event = %{type: :message, content: content}
+    {:noreply, assign(socket, agent_events: [event | socket.assigns.agent_events])}
   end
+
+  @impl true
+  def handle_info({:agent_message, _payload}, socket), do: {:noreply, socket}
+
+  @impl true
+  def handle_info({:agent_started, _payload}, socket), do: {:noreply, socket}
 
   # ── Private Helpers ────────────────────────────────────────────────────
 
@@ -2267,48 +2122,27 @@ defmodule BlackboexWeb.ApiLive.Edit do
     handle_event(event_name, %{}, socket)
   end
 
-  defp do_accept_edit(socket, proposed_code, _proposed_test_code, _instruction) do
+  defp do_accept_edit(socket, proposed_code, proposed_test_code, _instruction) do
     # Store previous code for rollback on cancel
     previous_code = socket.assigns.code
-    api = socket.assigns.api
+    test_code = proposed_test_code || socket.assigns.test_code
 
-    # Apply code to Monaco immediately (version created after pipeline passes)
-    socket =
-      socket
-      |> assign(
-        code: proposed_code,
-        pending_edit: nil,
-        pre_edit_code: previous_code,
-        chat_loading: true
-      )
-      |> push_editor_value(proposed_code)
-      |> put_flash(:info, "Change applied. Running validation...")
-
-    # Run validation pipeline async
-    lv_pid = self()
-
-    template =
-      Map.get(
-        %{"computation" => :computation, "crud" => :crud, "webhook" => :webhook},
-        api.template_type,
-        :computation
-      )
-
-    task =
-      Task.async(fn ->
-        UnifiedPipeline.validate_and_test(proposed_code, template,
-          progress_callback: fn p -> send(lv_pid, {:pipeline_progress, p}) end,
-          test_token_callback: fn t -> send(lv_pid, {:test_generation_token, t}) end,
-          doc_token_callback: fn t -> send(lv_pid, {:doc_generation_token, t}) end
-        )
-      end)
-
+    # Agent already validated the code — apply directly
     {:noreply,
-     assign(socket,
-       pipeline_ref: task.ref,
-       pipeline_status: :formatting,
-       active_tab: "validation"
-     )}
+     socket
+     |> assign(
+       code: proposed_code,
+       test_code: test_code,
+       pending_edit: nil,
+       pre_edit_code: previous_code,
+       diff_modal_open: false,
+       chat_loading: false,
+       pipeline_status: nil,
+       current_run_id: nil,
+       streaming_tokens: ""
+     )
+     |> push_editor_value(proposed_code)
+     |> put_flash(:info, "Change applied")}
   end
 
   defp maybe_register_compiled(api, org, code, %{validation: %{compilation: :pass}}) do
@@ -2351,44 +2185,78 @@ defmodule BlackboexWeb.ApiLive.Edit do
     end
   end
 
-  defp do_chat_request(socket, conversation, message) do
+  defp do_agent_chat(socket, message) do
     org = socket.assigns.org
 
     case Enforcement.check_limit(org, :llm_generation) do
       {:ok, _remaining} ->
-        do_chat_llm_call(socket, conversation, message)
+        api = socket.assigns.api
+        scope = socket.assigns.current_scope
+
+        case Apis.start_agent_edit(api, message, scope.user.id) do
+          {:ok, _api_id} ->
+            user_msg = %{"role" => "user", "content" => message}
+
+            {:noreply,
+             socket
+             |> assign(
+               chat_loading: true,
+               chat_input: "",
+               streaming_tokens: "",
+               agent_events: [],
+               chat_messages: socket.assigns.chat_messages ++ [user_msg]
+             )}
+
+          {:error, reason} ->
+            Logger.warning("Failed to start agent edit: #{inspect(reason)}")
+            {:noreply, put_flash(socket, :error, "Failed to start agent")}
+        end
 
       {:error, :limit_exceeded, _details} ->
         {:noreply, put_flash(socket, :error, "LLM generation limit reached. Upgrade your plan.")}
     end
   end
 
-  defp do_chat_llm_call(socket, conversation, message) do
-    api = socket.assigns.api
-    code = socket.assigns.code
-    lv_pid = self()
-
-    socket =
-      socket
-      |> assign(
-        chat_conversation: conversation,
-        chat_messages: conversation.messages,
-        chat_loading: true,
-        chat_input: "",
-        pipeline_status: :generating_code,
-        streaming_tokens: ""
-      )
-
-    task =
-      Task.async(fn ->
-        UnifiedPipeline.generate_edit_only(api, code, message, conversation.messages,
-          progress_callback: fn progress -> send(lv_pid, {:pipeline_progress, progress}) end,
-          token_callback: fn token -> send(lv_pid, {:llm_token, token}) end
-        )
-      end)
-
-    {:noreply, assign(socket, pipeline_ref: task.ref)}
+  defp resolve_agent_state(api_id) do
+    case AgentConversations.get_conversation_by_api(api_id) do
+      nil -> {nil, nil}
+      conv -> find_active_run(conv)
+    end
   end
+
+  defp find_active_run(conv) do
+    active_run =
+      AgentConversations.list_runs(conv.id, limit: 1)
+      |> Enum.find(&(&1.status == "running"))
+
+    if active_run,
+      do: Phoenix.PubSub.subscribe(Blackboex.PubSub, "run:#{active_run.id}")
+
+    {conv, active_run && active_run.id}
+  end
+
+  defp load_agent_chat_messages(nil), do: []
+  defp load_agent_chat_messages(%{total_events: 0}), do: []
+
+  defp load_agent_chat_messages(agent_conversation) do
+    case AgentConversations.list_runs(agent_conversation.id, limit: 1) do
+      [latest_run | _] ->
+        AgentConversations.list_events(latest_run.id)
+        |> Enum.filter(&(&1.event_type in ["user_message", "assistant_message"]))
+        |> Enum.map(fn e -> %{"role" => e.role, "content" => e.content} end)
+
+      [] ->
+        []
+    end
+  end
+
+  defp agent_tool_to_status("compile_code"), do: :compiling
+  defp agent_tool_to_status("format_code"), do: :formatting
+  defp agent_tool_to_status("lint_code"), do: :linting
+  defp agent_tool_to_status("generate_tests"), do: :generating_tests
+  defp agent_tool_to_status("run_tests"), do: :running_tests
+  defp agent_tool_to_status("submit_code"), do: :submitting
+  defp agent_tool_to_status(_), do: :processing
 
   defp do_save_and_validate(socket) do
     api = socket.assigns.api
@@ -2600,81 +2468,9 @@ defmodule BlackboexWeb.ApiLive.Edit do
 
   defp history_status_color(_), do: "bg-muted text-muted-foreground"
 
-  # Chat edit proposal — code only, no validation yet
-  defp handle_pipeline_result(socket, %{explanation: explanation} = result)
-       when is_binary(explanation) and not is_map_key(result, :validation) do
-    handle_chat_edit_proposal(socket, result)
-  end
-
-  # Chat edit with full validation (legacy path)
-  defp handle_pipeline_result(socket, %{explanation: explanation} = result)
-       when is_binary(explanation) do
-    handle_chat_pipeline_result(socket, result)
-  end
-
   # Save pipeline result
   defp handle_pipeline_result(socket, result) do
     handle_save_pipeline_result(socket, result)
-  end
-
-  defp handle_chat_edit_proposal(socket, result) do
-    conversation = socket.assigns.chat_conversation
-    code_diff = DiffEngine.compute_diff(socket.assigns.code, result.code)
-
-    conversation =
-      safe_append_message(conversation, "assistant", result.explanation)
-
-    {:noreply,
-     socket
-     |> assign(
-       chat_conversation: conversation,
-       chat_messages: conversation.messages,
-       chat_loading: false,
-       pipeline_ref: nil,
-       pipeline_status: nil,
-       streaming_tokens: "",
-       pending_edit: %{
-         code: result.code,
-         test_code: nil,
-         diff: code_diff,
-         test_diff: [],
-         explanation: result.explanation,
-         instruction: "",
-         validation: nil
-       }
-     )}
-  end
-
-  defp handle_chat_pipeline_result(socket, result) do
-    conversation = socket.assigns.chat_conversation
-    code_diff = DiffEngine.compute_diff(socket.assigns.code, result.code)
-    test_diff = compute_test_diff(socket.assigns.test_code, result.test_code)
-
-    conversation =
-      safe_append_message(conversation, "assistant", result.explanation)
-
-    test_summary = format_test_summary(result.validation.test_results)
-
-    {:noreply,
-     socket
-     |> assign(
-       chat_conversation: conversation,
-       chat_messages: conversation.messages,
-       chat_loading: false,
-       pipeline_ref: nil,
-       pipeline_status: nil,
-       streaming_tokens: "",
-       test_summary: test_summary,
-       pending_edit: %{
-         code: result.code,
-         test_code: result.test_code,
-         diff: code_diff,
-         test_diff: test_diff,
-         explanation: result.explanation,
-         instruction: "",
-         validation: result.validation
-       }
-     )}
   end
 
   defp handle_save_pipeline_result(socket, result) do
@@ -2726,126 +2522,19 @@ defmodule BlackboexWeb.ApiLive.Edit do
      )}
   end
 
-  defp compute_test_diff(_current, nil), do: []
-  defp compute_test_diff(current, proposed), do: DiffEngine.compute_diff(current || "", proposed)
-
   defp handle_pipeline_error(socket, reason) do
     Logger.warning("Pipeline failed: #{inspect(reason)}")
 
-    # If this was a chat edit and compilation failed, auto-retry with LLM
-    if socket.assigns[:pre_edit_code] && !socket.assigns[:retry_attempted] do
-      retry_compilation_with_llm(socket, reason)
-    else
-      # No retry possible or already retried — rollback
-      socket =
-        if previous = socket.assigns[:pre_edit_code] do
-          socket
-          |> assign(code: previous)
-          |> push_editor_value(previous)
-        else
-          socket
-        end
-
-      {:noreply,
-       socket
-       |> assign(
-         chat_loading: false,
-         pipeline_ref: nil,
-         pipeline_status: nil,
-         streaming_tokens: "",
-         pre_edit_code: nil,
-         retry_attempted: nil
-       )
-       |> put_flash(:error, "Pipeline failed. Code reverted.")}
-    end
-  end
-
-  defp retry_compilation_with_llm(socket, reason) do
-    api = socket.assigns.api
-    code = socket.assigns.code
-    lv_pid = self()
-
-    error_msg = format_pipeline_error(reason)
-
-    conversation = socket.assigns.chat_conversation
-
-    conversation =
-      safe_append_message(
-        conversation,
-        "assistant",
-        "Compilation failed: #{error_msg}. Retrying with fix..."
-      )
-
-    template =
-      Map.get(
-        %{"computation" => :computation, "crud" => :crud, "webhook" => :webhook},
-        api.template_type,
-        :computation
-      )
-
-    # Ask LLM to fix the code, getting full code back
-    task =
-      Task.async(fn ->
-        prompt = """
-        The following Elixir code has a compilation error:
-
-        ```elixir
-        #{code}
-        ```
-
-        Error: #{error_msg}
-
-        Please fix the error and return the COMPLETE corrected code in a single ```elixir code block.
-        """
-
-        client = Blackboex.LLM.Config.client()
-        system = Blackboex.LLM.EditPrompts.fallback_system_prompt()
-
-        case client.stream_text(prompt, system: system) do
-          {:ok, stream} ->
-            full =
-              Enum.reduce(stream, "", fn
-                {:token, token}, acc ->
-                  send(lv_pid, {:llm_token, token})
-                  acc <> token
-
-                _, acc ->
-                  acc
-              end)
-
-            case Blackboex.LLM.EditPrompts.extract_code_block(full) do
-              nil ->
-                {:error, :no_code_found}
-
-              fixed_code ->
-                UnifiedPipeline.validate_and_test(String.trim(fixed_code), template,
-                  progress_callback: fn p -> send(lv_pid, {:pipeline_progress, p}) end,
-                  test_token_callback: fn t -> send(lv_pid, {:test_generation_token, t}) end,
-                  doc_token_callback: fn t -> send(lv_pid, {:doc_generation_token, t}) end
-                )
-            end
-
-          {:error, reason} ->
-            {:error, reason}
-        end
-      end)
-
     {:noreply,
-     assign(socket,
-       pipeline_ref: task.ref,
-       pipeline_status: :generating_code,
-       streaming_tokens: "",
-       chat_loading: true,
-       chat_messages: conversation.messages,
-       chat_conversation: conversation,
-       retry_attempted: true
-     )}
+     socket
+     |> assign(
+       chat_loading: false,
+       pipeline_ref: nil,
+       pipeline_status: nil,
+       streaming_tokens: ""
+     )
+     |> put_flash(:error, "Pipeline failed")}
   end
-
-  defp format_pipeline_error(:compilation_failed), do: "compilation failed"
-  defp format_pipeline_error(:max_retries_exceeded), do: "max retries exceeded"
-  defp format_pipeline_error(reason) when is_binary(reason), do: reason
-  defp format_pipeline_error(reason), do: inspect(reason, limit: 3)
 
   defp format_test_summary(test_results) when is_list(test_results) and test_results != [] do
     passed =
@@ -2979,21 +2668,6 @@ defmodule BlackboexWeb.ApiLive.Edit do
 
   defp metrics_average([]), do: 0.0
   defp metrics_average(list), do: Enum.sum(list) / length(list)
-
-  defp safe_append_message(conversation, role, content) do
-    case Conversations.append_message(conversation, role, content) do
-      {:ok, updated} -> updated
-      _ -> conversation
-    end
-  end
-
-  defp extract_streaming_code(raw) do
-    # If we see ```elixir\n, extract everything after it (and before closing ``` if present)
-    case Regex.run(~r/```(?:elixir)?\n(.*?)(?:```|$)/s, raw) do
-      [_, code] -> String.trim_trailing(code)
-      nil -> ""
-    end
-  end
 
   defp enrich_keys_with_metrics(keys) do
     Enum.map(keys, fn key ->

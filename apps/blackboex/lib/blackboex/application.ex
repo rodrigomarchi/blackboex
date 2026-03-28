@@ -25,7 +25,10 @@ defmodule Blackboex.Application do
       {Phoenix.PubSub, name: Blackboex.PubSub},
       {Task.Supervisor, name: Blackboex.SandboxTaskSupervisor},
       {Task.Supervisor, name: Blackboex.LoggingSupervisor, max_children: 1000},
-      Blackboex.Apis.Registry
+      Blackboex.Apis.Registry,
+      Blackboex.LLM.CircuitBreaker,
+      {Registry, keys: :unique, name: Blackboex.Agent.SessionRegistry},
+      {DynamicSupervisor, name: Blackboex.Agent.SessionSupervisor, strategy: :one_for_one}
     ]
 
     Supervisor.start_link(children, strategy: :one_for_one, name: Blackboex.Supervisor)

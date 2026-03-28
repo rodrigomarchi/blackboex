@@ -21,9 +21,9 @@ defmodule Blackboex.Agent.Callbacks do
   | `{:agent_started, payload}` | `%{run_id, run_type}` | Session |
   | `{:agent_streaming, payload}` | `%{delta, run_id}` | Callbacks (on_llm_new_delta) |
   | `{:agent_message, payload}` | `%{role, content, run_id}` | Callbacks (on_message_processed) |
-  | `{:agent_action, payload}` | `%{tool, run_id}` | Callbacks (on_tool_call_identified) |
+  | `{:agent_action, payload}` | `%{tool, args, run_id}` | Callbacks (on_tool_call_identified) |
   | `{:tool_started, payload}` | `%{tool, run_id}` | Callbacks (on_tool_execution_started) |
-  | `{:tool_result, payload}` | `%{tool, success, summary, run_id}` | Callbacks (on_tool_execution_completed) |
+  | `{:tool_result, payload}` | `%{tool, success, summary, content, run_id}` | Callbacks (on_tool_execution_completed) |
   | `{:guardrail_triggered, payload}` | `%{type, run_id}` | Callbacks (persist_guardrail_event) |
   | `{:agent_completed, payload}` | `%{code, test_code, summary, run_id, status}` | Session |
   | `{:agent_failed, payload}` | `%{error, run_id}` | Session |
@@ -147,7 +147,7 @@ defmodule Blackboex.Agent.Callbacks do
       tool_input: tool_call.arguments || %{}
     })
 
-    broadcast(run_id, {:agent_action, %{tool: tool_call.name, run_id: run_id}})
+    broadcast(run_id, {:agent_action, %{tool: tool_call.name, args: tool_call.arguments || %{}, run_id: run_id}})
   end
 
   defp handle_tool_completed(tool_call, result, run_id, conversation_id) do
@@ -171,7 +171,7 @@ defmodule Blackboex.Agent.Callbacks do
 
     broadcast(run_id, {
       :tool_result,
-      %{tool: tool_call.name, success: true, summary: truncate(content, 200), run_id: run_id}
+      %{tool: tool_call.name, success: true, summary: truncate(content, 200), content: content, run_id: run_id}
     })
   end
 
@@ -200,6 +200,7 @@ defmodule Blackboex.Agent.Callbacks do
         tool: tool_call.name,
         success: false,
         summary: truncate(error_msg, 200),
+        content: error_msg,
         run_id: run_id
       }
     })

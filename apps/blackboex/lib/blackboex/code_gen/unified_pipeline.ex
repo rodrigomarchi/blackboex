@@ -20,9 +20,9 @@ defmodule Blackboex.CodeGen.UnifiedPipeline do
   alias Blackboex.CodeGen.Compiler
   alias Blackboex.CodeGen.Linter
   alias Blackboex.CodeGen.UnifiedPrompts
+  alias Blackboex.Docs.DocGenerator
   alias Blackboex.LLM.Config
   alias Blackboex.LLM.EditPrompts
-  alias Blackboex.Docs.DocGenerator
   alias Blackboex.Testing.TestGenerator
   alias Blackboex.Testing.TestRunner
 

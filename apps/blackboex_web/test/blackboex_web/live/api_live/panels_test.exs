@@ -7,15 +7,17 @@ defmodule BlackboexWeb.ApiLive.PanelsTest do
   import Phoenix.LiveViewTest
 
   alias Blackboex.Apis
+  alias Blackboex.CodeGen.Compiler
+  alias Blackboex.Organizations
 
   setup :verify_on_exit!
   setup :register_and_log_in_user
 
   setup %{user: user} do
-    Blackboex.Apis.Registry.clear()
+    Apis.Registry.clear()
 
     {:ok, %{organization: org}} =
-      Blackboex.Organizations.create_organization(user, %{name: "Test Org", slug: "testorg"})
+      Organizations.create_organization(user, %{name: "Test Org", slug: "testorg"})
 
     {:ok, api} =
       Apis.create_api(%{
@@ -190,7 +192,7 @@ defmodule BlackboexWeb.ApiLive.PanelsTest do
       lv |> render_hook("toggle_command_palette", %{})
 
       code = "def handle(_), do: %{ok: true}"
-      {:ok, _module} = Blackboex.CodeGen.Compiler.compile(api, code)
+      {:ok, _module} = Compiler.compile(api, code)
       {:ok, _api} = Apis.update_api(api, %{status: "compiled", source_code: code})
 
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
@@ -199,8 +201,8 @@ defmodule BlackboexWeb.ApiLive.PanelsTest do
       assert html =~ "Publish API"
 
       on_exit(fn ->
-        module = Blackboex.CodeGen.Compiler.module_name_for(api)
-        Blackboex.CodeGen.Compiler.unload(module)
+        module = Compiler.module_name_for(api)
+        Compiler.unload(module)
       end)
     end
   end
@@ -232,7 +234,7 @@ defmodule BlackboexWeb.ApiLive.PanelsTest do
       assert html =~ "draft"
 
       code = "def handle(_), do: %{ok: true}"
-      {:ok, _module} = Blackboex.CodeGen.Compiler.compile(api, code)
+      {:ok, _module} = Compiler.compile(api, code)
       {:ok, _api} = Apis.update_api(api, %{status: "compiled", source_code: code})
 
       {:ok, _lv, html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
@@ -240,8 +242,8 @@ defmodule BlackboexWeb.ApiLive.PanelsTest do
       assert html =~ "compiled"
 
       on_exit(fn ->
-        module = Blackboex.CodeGen.Compiler.module_name_for(api)
-        Blackboex.CodeGen.Compiler.unload(module)
+        module = Compiler.module_name_for(api)
+        Compiler.unload(module)
       end)
     end
   end

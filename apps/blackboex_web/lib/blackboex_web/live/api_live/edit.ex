@@ -12,15 +12,15 @@ defmodule BlackboexWeb.ApiLive.Edit do
 
   alias Blackboex.Apis
   alias Blackboex.Apis.Analytics
-  alias Blackboex.Apis.MetricRollup
-  alias Blackboex.Conversations, as: AgentConversations
   alias Blackboex.Apis.DiffEngine
   alias Blackboex.Apis.Keys
+  alias Blackboex.Apis.MetricRollup
   alias Blackboex.Apis.Registry
   alias Blackboex.Billing.Enforcement
   alias Blackboex.CodeGen.Compiler
   alias Blackboex.CodeGen.SchemaExtractor
   alias Blackboex.CodeGen.UnifiedPipeline
+  alias Blackboex.Conversations, as: AgentConversations
   alias Blackboex.Docs.DocGenerator
   alias Blackboex.LLM
   alias Blackboex.LLM.Config
@@ -1779,14 +1779,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
         {:noreply, put_flash(socket, :error, "API not found")}
 
       api ->
-        if api.status == "published" do
-          case Apis.unpublish(api) do
-            {:ok, api} -> Apis.update_api(api, %{status: "archived"})
-            _ -> Apis.update_api(api, %{status: "archived"})
-          end
-        else
-          Apis.update_api(api, %{status: "archived"})
-        end
+        archive_api(api)
 
         {:noreply,
          socket
@@ -2003,6 +1996,15 @@ defmodule BlackboexWeb.ApiLive.Edit do
   end
 
   @impl true
+  def handle_info({:agent_action, %{tool: tool_name, args: args}}, socket) do
+    socket =
+      socket
+      |> assign(pipeline_status: agent_tool_to_status(tool_name))
+      |> apply_action_to_editor(tool_name, args)
+
+    {:noreply, socket}
+  end
+
   def handle_info({:agent_action, %{tool: tool_name}}, socket) do
     {:noreply, assign(socket, pipeline_status: agent_tool_to_status(tool_name))}
   end
@@ -2013,9 +2015,16 @@ defmodule BlackboexWeb.ApiLive.Edit do
   end
 
   @impl true
-  def handle_info({:tool_result, %{tool: tool_name, success: success, summary: summary}}, socket) do
+  def handle_info({:tool_result, %{tool: tool_name, success: success, summary: summary} = payload}, socket) do
     event = %{type: :tool_result, tool: tool_name, success: success, summary: summary}
-    {:noreply, assign(socket, agent_events: [event | socket.assigns.agent_events])}
+    content = Map.get(payload, :content)
+
+    socket =
+      socket
+      |> assign(agent_events: [event | socket.assigns.agent_events])
+      |> apply_result_to_editor(tool_name, success, content)
+
+    {:noreply, socket}
   end
 
   @impl true
@@ -2257,6 +2266,58 @@ defmodule BlackboexWeb.ApiLive.Edit do
   defp agent_tool_to_status("run_tests"), do: :running_tests
   defp agent_tool_to_status("submit_code"), do: :submitting
   defp agent_tool_to_status(_), do: :processing
+
+  defp archive_api(api) do
+    if api.status == "published", do: Apis.unpublish(api)
+    Apis.update_api(api, %{status: "archived"})
+  end
+
+  # Push code/tests to Monaco editor when agent tool calls provide new code
+  defp apply_action_to_editor(socket, "compile_code", %{"code" => code}) do
+    socket
+    |> assign(code: code, active_tab: "code")
+    |> push_editor_value(code)
+  end
+
+  defp apply_action_to_editor(socket, "generate_tests", _args) do
+    assign(socket, active_tab: "tests")
+  end
+
+  defp apply_action_to_editor(socket, "run_tests", %{"code" => code, "test_code" => test_code}) do
+    socket
+    |> assign(code: code, test_code: test_code, active_tab: "tests")
+    |> push_editor_value(test_code)
+  end
+
+  defp apply_action_to_editor(socket, "submit_code", %{"code" => code} = args) do
+    test_code = Map.get(args, "test_code", socket.assigns.test_code)
+    assign(socket, code: code, test_code: test_code)
+  end
+
+  defp apply_action_to_editor(socket, _tool, _args), do: socket
+
+  # Update Monaco editor when tool results contain code artifacts
+  defp apply_result_to_editor(socket, "format_code", true, content) when is_binary(content) do
+    socket
+    |> assign(code: content)
+    |> maybe_push_editor("code", content)
+  end
+
+  defp apply_result_to_editor(socket, "generate_tests", true, content) when is_binary(content) do
+    socket
+    |> assign(test_code: content, active_tab: "tests")
+    |> push_editor_value(content)
+  end
+
+  defp apply_result_to_editor(socket, _tool, _success, _content), do: socket
+
+  defp maybe_push_editor(socket, tab, content) do
+    if socket.assigns.active_tab == tab do
+      push_editor_value(socket, content)
+    else
+      socket
+    end
+  end
 
   defp do_save_and_validate(socket) do
     api = socket.assigns.api

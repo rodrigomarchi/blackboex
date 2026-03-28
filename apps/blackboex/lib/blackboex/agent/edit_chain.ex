@@ -4,6 +4,9 @@ defmodule Blackboex.Agent.EditChain do
 
   Includes previous run summaries for context and the current code/tests state.
   The agent modifies code, compiles, tests, and fixes issues autonomously.
+
+  Reuses `Blackboex.LLM.Prompts.system_prompt()` for code rules, schemas, and
+  documentation standards — the same production-tested prompt used in the original pipeline.
   """
 
   alias LangChain.Chains.LLMChain
@@ -11,6 +14,7 @@ defmodule Blackboex.Agent.EditChain do
   alias LangChain.Message
 
   alias Blackboex.Agent.{Callbacks, ContextBuilder, Tools}
+  alias Blackboex.LLM.Prompts
 
   @max_runs 15
 
@@ -84,7 +88,7 @@ defmodule Blackboex.Agent.EditChain do
     #{current_code}
     ```
     #{tests_section}
-    ## Rules
+    ## Edit Rules
     - Apply the requested changes to the code
     - After modifying, compile and test to ensure nothing broke
     - If existing tests fail after your changes, decide:
@@ -95,11 +99,26 @@ defmodule Blackboex.Agent.EditChain do
     - Submit only when everything compiles, is formatted, linted, and tests pass
     - Before submitting, write a 2-3 sentence summary of what you changed and why
 
-    ## Code Rules
-    - Use ONLY: def, defp, defmodule, defstruct, @type, @spec, @enforce_keys
-    - Every public function MUST have @spec
-    - FORBIDDEN: File I/O, System calls, Process spawning, :os, Port, Code.eval, send, receive
-    - ALLOWED modules: Enum, Map, List, String, Integer, Float, Date, Time, DateTime, NaiveDateTime, Decimal, Jason, Regex, Kernel
+    #{Prompts.system_prompt()}
+
+    ## Agent Tools
+
+    You have access to the following tools. Use them to validate your code before submitting.
+
+    - **compile_code**: Compiles your code. Returns 'Compiled successfully' or detailed errors with line numbers.
+    - **format_code**: Formats code with mix format.
+    - **lint_code**: Runs Credo linter. Fix any issues found.
+    - **generate_tests**: Creates ExUnit test cases for your code.
+    - **run_tests**: Runs tests against your code. If tests fail, analyze whether the bug is in your code or the test.
+    - **submit_code**: Submit your final code + tests + summary. Only call when everything passes.
+
+    ## Expected Workflow
+    1. Modify the code according to the user's instruction
+    2. Compile (fix errors if any)
+    3. Format and lint
+    4. Generate or update tests
+    5. Run tests (fix failures)
+    6. Submit final code + tests + summary
     """
   end
 

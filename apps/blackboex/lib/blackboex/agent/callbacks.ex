@@ -89,7 +89,6 @@ defmodule Blackboex.Agent.Callbacks do
   # ── Handlers ───────────────────────────────────────────────────
 
   defp handle_streaming_deltas(deltas, run_id) do
-    # Extract text content from deltas — handles both string content and ContentPart structs
     text =
       deltas
       |> List.wrap()
@@ -118,6 +117,9 @@ defmodule Blackboex.Agent.Callbacks do
     {event_type, role} = classify_message(message)
     content = extract_content(message)
 
+    # Heartbeat: keep run alive during LLM response processing
+    Conversations.touch_run(run_id)
+
     persist_event(%{
       run_id: run_id,
       conversation_id: conversation_id,
@@ -139,19 +141,24 @@ defmodule Blackboex.Agent.Callbacks do
   end
 
   defp handle_tool_call_identified(tool_call, run_id, conversation_id) do
+    args = normalize_args(tool_call.arguments)
+
     persist_event(%{
       run_id: run_id,
       conversation_id: conversation_id,
       event_type: "tool_call",
       tool_name: tool_call.name,
-      tool_input: tool_call.arguments || %{}
+      tool_input: args
     })
 
-    broadcast(run_id, {:agent_action, %{tool: tool_call.name, args: tool_call.arguments || %{}, run_id: run_id}})
+    broadcast(run_id, {:agent_action, %{tool: tool_call.name, args: args, run_id: run_id}})
   end
 
   defp handle_tool_completed(tool_call, result, run_id, conversation_id) do
     content = extract_tool_result_content(result)
+
+    # Heartbeat: update run's updated_at to prevent RecoveryWorker from killing it
+    Conversations.touch_run(run_id)
 
     persist_event(%{
       run_id: run_id,
@@ -274,6 +281,13 @@ defmodule Blackboex.Agent.Callbacks do
       true -> inspect(result)
     end
   end
+
+  # Normalize tool arguments to string keys for consistent access in templates
+  defp normalize_args(nil), do: %{}
+  defp normalize_args(args) when is_map(args) do
+    Map.new(args, fn {k, v} -> {to_string(k), v} end)
+  end
+  defp normalize_args(_), do: %{}
 
   defp truncate(str, max) when byte_size(str) <= max, do: str
   defp truncate(str, max), do: String.slice(str, 0, max) <> "..."

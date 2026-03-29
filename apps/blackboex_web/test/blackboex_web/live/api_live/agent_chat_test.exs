@@ -61,7 +61,7 @@ defmodule BlackboexWeb.ApiLive.AgentChatTest do
 
       # Tool result in timeline
       send_tool_result(lv, run_id, "compile_code", true, "OK")
-      assert render(lv) =~ "Compiling"
+      assert render(lv) =~ "Compile"
 
       # Completion
       complete_agent(lv, run_id, "def handle(p), do: %{result: 42}", "Done")
@@ -127,7 +127,7 @@ defmodule BlackboexWeb.ApiLive.AgentChatTest do
     test "empty message is ignored",
          %{conn: conn, org: org, api: api} do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-      lv |> element(~s(button[phx-click="toggle_chat"])) |> render_click()
+      lv |> element(~s(button[phx-click="switch_tab"][phx-value-tab="chat"])) |> render_click()
 
       lv |> form("form[phx-submit=send_chat]", %{chat_input: ""}) |> render_submit()
       refute render(lv) =~ "Thinking..."
@@ -152,16 +152,16 @@ defmodule BlackboexWeb.ApiLive.AgentChatTest do
       refute html =~ "Second"
     end
 
-    test "completion with nil code clears events and shows info flash",
+    test "completion with nil code shows info flash and preserves timeline",
          %{conn: conn, org: org, api: api} do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
       open_chat_and_send(lv, "Analyze")
 
       run_id = start_agent_run(lv)
       send_tool_result(lv, run_id, "compile_code", true, "OK")
-      assert render(lv) =~ "Compiling"
+      assert render(lv) =~ "Compile"
 
-      # Complete WITHOUT code
+      # Complete WITHOUT code — uses code from assigns (API already has source_code)
       send(
         lv.pid,
         {:agent_completed,
@@ -176,10 +176,9 @@ defmodule BlackboexWeb.ApiLive.AgentChatTest do
 
       html = render(lv)
       assert html =~ "Analysis done"
-      refute html =~ "Accept"
       refute html =~ "Thinking..."
-      # Agent events should be cleared
-      refute html =~ "Compiling"
+      # Timeline should be preserved
+      assert html =~ "Compile"
     end
 
     test "reject edit clears pending_edit",
@@ -266,7 +265,7 @@ defmodule BlackboexWeb.ApiLive.AgentChatTest do
       send_tool_result(lv, run_id, "compile_code", false, "3 errors")
 
       html = render(lv)
-      assert html =~ "Compiling"
+      assert html =~ "Compile"
       assert html =~ "3 errors"
     end
 
@@ -281,9 +280,9 @@ defmodule BlackboexWeb.ApiLive.AgentChatTest do
       send_tool_result(lv, run_id, "run_tests", true, "3/3 passed")
 
       html = render(lv)
-      assert html =~ "Compiling"
-      assert html =~ "Formatting"
-      assert html =~ "Running tests"
+      assert html =~ "Compile"
+      assert html =~ "Format"
+      assert html =~ "Run Tests"
       assert html =~ "3/3 passed"
     end
 
@@ -365,7 +364,7 @@ defmodule BlackboexWeb.ApiLive.AgentChatTest do
   # ── Test Helpers ───────────────────────────────────────────────────────
 
   defp open_chat_and_send(lv, message) do
-    lv |> element(~s(button[phx-click="toggle_chat"])) |> render_click()
+    lv |> element(~s(button[phx-click="switch_tab"][phx-value-tab="chat"])) |> render_click()
     lv |> form("form[phx-submit=send_chat]", %{chat_input: message}) |> render_submit()
   end
 
@@ -383,6 +382,7 @@ defmodule BlackboexWeb.ApiLive.AgentChatTest do
          tool: tool,
          success: success,
          summary: summary,
+         content: summary,
          run_id: run_id
        }}
     )

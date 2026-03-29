@@ -58,9 +58,9 @@ defmodule BlackboexWeb.ApiLive.Edit do
         # Subscribe to API topic for agent_run_started
         Phoenix.PubSub.subscribe(Blackboex.PubSub, "api:#{api.id}")
 
-        # Load chat messages from agent events
-        chat_messages =
-          load_agent_chat_messages(agent_conversation)
+        # Load full conversation events for chat timeline
+        agent_events =
+          load_conversation_events(agent_conversation)
 
         {:ok,
          assign(socket,
@@ -75,13 +75,12 @@ defmodule BlackboexWeb.ApiLive.Edit do
            diff_old: nil,
            diff_new: nil,
            # Chat assigns
-           chat_messages: chat_messages,
            chat_input: "",
            chat_loading: active_run_id != nil,
            pending_edit: nil,
            streaming_tokens: "",
            # Tab state
-           active_tab: "code",
+           active_tab: if(active_run_id, do: "chat", else: "code"),
            # Pipeline assigns
            pipeline_ref: nil,
            pipeline_status: nil,
@@ -131,11 +130,9 @@ defmodule BlackboexWeb.ApiLive.Edit do
            diff_modal_open: false,
            # Generation state
            generation_status: api.generation_status,
-           # Chat sidebar
-           chat_open: active_run_id != nil,
            # Agent pipeline assigns
            current_run_id: active_run_id,
-           agent_events: [],
+           agent_events: agent_events,
            agent_conversation: agent_conversation
          )}
     end
@@ -144,6 +141,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
   # ── Render ─────────────────────────────────────────────────────────────
 
   @tabs [
+    %{id: "chat", label: "Chat"},
     %{id: "code", label: "Code"},
     %{id: "tests", label: "Tests"},
     %{id: "validation", label: "Validation"},
@@ -215,44 +213,12 @@ defmodule BlackboexWeb.ApiLive.Edit do
               </span>
             </button>
 
-            <div class="flex-1" />
-
-            <%!-- Chat toggle in tab bar --%>
-            <button
-              phx-click="toggle_chat"
-              class={[
-                "px-3 py-1.5 text-xs font-medium border-b-2 transition-colors inline-flex items-center gap-1",
-                if(@chat_open,
-                  do: "border-primary text-primary",
-                  else: "border-transparent text-muted-foreground hover:text-foreground"
-                )
-              ]}
-            >
-              <.icon name="hero-chat-bubble-left-right" class="size-3.5" /> Chat
-            </button>
           </div>
 
           <%!-- Content Area --%>
           <div class="flex-1 min-h-0 relative">
             {render_tab_content(assigns)}
           </div>
-        </div>
-
-        <%!-- Chat Sidebar --%>
-        <div :if={@chat_open} class="w-[340px] shrink-0 border-l flex flex-col">
-          <.live_component
-            module={BlackboexWeb.Components.ChatPanel}
-            id="chat-panel"
-            messages={@chat_messages}
-            input={@chat_input}
-            loading={@chat_loading or @generation_status in ["pending", "generating", "validating"]}
-            api_id={@api.id}
-            pending_edit={@pending_edit}
-            template_type={@api.template_type}
-            streaming_tokens={if(@chat_loading, do: @streaming_tokens, else: "")}
-            pipeline_status={@pipeline_status || generation_to_pipeline_status(@generation_status)}
-            agent_events={@agent_events}
-          />
         </div>
       </div>
 
@@ -314,11 +280,26 @@ defmodule BlackboexWeb.ApiLive.Edit do
 
   # ── Tab Content ───────────────────────────────────────────────────────
 
+  defp render_tab_content(%{active_tab: "chat"} = assigns) do
+    ~H"""
+    <.live_component
+      module={BlackboexWeb.Components.ChatPanel}
+      id="chat-panel"
+      events={@agent_events}
+      input={@chat_input}
+      loading={@chat_loading or @generation_status in ["pending", "generating", "validating"]}
+      api_id={@api.id}
+      pending_edit={@pending_edit}
+      template_type={@api.template_type}
+      streaming_tokens={if(@chat_loading, do: @streaming_tokens, else: "")}
+    />
+    """
+  end
+
   defp render_tab_content(%{active_tab: tab} = assigns) when tab in ["code", "tests"] do
     ~H"""
     <div
       id="monaco-container"
-      phx-hook="MonacoStreaming"
       style="position: absolute; top: 0; left: 0; right: 0; bottom: 0;"
     >
       <LiveMonacoEditor.code_editor
@@ -357,8 +338,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
   end
 
   defp render_tab_content(%{active_tab: "docs"} = assigns) do
-    doc_content = assigns.api.documentation_md || assigns.streaming_doc
-    assigns = assign(assigns, :doc_content, doc_content)
+    assigns = assign(assigns, :doc_content, assigns.api.documentation_md)
 
     ~H"""
     <div class="p-6 overflow-y-auto h-full">
@@ -366,17 +346,12 @@ defmodule BlackboexWeb.ApiLive.Edit do
         <div class="prose prose-sm dark:prose-invert max-w-none">
           {raw(render_markdown(@doc_content))}
         </div>
-        <%= if @streaming_doc != "" and is_nil(@api.documentation_md) do %>
-          <div class="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-            <.icon name="hero-arrow-path" class="size-3 animate-spin" /> Generating...
-          </div>
-        <% end %>
       <% else %>
         <div class="flex flex-col items-center justify-center py-16 text-center">
           <.icon name="hero-document-text" class="size-10 text-muted-foreground mb-4" />
           <p class="text-sm font-medium">No documentation yet</p>
           <p class="text-xs text-muted-foreground mt-1">
-            Documentation is generated automatically when you save or create the API.
+            Documentation is generated automatically after code generation completes.
           </p>
         </div>
       <% end %>
@@ -1081,7 +1056,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
 
   # ── Tab Events ────────────────────────────────────────────────────────
 
-  @valid_tabs ~w(code tests validation docs versions run metrics keys publish info)
+  @valid_tabs ~w(chat code tests validation docs versions run metrics keys publish info)
 
   @impl true
   def handle_event("switch_tab", %{"tab" => tab}, socket) when tab in @valid_tabs do
@@ -1103,7 +1078,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
 
   @impl true
   def handle_event("toggle_chat", _params, socket) do
-    {:noreply, assign(socket, chat_open: !socket.assigns.chat_open)}
+    {:noreply, assign(socket, active_tab: "chat")}
   end
 
   # Keep old events as aliases for compatibility (command palette, keyboard shortcuts)
@@ -1680,7 +1655,6 @@ defmodule BlackboexWeb.ApiLive.Edit do
     else
       {:noreply,
        assign(socket,
-         chat_messages: [],
          pending_edit: nil,
          agent_events: [],
          streaming_tokens: ""
@@ -1981,7 +1955,13 @@ defmodule BlackboexWeb.ApiLive.Edit do
     end
 
     Phoenix.PubSub.subscribe(Blackboex.PubSub, "run:#{run_id}")
-    {:noreply, assign(socket, current_run_id: run_id, chat_loading: true, agent_events: [])}
+
+    {:noreply,
+     assign(socket,
+       current_run_id: run_id,
+       chat_loading: true,
+       active_tab: "chat"
+     )}
   end
 
   @impl true
@@ -1997,9 +1977,15 @@ defmodule BlackboexWeb.ApiLive.Edit do
 
   @impl true
   def handle_info({:agent_action, %{tool: tool_name, args: args}}, socket) do
+    now = DateTime.utc_now()
+    event = %{type: :tool_call, tool: tool_name, args: args, timestamp: now}
+
     socket =
       socket
-      |> assign(pipeline_status: agent_tool_to_status(tool_name))
+      |> assign(
+        pipeline_status: agent_tool_to_status(tool_name),
+        agent_events: socket.assigns.agent_events ++ [event]
+      )
       |> apply_action_to_editor(tool_name, args)
 
     {:noreply, socket}
@@ -2015,13 +2001,14 @@ defmodule BlackboexWeb.ApiLive.Edit do
   end
 
   @impl true
-  def handle_info({:tool_result, %{tool: tool_name, success: success, summary: summary} = payload}, socket) do
-    event = %{type: :tool_result, tool: tool_name, success: success, summary: summary}
-    content = Map.get(payload, :content)
+  def handle_info({:tool_result, %{tool: tool_name, success: success} = payload}, socket) do
+    content = Map.get(payload, :content, "")
+    now = DateTime.utc_now()
+    event = %{type: :tool_result, tool: tool_name, success: success, content: content, timestamp: now}
 
     socket =
       socket
-      |> assign(agent_events: [event | socket.assigns.agent_events])
+      |> assign(agent_events: socket.assigns.agent_events ++ [event])
       |> apply_result_to_editor(tool_name, success, content)
 
     {:noreply, socket}
@@ -2041,47 +2028,28 @@ defmodule BlackboexWeb.ApiLive.Edit do
     Phoenix.PubSub.unsubscribe(Blackboex.PubSub, "run:#{run_id}")
 
     api = Apis.get_api(socket.assigns.org.id, socket.assigns.api.id)
+    refreshed_api = api || socket.assigns.api
 
     socket =
       socket
       |> assign(
-        api: api || socket.assigns.api,
+        api: refreshed_api,
         chat_loading: false,
         current_run_id: nil,
         streaming_tokens: "",
-        pipeline_status: nil
+        pipeline_status: nil,
+        generation_status: refreshed_api.generation_status,
+        versions: Apis.list_versions(refreshed_api.id)
       )
 
-    if code do
-      # Show diff modal for review (code is already validated by agent)
-      code_diff = DiffEngine.compute_diff(socket.assigns.code, code)
+    # Use code from event, or fallback to what was accumulated via tool calls
+    effective_code = code || socket.assigns.code
+    effective_test_code = test_code || socket.assigns.test_code
 
-      assistant_msg = %{
-        "role" => "assistant",
-        "content" => summary || "Code updated successfully"
-      }
-
-      {:noreply,
-       socket
-       |> assign(
-         pending_edit: %{
-           code: code,
-           test_code: test_code,
-           diff: code_diff,
-           test_diff: [],
-           explanation: summary || "Agent completed",
-           instruction: summary,
-           validation: nil
-         },
-         diff_modal_open: true,
-         chat_messages: socket.assigns.chat_messages ++ [assistant_msg]
-       )
-       |> put_flash(:info, summary || "Code ready for review")}
+    if effective_code != "" and effective_code != nil do
+      handle_agent_code_completed(socket, effective_code, effective_test_code, summary, refreshed_api)
     else
-      {:noreply,
-       socket
-       |> assign(agent_events: [])
-       |> put_flash(:info, summary || "Agent completed")}
+      {:noreply, put_flash(socket, :info, summary || "Agent completed")}
     end
   end
 
@@ -2090,21 +2058,26 @@ defmodule BlackboexWeb.ApiLive.Edit do
     # Unsubscribe from failed run topic
     Phoenix.PubSub.unsubscribe(Blackboex.PubSub, "run:#{run_id}")
 
+    api = Apis.get_api(socket.assigns.org.id, socket.assigns.api.id)
+    refreshed_api = api || socket.assigns.api
+
     {:noreply,
      socket
      |> assign(
+       api: refreshed_api,
        chat_loading: false,
        current_run_id: nil,
        pipeline_status: nil,
-       streaming_tokens: ""
+       streaming_tokens: "",
+       generation_status: refreshed_api.generation_status
      )
      |> put_flash(:error, "Agent failed: #{error}")}
   end
 
   @impl true
   def handle_info({:agent_message, %{role: "assistant", content: content}}, socket) do
-    event = %{type: :message, content: content}
-    {:noreply, assign(socket, agent_events: [event | socket.assigns.agent_events])}
+    event = %{type: :message, role: "assistant", content: content, timestamp: DateTime.utc_now()}
+    {:noreply, assign(socket, agent_events: socket.assigns.agent_events ++ [event])}
   end
 
   @impl true
@@ -2112,6 +2085,25 @@ defmodule BlackboexWeb.ApiLive.Edit do
 
   @impl true
   def handle_info({:agent_started, _payload}, socket), do: {:noreply, socket}
+
+  @impl true
+  def handle_info({:doc_generated, %{doc: _doc}}, socket) do
+    api = Apis.get_api(socket.assigns.org.id, socket.assigns.api.id)
+
+    event = %{
+      type: :tool_result,
+      tool: "generate_docs",
+      success: true,
+      content: "Documentation generated",
+      timestamp: DateTime.utc_now()
+    }
+
+    {:noreply,
+     assign(socket,
+       api: api || socket.assigns.api,
+       agent_events: socket.assigns.agent_events ++ [event]
+     )}
+  end
 
   # ── Private Helpers ────────────────────────────────────────────────────
 
@@ -2212,8 +2204,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
                chat_loading: true,
                chat_input: "",
                streaming_tokens: "",
-               agent_events: [],
-               chat_messages: socket.assigns.chat_messages ++ [user_msg]
+               agent_events: socket.assigns.agent_events ++ [%{type: :message, role: "user", content: user_msg["content"]}]
              )}
 
           {:error, reason} ->
@@ -2244,20 +2235,49 @@ defmodule BlackboexWeb.ApiLive.Edit do
     {conv, active_run && active_run.id}
   end
 
-  defp load_agent_chat_messages(nil), do: []
-  defp load_agent_chat_messages(%{total_events: 0}), do: []
+  defp load_conversation_events(nil), do: []
+  defp load_conversation_events(%{total_events: 0}), do: []
 
-  defp load_agent_chat_messages(agent_conversation) do
+  defp load_conversation_events(agent_conversation) do
     case AgentConversations.list_runs(agent_conversation.id, limit: 1) do
       [latest_run | _] ->
         AgentConversations.list_events(latest_run.id)
-        |> Enum.filter(&(&1.event_type in ["user_message", "assistant_message"]))
-        |> Enum.map(fn e -> %{"role" => e.role, "content" => e.content} end)
+        |> Enum.map(&event_to_display/1)
+        |> Enum.reject(&is_nil/1)
 
       [] ->
         []
     end
   end
+
+  defp event_to_display(%{event_type: "user_message"} = e) do
+    %{type: :message, role: "user", content: e.content, timestamp: e.inserted_at}
+  end
+
+  defp event_to_display(%{event_type: "assistant_message"} = e) do
+    %{type: :message, role: "assistant", content: e.content, timestamp: e.inserted_at}
+  end
+
+  defp event_to_display(%{event_type: "tool_call"} = e) do
+    args = normalize_tool_input(e.tool_input)
+    %{type: :tool_call, tool: e.tool_name, args: args, timestamp: e.inserted_at}
+  end
+
+  defp event_to_display(%{event_type: "tool_result"} = e) do
+    %{type: :tool_result, tool: e.tool_name, success: e.tool_success, content: e.content || "", timestamp: e.inserted_at}
+  end
+
+  defp event_to_display(%{event_type: "status_change"} = e) do
+    %{type: :status, content: e.content, timestamp: e.inserted_at}
+  end
+
+  defp event_to_display(_), do: nil
+
+  defp normalize_tool_input(nil), do: %{}
+  defp normalize_tool_input(args) when is_map(args) do
+    Map.new(args, fn {k, v} -> {to_string(k), v} end)
+  end
+  defp normalize_tool_input(_), do: %{}
 
   defp agent_tool_to_status("compile_code"), do: :compiling
   defp agent_tool_to_status("format_code"), do: :formatting
@@ -2267,26 +2287,70 @@ defmodule BlackboexWeb.ApiLive.Edit do
   defp agent_tool_to_status("submit_code"), do: :submitting
   defp agent_tool_to_status(_), do: :processing
 
+  defp handle_agent_code_completed(socket, code, test_code, summary, api) do
+    assistant_msg = %{
+      "role" => "assistant",
+      "content" => summary || "Code updated successfully"
+    }
+
+    completion_event = %{type: :message, role: "assistant", content: assistant_msg["content"]}
+    socket = assign(socket, agent_events: socket.assigns.agent_events ++ [completion_event])
+
+    has_previous_code = (api.source_code || "") != ""
+
+    if has_previous_code do
+      # Edit flow: show diff modal for review
+      code_diff = DiffEngine.compute_diff(socket.assigns.code, code)
+
+      {:noreply,
+       socket
+       |> assign(
+         pending_edit: %{
+           code: code,
+           test_code: test_code,
+           diff: code_diff,
+           test_diff: [],
+           explanation: summary || "Agent completed",
+           instruction: summary,
+           validation: nil
+         },
+         diff_modal_open: true
+       )
+       |> put_flash(:info, summary || "Code ready for review")}
+    else
+      # Initial generation: accept directly and run validation
+      test_code = test_code || ""
+
+      socket =
+        socket
+        |> assign(code: code, test_code: test_code)
+        |> push_editor_value(code)
+
+      task = start_validation_pipeline(api, code, test_code)
+
+      {:noreply,
+       socket
+       |> assign(
+         pipeline_ref: task.ref,
+         pipeline_status: :formatting,
+         active_tab: "validation"
+       )
+       |> put_flash(:info, summary || "Code generated successfully")}
+    end
+  end
+
   defp archive_api(api) do
     if api.status == "published", do: Apis.unpublish(api)
     Apis.update_api(api, %{status: "archived"})
   end
 
-  # Push code/tests to Monaco editor when agent tool calls provide new code
+  # Sync code/test_code assigns when agent tool call provides code
   defp apply_action_to_editor(socket, "compile_code", %{"code" => code}) do
-    socket
-    |> assign(code: code, active_tab: "code")
-    |> push_editor_value(code)
-  end
-
-  defp apply_action_to_editor(socket, "generate_tests", _args) do
-    assign(socket, active_tab: "tests")
+    assign(socket, code: code)
   end
 
   defp apply_action_to_editor(socket, "run_tests", %{"code" => code, "test_code" => test_code}) do
-    socket
-    |> assign(code: code, test_code: test_code, active_tab: "tests")
-    |> push_editor_value(test_code)
+    assign(socket, code: code, test_code: test_code)
   end
 
   defp apply_action_to_editor(socket, "submit_code", %{"code" => code} = args) do
@@ -2296,28 +2360,16 @@ defmodule BlackboexWeb.ApiLive.Edit do
 
   defp apply_action_to_editor(socket, _tool, _args), do: socket
 
-  # Update Monaco editor when tool results contain code artifacts
+  # Sync assigns when tool results contain code artifacts
   defp apply_result_to_editor(socket, "format_code", true, content) when is_binary(content) do
-    socket
-    |> assign(code: content)
-    |> maybe_push_editor("code", content)
+    assign(socket, code: content)
   end
 
   defp apply_result_to_editor(socket, "generate_tests", true, content) when is_binary(content) do
-    socket
-    |> assign(test_code: content, active_tab: "tests")
-    |> push_editor_value(content)
+    assign(socket, test_code: content)
   end
 
   defp apply_result_to_editor(socket, _tool, _success, _content), do: socket
-
-  defp maybe_push_editor(socket, tab, content) do
-    if socket.assigns.active_tab == tab do
-      push_editor_value(socket, content)
-    else
-      socket
-    end
-  end
 
   defp do_save_and_validate(socket) do
     api = socket.assigns.api
@@ -2739,11 +2791,6 @@ defmodule BlackboexWeb.ApiLive.Edit do
       end
     end)
   end
-
-  defp generation_to_pipeline_status("pending"), do: :generating_code
-  defp generation_to_pipeline_status("generating"), do: :generating_code
-  defp generation_to_pipeline_status("validating"), do: :formatting
-  defp generation_to_pipeline_status(_), do: nil
 
   defp derive_test_summary(nil), do: nil
 

@@ -54,7 +54,7 @@ defmodule BlackboexWeb.Live.BillingEnforcementTest do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
       # Open the chat panel first
-      lv |> element(~s(button[phx-click="toggle_chat"])) |> render_click()
+      lv |> element(~s(button[phx-click="switch_tab"][phx-value-tab="chat"])) |> render_click()
 
       lv
       |> form("form[phx-submit=send_chat]", %{chat_input: "Add error handling"})
@@ -75,7 +75,7 @@ defmodule BlackboexWeb.Live.BillingEnforcementTest do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
       # Open the chat panel
-      lv |> element(~s(button[phx-click="toggle_chat"])) |> render_click()
+      lv |> element(~s(button[phx-click="switch_tab"][phx-value-tab="chat"])) |> render_click()
 
       # Send a chat message — billing enforcement blocks the LLM call
       lv

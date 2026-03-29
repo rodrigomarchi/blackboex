@@ -53,16 +53,11 @@ defmodule BlackboexWeb.ApiLive.PanelsTest do
   end
 
   describe "tab switching" do
-    test "chat sidebar opens and closes", %{conn: conn, org: org, api: api} do
-      {:ok, lv, html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
+    test "chat tab shows conversation panel", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
-      refute html =~ "Describe the changes"
-
-      html = render_click(lv, "toggle_chat", %{})
-      assert html =~ "Describe the changes"
-
-      html = render_click(lv, "toggle_chat", %{})
-      refute html =~ "Describe the changes"
+      html = render_click(lv, "switch_tab", %{"tab" => "chat"})
+      assert html =~ "Describe what you want"
     end
 
     test "publish tab shows publication section", %{conn: conn, org: org, api: api} do
@@ -105,13 +100,12 @@ defmodule BlackboexWeb.ApiLive.PanelsTest do
       assert html =~ "Code"
     end
 
-    test "chat sidebar stays open while switching tabs", %{conn: conn, org: org, api: api} do
+    test "switching from chat to publish shows publish content", %{conn: conn, org: org, api: api} do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
-      render_click(lv, "toggle_chat", %{})
+      render_click(lv, "switch_tab", %{"tab" => "chat"})
       html = render_click(lv, "switch_tab", %{"tab" => "publish"})
 
-      assert html =~ "Describe the changes"
       assert html =~ "Publication"
     end
   end
@@ -147,7 +141,7 @@ defmodule BlackboexWeb.ApiLive.PanelsTest do
       html = lv |> render_hook("command_palette_exec", %{"event" => "toggle_chat"})
 
       refute html =~ "Search commands"
-      assert html =~ "Describe the changes"
+      assert html =~ "Describe what you want"
     end
 
     test "exec_first executes first match", %{conn: conn, org: org, api: api} do
@@ -175,12 +169,12 @@ defmodule BlackboexWeb.ApiLive.PanelsTest do
     test "escape closes palette before other panels", %{conn: conn, org: org, api: api} do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
-      render_click(lv, "toggle_chat", %{})
+      render_click(lv, "switch_tab", %{"tab" => "chat"})
       lv |> element(~s(button[phx-click="toggle_command_palette"])) |> render_click()
 
       html = lv |> render_hook("close_panels", %{})
       refute html =~ "Search commands"
-      assert html =~ "Describe the changes"
+      assert html =~ "Describe what you want"
     end
 
     test "shows publish command only when compiled", %{conn: conn, org: org, api: api} do

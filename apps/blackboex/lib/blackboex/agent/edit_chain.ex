@@ -16,7 +16,7 @@ defmodule Blackboex.Agent.EditChain do
   alias Blackboex.Agent.{Callbacks, ContextBuilder, Tools}
   alias Blackboex.LLM.Prompts
 
-  @max_runs 15
+  @max_runs 25
 
   @spec build(String.t(), keyword()) :: LLMChain.t()
   def build(instruction, opts \\ []) do

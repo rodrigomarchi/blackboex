@@ -81,6 +81,14 @@ defmodule Blackboex.Conversations do
     |> Repo.update()
   end
 
+  @spec touch_run(String.t()) :: :ok
+  def touch_run(run_id) do
+    from(r in Run, where: r.id == ^run_id)
+    |> Repo.update_all(set: [updated_at: DateTime.utc_now()])
+
+    :ok
+  end
+
   @spec list_runs(String.t(), keyword()) :: [Run.t()]
   def list_runs(conversation_id, opts \\ []) do
     limit = Keyword.get(opts, :limit, 50)

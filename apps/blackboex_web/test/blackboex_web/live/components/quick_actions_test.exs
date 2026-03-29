@@ -17,7 +17,7 @@ defmodule BlackboexWeb.Components.QuickActionsTest do
   end
 
   defp open_chat(lv) do
-    lv |> element(~s(button[phx-click="toggle_chat"])) |> render_click()
+    lv |> element(~s(button[phx-click="switch_tab"][phx-value-tab="chat"])) |> render_click()
   end
 
   describe "quick actions" do

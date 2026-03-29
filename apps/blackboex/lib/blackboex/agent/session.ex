@@ -20,6 +20,7 @@ defmodule Blackboex.Agent.Session do
   alias Blackboex.Agent.{Callbacks, CodeGenChain, EditChain, Guardrails}
   alias Blackboex.Apis
   alias Blackboex.Conversations
+  alias Blackboex.Docs.DocGenerator
   alias Blackboex.LLM.CircuitBreaker
   alias Blackboex.Telemetry.Events
 
@@ -220,12 +221,11 @@ defmodule Blackboex.Agent.Session do
       {:ok, _chain, _tool_result} = success ->
         success
 
+      {:error, chain, %LangChain.LangChainError{type: "exceeded_max_runs"}} ->
+        force_submit(chain, state)
+
       {:error, chain, %LangChain.LangChainError{} = error} ->
-        if String.contains?(inspect(error), "max_runs") do
-          force_submit(chain, state)
-        else
-          {:error, chain, error}
-        end
+        {:error, chain, error}
 
       {:error, _chain, _error} = failure ->
         failure
@@ -289,19 +289,30 @@ defmodule Blackboex.Agent.Session do
       }
     })
 
+    # Generate documentation after code is saved (non-blocking)
+    if result[:code] && status == "completed" do
+      generate_documentation(state)
+    end
+
     Logger.info("Agent session completed for run #{state.run_id} with status #{status}")
   end
 
   defp save_api_and_version(state, run, result, status) do
     api = Apis.get_api(state.organization_id, state.api_id)
 
-    if api && result[:code] do
-      case update_api_from_result(api, result, status) do
-        {:ok, updated_api} ->
-          maybe_create_version(updated_api, run, state, result, status)
+    if api do
+      if result[:code] do
+        case update_api_from_result(api, result, status) do
+          {:ok, updated_api} ->
+            maybe_create_version(updated_api, run, state, result, status)
 
-        {:error, reason} ->
-          Logger.warning("Failed to update API #{state.api_id}: #{inspect(reason)}")
+          {:error, reason} ->
+            Logger.warning("Failed to update API #{state.api_id}: #{inspect(reason)}")
+        end
+      else
+        # No code returned but run completed — update status only
+        gen_status = if status == "completed", do: "completed", else: "partial"
+        Apis.update_api(api, %{generation_status: gen_status, generation_error: nil})
       end
     end
   end
@@ -461,6 +472,22 @@ defmodule Blackboex.Agent.Session do
 
     if conversation do
       Conversations.increment_conversation_stats(conversation, total_runs: 1)
+    end
+  end
+
+  defp generate_documentation(state) do
+    api = Apis.get_api(state.organization_id, state.api_id)
+
+    if api && api.source_code do
+      case DocGenerator.generate(api) do
+        {:ok, %{doc: doc}} ->
+          Apis.update_api(api, %{documentation_md: doc})
+          broadcast(state.run_id, {:doc_generated, %{doc: doc, run_id: state.run_id}})
+          Logger.info("Documentation generated for API #{state.api_id}")
+
+        {:error, reason} ->
+          Logger.warning("Doc generation failed for API #{state.api_id}: #{inspect(reason)}")
+      end
     end
   end
 

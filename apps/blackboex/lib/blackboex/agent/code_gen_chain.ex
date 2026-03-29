@@ -19,7 +19,7 @@ defmodule Blackboex.Agent.CodeGenChain do
   alias Blackboex.Agent.{Callbacks, Tools}
   alias Blackboex.LLM.{Prompts, Templates}
 
-  @max_runs 15
+  @max_runs 25
 
   @agent_instructions """
   ## Agent Tools
@@ -46,8 +46,17 @@ defmodule Blackboex.Agent.CodeGenChain do
   - The compile_code tool validates security constraints (no forbidden modules, no conn usage, etc.) and compiles the full module. Read error messages carefully.
   - If compilation fails with "handler must return a plain map", you are using conn/json/put_status — remove them.
   - If compilation fails with "only Request, Response, Params are allowed", you defined a disallowed defmodule — rename or remove it.
-  - Keep functions short (max 20 lines) and nesting shallow (max 3 levels).
   - Handle edge cases: nil inputs, empty strings, invalid types.
+
+  ## Code Structure (CRITICAL — the linter enforces these strictly)
+  - **Maximum 20 lines per function** — the linter WILL reject functions longer than 20 lines. Plan for this upfront.
+  - **Maximum 3 levels of nesting** — avoid nested if/case/with inside other blocks.
+  - The `handle/1` function should be SHORT (under 15 lines). Extract logic into private helpers:
+    - Extract validation into a `validate_and_process/1` or similar helper
+    - Extract error formatting into `format_errors/1`
+    - Extract computation into focused helper functions
+  - Pattern: `handle/1` calls `Request.changeset/1`, checks validity, delegates to helpers.
+  - Every public function needs `@doc` and `@spec`. Every private function needs `@spec`.
   """
 
   @spec build(String.t(), keyword()) :: LLMChain.t()

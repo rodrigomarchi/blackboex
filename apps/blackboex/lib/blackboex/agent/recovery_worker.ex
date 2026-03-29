@@ -15,9 +15,10 @@ defmodule Blackboex.Agent.RecoveryWorker do
 
   require Logger
 
+  alias Blackboex.Apis
   alias Blackboex.Conversations
 
-  @stale_after_ms 120_000
+  @stale_after_ms 300_000
 
   @impl Oban.Worker
   def perform(%Oban.Job{}) do
@@ -49,6 +50,14 @@ defmodule Blackboex.Agent.RecoveryWorker do
       content: "failed",
       metadata: %{"reason" => "stale_recovery", "stale_after_ms" => @stale_after_ms}
     })
+
+    # Update API generation_status so it doesn't stay stuck on "generating"
+    if run.api_id do
+      case Apis.get_api(run.organization_id, run.api_id) do
+        nil -> :ok
+        api -> Apis.update_api(api, %{generation_status: "failed", generation_error: "Session lost"})
+      end
+    end
 
     # Notify LiveView
     Phoenix.PubSub.broadcast(

@@ -17,7 +17,7 @@ defmodule Blackboex.Agent.Session do
 
   require Logger
 
-  alias Blackboex.Agent.{Callbacks, CodeGenChain, EditChain, Guardrails}
+  alias Blackboex.Agent.CodePipeline
   alias Blackboex.Apis
   alias Blackboex.Conversations
   alias Blackboex.Docs.DocGenerator
@@ -36,6 +36,19 @@ defmodule Blackboex.Agent.Session do
           current_tests: String.t() | nil
         }
 
+  @type t :: %__MODULE__{
+          run_id: String.t() | nil,
+          api_id: String.t() | nil,
+          conversation_id: String.t() | nil,
+          run_type: String.t() | nil,
+          trigger_message: String.t() | nil,
+          user_id: String.t() | integer() | nil,
+          organization_id: String.t() | nil,
+          current_code: String.t() | nil,
+          current_tests: String.t() | nil,
+          task_ref: reference() | nil
+        }
+
   defstruct [
     :run_id,
     :api_id,
@@ -46,8 +59,7 @@ defmodule Blackboex.Agent.Session do
     :organization_id,
     :current_code,
     :current_tests,
-    :task_ref,
-    :guardrail_config
+    :task_ref
   ]
 
   # ── Client API ─────────────────────────────────────────────────
@@ -90,8 +102,7 @@ defmodule Blackboex.Agent.Session do
       user_id: opts.user_id,
       organization_id: opts.organization_id,
       current_code: opts[:current_code],
-      current_tests: opts[:current_tests],
-      guardrail_config: Guardrails.default_config()
+      current_tests: opts[:current_tests]
     }
 
     send(self(), :start_chain)
@@ -139,6 +150,7 @@ defmodule Blackboex.Agent.Session do
 
   # ── Chain Execution ────────────────────────────────────────────
 
+  @spec start_chain_execution(t()) :: {:noreply, t()}
   defp start_chain_execution(state) do
     run = Conversations.get_run!(state.run_id)
     Conversations.update_run_metrics(run, %{started_at: DateTime.utc_now()})
@@ -154,6 +166,8 @@ defmodule Blackboex.Agent.Session do
     {:noreply, %{state | task_ref: task.ref}}
   end
 
+  @spec mark_run_as_running(Blackboex.Conversations.Run.t()) ::
+          {:ok, Blackboex.Conversations.Run.t()}
   defp mark_run_as_running(run) do
     case Conversations.complete_run(run, %{status: "running"}) do
       {:ok, r} -> {:ok, r}
@@ -161,105 +175,134 @@ defmodule Blackboex.Agent.Session do
     end
   end
 
+  @spec run_chain(t()) :: {:ok, map()} | {:error, term()}
   defp run_chain(state) do
     api = Apis.get_api(state.organization_id, state.api_id)
 
     if is_nil(api) do
       {:error, :api_not_found}
     else
-      chain = build_chain(state, api)
-      execute_chain(chain, state)
-    end
-  end
+      broadcast_fn = build_broadcast_fn(state)
+      opts = [broadcast_fn: broadcast_fn, run_id: state.run_id, conversation_id: state.conversation_id]
 
-  defp build_chain(state, api) do
-    session_ctx = %{
-      run_id: state.run_id,
-      conversation_id: state.conversation_id,
-      session_pid: self()
-    }
-
-    context = %{api: api, sandbox_opts: [timeout: 30_000]}
-    opts = [context: context, session_ctx: session_ctx, stream: true]
-
-    case state.run_type do
-      "edit" ->
-        EditChain.build(
-          state.trigger_message,
-          Keyword.merge(opts,
-            current_code: state.current_code || api.source_code || "",
-            current_tests: state.current_tests || api.test_code || "",
-            conversation_id: state.conversation_id
+      case state.run_type do
+        "edit" ->
+          CodePipeline.run_edit(
+            api,
+            state.trigger_message,
+            state.current_code || api.source_code || "",
+            state.current_tests || api.test_code || "",
+            opts
           )
-        )
 
-      _generation ->
-        CodeGenChain.build(state.trigger_message, opts)
+        _generation ->
+          CodePipeline.run_generation(api, state.trigger_message, opts)
+      end
     end
   end
 
-  defp execute_chain(chain, state) do
-    case run_with_guardrails(chain, state) do
-      {:ok, _chain, tool_result} ->
-        {:ok, extract_submit_result(tool_result)}
+  @spec build_broadcast_fn(t()) :: (term() -> :ok)
+  defp build_broadcast_fn(state) do
+    run_id = state.run_id
+    conversation_id = state.conversation_id
 
-      {:error, _chain, error} ->
-        {:error, error}
-
-      {:guardrail, reason, last_code} ->
-        {:ok, %{code: last_code, test_code: nil, summary: "Guardrail: #{reason}", partial: true}}
+    fn event ->
+      translate_pipeline_event(event, run_id, conversation_id)
     end
   end
 
-  defp run_with_guardrails(chain, state) do
-    # Use the appropriate runner based on run_type.
-    # Both CodeGenChain.run and EditChain.run call LLMChain.run_until_tool_used
-    # with the same signature, so the dispatch is about which module to call.
-    runner = chain_runner(state.run_type)
+  @spec translate_pipeline_event(term(), String.t(), String.t()) :: :ok
+  defp translate_pipeline_event({:step_started, %{step: step}}, run_id, conversation_id) do
+    tool_name = step_to_tool_name(step)
 
-    case runner.run(chain) do
-      {:ok, _chain, _tool_result} = success ->
-        success
+    persist_event(%{
+      run_id: run_id,
+      conversation_id: conversation_id,
+      event_type: "tool_call",
+      tool_name: tool_name,
+      tool_input: %{}
+    })
 
-      {:error, chain, %LangChain.LangChainError{type: "exceeded_max_runs"}} ->
-        force_submit(chain, state)
-
-      {:error, chain, %LangChain.LangChainError{} = error} ->
-        {:error, chain, error}
-
-      {:error, _chain, _error} = failure ->
-        failure
-    end
+    broadcast(run_id, {:agent_action, %{tool: tool_name, args: %{}, run_id: run_id}})
   end
 
-  defp chain_runner("edit"), do: EditChain
-  defp chain_runner(_), do: CodeGenChain
+  defp translate_pipeline_event({:step_completed, %{step: step} = payload}, run_id, conversation_id) do
+    tool_name = step_to_tool_name(step)
+    success = Map.get(payload, :success, true)
+    content = Map.get(payload, :content, "") || Map.get(payload, :code, "") || ""
+    content_str = if is_binary(content), do: content, else: inspect(content)
 
-  defp force_submit(chain, state) do
-    Callbacks.persist_guardrail_event(
-      state.run_id,
-      state.conversation_id,
-      :max_iterations
-    )
+    Conversations.touch_run(run_id)
 
-    last_code = extract_last_code_from_chain(chain)
+    persist_event(%{
+      run_id: run_id,
+      conversation_id: conversation_id,
+      event_type: "tool_result",
+      tool_name: tool_name,
+      tool_success: success,
+      content: String.slice(content_str, 0, 10_000)
+    })
 
-    if last_code do
-      {:guardrail, :max_iterations, last_code}
-    else
-      run = Conversations.get_run!(state.run_id)
+    broadcast(run_id, {:tool_result, %{
+      tool: tool_name,
+      success: success,
+      summary: String.slice(content_str, 0, 200),
+      content: String.slice(content_str, 0, 50_000),
+      run_id: run_id
+    }})
+  end
 
-      Conversations.complete_run(run, %{
-        status: "failed",
-        error_summary: "Agent exceeded maximum iterations without submitting code"
-      })
+  defp translate_pipeline_event({:step_failed, %{step: step, error: error}}, run_id, conversation_id) do
+    tool_name = step_to_tool_name(step)
 
-      {:error, chain, :max_iterations_no_code}
+    persist_event(%{
+      run_id: run_id,
+      conversation_id: conversation_id,
+      event_type: "tool_result",
+      tool_name: tool_name,
+      tool_success: false,
+      content: error
+    })
+
+    broadcast(run_id, {:tool_result, %{
+      tool: tool_name,
+      success: false,
+      summary: String.slice(error, 0, 200),
+      content: error,
+      run_id: run_id
+    }})
+  end
+
+  defp translate_pipeline_event(_event, _run_id, _conversation_id), do: :ok
+
+  @spec step_to_tool_name(atom()) :: String.t()
+  defp step_to_tool_name(:generating_code), do: "compile_code"
+  defp step_to_tool_name(:formatting), do: "format_code"
+  defp step_to_tool_name(:compiling), do: "compile_code"
+  defp step_to_tool_name(:linting), do: "lint_code"
+  defp step_to_tool_name(:fixing_compilation), do: "compile_code"
+  defp step_to_tool_name(:fixing_lint), do: "lint_code"
+  defp step_to_tool_name(:generating_tests), do: "generate_tests"
+  defp step_to_tool_name(:running_tests), do: "run_tests"
+  defp step_to_tool_name(:fixing_tests), do: "run_tests"
+  defp step_to_tool_name(:submitting), do: "submit_code"
+  defp step_to_tool_name(_), do: "unknown"
+
+  @spec persist_event(map()) :: :ok
+  defp persist_event(attrs) do
+    seq = Conversations.next_sequence(attrs.run_id)
+
+    case Conversations.append_event(Map.put(attrs, :sequence, seq)) do
+      {:ok, _} -> :ok
+      {:error, changeset} ->
+        Logger.warning("Failed to persist event: #{inspect(changeset.errors)}")
+        :ok
     end
   end
 
   # ── Result Handling ────────────────────────────────────────────
 
+  @spec handle_chain_success(t(), map()) :: :ok
   defp handle_chain_success(state, result) do
     run = Conversations.get_run!(state.run_id)
     status = if Map.get(result, :partial, false), do: "partial", else: "completed"
@@ -297,11 +340,15 @@ defmodule Blackboex.Agent.Session do
     Logger.info("Agent session completed for run #{state.run_id} with status #{status}")
   end
 
+  @spec save_api_and_version(t(), Blackboex.Conversations.Run.t(), map(), String.t()) :: :ok | term()
   defp save_api_and_version(state, run, result, status) do
     api = Apis.get_api(state.organization_id, state.api_id)
 
-    if api do
-      if result[:code] do
+    cond do
+      is_nil(api) ->
+        :ok
+
+      result[:code] ->
         case update_api_from_result(api, result, status) do
           {:ok, updated_api} ->
             maybe_create_version(updated_api, run, state, result, status)
@@ -309,14 +356,15 @@ defmodule Blackboex.Agent.Session do
           {:error, reason} ->
             Logger.warning("Failed to update API #{state.api_id}: #{inspect(reason)}")
         end
-      else
-        # No code returned but run completed — update status only
+
+      true ->
         gen_status = if status == "completed", do: "completed", else: "partial"
         Apis.update_api(api, %{generation_status: gen_status, generation_error: nil})
-      end
     end
   end
 
+  @spec update_api_from_result(Blackboex.Apis.Api.t(), map(), String.t()) ::
+          {:ok, Blackboex.Apis.Api.t()} | {:error, Ecto.Changeset.t()}
   defp update_api_from_result(api, result, status) do
     gen_status = if status == "completed", do: "completed", else: "partial"
 
@@ -327,6 +375,8 @@ defmodule Blackboex.Agent.Session do
     Apis.update_api(api, attrs)
   end
 
+  @spec maybe_create_version(Blackboex.Apis.Api.t(), Blackboex.Conversations.Run.t(), t(), map(), String.t()) ::
+          :ok | term()
   defp maybe_create_version(_api, _run, _state, _result, status) when status != "completed",
     do: :ok
 
@@ -349,6 +399,7 @@ defmodule Blackboex.Agent.Session do
     end
   end
 
+  @spec persist_completion_event(t(), map(), String.t()) :: :ok | {:ok, term()} | {:error, term()}
   defp persist_completion_event(state, result, status) do
     Conversations.append_event(%{
       run_id: state.run_id,
@@ -360,9 +411,11 @@ defmodule Blackboex.Agent.Session do
     })
   end
 
+  @spec maybe_put(map(), atom(), term()) :: map()
   defp maybe_put(map, _key, nil), do: map
   defp maybe_put(map, key, value), do: Map.put(map, key, value)
 
+  @spec handle_chain_failure(t(), term()) :: :ok
   defp handle_chain_failure(state, error) do
     run = Conversations.get_run!(state.run_id)
     error_msg = format_error(error)
@@ -402,6 +455,7 @@ defmodule Blackboex.Agent.Session do
     Logger.warning("Agent session failed for run #{state.run_id}: #{error_msg}")
   end
 
+  @spec handle_circuit_open(t()) :: :ok
   defp handle_circuit_open(state) do
     run = Conversations.get_run!(state.run_id)
 
@@ -426,47 +480,7 @@ defmodule Blackboex.Agent.Session do
 
   # ── Helpers ────────────────────────────────────────────────────
 
-  defp extract_submit_result(tool_result) do
-    # LangChain's run_until_tool_used returns the ToolResult struct.
-    # The arguments that were passed TO the tool are in the ToolCall,
-    # which is accessible via the tool_result or chain messages.
-    args =
-      cond do
-        is_struct(tool_result) and Map.has_key?(tool_result, :arguments) ->
-          tool_result.arguments || %{}
-
-        is_struct(tool_result) and Map.has_key?(tool_result, :call_arguments) ->
-          tool_result.call_arguments || %{}
-
-        is_map(tool_result) ->
-          tool_result
-
-        true ->
-          %{}
-      end
-
-    %{
-      code: Map.get(args, "code"),
-      test_code: Map.get(args, "test_code"),
-      summary: Map.get(args, "summary", "Completed")
-    }
-  end
-
-  defp extract_last_code_from_chain(chain) do
-    chain.messages
-    |> Enum.reverse()
-    |> Enum.find_value(fn msg ->
-      with true <- is_map(msg),
-           name when name in ["compile_code", "format_code", "submit_code"] <-
-             Map.get(msg, :tool_name) || Map.get(msg, :name),
-           args when is_map(args) <- Map.get(msg, :arguments) do
-        Map.get(args, "code")
-      else
-        _ -> nil
-      end
-    end)
-  end
-
+  @spec update_conversation_stats(t()) :: :ok | term()
   defp update_conversation_stats(state) do
     conversation = Conversations.get_conversation(state.conversation_id)
 
@@ -475,6 +489,7 @@ defmodule Blackboex.Agent.Session do
     end
   end
 
+  @spec generate_documentation(t()) :: :ok
   defp generate_documentation(state) do
     api = Apis.get_api(state.organization_id, state.api_id)
 
@@ -491,6 +506,7 @@ defmodule Blackboex.Agent.Session do
     end
   end
 
+  @spec emit_run_telemetry(t(), Blackboex.Conversations.Run.t(), String.t()) :: :ok
   defp emit_run_telemetry(state, run, status) do
     Events.emit_agent_run(%{
       run_id: state.run_id,
@@ -502,14 +518,17 @@ defmodule Blackboex.Agent.Session do
     })
   end
 
+  @spec format_error(term()) :: String.t()
   defp format_error({:crashed, reason}), do: "Agent process crashed: #{inspect(reason)}"
   defp format_error(%{message: msg}) when is_binary(msg), do: msg
   defp format_error(error) when is_binary(error), do: error
   defp format_error(error), do: inspect(error)
 
+  @spec broadcast(String.t(), term()) :: :ok | {:error, term()}
   defp broadcast(run_id, message) do
     Phoenix.PubSub.broadcast(Blackboex.PubSub, "run:#{run_id}", message)
   end
 
+  @spec via(String.t()) :: {:via, Registry, {Blackboex.Agent.SessionRegistry, String.t()}}
   defp via(run_id), do: {:via, Registry, {Blackboex.Agent.SessionRegistry, run_id}}
 end

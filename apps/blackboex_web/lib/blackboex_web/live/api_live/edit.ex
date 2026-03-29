@@ -2264,7 +2264,13 @@ defmodule BlackboexWeb.ApiLive.Edit do
   end
 
   defp event_to_display(%{event_type: "tool_result"} = e) do
-    %{type: :tool_result, tool: e.tool_name, success: e.tool_success, content: e.content || "", timestamp: e.inserted_at}
+    %{
+      type: :tool_result,
+      tool: e.tool_name,
+      success: e.tool_success,
+      content: e.content || "",
+      timestamp: e.inserted_at
+    }
   end
 
   defp event_to_display(%{event_type: "status_change"} = e) do

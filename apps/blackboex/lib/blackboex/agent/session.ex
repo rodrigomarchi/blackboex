@@ -22,6 +22,7 @@ defmodule Blackboex.Agent.Session do
   alias Blackboex.Conversations
   alias Blackboex.Docs.DocGenerator
   alias Blackboex.LLM.CircuitBreaker
+  alias Blackboex.Organizations
   alias Blackboex.Telemetry.Events
 
   @type start_opts :: %{
@@ -156,6 +157,10 @@ defmodule Blackboex.Agent.Session do
     Conversations.update_run_metrics(run, %{started_at: DateTime.utc_now()})
     mark_run_as_running(run)
 
+    # Reset validation_report for the new run
+    api = Apis.get_api(state.organization_id, state.api_id)
+    if api, do: Apis.update_api(api, %{validation_report: %{}})
+
     broadcast(state.run_id, {:agent_started, %{run_id: state.run_id, run_type: state.run_type}})
 
     task =
@@ -210,14 +215,22 @@ defmodule Blackboex.Agent.Session do
   defp build_broadcast_fn(state) do
     run_id = state.run_id
     conversation_id = state.conversation_id
+    api_id = state.api_id
+    organization_id = state.organization_id
 
     fn event ->
-      translate_pipeline_event(event, run_id, conversation_id)
+      translate_pipeline_event(event, run_id, conversation_id, api_id, organization_id)
     end
   end
 
-  @spec translate_pipeline_event(term(), String.t(), String.t()) :: :ok
-  defp translate_pipeline_event({:step_started, %{step: step}}, run_id, conversation_id) do
+  @spec translate_pipeline_event(term(), String.t(), String.t(), String.t(), String.t()) :: :ok
+  defp translate_pipeline_event(
+         {:step_started, %{step: step}},
+         run_id,
+         conversation_id,
+         _api_id,
+         _org_id
+       ) do
     tool_name = step_to_tool_name(step)
 
     persist_event(%{
@@ -234,7 +247,9 @@ defmodule Blackboex.Agent.Session do
   defp translate_pipeline_event(
          {:step_completed, %{step: step} = payload},
          run_id,
-         conversation_id
+         conversation_id,
+         api_id,
+         org_id
        ) do
     tool_name = step_to_tool_name(step)
     success = Map.get(payload, :success, true)
@@ -265,12 +280,17 @@ defmodule Blackboex.Agent.Session do
          run_id: run_id
        }}
     )
+
+    # Persist validation result incrementally on the API
+    persist_validation_result(step, success, payload, api_id, org_id)
   end
 
   defp translate_pipeline_event(
          {:step_failed, %{step: step, error: error}},
          run_id,
-         conversation_id
+         conversation_id,
+         api_id,
+         org_id
        ) do
     tool_name = step_to_tool_name(step)
 
@@ -294,9 +314,12 @@ defmodule Blackboex.Agent.Session do
          run_id: run_id
        }}
     )
+
+    # Persist validation failure incrementally
+    persist_validation_result(step, false, %{content: error}, api_id, org_id)
   end
 
-  defp translate_pipeline_event(_event, _run_id, _conversation_id), do: :ok
+  defp translate_pipeline_event(_event, _run_id, _conversation_id, _api_id, _org_id), do: :ok
 
   @spec extract_step_content(map()) :: String.t()
   defp extract_step_content(payload) do
@@ -307,6 +330,141 @@ defmodule Blackboex.Agent.Session do
         _ -> nil
       end
     end)
+  end
+
+  # ── Incremental Validation Persistence ─────────────────────────
+
+  @spec persist_validation_result(atom(), boolean(), map(), String.t(), String.t()) :: :ok
+  defp persist_validation_result(step, success, payload, api_id, org_id) do
+    case step_to_validation_attrs(step, success, payload) do
+      nil ->
+        :ok
+
+      attrs ->
+        api = Apis.get_api(org_id, api_id)
+
+        if api do
+          current = api.validation_report || %{}
+          updated = Map.merge(current, attrs)
+          Apis.update_api(api, %{validation_report: updated})
+        end
+
+        :ok
+    end
+  rescue
+    e ->
+      Logger.warning("Failed to persist validation result: #{Exception.message(e)}")
+      :ok
+  end
+
+  @spec step_to_validation_attrs(atom(), boolean(), map()) :: map() | nil
+  defp step_to_validation_attrs(:formatting, true, _payload) do
+    %{"format" => "pass", "format_issues" => []}
+  end
+
+  defp step_to_validation_attrs(:formatting, false, %{content: error}) do
+    %{"format" => "fail", "format_issues" => [error]}
+  end
+
+  defp step_to_validation_attrs(:compiling, true, _payload) do
+    %{"compilation" => "pass", "compilation_errors" => []}
+  end
+
+  defp step_to_validation_attrs(:compiling, false, %{content: errors}) do
+    %{"compilation" => "fail", "compilation_errors" => String.split(errors, "\n")}
+  end
+
+  defp step_to_validation_attrs(:linting, success, %{content: content}) do
+    status = if success, do: "pass", else: "fail"
+    issues = if success, do: [], else: String.split(content, "\n")
+    %{"credo" => status, "credo_issues" => issues}
+  end
+
+  defp step_to_validation_attrs(:running_tests, success, %{content: content}) do
+    status = if success, do: "pass", else: "fail"
+    # Parse test results from content for structured data
+    test_results = parse_test_results_from_content(content)
+    %{"tests" => status, "test_results" => test_results}
+  end
+
+  defp step_to_validation_attrs(:submitting, _success, _payload) do
+    %{"overall" => "pass"}
+  end
+
+  # Fix/retry steps and others don't update validation
+  defp step_to_validation_attrs(_step, _success, _payload), do: nil
+
+  @spec parse_test_results_from_content(String.t()) :: [map()]
+  defp parse_test_results_from_content(content) do
+    content
+    |> String.split("\n")
+    |> Enum.reduce([], fn line, acc ->
+      cond do
+        String.starts_with?(String.trim(line), "✓ ") ->
+          name = String.trim(line) |> String.trim_leading("✓ ")
+          [%{"name" => name, "status" => "passed"} | acc]
+
+        String.starts_with?(String.trim(line), "FAIL: ") ->
+          name = String.trim(line) |> String.trim_leading("FAIL: ")
+          [%{"name" => name, "status" => "failed"} | acc]
+
+        true ->
+          acc
+      end
+    end)
+    |> Enum.reverse()
+  end
+
+  @spec register_and_extract_schema(String.t(), String.t()) :: :ok
+  defp register_and_extract_schema(api_id, org_id) do
+    api = Apis.get_api(org_id, api_id)
+    do_register_module(api, org_id)
+  rescue
+    e ->
+      Logger.warning("Failed to register module: #{Exception.message(e)}")
+      :ok
+  end
+
+  @spec do_register_module(Blackboex.Apis.Api.t() | nil, String.t()) :: :ok
+  defp do_register_module(nil, _org_id), do: :ok
+  defp do_register_module(%{source_code: nil}, _org_id), do: :ok
+  defp do_register_module(%{source_code: ""}, _org_id), do: :ok
+
+  defp do_register_module(api, org_id) do
+    alias Blackboex.CodeGen.Compiler
+
+    case Compiler.compile(api, api.source_code) do
+      {:ok, module} ->
+        org = Organizations.get_organization(org_id)
+        org_slug = if(org, do: org.slug, else: "")
+        Apis.Registry.register(api.id, module, org_slug: org_slug, slug: api.slug)
+        schema_attrs = extract_schema_attrs(module)
+        Apis.update_api(api, Map.merge(%{status: "compiled"}, schema_attrs))
+        :ok
+
+      {:error, reason} ->
+        Logger.warning("Failed to compile for registry: #{inspect(reason)}")
+        :ok
+    end
+  end
+
+  @spec extract_schema_attrs(module()) :: map()
+  defp extract_schema_attrs(module) do
+    alias Blackboex.CodeGen.SchemaExtractor
+
+    case SchemaExtractor.extract(module) do
+      {:ok, %{request: req, response: resp}} ->
+        %{
+          param_schema: if(req, do: SchemaExtractor.to_json_schema(req), else: nil),
+          example_request: if(req, do: SchemaExtractor.generate_example(req), else: nil),
+          example_response: if(resp, do: SchemaExtractor.generate_example(resp), else: nil)
+        }
+
+      {:error, _} ->
+        %{}
+    end
+  rescue
+    _ -> %{}
   end
 
   @spec step_to_tool_name(atom()) :: String.t()
@@ -363,6 +521,13 @@ defmodule Blackboex.Agent.Session do
     })
 
     save_api_and_version(state, run, result, status)
+
+    # Register compiled module and extract schema (must run after save_api_and_version
+    # because it reads api.source_code from DB which is updated there)
+    if status == "completed" do
+      register_and_extract_schema(state.api_id, state.organization_id)
+    end
+
     update_conversation_stats(state)
     persist_completion_event(state, result, status)
     emit_run_telemetry(state, run, status)
@@ -481,9 +646,13 @@ defmodule Blackboex.Agent.Session do
     api = Apis.get_api(state.organization_id, state.api_id)
 
     if api do
+      current_report = api.validation_report || %{}
+      failed_report = Map.put(current_report, "overall", "fail")
+
       Apis.update_api(api, %{
         generation_status: "failed",
-        generation_error: String.slice(error_msg, 0, 5000)
+        generation_error: String.slice(error_msg, 0, 5000),
+        validation_report: failed_report
       })
     end
 
@@ -550,7 +719,15 @@ defmodule Blackboex.Agent.Session do
       case DocGenerator.generate(api) do
         {:ok, %{doc: doc}} ->
           Apis.update_api(api, %{documentation_md: doc})
-          broadcast(state.run_id, {:doc_generated, %{doc: doc, run_id: state.run_id}})
+
+          # Broadcast on the api topic (not run) because the frontend unsubscribes
+          # from the run topic when agent_completed arrives
+          Phoenix.PubSub.broadcast(
+            Blackboex.PubSub,
+            "api:#{state.api_id}",
+            {:doc_generated, %{doc: doc, api_id: state.api_id}}
+          )
+
           Logger.info("Documentation generated for API #{state.api_id}")
 
         {:error, reason} ->

@@ -59,11 +59,10 @@ defmodule BlackboexWeb.ApiLive.EditTest do
   end
 
   describe "mount" do
-    test "renders editor with API name and save button", %{conn: conn, org: org, api: api} do
+    test "renders editor with API name", %{conn: conn, org: org, api: api} do
       {:ok, _lv, html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
 
       assert html =~ "Calculator"
-      assert html =~ "Save"
     end
 
     test "shows all tabs in tab bar", %{conn: conn, org: org, api: api} do
@@ -87,67 +86,6 @@ defmodule BlackboexWeb.ApiLive.EditTest do
     end
   end
 
-  describe "save" do
-    test "saves code and creates version", %{conn: conn, org: org, api: api} do
-      stub_pipeline_mocks()
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-
-      # Simulate code change event
-      lv |> render_hook("editor_changed", %{"value" => "def handle(_), do: %{saved: true}"})
-
-      lv |> element("button[phx-click=save]") |> render_click()
-
-      # Wait for async validation pipeline to complete
-      wait_for_pipeline(lv)
-
-      # Flash is rendered by the app layout; verify the side-effect instead
-      versions = Apis.list_versions(api.id)
-      assert length(versions) == 1
-      assert hd(versions).source == "manual_edit"
-    end
-  end
-
-  describe "save and validate" do
-    test "saves and runs validation pipeline", %{conn: conn, org: org, api: api} do
-      stub_pipeline_mocks()
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-
-      lv |> render_hook("editor_changed", %{"value" => "def handle(_), do: %{compiled: true}"})
-
-      lv |> element(~s(button[phx-click="save"])) |> render_click()
-
-      # Wait for validation pipeline
-      wait_for_pipeline(lv)
-
-      # Verify side-effect: version was created
-      versions = Apis.list_versions(api.id)
-      assert length(versions) == 1
-    end
-
-    test "shows validation results for insecure code", %{conn: conn, org: org, api: api} do
-      stub_pipeline_mocks()
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-
-      lv
-      |> render_hook("editor_changed", %{
-        "value" => "def handle(_), do: File.read(\"/etc/passwd\")"
-      })
-
-      # Save — validation pipeline runs and opens the validation tab
-      lv |> element(~s(button[phx-click="save"])) |> render_click()
-
-      # Wait for the validation pipeline to complete
-      wait_for_pipeline(lv)
-
-      # Verify version was created (save succeeded) and check validation results
-      versions = Apis.list_versions(api.id)
-      assert length(versions) == 1
-
-      html = render(lv)
-      # Validation dashboard should show compilation issues
-      assert html =~ "Compilation" || html =~ "ISSUES"
-    end
-  end
 
   describe "versions" do
     test "shows version history in bottom panel", %{conn: conn, org: org, api: api, user: user} do
@@ -191,34 +129,6 @@ defmodule BlackboexWeb.ApiLive.EditTest do
     end
   end
 
-  describe "no-change save" do
-    test "skips save when code hasn't changed", %{conn: conn, org: org, api: api} do
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-
-      # Don't change code, just click save
-      lv |> element("button[phx-click=save]") |> render_click()
-
-      # Flash "No changes" is in layout; verify no version was created
-      assert Apis.list_versions(api.id) == []
-    end
-  end
-
-  describe "compile state management" do
-    test "new save replaces previous validation report", %{conn: conn, org: org, api: api} do
-      stub_pipeline_mocks()
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-
-      # Save with valid code
-      lv |> render_hook("editor_changed", %{"value" => "def handle(_), do: %{ok: true}"})
-      lv |> element(~s(button[phx-click="save"])) |> render_click()
-
-      # Wait for validation pipeline to complete
-      wait_for_pipeline(lv)
-
-      # Verify a version was created
-      assert length(Apis.list_versions(api.id)) == 1
-    end
-  end
 
   describe "rollback" do
     test "creates new version with old code", %{conn: conn, org: org, api: api, user: user} do

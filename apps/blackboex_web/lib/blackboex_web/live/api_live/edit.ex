@@ -15,11 +15,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
   alias Blackboex.Apis.DiffEngine
   alias Blackboex.Apis.Keys
   alias Blackboex.Apis.MetricRollup
-  alias Blackboex.Apis.Registry
   alias Blackboex.Billing.Enforcement
-  alias Blackboex.CodeGen.Compiler
-  alias Blackboex.CodeGen.SchemaExtractor
-  alias Blackboex.CodeGen.UnifiedPipeline
   alias Blackboex.Conversations, as: AgentConversations
   alias Blackboex.Docs.DocGenerator
   alias Blackboex.LLM
@@ -69,7 +65,6 @@ defmodule BlackboexWeb.ApiLive.Edit do
            code: api.source_code || "",
            test_code: api.test_code || "",
            page_title: "Edit: #{api.name}",
-           saving: false,
            versions: versions,
            selected_version: nil,
            diff_old: nil,
@@ -82,7 +77,6 @@ defmodule BlackboexWeb.ApiLive.Edit do
            # Tab state
            active_tab: if(active_run_id, do: "chat", else: "code"),
            # Pipeline assigns
-           pipeline_ref: nil,
            pipeline_status: nil,
            validation_report: restore_validation_report(api.validation_report),
            test_summary: derive_test_summary(api.validation_report),
@@ -165,8 +159,6 @@ defmodule BlackboexWeb.ApiLive.Edit do
       <%!-- Toolbar --%>
       <.editor_toolbar
         api={@api}
-        code={@code}
-        saving={@saving}
         selected_version={@selected_version}
         generation_status={@generation_status}
       />
@@ -1135,16 +1127,6 @@ defmodule BlackboexWeb.ApiLive.Edit do
     end
   end
 
-  @impl true
-  def handle_event("save", _params, %{assigns: %{saving: true}} = socket) do
-    {:noreply, socket}
-  end
-
-  @impl true
-  def handle_event("save", _params, socket) do
-    do_save_and_validate(socket)
-  end
-
   # ── Version Events ────────────────────────────────────────────────────
 
   @impl true
@@ -1185,8 +1167,6 @@ defmodule BlackboexWeb.ApiLive.Edit do
         code = new_version.code
         test_code = new_version.test_code || socket.assigns.test_code
 
-        task = start_validation_pipeline(api, code, test_code)
-
         {:noreply,
          socket
          |> assign(
@@ -1195,9 +1175,8 @@ defmodule BlackboexWeb.ApiLive.Edit do
            test_code: test_code,
            versions: Apis.list_versions(api.id),
            selected_version: nil,
-           pipeline_ref: task.ref,
-           pipeline_status: :formatting,
-           active_tab: "validation"
+           validation_report: restore_validation_report(api.validation_report),
+           test_summary: derive_test_summary(api.validation_report)
          )
          |> push_editor_value(code)
          |> put_flash(:info, "Rolled back to v#{number}")}
@@ -1805,32 +1784,6 @@ defmodule BlackboexWeb.ApiLive.Edit do
 
   # Pipeline progress updates (used by validate_on_save)
   @impl true
-  def handle_info({:pipeline_progress, progress}, socket) do
-    {:noreply, assign(socket, pipeline_status: progress.step)}
-  end
-
-  # Pipeline task completed with validation (save/create pipeline)
-  @impl true
-  def handle_info(
-        {ref, {:ok, %{code: _, validation: _} = result}},
-        %{assigns: %{pipeline_ref: ref}} = socket
-      ) do
-    Process.demonitor(ref, [:flush])
-    handle_pipeline_result(socket, result)
-  end
-
-  # Pipeline task failed
-  @impl true
-  def handle_info(
-        {ref, {:error, reason}},
-        %{assigns: %{pipeline_ref: ref}} = socket
-      )
-      when is_reference(ref) do
-    Process.demonitor(ref, [:flush])
-    handle_pipeline_error(socket, reason)
-  end
-
-  @impl true
   def handle_info(
         {ref, {:ok, %{doc: markdown, usage: usage}}},
         %{assigns: %{doc_gen_ref: ref}} = socket
@@ -1861,21 +1814,6 @@ defmodule BlackboexWeb.ApiLive.Edit do
      socket
      |> assign(doc_generating: false, doc_gen_ref: nil)
      |> put_flash(:error, "Failed to generate documentation")}
-  end
-
-  # Pipeline task crashed
-  @impl true
-  def handle_info(
-        {:DOWN, ref, :process, _pid, _reason},
-        %{assigns: %{pipeline_ref: ref}} = socket
-      ) do
-    {:noreply,
-     assign(socket,
-       pipeline_ref: nil,
-       pipeline_status: nil,
-       chat_loading: false,
-       streaming_tokens: ""
-     )}
   end
 
   @impl true
@@ -2000,7 +1938,9 @@ defmodule BlackboexWeb.ApiLive.Edit do
         streaming_tokens: "",
         pipeline_status: nil,
         generation_status: refreshed_api.generation_status,
-        versions: Apis.list_versions(refreshed_api.id)
+        versions: Apis.list_versions(refreshed_api.id),
+        validation_report: restore_validation_report(refreshed_api.validation_report),
+        test_summary: derive_test_summary(refreshed_api.validation_report)
       )
 
     # Use code from event, or fallback to what was accumulated via tool calls
@@ -2071,7 +2011,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
   def handle_info({:agent_started, _payload}, socket), do: {:noreply, socket}
 
   @impl true
-  def handle_info({:doc_generated, %{doc: _doc}}, socket) do
+  def handle_info({:doc_generated, _payload}, socket) do
     api = Apis.get_api(socket.assigns.org.id, socket.assigns.api.id)
 
     event = %{
@@ -2128,46 +2068,6 @@ defmodule BlackboexWeb.ApiLive.Edit do
      )
      |> push_editor_value(proposed_code)
      |> put_flash(:info, "Change applied")}
-  end
-
-  defp maybe_register_compiled(api, org, code, %{validation: %{compilation: :pass}}) do
-    case Compiler.compile(api, code) do
-      {:ok, module} ->
-        Registry.register(api.id, module, org_slug: org.slug, slug: api.slug)
-
-        # Extract schema from compiled module and populate example_request/param_schema
-        schema_attrs = extract_schema_attrs(module)
-        Apis.update_api(api, Map.merge(%{status: "compiled"}, schema_attrs))
-
-      _ ->
-        :ok
-    end
-  end
-
-  defp maybe_register_compiled(_api, _org, _code, _pending_edit), do: :ok
-
-  defp extract_schema_attrs(module) do
-    case SchemaExtractor.extract(module) do
-      {:ok, schema} ->
-        attrs = %{param_schema: SchemaExtractor.to_param_schema(schema)}
-
-        attrs =
-          if schema.request,
-            do:
-              Map.put(attrs, :example_request, SchemaExtractor.generate_example(schema.request)),
-            else: attrs
-
-        attrs =
-          if schema.response,
-            do:
-              Map.put(attrs, :example_response, SchemaExtractor.generate_example(schema.response)),
-            else: attrs
-
-        attrs
-
-      {:error, _} ->
-        %{}
-    end
   end
 
   defp do_agent_chat(socket, message) do
@@ -2338,23 +2238,13 @@ defmodule BlackboexWeb.ApiLive.Edit do
        )
        |> put_flash(:info, summary || "Code ready for review")}
     else
-      # Initial generation: accept directly and run validation
+      # Initial generation: agent pipeline already validated, compiled, and registered
       test_code = test_code || ""
-
-      socket =
-        socket
-        |> assign(code: code, test_code: test_code)
-        |> push_editor_value(code)
-
-      task = start_validation_pipeline(api, code, test_code)
 
       {:noreply,
        socket
-       |> assign(
-         pipeline_ref: task.ref,
-         pipeline_status: :formatting,
-         active_tab: "validation"
-       )
+       |> assign(code: code, test_code: test_code)
+       |> push_editor_value(code)
        |> put_flash(:info, summary || "Code generated successfully")}
     end
   end
@@ -2390,75 +2280,6 @@ defmodule BlackboexWeb.ApiLive.Edit do
   end
 
   defp apply_result_to_editor(socket, _tool, _success, _content), do: socket
-
-  defp do_save_and_validate(socket) do
-    api = socket.assigns.api
-    code = socket.assigns.code
-    test_code = socket.assigns.test_code
-    has_changes = code != (api.source_code || "") or test_code != (api.test_code || "")
-
-    if has_changes do
-      save_and_run_pipeline(socket, api, code, test_code)
-    else
-      # No code changes — still run validation pipeline without creating a new version
-      task = start_validation_pipeline(api, code, test_code)
-
-      {:noreply,
-       assign(socket,
-         pipeline_ref: task.ref,
-         pipeline_status: :formatting,
-         active_tab: "validation"
-       )}
-    end
-  end
-
-  defp save_and_run_pipeline(socket, api, code, test_code) do
-    scope = socket.assigns.current_scope
-
-    case Apis.create_version(api, %{
-           code: code,
-           test_code: test_code,
-           source: "manual_edit",
-           created_by_id: scope.user.id
-         }) do
-      {:ok, _version} ->
-        api = Apis.get_api(socket.assigns.org.id, api.id)
-        task = start_validation_pipeline(api, code, test_code)
-
-        {:noreply,
-         socket
-         |> assign(
-           api: api,
-           saving: false,
-           versions: Apis.list_versions(api.id),
-           pipeline_ref: task.ref,
-           pipeline_status: :formatting,
-           active_tab: "validation"
-         )
-         |> put_flash(:info, "Saved")}
-
-      {:error, changeset} ->
-        Logger.error("Failed to save version: #{inspect(changeset)}")
-        {:noreply, put_flash(socket, :error, "Failed to save")}
-    end
-  end
-
-  @template_type_atoms %{
-    "computation" => :computation,
-    "crud" => :crud,
-    "webhook" => :webhook
-  }
-
-  defp start_validation_pipeline(api, code, test_code) do
-    lv_pid = self()
-    template = Map.fetch!(@template_type_atoms, api.template_type)
-
-    Task.async(fn ->
-      UnifiedPipeline.validate_on_save(code, test_code, template,
-        progress_callback: fn p -> send(lv_pid, {:pipeline_progress, p}) end
-      )
-    end)
-  end
 
   defp record_generation_usage(socket, operation, usage) do
     scope = socket.assigns.current_scope
@@ -2600,74 +2421,6 @@ defmodule BlackboexWeb.ApiLive.Edit do
     do: "bg-red-50 text-red-700"
 
   defp history_status_color(_), do: "bg-muted text-muted-foreground"
-
-  # Save pipeline result
-  defp handle_pipeline_result(socket, result) do
-    handle_save_pipeline_result(socket, result)
-  end
-
-  defp handle_save_pipeline_result(socket, result) do
-    test_summary = format_test_summary(result.validation.test_results)
-
-    maybe_register_compiled(
-      socket.assigns.api,
-      socket.assigns.org,
-      result.code,
-      %{validation: result.validation}
-    )
-
-    # If this was a chat edit accept, create the version now
-    if socket.assigns[:pre_edit_code] do
-      scope = socket.assigns.current_scope
-
-      Apis.create_version(socket.assigns.api, %{
-        code: result.code,
-        test_code: result.test_code || socket.assigns.test_code,
-        source: "chat_edit",
-        created_by_id: scope.user.id
-      })
-    end
-
-    # Persist validation report + documentation to DB
-    Apis.update_api(socket.assigns.api, %{
-      validation_report: validation_to_map(result.validation),
-      documentation_md: result[:documentation_md]
-    })
-
-    # Reload API to get updated example_request/param_schema from schema extraction
-    updated_api = Apis.get_api(socket.assigns.org.id, socket.assigns.api.id)
-
-    {:noreply,
-     socket
-     |> assign(
-       code: result.code,
-       test_code: result.test_code || socket.assigns.test_code,
-       validation_report: result.validation,
-       test_summary: test_summary,
-       pipeline_ref: nil,
-       pipeline_status: nil,
-       streaming_tokens: "",
-       chat_loading: false,
-       pre_edit_code: nil,
-       api: updated_api,
-       versions: Apis.list_versions(updated_api.id),
-       test_body_json: default_test_body(updated_api)
-     )}
-  end
-
-  defp handle_pipeline_error(socket, reason) do
-    Logger.warning("Pipeline failed: #{inspect(reason)}")
-
-    {:noreply,
-     socket
-     |> assign(
-       chat_loading: false,
-       pipeline_ref: nil,
-       pipeline_status: nil,
-       streaming_tokens: ""
-     )
-     |> put_flash(:error, "Pipeline failed")}
-  end
 
   defp format_test_summary(test_results) when is_list(test_results) and test_results != [] do
     passed =
@@ -2838,26 +2591,6 @@ defmodule BlackboexWeb.ApiLive.Edit do
   defp safe_to_atom(val) when is_atom(val), do: val
   defp safe_to_atom(val) when val in ["pass", "fail", "skipped"], do: String.to_existing_atom(val)
   defp safe_to_atom(_), do: :pass
-
-  @spec validation_to_map(map() | nil) :: map() | nil
-  defp validation_to_map(nil), do: nil
-
-  defp validation_to_map(report) do
-    %{
-      "compilation" => to_string(report.compilation),
-      "compilation_errors" => report.compilation_errors || [],
-      "format" => to_string(report.format),
-      "format_issues" => report.format_issues || [],
-      "credo" => to_string(report.credo),
-      "credo_issues" => report.credo_issues || [],
-      "tests" => to_string(report.tests),
-      "test_results" =>
-        Enum.map(report.test_results || [], fn item ->
-          Map.new(item, fn {k, v} -> {to_string(k), v} end)
-        end),
-      "overall" => to_string(report.overall)
-    }
-  end
 
   defp test_summary_class(summary) do
     if String.contains?(summary, "/") do

@@ -220,46 +220,6 @@ defmodule BlackboexWeb.ApiLive.EditEventsTest do
     end
   end
 
-  # --- Save Idempotency ---
-
-  describe "save idempotency" do
-    test "saving flag prevents duplicate saves", %{conn: conn, org: org, api: api} do
-      stub_pipeline_mocks()
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-
-      # Change code so save actually does something
-      lv |> render_hook("editor_changed", %{"value" => "def handle(_), do: %{v: 1}"})
-
-      # First save should work — creates version immediately
-      lv |> element("button[phx-click=save]") |> render_click()
-      assert length(Apis.list_versions(api.id)) == 1
-
-      # Rapid second save with same code should NOT create duplicate version
-      lv |> element("button[phx-click=save]") |> render_click()
-      assert length(Apis.list_versions(api.id)) == 1
-    end
-
-    test "save runs validation pipeline", %{
-      conn: conn,
-      org: org,
-      api: api
-    } do
-      stub_pipeline_mocks()
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-
-      lv |> render_hook("editor_changed", %{"value" => "def handle(_), do: %{ok: true}"})
-
-      # Click the Save button which triggers validation pipeline
-      lv |> element(~s(button[phx-click="save"])) |> render_click()
-
-      # Wait for async validation pipeline
-      Process.sleep(500)
-
-      # Verify version was created
-      assert length(Apis.list_versions(api.id)) == 1
-    end
-  end
-
   # --- send_request ---
 
   describe "send_request" do

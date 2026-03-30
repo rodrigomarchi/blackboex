@@ -6,8 +6,6 @@ defmodule BlackboexWeb.Components.EditorToolbar do
   use BlackboexWeb, :html
 
   attr :api, :map, required: true
-  attr :code, :string, required: true
-  attr :saving, :boolean, default: false
   attr :selected_version, :map, default: nil
   attr :generation_status, :string, default: nil
 
@@ -35,13 +33,6 @@ defmodule BlackboexWeb.Components.EditorToolbar do
       </span>
 
       <span
-        :if={@code != (@api.source_code || "")}
-        class="inline-flex items-center rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-600"
-      >
-        unsaved
-      </span>
-
-      <span
         :if={@selected_version}
         class="inline-flex items-center rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-medium text-blue-600"
       >
@@ -63,17 +54,6 @@ defmodule BlackboexWeb.Components.EditorToolbar do
       </span>
 
       <div class="flex-1" />
-
-      <%!-- Save button --%>
-      <button
-        phx-click="save"
-        disabled={@saving or @generation_status in ~w(pending generating validating)}
-        class="inline-flex items-center rounded-md bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-      >
-        <.icon name="hero-bolt" class="size-3 mr-1" /> Save
-      </button>
-
-      <div class="h-4 w-px bg-border" />
 
       <%!-- Command palette trigger --%>
       <button

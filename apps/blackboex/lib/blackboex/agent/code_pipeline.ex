@@ -62,13 +62,15 @@ defmodule Blackboex.Agent.CodePipeline do
     end
   end
 
-  @spec run_edit(Api.t(), String.t(), String.t(), String.t(), pipeline_opts()) :: pipeline_result()
+  @spec run_edit(Api.t(), String.t(), String.t(), String.t(), pipeline_opts()) ::
+          pipeline_result()
   def run_edit(api, instruction, current_code, current_tests, opts \\ []) do
     broadcast = opts[:broadcast_fn] || fn _ -> :ok end
     run_id = opts[:run_id]
     reset_llm_counter()
 
-    with {:ok, code} <- step_edit_code(api, instruction, current_code, current_tests, broadcast, run_id),
+    with {:ok, code} <-
+           step_edit_code(api, instruction, current_code, current_tests, broadcast, run_id),
          {:ok, code} <- step_validate_and_fix(api, code, broadcast, run_id),
          {:ok, test_code} <- step_generate_tests(api, code, broadcast, run_id),
          {:ok, test_code} <- step_run_and_fix_tests(api, code, test_code, broadcast, run_id) do
@@ -132,7 +134,14 @@ defmodule Blackboex.Agent.CodePipeline do
 
   # ── Step 1b: Edit Code ─────────────────────────────────────────
 
-  @spec step_edit_code(Api.t(), String.t(), String.t(), String.t(), broadcast_fn(), String.t() | nil) ::
+  @spec step_edit_code(
+          Api.t(),
+          String.t(),
+          String.t(),
+          String.t(),
+          broadcast_fn(),
+          String.t() | nil
+        ) ::
           {:ok, String.t()} | {:error, String.t()}
   defp step_edit_code(api, instruction, current_code, current_tests, broadcast, run_id) do
     broadcast.({:step_started, %{step: :generating_code}})
@@ -182,7 +191,13 @@ defmodule Blackboex.Agent.CodePipeline do
     end
   end
 
-  @spec step_compile_with_fix(Api.t(), String.t(), broadcast_fn(), String.t() | nil, non_neg_integer()) ::
+  @spec step_compile_with_fix(
+          Api.t(),
+          String.t(),
+          broadcast_fn(),
+          String.t() | nil,
+          non_neg_integer()
+        ) ::
           {:ok, String.t()} | {:error, String.t()}
   defp step_compile_with_fix(api, code, broadcast, run_id, attempt) do
     broadcast.({:step_started, %{step: :compiling}})
@@ -190,7 +205,10 @@ defmodule Blackboex.Agent.CodePipeline do
 
     case Compiler.compile(api, code) do
       {:ok, _module} ->
-        broadcast.({:step_completed, %{step: :compiling, success: true, content: "Compiled successfully"}})
+        broadcast.(
+          {:step_completed, %{step: :compiling, success: true, content: "Compiled successfully"}}
+        )
+
         {:ok, code}
 
       {:error, {:validation, errors}} ->
@@ -205,7 +223,14 @@ defmodule Blackboex.Agent.CodePipeline do
     end
   end
 
-  @spec maybe_fix_compilation(Api.t(), String.t(), String.t(), broadcast_fn(), String.t() | nil, non_neg_integer()) ::
+  @spec maybe_fix_compilation(
+          Api.t(),
+          String.t(),
+          String.t(),
+          broadcast_fn(),
+          String.t() | nil,
+          non_neg_integer()
+        ) ::
           {:ok, String.t()} | {:error, String.t()}
   defp maybe_fix_compilation(_api, _code, error_text, _broadcast, _run_id, attempt)
        when attempt >= @max_fix_attempts do
@@ -232,7 +257,13 @@ defmodule Blackboex.Agent.CodePipeline do
     end
   end
 
-  @spec step_lint_with_fix(Api.t(), String.t(), broadcast_fn(), String.t() | nil, non_neg_integer()) ::
+  @spec step_lint_with_fix(
+          Api.t(),
+          String.t(),
+          broadcast_fn(),
+          String.t() | nil,
+          non_neg_integer()
+        ) ::
           {:ok, String.t()} | {:error, String.t()}
   defp step_lint_with_fix(api, code, broadcast, run_id, attempt) do
     broadcast.({:step_started, %{step: :linting}})
@@ -246,7 +277,10 @@ defmodule Blackboex.Agent.CodePipeline do
 
     case issues do
       [] ->
-        broadcast.({:step_completed, %{step: :linting, success: true, content: "No issues found"}})
+        broadcast.(
+          {:step_completed, %{step: :linting, success: true, content: "No issues found"}}
+        )
+
         {:ok, code}
 
       issues ->
@@ -256,7 +290,14 @@ defmodule Blackboex.Agent.CodePipeline do
     end
   end
 
-  @spec maybe_fix_lint(Api.t(), String.t(), String.t(), broadcast_fn(), String.t() | nil, non_neg_integer()) ::
+  @spec maybe_fix_lint(
+          Api.t(),
+          String.t(),
+          String.t(),
+          broadcast_fn(),
+          String.t() | nil,
+          non_neg_integer()
+        ) ::
           {:ok, String.t()} | {:error, String.t()}
   defp maybe_fix_lint(_api, _code, issue_text, _broadcast, _run_id, attempt)
        when attempt >= @max_fix_attempts do
@@ -305,7 +346,14 @@ defmodule Blackboex.Agent.CodePipeline do
 
   # ── Step 6: Run Tests ──────────────────────────────────────────
 
-  @spec step_run_and_fix_tests(Api.t(), String.t(), String.t(), broadcast_fn(), String.t() | nil, non_neg_integer()) ::
+  @spec step_run_and_fix_tests(
+          Api.t(),
+          String.t(),
+          String.t(),
+          broadcast_fn(),
+          String.t() | nil,
+          non_neg_integer()
+        ) ::
           {:ok, String.t()} | {:error, String.t()}
   defp step_run_and_fix_tests(api, code, test_code, broadcast, run_id, attempt \\ 0) do
     broadcast.({:step_started, %{step: :running_tests}})
@@ -318,31 +366,66 @@ defmodule Blackboex.Agent.CodePipeline do
         passed = total - length(failed)
 
         if failed == [] do
-          broadcast.({:step_completed, %{step: :running_tests, success: true, content: "#{total} tests, #{passed} passed, 0 failed."}})
+          broadcast.(
+            {:step_completed,
+             %{
+               step: :running_tests,
+               success: true,
+               content: "#{total} tests, #{passed} passed, 0 failed."
+             }}
+          )
+
           {:ok, test_code}
         else
           failure_text = format_test_failures(results)
-          broadcast.({:step_completed, %{step: :running_tests, success: false, content: failure_text}})
+
+          broadcast.(
+            {:step_completed, %{step: :running_tests, success: false, content: failure_text}}
+          )
+
           maybe_fix_tests(api, code, test_code, failure_text, broadcast, run_id, attempt)
         end
 
       {:error, :compile_error, message} ->
-        broadcast.({:step_completed, %{step: :running_tests, success: false, content: "Compile error: #{message}"}})
-        maybe_fix_tests(api, code, test_code, "Test compilation failed: #{message}", broadcast, run_id, attempt)
+        broadcast.(
+          {:step_completed,
+           %{step: :running_tests, success: false, content: "Compile error: #{message}"}}
+        )
+
+        maybe_fix_tests(
+          api,
+          code,
+          test_code,
+          "Test compilation failed: #{message}",
+          broadcast,
+          run_id,
+          attempt
+        )
 
       {:error, :timeout} ->
-        broadcast.({:step_completed, %{step: :running_tests, success: false, content: "Tests timed out"}})
+        broadcast.(
+          {:step_completed, %{step: :running_tests, success: false, content: "Tests timed out"}}
+        )
+
         {:error, "Tests timed out"}
 
       {:error, :memory_exceeded} ->
-        broadcast.({:step_completed, %{step: :running_tests, success: false, content: "Memory exceeded"}})
+        broadcast.(
+          {:step_completed, %{step: :running_tests, success: false, content: "Memory exceeded"}}
+        )
+
         {:error, "Tests exceeded memory limit"}
     end
   end
 
   @spec maybe_fix_tests(
-          Api.t(), String.t(), String.t(), String.t(),
-          broadcast_fn(), String.t() | nil, non_neg_integer()
+          Api.t(),
+          String.t(),
+          String.t(),
+          String.t(),
+          broadcast_fn(),
+          String.t() | nil,
+          non_neg_integer()
         ) :: {:ok, String.t()} | {:error, String.t()}
   defp maybe_fix_tests(_api, _code, _test_code, failure_text, _broadcast, _run_id, attempt)
        when attempt >= @max_fix_attempts do
@@ -364,12 +447,22 @@ defmodule Blackboex.Agent.CodePipeline do
     end
   end
 
-  @spec apply_test_fix(Api.t(), String.t(), String.t(), broadcast_fn(), String.t() | nil, non_neg_integer()) ::
+  @spec apply_test_fix(
+          Api.t(),
+          String.t(),
+          String.t(),
+          broadcast_fn(),
+          String.t() | nil,
+          non_neg_integer()
+        ) ::
           {:ok, String.t()} | {:error, String.t()}
   defp apply_test_fix(api, code, content, broadcast, run_id, attempt) do
     case FixPrompts.parse_code_and_tests(content) do
       {fixed_code, fixed_tests} ->
-        broadcast.({:step_completed, %{step: :fixing_tests, code: fixed_code, test_code: fixed_tests}})
+        broadcast.(
+          {:step_completed, %{step: :fixing_tests, code: fixed_code, test_code: fixed_tests}}
+        )
+
         revalidate_and_rerun_tests(api, fixed_code, fixed_tests, broadcast, run_id, attempt)
 
       :error ->
@@ -379,8 +472,12 @@ defmodule Blackboex.Agent.CodePipeline do
   end
 
   @spec revalidate_and_rerun_tests(
-          Api.t(), String.t(), String.t(),
-          broadcast_fn(), String.t() | nil, non_neg_integer()
+          Api.t(),
+          String.t(),
+          String.t(),
+          broadcast_fn(),
+          String.t() | nil,
+          non_neg_integer()
         ) :: {:ok, String.t()} | {:error, String.t()}
   defp revalidate_and_rerun_tests(api, code, tests, broadcast, run_id, attempt) do
     case step_validate_and_fix(api, code, broadcast, run_id) do

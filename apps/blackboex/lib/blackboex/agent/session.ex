@@ -183,7 +183,12 @@ defmodule Blackboex.Agent.Session do
       {:error, :api_not_found}
     else
       broadcast_fn = build_broadcast_fn(state)
-      opts = [broadcast_fn: broadcast_fn, run_id: state.run_id, conversation_id: state.conversation_id]
+
+      opts = [
+        broadcast_fn: broadcast_fn,
+        run_id: state.run_id,
+        conversation_id: state.conversation_id
+      ]
 
       case state.run_type do
         "edit" ->
@@ -226,7 +231,11 @@ defmodule Blackboex.Agent.Session do
     broadcast(run_id, {:agent_action, %{tool: tool_name, args: %{}, run_id: run_id}})
   end
 
-  defp translate_pipeline_event({:step_completed, %{step: step} = payload}, run_id, conversation_id) do
+  defp translate_pipeline_event(
+         {:step_completed, %{step: step} = payload},
+         run_id,
+         conversation_id
+       ) do
     tool_name = step_to_tool_name(step)
     success = Map.get(payload, :success, true)
     content = Map.get(payload, :content, "") || Map.get(payload, :code, "") || ""
@@ -243,16 +252,24 @@ defmodule Blackboex.Agent.Session do
       content: String.slice(content_str, 0, 10_000)
     })
 
-    broadcast(run_id, {:tool_result, %{
-      tool: tool_name,
-      success: success,
-      summary: String.slice(content_str, 0, 200),
-      content: String.slice(content_str, 0, 50_000),
-      run_id: run_id
-    }})
+    broadcast(
+      run_id,
+      {:tool_result,
+       %{
+         tool: tool_name,
+         success: success,
+         summary: String.slice(content_str, 0, 200),
+         content: String.slice(content_str, 0, 50_000),
+         run_id: run_id
+       }}
+    )
   end
 
-  defp translate_pipeline_event({:step_failed, %{step: step, error: error}}, run_id, conversation_id) do
+  defp translate_pipeline_event(
+         {:step_failed, %{step: step, error: error}},
+         run_id,
+         conversation_id
+       ) do
     tool_name = step_to_tool_name(step)
 
     persist_event(%{
@@ -264,19 +281,23 @@ defmodule Blackboex.Agent.Session do
       content: error
     })
 
-    broadcast(run_id, {:tool_result, %{
-      tool: tool_name,
-      success: false,
-      summary: String.slice(error, 0, 200),
-      content: error,
-      run_id: run_id
-    }})
+    broadcast(
+      run_id,
+      {:tool_result,
+       %{
+         tool: tool_name,
+         success: false,
+         summary: String.slice(error, 0, 200),
+         content: error,
+         run_id: run_id
+       }}
+    )
   end
 
   defp translate_pipeline_event(_event, _run_id, _conversation_id), do: :ok
 
   @spec step_to_tool_name(atom()) :: String.t()
-  defp step_to_tool_name(:generating_code), do: "compile_code"
+  defp step_to_tool_name(:generating_code), do: "generate_code"
   defp step_to_tool_name(:formatting), do: "format_code"
   defp step_to_tool_name(:compiling), do: "compile_code"
   defp step_to_tool_name(:linting), do: "lint_code"
@@ -293,7 +314,9 @@ defmodule Blackboex.Agent.Session do
     seq = Conversations.next_sequence(attrs.run_id)
 
     case Conversations.append_event(Map.put(attrs, :sequence, seq)) do
-      {:ok, _} -> :ok
+      {:ok, _} ->
+        :ok
+
       {:error, changeset} ->
         Logger.warning("Failed to persist event: #{inspect(changeset.errors)}")
         :ok
@@ -340,7 +363,8 @@ defmodule Blackboex.Agent.Session do
     Logger.info("Agent session completed for run #{state.run_id} with status #{status}")
   end
 
-  @spec save_api_and_version(t(), Blackboex.Conversations.Run.t(), map(), String.t()) :: :ok | term()
+  @spec save_api_and_version(t(), Blackboex.Conversations.Run.t(), map(), String.t()) ::
+          :ok | term()
   defp save_api_and_version(state, run, result, status) do
     api = Apis.get_api(state.organization_id, state.api_id)
 
@@ -375,7 +399,13 @@ defmodule Blackboex.Agent.Session do
     Apis.update_api(api, attrs)
   end
 
-  @spec maybe_create_version(Blackboex.Apis.Api.t(), Blackboex.Conversations.Run.t(), t(), map(), String.t()) ::
+  @spec maybe_create_version(
+          Blackboex.Apis.Api.t(),
+          Blackboex.Conversations.Run.t(),
+          t(),
+          map(),
+          String.t()
+        ) ::
           :ok | term()
   defp maybe_create_version(_api, _run, _state, _result, status) when status != "completed",
     do: :ok

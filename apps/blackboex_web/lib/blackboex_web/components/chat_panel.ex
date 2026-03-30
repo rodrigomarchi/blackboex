@@ -1,13 +1,14 @@
 defmodule BlackboexWeb.Components.ChatPanel do
   @moduledoc """
   LiveComponent for the agent conversation timeline.
-  Renders a chronological event list with user/assistant messages,
-  tool call/result cards, status changes, streaming output, and pending edits.
+  Renders a compact, IDE-style timeline with collapsible tool steps,
+  run summary at the end, and vertical timeline connector.
   """
 
   use BlackboexWeb, :live_component
 
   alias Blackboex.Apis.DiffEngine
+  alias Phoenix.LiveView.JS
 
   import BlackboexWeb.Components.ValidationDashboard, only: [validation_badge: 1]
 
@@ -16,9 +17,12 @@ defmodule BlackboexWeb.Components.ChatPanel do
     assigns = assign(assigns, :grouped_events, group_events(assigns.events))
 
     ~H"""
-    <div class="flex flex-col h-full">
-      <div class="flex items-center justify-between border-b px-4 py-2">
-        <h2 class="text-sm font-semibold">Agent Timeline</h2>
+    <div class="flex flex-col h-full overflow-hidden">
+      <%!-- Header --%>
+      <div class="flex items-center justify-between border-b px-4 py-2 shrink-0 bg-card">
+        <h2 class="text-sm font-semibold flex items-center gap-1.5">
+          <.icon name="hero-bolt" class="size-4 text-primary" /> Agent Timeline
+        </h2>
         <button
           phx-click="clear_conversation"
           class="text-xs text-muted-foreground hover:text-foreground"
@@ -28,118 +32,78 @@ defmodule BlackboexWeb.Components.ChatPanel do
         </button>
       </div>
 
-      <div
-        class="flex-1 overflow-y-auto p-4 space-y-4"
-        id="chat-messages"
-      >
+      <%!-- Scrollable timeline area --%>
+      <div class="flex-1 min-h-0 overflow-y-auto" id="chat-messages">
         <%= if @grouped_events == [] and @pending_edit == nil and @streaming_tokens == "" and not @loading do %>
-          <p class="text-sm text-muted-foreground text-center py-12">
+          <p class="text-sm text-muted-foreground text-center py-12 px-4">
             Describe what you want the agent to build or change.
           </p>
         <% else %>
-          <%= for entry <- @grouped_events do %>
-            <%= case entry do %>
-              <% {:message, event} -> %>
-                <.render_message event={event} />
-              <% {:tool_group, call, result} -> %>
-                <.render_tool_group call={call} result={result} />
-              <% {:tool_call, call} -> %>
-                <.render_tool_group call={call} result={nil} />
-              <% {:tool_result, result} -> %>
-                <.render_standalone_tool_result result={result} />
-              <% {:status, event} -> %>
-                <.render_status event={event} />
+          <%!-- Timeline with vertical line --%>
+          <div class="relative ml-7 mr-4 my-3 pl-4 border-l border-border">
+            <%= for entry <- @grouped_events do %>
+              <%= case entry do %>
+                <% {:message, event} -> %>
+                  <.render_message_step event={event} />
+                <% {:tool_group, call, result} -> %>
+                  <.render_tool_step call={call} result={result} />
+                <% {:tool_call, call} -> %>
+                  <.render_tool_step call={call} result={nil} />
+                <% {:tool_result, result} -> %>
+                  <.render_standalone_result result={result} />
+                <% {:status, event} -> %>
+                  <.render_status_step event={event} />
+              <% end %>
             <% end %>
+
+            <%!-- Streaming tokens --%>
+            <%= if @loading && @streaming_tokens != "" do %>
+              <div class="relative pb-2 pt-1">
+                <div class="absolute -left-[9px] top-3 size-[13px] rounded-full border-2 border-blue-500 bg-background flex items-center justify-center animate-pulse">
+                  <div class="size-[5px] rounded-full bg-blue-500" />
+                </div>
+                <div class="rounded-md bg-muted/50 border px-3 py-2 ml-2">
+                  <pre class="whitespace-pre-wrap font-mono text-xs text-foreground"><code>{@streaming_tokens}</code></pre>
+                  <span class="inline-block w-1.5 h-4 bg-primary animate-pulse ml-0.5" />
+                </div>
+              </div>
+            <% end %>
+
+            <%!-- Thinking indicator --%>
+            <%= if @loading && @streaming_tokens == "" do %>
+              <div class="relative py-2">
+                <div class="absolute -left-[7px] top-[11px] size-[9px] rounded-full bg-blue-500 animate-pulse" />
+                <span class="text-xs text-muted-foreground animate-pulse ml-2">Thinking...</span>
+              </div>
+            <% end %>
+
+            <%!-- Run summary (last item in timeline) --%>
+            <%= if @run && !@loading do %>
+              <.render_run_summary run={@run} />
+            <% end %>
+          </div>
+
+          <%!-- Pending edit (outside timeline line, inside scroll) --%>
+          <%= if @pending_edit do %>
+            <div class="px-4 pb-4">
+              <.render_pending_edit pending_edit={@pending_edit} />
+            </div>
           <% end %>
         <% end %>
 
-        <%!-- Streaming tokens --%>
-        <%= if @loading && @streaming_tokens != "" do %>
-          <div class="flex justify-start">
-            <div class="max-w-full rounded-lg bg-muted px-4 py-3 text-sm">
-              <pre class="whitespace-pre-wrap font-mono text-xs"><code>{@streaming_tokens}</code></pre>
-              <span class="inline-block w-1.5 h-4 bg-primary animate-pulse ml-0.5" />
-            </div>
-          </div>
-        <% end %>
-
-        <%!-- Loading / Thinking --%>
-        <%= if @loading && @streaming_tokens == "" do %>
-          <div class="flex justify-start">
-            <div class="bg-muted rounded-lg px-4 py-3 text-sm text-muted-foreground animate-pulse">
-              Thinking...
-            </div>
-          </div>
-        <% end %>
-
-        <%!-- Pending edit with Accept/Reject --%>
-        <%= if @pending_edit do %>
-          <div class="rounded-lg border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950 p-4 space-y-3">
-            <p class="text-sm text-blue-700 dark:text-blue-300 font-medium">Proposed change:</p>
-            <p class="text-sm text-blue-600 dark:text-blue-400">{@pending_edit.explanation}</p>
-
-            <div class="rounded border bg-background p-2 text-xs font-mono overflow-x-auto max-h-60 overflow-y-auto">
-              <%= for {op, lines} <- @pending_edit.diff, line <- lines do %>
-                <div class={diff_line_class(op)}>
-                  <span class="select-none text-muted-foreground mr-1">{diff_prefix(op)}</span>{line}
-                </div>
-              <% end %>
-            </div>
-            <button
-              phx-click="open_diff_modal"
-              class="text-xs text-primary hover:underline"
-            >
-              View full diff
-            </button>
-
-            <%= if @pending_edit[:validation] do %>
-              <div class="flex flex-wrap gap-1.5">
-                <.validation_badge check="Compile" status={@pending_edit.validation.compilation} />
-                <.validation_badge check="Format" status={@pending_edit.validation.format} />
-                <.validation_badge check="Credo" status={@pending_edit.validation.credo} />
-                <.validation_badge
-                  check="Tests"
-                  status={@pending_edit.validation.tests}
-                  detail={test_summary(@pending_edit.validation.test_results)}
-                />
-              </div>
-            <% else %>
-              <p class="text-xs text-muted-foreground italic">
-                Validation will run after you accept.
-              </p>
-            <% end %>
-
-            <p class="text-xs text-muted-foreground">
-              {format_diff_summary(@pending_edit.diff)}
-            </p>
-
-            <div class="flex gap-2">
-              <button
-                phx-click="accept_edit"
-                class="rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700"
-              >
-                Accept
-              </button>
-              <button
-                phx-click="reject_edit"
-                class="rounded-md border border-red-300 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50"
-              >
-                Reject
-              </button>
-            </div>
-          </div>
-        <% end %>
+        <%!-- Bottom spacer --%>
+        <div class="h-4" />
       </div>
 
-      <%!-- Quick actions + input --%>
-      <div class="border-t p-4 space-y-3">
-        <div class="flex flex-wrap gap-1.5">
+      <%!-- Quick actions + input (pinned at bottom) --%>
+      <div class="border-t p-3 space-y-2 shrink-0 bg-card">
+        <div class="flex flex-wrap gap-1">
           <%= for action <- quick_actions(@template_type) do %>
             <button
               type="button"
               phx-click="quick_action"
               phx-value-text={action}
-              class="rounded-full border px-2.5 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              class="rounded-full border px-2 py-0.5 text-[11px] text-muted-foreground hover:bg-accent hover:text-accent-foreground"
             >
               {action}
             </button>
@@ -168,138 +132,365 @@ defmodule BlackboexWeb.Components.ChatPanel do
     """
   end
 
-  # -- Sub-components --
+  # ── Run Summary (timeline item at the end) ─────────────────────────────
 
-  defp render_message(assigns) do
+  defp render_run_summary(assigns) do
     ~H"""
-    <div class={[
-      "flex",
-      if(@event.role == "user", do: "justify-end", else: "justify-start")
+    <div class="relative pb-2 pt-1">
+      <div class="absolute -left-[9px] top-[7px] size-[13px] rounded-full border-2 bg-background flex items-center justify-center border-muted-foreground/50">
+        <.icon name="hero-chart-bar" class="size-2" />
+      </div>
+      <div class="rounded-md border bg-muted/20 px-3 py-2 ml-2 space-y-1.5">
+        <%!-- Status row --%>
+        <div class="flex items-center gap-2">
+          <.icon name={run_type_icon(@run.run_type)} class="size-3.5 text-primary" />
+          <span class="text-xs font-semibold">{run_type_label(@run.run_type)}</span>
+          <.run_status_badge status={@run.status} />
+          <span class="flex-1" />
+          <%= if @run.model do %>
+            <span class="text-[10px] text-muted-foreground">{short_model(@run.model)}</span>
+          <% end %>
+        </div>
+        <%!-- Timing --%>
+        <div class="flex items-center gap-1 text-[10px] text-muted-foreground">
+          <.icon name="hero-clock" class="size-3" />
+          <span>{format_timestamp(@run.started_at)}</span>
+          <%= if @run.completed_at do %>
+            <span>&rarr;</span>
+            <span>{format_timestamp(@run.completed_at)}</span>
+            <span class="text-foreground font-medium ml-1">
+              {format_duration_ms(@run.duration_ms)}
+            </span>
+          <% end %>
+        </div>
+        <%!-- Metrics row --%>
+        <div class="flex items-center gap-3 text-[10px] text-muted-foreground">
+          <span class="flex items-center gap-0.5">
+            <.icon name="hero-arrow-down-tray" class="size-2.5" />
+            {format_tokens(@run.input_tokens)} in
+          </span>
+          <span class="flex items-center gap-0.5">
+            <.icon name="hero-arrow-up-tray" class="size-2.5" />
+            {format_tokens(@run.output_tokens)} out
+          </span>
+          <span class="flex items-center gap-0.5">
+            <.icon name="hero-currency-dollar" class="size-2.5" />
+            {format_cost(@run.cost_cents)}
+          </span>
+          <span class="flex items-center gap-0.5">
+            <.icon name="hero-queue-list" class="size-2.5" />
+            {to_string(@run.event_count || 0)} steps
+          </span>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  defp run_status_badge(assigns) do
+    ~H"""
+    <span class={[
+      "rounded-full px-1.5 py-0.5 text-[10px] font-medium",
+      status_badge_class(@status)
     ]}>
+      {@status}
+    </span>
+    """
+  end
+
+  # ── Message Steps ───────────────────────────────────────────────────────
+
+  defp render_message_step(assigns) do
+    ~H"""
+    <div class="relative pb-3 pt-1">
+      <%!-- Timeline node on the border-l line --%>
       <div class={[
-        "max-w-[80%] rounded-lg px-4 py-3 text-sm whitespace-pre-wrap",
+        "absolute -left-[7px] top-3 size-[9px] rounded-full border-2 bg-background",
+        if(@event.role == "user", do: "border-primary", else: "border-muted-foreground/50")
+      ]} />
+
+      <div class={[
+        "rounded-md px-3 py-2 text-sm ml-2",
         if(@event.role == "user",
-          do: "bg-primary text-primary-foreground",
-          else: "bg-muted"
+          do: "bg-primary/10 border border-primary/20",
+          else: "bg-muted/50"
         )
       ]}>
-        {@event.content}
+        <div class="flex items-center gap-1.5 mb-1">
+          <.icon
+            name={if(@event.role == "user", do: "hero-user", else: "hero-sparkles")}
+            class="size-3 text-muted-foreground"
+          />
+          <span class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+            {if @event.role == "user", do: "You", else: "Agent"}
+          </span>
+          <span class="flex-1" />
+          <span class="text-[10px] text-muted-foreground">
+            {format_timestamp(@event[:timestamp])}
+          </span>
+        </div>
+        <p class="whitespace-pre-wrap text-xs leading-relaxed">{@event.content || ""}</p>
       </div>
     </div>
     """
   end
 
-  defp render_tool_group(assigns) do
+  # ── Tool Steps (collapsible) ────────────────────────────────────────────
+
+  defp render_tool_step(assigns) do
+    step_id =
+      "step-#{assigns.call[:id] || :erlang.phash2({assigns.call.tool, assigns.call[:timestamp]})}"
+
+    duration = compute_step_duration(assigns.call, assigns.result)
+    summary = compact_summary(assigns.call.tool, assigns.result)
+
+    assigns =
+      assigns
+      |> assign(:step_id, step_id)
+      |> assign(:duration, duration)
+      |> assign(:summary, summary)
+
     ~H"""
-    <div class={[
-      "rounded-lg border p-4 space-y-3",
-      if(@result && !@result.success,
-        do: "border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950",
-        else: "border-border bg-card"
-      )
-    ]}>
-      <%!-- Header --%>
-      <div class="flex items-center gap-2">
-        <%= if @result do %>
-          <%= if @result.success do %>
-            <span class="text-green-600 text-sm font-bold">&#10003;</span>
-          <% else %>
-            <span class="text-red-500 text-sm font-bold">&#10007;</span>
-          <% end %>
-        <% else %>
-          <span class="text-muted-foreground text-sm animate-pulse">&#9679;</span>
-        <% end %>
-        <span class="text-sm font-semibold">{format_tool_display_name(@call.tool)}</span>
-        <span class="text-xs text-muted-foreground">{@call.tool}</span>
-        <span class="flex-1" />
-        <%= if @result && @call[:timestamp] && @result[:timestamp] do %>
-          <span class="text-xs text-muted-foreground">{format_duration(@call.timestamp, @result.timestamp)}</span>
-        <% end %>
-        <%= if @call[:timestamp] do %>
-          <span class="text-xs text-muted-foreground">{format_time(@call.timestamp)}</span>
-        <% end %>
+    <div class="relative pb-1 pt-0.5">
+      <%!-- Timeline node --%>
+      <div class={[
+        "absolute -left-[9px] top-[5px] flex items-center justify-center size-[13px] rounded-full bg-background border-2",
+        step_node_class(@result)
+      ]}>
+        <.icon name={tool_icon(@call.tool)} class="size-[7px]" />
       </div>
 
-      <%!-- Input section --%>
-      <%= if @call.args["code"] || @call.args["test_code"] do %>
-        <div class="space-y-2">
-          <%= if @call.args["code"] do %>
-            <div>
-              <p class="text-xs font-medium text-muted-foreground mb-1">Input:</p>
-              <pre class="bg-muted rounded-md p-3 font-mono text-xs max-h-[400px] overflow-y-auto overflow-x-auto"><code>{@call.args["code"]}</code></pre>
-            </div>
-          <% end %>
-          <%= if @call.args["test_code"] do %>
-            <div>
-              <p class="text-xs font-medium text-muted-foreground mb-1">Test code:</p>
-              <pre class="bg-muted rounded-md p-3 font-mono text-xs max-h-[400px] overflow-y-auto overflow-x-auto"><code>{@call.args["test_code"]}</code></pre>
-            </div>
-          <% end %>
-        </div>
-      <% end %>
-
-      <%!-- Output section --%>
-      <%= if @result do %>
-        <div>
-          <p class="text-xs font-medium text-muted-foreground mb-1">Output:</p>
-          <%= if looks_like_code?(@result.content) do %>
-            <pre class="bg-muted rounded-md p-3 font-mono text-xs max-h-[400px] overflow-y-auto overflow-x-auto"><code>{@result.content}</code></pre>
+      <%!-- Clickable collapsed header --%>
+      <button
+        type="button"
+        class="w-full text-left group ml-2"
+        phx-click={
+          JS.toggle(to: "##{@step_id}-detail")
+          |> JS.toggle(to: "##{@step_id}-chev-r")
+          |> JS.toggle(to: "##{@step_id}-chev-d")
+        }
+      >
+        <div class="flex items-center gap-1.5 py-0.5">
+          <span id={"#{@step_id}-chev-r"}>
+            <.icon name="hero-chevron-right-mini" class="size-3 text-muted-foreground" />
+          </span>
+          <span id={"#{@step_id}-chev-d"} class="hidden">
+            <.icon name="hero-chevron-down-mini" class="size-3 text-muted-foreground" />
+          </span>
+          <span class="text-xs font-medium">{format_tool_display_name(@call.tool)}</span>
+          <%= if @result do %>
+            <.step_status_icon success={@result.success} />
           <% else %>
-            <p class={[
-              "text-sm whitespace-pre-wrap",
-              if(!@result.success, do: "text-red-600 dark:text-red-400", else: "")
+            <span class="size-3 rounded-full bg-blue-500 animate-pulse inline-block" />
+          <% end %>
+          <%= if @summary do %>
+            <span class={[
+              "text-[10px]",
+              summary_color(@call.tool, @result)
             ]}>
-              {@result.content}
-            </p>
+              {@summary}
+            </span>
+          <% end %>
+          <span class="flex-1 border-b border-dotted border-muted-foreground/20 mx-1" />
+          <span class="text-[10px] text-muted-foreground font-mono">
+            {if @result, do: @duration, else: "..."}
+          </span>
+        </div>
+      </button>
+
+      <%!-- Expandable detail panel --%>
+      <div id={"#{@step_id}-detail"} class="hidden mt-1.5 mb-2 ml-7 space-y-2">
+        <%!-- Timestamps --%>
+        <div class="flex items-center gap-1 text-[10px] text-muted-foreground">
+          <.icon name="hero-clock" class="size-3" />
+          <span>{format_timestamp(@call[:timestamp])}</span>
+          <%= if @result && @result[:timestamp] do %>
+            <span>&rarr;</span>
+            <span>{format_timestamp(@result[:timestamp])}</span>
           <% end %>
         </div>
-      <% end %>
+
+        <%!-- Input code --%>
+        <%= if is_map(@call[:args]) and @call.args["code"] do %>
+          <.render_code_block code={@call.args["code"]} label="Input" />
+        <% end %>
+        <%= if is_map(@call[:args]) and @call.args["test_code"] do %>
+          <.render_code_block code={@call.args["test_code"]} label="Test Code" />
+        <% end %>
+
+        <%!-- Output --%>
+        <%= if @result do %>
+          <.render_tool_output
+            tool={@result.tool}
+            success={@result.success}
+            content={@result.content}
+          />
+        <% end %>
+      </div>
     </div>
     """
   end
 
-  defp render_standalone_tool_result(assigns) do
+  defp step_status_icon(assigns) do
     ~H"""
-    <div class={[
-      "rounded-lg border p-4 space-y-2",
-      if(!@result.success,
-        do: "border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950",
-        else: "border-border bg-card"
-      )
-    ]}>
-      <div class="flex items-center gap-2">
-        <%= if @result.success do %>
-          <span class="text-green-600 text-sm font-bold">&#10003;</span>
-        <% else %>
-          <span class="text-red-500 text-sm font-bold">&#10007;</span>
-        <% end %>
-        <span class="text-sm font-semibold">{format_tool_display_name(@result.tool)}</span>
-        <span class="text-xs text-muted-foreground">{@result.tool}</span>
-      </div>
+    <%= if @success do %>
+      <.icon name="hero-check-circle" class="size-3.5 text-green-600 dark:text-green-400" />
+    <% else %>
+      <.icon name="hero-x-circle" class="size-3.5 text-red-500 dark:text-red-400" />
+    <% end %>
+    """
+  end
 
-      <%= if looks_like_code?(@result.content) do %>
-        <pre class="bg-muted rounded-md p-3 font-mono text-xs max-h-[400px] overflow-y-auto overflow-x-auto"><code>{@result.content}</code></pre>
+  # ── Standalone tool result (orphaned) ───────────────────────────────────
+
+  defp render_standalone_result(assigns) do
+    ~H"""
+    <div class="relative pb-1 pt-0.5">
+      <div class={[
+        "absolute -left-[9px] top-[5px] flex items-center justify-center size-[13px] rounded-full bg-background border-2",
+        if(@result[:success], do: "border-green-500", else: "border-red-500")
+      ]}>
+        <.icon name={tool_icon(@result.tool)} class="size-[7px]" />
+      </div>
+      <div class="py-0.5 ml-2">
+        <div class="flex items-center gap-1.5">
+          <span class="text-xs font-medium">{format_tool_display_name(@result.tool)}</span>
+          <.step_status_icon success={@result.success} />
+        </div>
+        <div class="mt-1">
+          <.render_tool_output
+            tool={@result.tool}
+            success={@result.success}
+            content={@result.content}
+          />
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  # ── Status Steps ────────────────────────────────────────────────────────
+
+  defp render_status_step(assigns) do
+    ~H"""
+    <div class="relative py-1">
+      <div class="absolute -left-[5px] top-[9px] size-[5px] rounded-full bg-muted-foreground/30" />
+      <span class="text-[10px] text-muted-foreground italic ml-2">{@event.content || ""}</span>
+    </div>
+    """
+  end
+
+  # ── Code Block with line numbers ────────────────────────────────────────
+
+  defp render_code_block(assigns) do
+    lines = String.split(assigns.code, "\n")
+    assigns = assign(assigns, :lines, Enum.with_index(lines, 1))
+
+    ~H"""
+    <div class="rounded-md border bg-muted/30 overflow-hidden">
+      <div class="flex items-center justify-between px-2.5 py-1 border-b bg-muted/50">
+        <span class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+          {@label}
+        </span>
+        <span class="text-[10px] text-muted-foreground">{length(@lines)} lines</span>
+      </div>
+      <pre class="max-h-[300px] overflow-y-auto overflow-x-auto p-0 m-0"><code class="text-[11px] font-mono leading-[1.4]"><%= for {line, num} <- @lines do %><div class="flex hover:bg-muted/40 px-1"><span class="select-none text-muted-foreground/40 text-right w-7 pr-2 shrink-0">{num}</span><span class="whitespace-pre">{line}</span></div><% end %></code></pre>
+    </div>
+    """
+  end
+
+  # ── Tool Output (formatted per tool type) ───────────────────────────────
+
+  defp render_tool_output(assigns) do
+    ~H"""
+    <%= if @content != "" do %>
+      <div class={[
+        "rounded-md border px-2.5 py-2 text-xs",
+        if(!@success,
+          do: "border-red-300 bg-red-50/50 dark:border-red-800 dark:bg-red-950/30",
+          else: "bg-muted/30"
+        )
+      ]}>
+        <div class="flex items-center gap-1 mb-1">
+          <span class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+            Output
+          </span>
+          <%= if !@success do %>
+            <span class="text-[9px] rounded bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300 px-1 py-0.5 font-medium">
+              ERROR
+            </span>
+          <% end %>
+        </div>
+        <pre class={[
+          "whitespace-pre-wrap font-mono text-[11px] leading-relaxed max-h-[400px] overflow-y-auto",
+          if(!@success, do: "text-red-600 dark:text-red-400", else: "text-foreground")
+        ]}><code>{@content}</code></pre>
+      </div>
+    <% end %>
+    """
+  end
+
+  # ── Pending Edit ────────────────────────────────────────────────────────
+
+  defp render_pending_edit(assigns) do
+    ~H"""
+    <div class="rounded-lg border border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-950/30 p-3 space-y-2.5">
+      <div class="flex items-center gap-1.5">
+        <.icon name="hero-pencil-square" class="size-4 text-blue-600 dark:text-blue-400" />
+        <span class="text-xs font-semibold text-blue-700 dark:text-blue-300">Proposed Change</span>
+      </div>
+      <p class="text-xs text-blue-600 dark:text-blue-400">{@pending_edit[:explanation] || ""}</p>
+
+      <%= if @pending_edit[:diff] do %>
+        <div class="rounded border bg-background p-1.5 text-[11px] font-mono overflow-x-auto max-h-60 overflow-y-auto">
+          <%= for {op, lines} <- @pending_edit.diff, line <- lines do %>
+            <div class={diff_line_class(op)}>
+              <span class="select-none text-muted-foreground mr-1">{diff_prefix(op)}</span>{line}
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+
+      <%= if @pending_edit[:validation] do %>
+        <div class="flex flex-wrap gap-1">
+          <.validation_badge check="Compile" status={@pending_edit.validation.compilation} />
+          <.validation_badge check="Format" status={@pending_edit.validation.format} />
+          <.validation_badge check="Credo" status={@pending_edit.validation.credo} />
+          <.validation_badge
+            check="Tests"
+            status={@pending_edit.validation.tests}
+            detail={test_summary(@pending_edit.validation.test_results)}
+          />
+        </div>
       <% else %>
-        <p class={[
-          "text-sm whitespace-pre-wrap",
-          if(!@result.success, do: "text-red-600 dark:text-red-400", else: "")
-        ]}>
-          {@result.content}
+        <p class="text-[10px] text-muted-foreground italic">
+          Validation will run after you accept.
         </p>
       <% end %>
+
+      <%= if @pending_edit[:diff] do %>
+        <p class="text-[10px] text-muted-foreground">{format_diff_summary(@pending_edit.diff)}</p>
+      <% end %>
+
+      <div class="flex gap-2">
+        <button
+          phx-click="accept_edit"
+          class="rounded-md bg-green-600 px-3 py-1 text-xs font-medium text-white hover:bg-green-700 flex items-center gap-1"
+        >
+          <.icon name="hero-check" class="size-3" /> Accept
+        </button>
+        <button
+          phx-click="reject_edit"
+          class="rounded-md border border-red-300 px-3 py-1 text-xs font-medium text-red-600 hover:bg-red-50 flex items-center gap-1"
+        >
+          <.icon name="hero-x-mark" class="size-3" /> Reject
+        </button>
+      </div>
     </div>
     """
   end
 
-  defp render_status(assigns) do
-    ~H"""
-    <div class="text-center py-1">
-      <span class="text-xs text-muted-foreground italic">{@event.content}</span>
-    </div>
-    """
-  end
-
-  # -- Event grouping --
+  # ── Event Grouping ──────────────────────────────────────────────────────
 
   @spec group_events(list(map())) :: list(tuple())
   defp group_events(events) when is_list(events) do
@@ -340,30 +531,166 @@ defmodule BlackboexWeb.Components.ChatPanel do
   defp event_tag(%{type: :status}), do: :status
   defp event_tag(_), do: :status
 
-  # -- Helpers --
+  # ── Helpers ─────────────────────────────────────────────────────────────
+
+  @spec tool_icon(String.t()) :: String.t()
+  defp tool_icon("generate_code"), do: "hero-sparkles"
+  defp tool_icon("compile_code"), do: "hero-cog-6-tooth"
+  defp tool_icon("format_code"), do: "hero-paint-brush"
+  defp tool_icon("lint_code"), do: "hero-magnifying-glass"
+  defp tool_icon("generate_tests"), do: "hero-beaker"
+  defp tool_icon("run_tests"), do: "hero-play"
+  defp tool_icon("submit_code"), do: "hero-check-circle"
+  defp tool_icon("generate_docs"), do: "hero-document-text"
+  defp tool_icon("read_source"), do: "hero-document-text"
+  defp tool_icon("edit_source"), do: "hero-pencil-square"
+  defp tool_icon(_), do: "hero-wrench"
 
   @spec format_tool_display_name(String.t()) :: String.t()
+  defp format_tool_display_name("generate_code"), do: "Generate Code"
   defp format_tool_display_name("compile_code"), do: "Compile"
   defp format_tool_display_name("format_code"), do: "Format"
   defp format_tool_display_name("lint_code"), do: "Lint"
   defp format_tool_display_name("generate_tests"), do: "Generate Tests"
   defp format_tool_display_name("run_tests"), do: "Run Tests"
   defp format_tool_display_name("submit_code"), do: "Submit"
+  defp format_tool_display_name("generate_docs"), do: "Generate Docs"
   defp format_tool_display_name("read_source"), do: "Read Source"
   defp format_tool_display_name("edit_source"), do: "Edit Source"
   defp format_tool_display_name(name), do: name
 
-  @spec looks_like_code?(String.t() | nil) :: boolean()
-  defp looks_like_code?(nil), do: false
-  defp looks_like_code?(""), do: false
+  defp step_node_class(nil), do: "border-blue-500 animate-pulse"
+  defp step_node_class(%{success: true}), do: "border-green-500"
+  defp step_node_class(%{success: false}), do: "border-red-500"
+  defp step_node_class(_), do: "border-muted-foreground/30"
 
-  defp looks_like_code?(content) when is_binary(content) do
-    String.contains?(content, "defmodule") or
-      String.contains?(content, "def ") or
-      String.contains?(content, "defp ") or
-      String.contains?(content, "import ") or
-      String.contains?(content, "alias ")
+  defp status_badge_class("running"),
+    do: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 animate-pulse"
+
+  defp status_badge_class("completed"),
+    do: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+
+  defp status_badge_class("failed"),
+    do: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
+
+  defp status_badge_class("partial"),
+    do: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300"
+
+  defp status_badge_class(_),
+    do: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
+
+  defp compact_summary(tool, nil) when tool in ~w(run_tests lint_code), do: nil
+
+  defp compact_summary("lint_code", %{success: true, content: content}) do
+    if String.contains?(content, "No issues"), do: nil, else: parse_lint_count(content)
   end
+
+  defp compact_summary("run_tests", %{content: content}) do
+    parse_test_count(content)
+  end
+
+  defp compact_summary(_, _), do: nil
+
+  defp summary_color("lint_code", %{success: true}), do: "text-yellow-600 dark:text-yellow-400"
+  defp summary_color("run_tests", %{success: true}), do: "text-green-600 dark:text-green-400"
+  defp summary_color("run_tests", %{success: false}), do: "text-red-500 dark:text-red-400"
+  defp summary_color(_, _), do: "text-muted-foreground"
+
+  defp parse_lint_count(content) do
+    case Regex.scan(~r/^\s*-\s/m, content) do
+      [] -> nil
+      matches -> "#{length(matches)} issues"
+    end
+  end
+
+  defp parse_test_count(content) do
+    cond do
+      match = Regex.run(~r/(\d+) tests?,\s*(\d+) passed/, content) ->
+        [_, total, passed] = match
+        "#{passed}/#{total}"
+
+      match = Regex.run(~r/(\d+) tests?.*?(\d+) failure/, content) ->
+        [_, total, failed_count] = match
+        passed = String.to_integer(total) - String.to_integer(failed_count)
+        "#{passed}/#{total}"
+
+      true ->
+        nil
+    end
+  end
+
+  defp compute_step_duration(call, nil) do
+    format_duration_ms(call[:tool_duration_ms])
+  end
+
+  defp compute_step_duration(call, result) do
+    cond do
+      result[:tool_duration_ms] ->
+        format_duration_ms(result[:tool_duration_ms])
+
+      call[:timestamp] && result[:timestamp] ->
+        format_duration(call[:timestamp], result[:timestamp])
+
+      true ->
+        ""
+    end
+  end
+
+  @spec format_duration_ms(integer() | nil) :: String.t()
+  defp format_duration_ms(nil), do: ""
+  defp format_duration_ms(ms) when ms < 1000, do: "#{ms}ms"
+  defp format_duration_ms(ms) when ms < 60_000, do: "#{Float.round(ms / 1000, 1)}s"
+  defp format_duration_ms(ms), do: "#{div(ms, 60_000)}m #{rem(div(ms, 1000), 60)}s"
+
+  defp format_duration(nil, _), do: ""
+  defp format_duration(_, nil), do: ""
+
+  defp format_duration(start_dt, end_dt) do
+    diff_ms = DateTime.diff(end_dt, start_dt, :millisecond)
+    format_duration_ms(max(diff_ms, 0))
+  end
+
+  defp format_timestamp(nil), do: ""
+
+  defp format_timestamp(%DateTime{} = dt) do
+    Calendar.strftime(dt, "%H:%M:%S")
+  end
+
+  defp format_timestamp(%NaiveDateTime{} = dt) do
+    Calendar.strftime(dt, "%H:%M:%S")
+  end
+
+  defp format_timestamp(_), do: ""
+
+  defp format_tokens(nil), do: "0"
+  defp format_tokens(0), do: "0"
+  defp format_tokens(n) when n < 1000, do: to_string(n)
+  defp format_tokens(n) when n < 1_000_000, do: "#{Float.round(n / 1000, 1)}k"
+  defp format_tokens(n), do: "#{Float.round(n / 1_000_000, 1)}M"
+
+  defp format_cost(nil), do: "$0"
+  defp format_cost(0), do: "$0"
+  defp format_cost(cents), do: "$#{Float.round(cents / 100, 2)}"
+
+  defp short_model(nil), do: ""
+
+  defp short_model(model) do
+    model
+    |> String.replace(~r/^(claude-|gpt-)/, "")
+    |> String.slice(0, 20)
+  end
+
+  defp run_type_icon("generation"), do: "hero-bolt"
+  defp run_type_icon("edit"), do: "hero-pencil-square"
+  defp run_type_icon("test_only"), do: "hero-beaker"
+  defp run_type_icon("doc_only"), do: "hero-document-text"
+  defp run_type_icon(_), do: "hero-bolt"
+
+  defp run_type_label("generation"), do: "Generation"
+  defp run_type_label("edit"), do: "Edit"
+  defp run_type_label("test_only"), do: "Test Only"
+  defp run_type_label("doc_only"), do: "Docs Only"
+  defp run_type_label(_), do: "Run"
 
   defp diff_line_class(:ins),
     do: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
@@ -401,30 +728,5 @@ defmodule BlackboexWeb.Components.ChatPanel do
 
   defp quick_actions(_template_type) do
     ["Add validation", "Optimize performance", "Add error handling"]
-  end
-
-  defp format_time(nil), do: ""
-
-  defp format_time(%DateTime{} = dt) do
-    Calendar.strftime(dt, "%H:%M:%S")
-  end
-
-  defp format_time(%NaiveDateTime{} = dt) do
-    Calendar.strftime(dt, "%H:%M:%S")
-  end
-
-  defp format_time(_), do: ""
-
-  defp format_duration(nil, _), do: ""
-  defp format_duration(_, nil), do: ""
-
-  defp format_duration(start_dt, end_dt) do
-    diff_ms = DateTime.diff(end_dt, start_dt, :millisecond)
-
-    cond do
-      diff_ms < 1000 -> "#{diff_ms}ms"
-      diff_ms < 60_000 -> "#{Float.round(diff_ms / 1000, 1)}s"
-      true -> "#{div(diff_ms, 60_000)}m #{rem(div(diff_ms, 1000), 60)}s"
-    end
   end
 end

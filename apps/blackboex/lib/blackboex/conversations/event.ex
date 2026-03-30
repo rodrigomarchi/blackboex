@@ -27,6 +27,7 @@ defmodule Blackboex.Conversations.Event do
   @valid_roles ~w(user assistant system tool)
 
   @valid_tool_names ~w(
+    generate_code
     compile_code
     format_code
     lint_code

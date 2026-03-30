@@ -54,8 +54,11 @@ defmodule Blackboex.Agent.RecoveryWorker do
     # Update API generation_status so it doesn't stay stuck on "generating"
     if run.api_id do
       case Apis.get_api(run.organization_id, run.api_id) do
-        nil -> :ok
-        api -> Apis.update_api(api, %{generation_status: "failed", generation_error: "Session lost"})
+        nil ->
+          :ok
+
+        api ->
+          Apis.update_api(api, %{generation_status: "failed", generation_error: "Session lost"})
       end
     end
 

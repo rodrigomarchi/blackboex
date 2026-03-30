@@ -59,7 +59,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
         Phoenix.PubSub.subscribe(Blackboex.PubSub, "api:#{api.id}")
 
         # Load full conversation events for chat timeline
-        agent_events =
+        {agent_events, current_run} =
           load_conversation_events(agent_conversation)
 
         {:ok,
@@ -127,11 +127,11 @@ defmodule BlackboexWeb.ApiLive.Edit do
            command_palette_selected: 0,
            # Edit rollback state
            pre_edit_code: nil,
-           diff_modal_open: false,
            # Generation state
            generation_status: api.generation_status,
            # Agent pipeline assigns
            current_run_id: active_run_id,
+           current_run: current_run,
            agent_events: agent_events,
            agent_conversation: agent_conversation
          )}
@@ -212,11 +212,10 @@ defmodule BlackboexWeb.ApiLive.Edit do
                 {if @validation_report.overall == :pass, do: "✓", else: "!"}
               </span>
             </button>
-
           </div>
 
           <%!-- Content Area --%>
-          <div class="flex-1 min-h-0 relative">
+          <div class="flex-1 min-h-0 relative overflow-hidden">
             {render_tab_content(assigns)}
           </div>
         </div>
@@ -232,48 +231,6 @@ defmodule BlackboexWeb.ApiLive.Edit do
         api={@api}
         selected_index={@command_palette_selected}
       />
-
-      <%!-- Diff Modal (fullscreen Monaco diff editor) --%>
-      <div
-        :if={@diff_modal_open && @pending_edit}
-        class="fixed inset-0 z-[100] flex flex-col bg-background"
-      >
-        <div class="flex items-center justify-between border-b px-4 py-2 shrink-0">
-          <div class="flex items-center gap-3">
-            <h2 class="text-sm font-semibold">Review Changes</h2>
-            <span class="text-xs text-muted-foreground">
-              {DiffEngine.format_diff_summary(@pending_edit.diff)}
-            </span>
-          </div>
-          <div class="flex items-center gap-2">
-            <button
-              phx-click="accept_edit"
-              class="rounded-md bg-green-600 px-4 py-1.5 text-xs font-medium text-white hover:bg-green-700"
-            >
-              Accept Changes
-            </button>
-            <button
-              phx-click="reject_edit"
-              class="rounded-md border border-red-300 px-4 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
-            >
-              Reject
-            </button>
-            <button
-              phx-click="close_diff_modal"
-              class="rounded-md border px-4 py-1.5 text-xs hover:bg-accent"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-        <div
-          id="diff-editor-container"
-          phx-hook="MonacoDiffEditor"
-          class="flex-1 min-h-0"
-          phx-update="ignore"
-        >
-        </div>
-      </div>
     </div>
     """
   end
@@ -292,6 +249,8 @@ defmodule BlackboexWeb.ApiLive.Edit do
       pending_edit={@pending_edit}
       template_type={@api.template_type}
       streaming_tokens={if(@chat_loading, do: @streaming_tokens, else: "")}
+      run={@current_run}
+      pipeline_status={@pipeline_status}
     />
     """
   end
@@ -1613,34 +1572,13 @@ defmodule BlackboexWeb.ApiLive.Edit do
         {:noreply, socket}
 
       %{code: proposed_code, test_code: proposed_test_code, instruction: instruction} ->
-        socket = assign(socket, diff_modal_open: false)
         do_accept_edit(socket, proposed_code, proposed_test_code, instruction)
     end
   end
 
   @impl true
   def handle_event("reject_edit", _params, socket) do
-    {:noreply, assign(socket, pending_edit: nil, diff_modal_open: false)}
-  end
-
-  @impl true
-  def handle_event("open_diff_modal", _params, socket) do
-    original = socket.assigns.code
-    modified = socket.assigns.pending_edit[:code] || original
-
-    {:noreply,
-     socket
-     |> assign(diff_modal_open: true)
-     |> push_event("open_diff", %{
-       original: original,
-       modified: modified,
-       language: "elixir"
-     })}
-  end
-
-  @impl true
-  def handle_event("close_diff_modal", _params, socket) do
-    {:noreply, assign(socket, diff_modal_open: false)}
+    {:noreply, assign(socket, pending_edit: nil)}
   end
 
   @impl true
@@ -1956,9 +1894,13 @@ defmodule BlackboexWeb.ApiLive.Edit do
 
     Phoenix.PubSub.subscribe(Blackboex.PubSub, "run:#{run_id}")
 
+    # Load the run struct for the header
+    run = AgentConversations.get_run(run_id)
+
     {:noreply,
      assign(socket,
        current_run_id: run_id,
+       current_run: run,
        chat_loading: true,
        active_tab: "chat"
      )}
@@ -1978,7 +1920,9 @@ defmodule BlackboexWeb.ApiLive.Edit do
   @impl true
   def handle_info({:agent_action, %{tool: tool_name, args: args}}, socket) do
     now = DateTime.utc_now()
-    event = %{type: :tool_call, tool: tool_name, args: args, timestamp: now}
+    seq = length(socket.assigns.agent_events)
+    normalized_args = normalize_tool_input(args)
+    event = %{type: :tool_call, tool: tool_name, args: normalized_args, timestamp: now, id: seq}
 
     socket =
       socket
@@ -2004,7 +1948,16 @@ defmodule BlackboexWeb.ApiLive.Edit do
   def handle_info({:tool_result, %{tool: tool_name, success: success} = payload}, socket) do
     content = Map.get(payload, :content, "")
     now = DateTime.utc_now()
-    event = %{type: :tool_result, tool: tool_name, success: success, content: content, timestamp: now}
+    seq = length(socket.assigns.agent_events)
+
+    event = %{
+      type: :tool_result,
+      tool: tool_name,
+      success: success,
+      content: content,
+      timestamp: now,
+      id: seq
+    }
 
     socket =
       socket
@@ -2030,12 +1983,20 @@ defmodule BlackboexWeb.ApiLive.Edit do
     api = Apis.get_api(socket.assigns.org.id, socket.assigns.api.id)
     refreshed_api = api || socket.assigns.api
 
+    # Refresh the run struct to get final timing/metrics
+    completed_run =
+      case AgentConversations.get_run(run_id) do
+        nil -> socket.assigns.current_run
+        run -> run
+      end
+
     socket =
       socket
       |> assign(
         api: refreshed_api,
         chat_loading: false,
         current_run_id: nil,
+        current_run: completed_run,
         streaming_tokens: "",
         pipeline_status: nil,
         generation_status: refreshed_api.generation_status,
@@ -2047,7 +2008,13 @@ defmodule BlackboexWeb.ApiLive.Edit do
     effective_test_code = test_code || socket.assigns.test_code
 
     if effective_code != "" and effective_code != nil do
-      handle_agent_code_completed(socket, effective_code, effective_test_code, summary, refreshed_api)
+      handle_agent_code_completed(
+        socket,
+        effective_code,
+        effective_test_code,
+        summary,
+        refreshed_api
+      )
     else
       {:noreply, put_flash(socket, :info, summary || "Agent completed")}
     end
@@ -2061,12 +2028,20 @@ defmodule BlackboexWeb.ApiLive.Edit do
     api = Apis.get_api(socket.assigns.org.id, socket.assigns.api.id)
     refreshed_api = api || socket.assigns.api
 
+    # Refresh run struct for final state
+    failed_run =
+      case AgentConversations.get_run(run_id) do
+        nil -> socket.assigns.current_run
+        run -> run
+      end
+
     {:noreply,
      socket
      |> assign(
        api: refreshed_api,
        chat_loading: false,
        current_run_id: nil,
+       current_run: failed_run,
        pipeline_status: nil,
        streaming_tokens: "",
        generation_status: refreshed_api.generation_status
@@ -2076,7 +2051,16 @@ defmodule BlackboexWeb.ApiLive.Edit do
 
   @impl true
   def handle_info({:agent_message, %{role: "assistant", content: content}}, socket) do
-    event = %{type: :message, role: "assistant", content: content, timestamp: DateTime.utc_now()}
+    seq = length(socket.assigns.agent_events)
+
+    event = %{
+      type: :message,
+      role: "assistant",
+      content: content,
+      timestamp: DateTime.utc_now(),
+      id: seq
+    }
+
     {:noreply, assign(socket, agent_events: socket.assigns.agent_events ++ [event])}
   end
 
@@ -2095,7 +2079,8 @@ defmodule BlackboexWeb.ApiLive.Edit do
       tool: "generate_docs",
       success: true,
       content: "Documentation generated",
-      timestamp: DateTime.utc_now()
+      timestamp: DateTime.utc_now(),
+      id: length(socket.assigns.agent_events)
     }
 
     {:noreply,
@@ -2136,7 +2121,6 @@ defmodule BlackboexWeb.ApiLive.Edit do
        test_code: test_code,
        pending_edit: nil,
        pre_edit_code: previous_code,
-       diff_modal_open: false,
        chat_loading: false,
        pipeline_status: nil,
        current_run_id: nil,
@@ -2204,7 +2188,17 @@ defmodule BlackboexWeb.ApiLive.Edit do
                chat_loading: true,
                chat_input: "",
                streaming_tokens: "",
-               agent_events: socket.assigns.agent_events ++ [%{type: :message, role: "user", content: user_msg["content"]}]
+               agent_events:
+                 socket.assigns.agent_events ++
+                   [
+                     %{
+                       type: :message,
+                       role: "user",
+                       content: user_msg["content"],
+                       timestamp: DateTime.utc_now(),
+                       id: length(socket.assigns.agent_events)
+                     }
+                   ]
              )}
 
           {:error, reason} ->
@@ -2235,32 +2229,49 @@ defmodule BlackboexWeb.ApiLive.Edit do
     {conv, active_run && active_run.id}
   end
 
-  defp load_conversation_events(nil), do: []
-  defp load_conversation_events(%{total_events: 0}), do: []
+  defp load_conversation_events(nil), do: {[], nil}
+  defp load_conversation_events(%{total_events: 0}), do: {[], nil}
 
   defp load_conversation_events(agent_conversation) do
     case AgentConversations.list_runs(agent_conversation.id, limit: 1) do
       [latest_run | _] ->
-        AgentConversations.list_events(latest_run.id)
-        |> Enum.map(&event_to_display/1)
-        |> Enum.reject(&is_nil/1)
+        events =
+          AgentConversations.list_events(latest_run.id)
+          |> Enum.map(&event_to_display/1)
+          |> Enum.reject(&is_nil/1)
+
+        {events, latest_run}
 
       [] ->
-        []
+        {[], nil}
     end
   end
 
   defp event_to_display(%{event_type: "user_message"} = e) do
-    %{type: :message, role: "user", content: e.content, timestamp: e.inserted_at}
+    %{type: :message, role: "user", content: e.content, timestamp: e.inserted_at, id: e.sequence}
   end
 
   defp event_to_display(%{event_type: "assistant_message"} = e) do
-    %{type: :message, role: "assistant", content: e.content, timestamp: e.inserted_at}
+    %{
+      type: :message,
+      role: "assistant",
+      content: e.content,
+      timestamp: e.inserted_at,
+      id: e.sequence
+    }
   end
 
   defp event_to_display(%{event_type: "tool_call"} = e) do
     args = normalize_tool_input(e.tool_input)
-    %{type: :tool_call, tool: e.tool_name, args: args, timestamp: e.inserted_at}
+
+    %{
+      type: :tool_call,
+      tool: e.tool_name,
+      args: args,
+      timestamp: e.inserted_at,
+      id: e.sequence,
+      tool_duration_ms: e.tool_duration_ms
+    }
   end
 
   defp event_to_display(%{event_type: "tool_result"} = e) do
@@ -2269,22 +2280,27 @@ defmodule BlackboexWeb.ApiLive.Edit do
       tool: e.tool_name,
       success: e.tool_success,
       content: e.content || "",
-      timestamp: e.inserted_at
+      timestamp: e.inserted_at,
+      id: e.sequence,
+      tool_duration_ms: e.tool_duration_ms
     }
   end
 
   defp event_to_display(%{event_type: "status_change"} = e) do
-    %{type: :status, content: e.content, timestamp: e.inserted_at}
+    %{type: :status, content: e.content, timestamp: e.inserted_at, id: e.sequence}
   end
 
   defp event_to_display(_), do: nil
 
   defp normalize_tool_input(nil), do: %{}
+
   defp normalize_tool_input(args) when is_map(args) do
     Map.new(args, fn {k, v} -> {to_string(k), v} end)
   end
+
   defp normalize_tool_input(_), do: %{}
 
+  defp agent_tool_to_status("generate_code"), do: :generating
   defp agent_tool_to_status("compile_code"), do: :compiling
   defp agent_tool_to_status("format_code"), do: :formatting
   defp agent_tool_to_status("lint_code"), do: :linting
@@ -2319,8 +2335,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
            explanation: summary || "Agent completed",
            instruction: summary,
            validation: nil
-         },
-         diff_modal_open: true
+         }
        )
        |> put_flash(:info, summary || "Code ready for review")}
     else

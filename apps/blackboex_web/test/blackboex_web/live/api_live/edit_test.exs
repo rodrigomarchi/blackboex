@@ -86,7 +86,6 @@ defmodule BlackboexWeb.ApiLive.EditTest do
     end
   end
 
-
   describe "versions" do
     test "shows version history in bottom panel", %{conn: conn, org: org, api: api, user: user} do
       # Create a version first
@@ -128,7 +127,6 @@ defmodule BlackboexWeb.ApiLive.EditTest do
                live(conn, ~p"/apis/#{other_api.id}/edit?org=#{other_org.id}")
     end
   end
-
 
   describe "rollback" do
     test "creates new version with old code", %{conn: conn, org: org, api: api, user: user} do

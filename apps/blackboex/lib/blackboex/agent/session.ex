@@ -20,7 +20,6 @@ defmodule Blackboex.Agent.Session do
   alias Blackboex.Agent.CodePipeline
   alias Blackboex.Apis
   alias Blackboex.Conversations
-  alias Blackboex.Docs.DocGenerator
   alias Blackboex.LLM.CircuitBreaker
   alias Blackboex.Organizations
   alias Blackboex.Telemetry.Events
@@ -421,7 +420,10 @@ defmodule Blackboex.Agent.Session do
     do_register_module(api, org_id)
   rescue
     e ->
-      Logger.warning("Failed to register module: #{Exception.message(e)}")
+      Logger.error(
+        "Failed to register module for API #{api_id}: #{Exception.message(e)}\n#{Exception.format_stacktrace(__STACKTRACE__)}"
+      )
+
       :ok
   end
 
@@ -453,9 +455,9 @@ defmodule Blackboex.Agent.Session do
     alias Blackboex.CodeGen.SchemaExtractor
 
     case SchemaExtractor.extract(module) do
-      {:ok, %{request: req, response: resp}} ->
+      {:ok, %{request: req, response: resp} = schema} ->
         %{
-          param_schema: if(req, do: SchemaExtractor.to_json_schema(req), else: nil),
+          param_schema: SchemaExtractor.to_param_schema(schema),
           example_request: if(req, do: SchemaExtractor.generate_example(req), else: nil),
           example_response: if(resp, do: SchemaExtractor.generate_example(resp), else: nil)
         }
@@ -464,7 +466,9 @@ defmodule Blackboex.Agent.Session do
         %{}
     end
   rescue
-    _ -> %{}
+    e ->
+      Logger.warning("Schema extraction failed: #{Exception.message(e)}")
+      %{}
   end
 
   @spec step_to_tool_name(atom()) :: String.t()
@@ -475,6 +479,7 @@ defmodule Blackboex.Agent.Session do
   defp step_to_tool_name(:fixing_compilation), do: "compile_code"
   defp step_to_tool_name(:fixing_lint), do: "lint_code"
   defp step_to_tool_name(:generating_tests), do: "generate_tests"
+  defp step_to_tool_name(:generating_docs), do: "generate_docs"
   defp step_to_tool_name(:running_tests), do: "run_tests"
   defp step_to_tool_name(:fixing_tests), do: "run_tests"
   defp step_to_tool_name(:submitting), do: "submit_code"
@@ -543,11 +548,6 @@ defmodule Blackboex.Agent.Session do
       }
     })
 
-    # Generate documentation after code is saved (non-blocking)
-    if result[:code] && status == "completed" do
-      generate_documentation(state)
-    end
-
     Logger.info("Agent session completed for run #{state.run_id} with status #{status}")
   end
 
@@ -583,6 +583,7 @@ defmodule Blackboex.Agent.Session do
     attrs =
       %{source_code: result[:code], generation_status: gen_status, generation_error: nil}
       |> maybe_put(:test_code, result[:test_code])
+      |> maybe_put(:documentation_md, result[:documentation_md])
 
     Apis.update_api(api, attrs)
   end
@@ -708,31 +709,6 @@ defmodule Blackboex.Agent.Session do
 
     if conversation do
       Conversations.increment_conversation_stats(conversation, total_runs: 1)
-    end
-  end
-
-  @spec generate_documentation(t()) :: :ok
-  defp generate_documentation(state) do
-    api = Apis.get_api(state.organization_id, state.api_id)
-
-    if api && api.source_code do
-      case DocGenerator.generate(api) do
-        {:ok, %{doc: doc}} ->
-          Apis.update_api(api, %{documentation_md: doc})
-
-          # Broadcast on the api topic (not run) because the frontend unsubscribes
-          # from the run topic when agent_completed arrives
-          Phoenix.PubSub.broadcast(
-            Blackboex.PubSub,
-            "api:#{state.api_id}",
-            {:doc_generated, %{doc: doc, api_id: state.api_id}}
-          )
-
-          Logger.info("Documentation generated for API #{state.api_id}")
-
-        {:error, reason} ->
-          Logger.warning("Doc generation failed for API #{state.api_id}: #{inspect(reason)}")
-      end
     end
   end
 

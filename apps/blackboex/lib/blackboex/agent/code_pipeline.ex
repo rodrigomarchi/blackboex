@@ -25,6 +25,7 @@ defmodule Blackboex.Agent.CodePipeline do
   alias Blackboex.CodeGen.Compiler
   alias Blackboex.CodeGen.Linter
   alias Blackboex.Conversations
+  alias Blackboex.Docs.DocGenerator
   alias Blackboex.LLM.Config
   alias Blackboex.LLM.Prompts
   alias Blackboex.LLM.Templates
@@ -56,13 +57,15 @@ defmodule Blackboex.Agent.CodePipeline do
     with {:ok, code} <- step_generate_code(api, description, broadcast, run_id),
          {:ok, code} <- step_validate_and_fix(api, code, broadcast, run_id),
          {:ok, test_code} <- step_generate_tests(api, code, broadcast, run_id),
-         {:ok, test_code} <- step_run_and_fix_tests(api, code, test_code, broadcast, run_id) do
+         {:ok, test_code} <- step_run_and_fix_tests(api, code, test_code, broadcast, run_id),
+         {:ok, doc_md} <- step_generate_docs(api, code, broadcast, run_id) do
       broadcast.({:step_completed, %{step: :submitting}})
 
       {:ok,
        %{
          code: code,
          test_code: test_code,
+         documentation_md: doc_md,
          summary: "Code generated and validated",
          usage: get_accumulated_usage()
        }}
@@ -80,13 +83,15 @@ defmodule Blackboex.Agent.CodePipeline do
            step_edit_code(api, instruction, current_code, current_tests, broadcast, run_id),
          {:ok, code} <- step_validate_and_fix(api, code, broadcast, run_id),
          {:ok, test_code} <- step_generate_tests(api, code, broadcast, run_id),
-         {:ok, test_code} <- step_run_and_fix_tests(api, code, test_code, broadcast, run_id) do
+         {:ok, test_code} <- step_run_and_fix_tests(api, code, test_code, broadcast, run_id),
+         {:ok, doc_md} <- step_generate_docs(api, code, broadcast, run_id) do
       broadcast.({:step_completed, %{step: :submitting}})
 
       {:ok,
        %{
          code: code,
          test_code: test_code,
+         documentation_md: doc_md,
          summary: "Code updated and validated",
          usage: get_accumulated_usage()
        }}
@@ -545,6 +550,35 @@ defmodule Blackboex.Agent.CodePipeline do
 
       error ->
         error
+    end
+  end
+
+  # ── Step 7: Generate Documentation ────────────────────────────
+
+  @spec step_generate_docs(Api.t(), String.t(), broadcast_fn(), String.t() | nil) ::
+          {:ok, String.t()} | {:error, String.t()}
+  defp step_generate_docs(api, code, broadcast, run_id) do
+    broadcast.({:step_started, %{step: :generating_docs}})
+    touch_run(run_id)
+
+    # Use the API with the latest code for doc generation
+    api_with_code = %{api | source_code: code}
+
+    case DocGenerator.generate(api_with_code) do
+      {:ok, %{doc: doc} = result} ->
+        accumulate_usage(result[:usage])
+        broadcast.({:step_completed, %{step: :generating_docs, content: doc}})
+        {:ok, doc}
+
+      {:error, reason} ->
+        Logger.warning("Doc generation failed: #{inspect(reason)}")
+
+        broadcast.(
+          {:step_completed,
+           %{step: :generating_docs, content: "Documentation generation skipped"}}
+        )
+
+        {:ok, ""}
     end
   end
 

@@ -33,6 +33,7 @@ defmodule Blackboex.Conversations.Event do
     lint_code
     generate_tests
     run_tests
+    generate_docs
     submit_code
   )
 

@@ -1583,10 +1583,6 @@ defmodule BlackboexWeb.ApiLive.Edit do
 
   @impl true
   def handle_event("cancel_pipeline", _params, socket) do
-    if ref = socket.assigns.pipeline_ref do
-      Process.demonitor(ref, [:flush])
-    end
-
     # Rollback code if this was a chat edit in progress
     socket =
       if previous = socket.assigns[:pre_edit_code] do
@@ -1600,7 +1596,6 @@ defmodule BlackboexWeb.ApiLive.Edit do
 
     {:noreply,
      assign(socket,
-       pipeline_ref: nil,
        pipeline_status: nil,
        chat_loading: false,
        streaming_tokens: ""
@@ -2010,26 +2005,6 @@ defmodule BlackboexWeb.ApiLive.Edit do
   @impl true
   def handle_info({:agent_started, _payload}, socket), do: {:noreply, socket}
 
-  @impl true
-  def handle_info({:doc_generated, _payload}, socket) do
-    api = Apis.get_api(socket.assigns.org.id, socket.assigns.api.id)
-
-    event = %{
-      type: :tool_result,
-      tool: "generate_docs",
-      success: true,
-      content: "Documentation generated",
-      timestamp: DateTime.utc_now(),
-      id: length(socket.assigns.agent_events)
-    }
-
-    {:noreply,
-     assign(socket,
-       api: api || socket.assigns.api,
-       agent_events: socket.assigns.agent_events ++ [event]
-     )}
-  end
-
   # ── Private Helpers ────────────────────────────────────────────────────
 
   defp execute_command(socket, "quick_test_get") do
@@ -2205,6 +2180,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
   defp agent_tool_to_status("lint_code"), do: :linting
   defp agent_tool_to_status("generate_tests"), do: :generating_tests
   defp agent_tool_to_status("run_tests"), do: :running_tests
+  defp agent_tool_to_status("generate_docs"), do: :generating_docs
   defp agent_tool_to_status("submit_code"), do: :submitting
   defp agent_tool_to_status(_), do: :processing
 

@@ -59,7 +59,7 @@ config :esbuild,
 
 # Configure tailwind (the version is required)
 config :tailwind,
-  version: "4.1.12",
+  version: "4.2.2",
   blackboex_web: [
     args: ~w(
       --input=assets/css/app.css

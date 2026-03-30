@@ -2230,7 +2230,6 @@ defmodule BlackboexWeb.ApiLive.Edit do
   end
 
   defp load_conversation_events(nil), do: {[], nil}
-  defp load_conversation_events(%{total_events: 0}), do: {[], nil}
 
   defp load_conversation_events(agent_conversation) do
     case AgentConversations.list_runs(agent_conversation.id, limit: 1) do

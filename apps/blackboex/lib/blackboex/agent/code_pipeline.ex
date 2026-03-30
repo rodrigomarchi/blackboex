@@ -51,14 +51,21 @@ defmodule Blackboex.Agent.CodePipeline do
   def run_generation(api, description, opts \\ []) do
     broadcast = opts[:broadcast_fn] || fn _ -> :ok end
     run_id = opts[:run_id]
-    reset_llm_counter()
+    reset_counters()
 
     with {:ok, code} <- step_generate_code(api, description, broadcast, run_id),
          {:ok, code} <- step_validate_and_fix(api, code, broadcast, run_id),
          {:ok, test_code} <- step_generate_tests(api, code, broadcast, run_id),
          {:ok, test_code} <- step_run_and_fix_tests(api, code, test_code, broadcast, run_id) do
       broadcast.({:step_completed, %{step: :submitting}})
-      {:ok, %{code: code, test_code: test_code, summary: "Code generated and validated"}}
+
+      {:ok,
+       %{
+         code: code,
+         test_code: test_code,
+         summary: "Code generated and validated",
+         usage: get_accumulated_usage()
+       }}
     end
   end
 
@@ -67,7 +74,7 @@ defmodule Blackboex.Agent.CodePipeline do
   def run_edit(api, instruction, current_code, current_tests, opts \\ []) do
     broadcast = opts[:broadcast_fn] || fn _ -> :ok end
     run_id = opts[:run_id]
-    reset_llm_counter()
+    reset_counters()
 
     with {:ok, code} <-
            step_edit_code(api, instruction, current_code, current_tests, broadcast, run_id),
@@ -75,7 +82,14 @@ defmodule Blackboex.Agent.CodePipeline do
          {:ok, test_code} <- step_generate_tests(api, code, broadcast, run_id),
          {:ok, test_code} <- step_run_and_fix_tests(api, code, test_code, broadcast, run_id) do
       broadcast.({:step_completed, %{step: :submitting}})
-      {:ok, %{code: code, test_code: test_code, summary: "Code updated and validated"}}
+
+      {:ok,
+       %{
+         code: code,
+         test_code: test_code,
+         summary: "Code updated and validated",
+         usage: get_accumulated_usage()
+       }}
     end
   end
 
@@ -91,14 +105,42 @@ defmodule Blackboex.Agent.CodePipeline do
       client = Config.client()
 
       case client.generate_text(prompt, system: system) do
-        {:ok, %{content: content}} -> {:ok, content}
-        {:error, reason} -> {:error, "LLM call failed: #{inspect(reason)}"}
+        {:ok, %{content: content} = result} ->
+          accumulate_usage(result[:usage])
+          {:ok, content}
+
+        {:error, reason} ->
+          {:error, "LLM call failed: #{inspect(reason)}"}
       end
     end
   end
 
-  @spec reset_llm_counter() :: term()
-  defp reset_llm_counter, do: Process.put(:pipeline_llm_calls, 0)
+  @spec reset_counters() :: term()
+  defp reset_counters do
+    Process.put(:pipeline_llm_calls, 0)
+    Process.put(:pipeline_input_tokens, 0)
+    Process.put(:pipeline_output_tokens, 0)
+  end
+
+  @spec accumulate_usage(map() | nil) :: :ok
+  defp accumulate_usage(nil), do: :ok
+
+  defp accumulate_usage(usage) when is_map(usage) do
+    input = Map.get(usage, :input_tokens, 0) || Map.get(usage, "input_tokens", 0) || 0
+    output = Map.get(usage, :output_tokens, 0) || Map.get(usage, "output_tokens", 0) || 0
+
+    Process.put(:pipeline_input_tokens, Process.get(:pipeline_input_tokens, 0) + input)
+    Process.put(:pipeline_output_tokens, Process.get(:pipeline_output_tokens, 0) + output)
+    :ok
+  end
+
+  @spec get_accumulated_usage() :: %{input_tokens: integer(), output_tokens: integer()}
+  defp get_accumulated_usage do
+    %{
+      input_tokens: Process.get(:pipeline_input_tokens, 0),
+      output_tokens: Process.get(:pipeline_output_tokens, 0)
+    }
+  end
 
   # ── Step 1: Generate Code ──────────────────────────────────────
 
@@ -181,7 +223,7 @@ defmodule Blackboex.Agent.CodePipeline do
 
     case Linter.auto_format(code) do
       {:ok, formatted} ->
-        broadcast.({:step_completed, %{step: :formatting, code: formatted}})
+        broadcast.({:step_completed, %{step: :formatting, content: "Code formatted"}})
         {:ok, formatted}
 
       {:error, reason} ->
@@ -204,9 +246,14 @@ defmodule Blackboex.Agent.CodePipeline do
     touch_run(run_id)
 
     case Compiler.compile(api, code) do
-      {:ok, _module} ->
+      {:ok, module} ->
         broadcast.(
-          {:step_completed, %{step: :compiling, success: true, content: "Compiled successfully"}}
+          {:step_completed,
+           %{
+             step: :compiling,
+             success: true,
+             content: "Compiled successfully. Module: #{inspect(module)}"
+           }}
         )
 
         {:ok, code}
@@ -246,7 +293,14 @@ defmodule Blackboex.Agent.CodePipeline do
     case guarded_llm_call(prompt, system) do
       {:ok, content} ->
         fixed_code = extract_code(content)
-        broadcast.({:step_completed, %{step: :fixing_compilation, code: fixed_code}})
+
+        broadcast.(
+          {:step_completed,
+           %{
+             step: :fixing_compilation,
+             content: "Compilation fix applied (attempt #{attempt + 1})"
+           }}
+        )
 
         with {:ok, formatted} <- step_format(fixed_code, broadcast) do
           step_compile_with_fix(api, formatted, broadcast, run_id, attempt + 1)
@@ -277,14 +331,14 @@ defmodule Blackboex.Agent.CodePipeline do
 
     case issues do
       [] ->
-        broadcast.(
-          {:step_completed, %{step: :linting, success: true, content: "No issues found"}}
-        )
+        lint_summary = format_lint_results(results)
+
+        broadcast.({:step_completed, %{step: :linting, success: true, content: lint_summary}})
 
         {:ok, code}
 
-      issues ->
-        issue_text = Enum.join(issues, "\n")
+      _issues ->
+        issue_text = format_lint_results(results)
         broadcast.({:step_completed, %{step: :linting, success: false, content: issue_text}})
         maybe_fix_lint(api, code, issue_text, broadcast, run_id, attempt)
     end
@@ -313,7 +367,11 @@ defmodule Blackboex.Agent.CodePipeline do
     case guarded_llm_call(prompt, system) do
       {:ok, content} ->
         fixed_code = extract_code(content)
-        broadcast.({:step_completed, %{step: :fixing_lint, code: fixed_code}})
+
+        broadcast.(
+          {:step_completed,
+           %{step: :fixing_lint, content: "Lint fix applied (attempt #{attempt + 1})"}}
+        )
 
         with {:ok, formatted} <- step_format(fixed_code, broadcast),
              {:ok, compiled} <- step_compile_with_fix(api, formatted, broadcast, run_id, 0) do
@@ -362,16 +420,16 @@ defmodule Blackboex.Agent.CodePipeline do
     case TestRunner.run(test_code, handler_code: code) do
       {:ok, results} ->
         failed = Enum.filter(results, &(&1.status != "passed"))
-        total = length(results)
-        passed = total - length(failed)
 
         if failed == [] do
+          success_text = format_test_successes(results)
+
           broadcast.(
             {:step_completed,
              %{
                step: :running_tests,
                success: true,
-               content: "#{total} tests, #{passed} passed, 0 failed."
+               content: success_text
              }}
           )
 
@@ -460,7 +518,8 @@ defmodule Blackboex.Agent.CodePipeline do
     case FixPrompts.parse_code_and_tests(content) do
       {fixed_code, fixed_tests} ->
         broadcast.(
-          {:step_completed, %{step: :fixing_tests, code: fixed_code, test_code: fixed_tests}}
+          {:step_completed,
+           %{step: :fixing_tests, content: "Test fix applied (attempt #{attempt + 1})"}}
         )
 
         revalidate_and_rerun_tests(api, fixed_code, fixed_tests, broadcast, run_id, attempt)
@@ -526,6 +585,35 @@ defmodule Blackboex.Agent.CodePipeline do
       end)
 
     "#{header}\n\n#{details}"
+  end
+
+  @spec format_test_successes([map()]) :: String.t()
+  defp format_test_successes(results) do
+    total = length(results)
+
+    details =
+      results
+      |> Enum.map_join("\n", fn r -> "  ✓ #{r.name}" end)
+
+    "#{details}\n\n#{total} tests, #{total} passed, 0 failed."
+  end
+
+  @spec format_lint_results([map()]) :: String.t()
+  defp format_lint_results(results) do
+    results
+    |> Enum.map_join("\n", fn %{check: check, status: status, issues: issues} ->
+      check_name = check |> to_string() |> String.capitalize()
+      status_icon = if status == :pass, do: "✓", else: "✗"
+
+      case issues do
+        [] ->
+          "#{status_icon} #{check_name}: pass"
+
+        items ->
+          detail = Enum.map_join(items, "\n  ", & &1)
+          "#{status_icon} #{check_name}: #{status}\n  #{detail}"
+      end
+    end)
   end
 
   @spec template_atom(String.t() | nil) :: :crud | :webhook | :computation

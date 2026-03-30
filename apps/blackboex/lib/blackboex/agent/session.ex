@@ -238,7 +238,9 @@ defmodule Blackboex.Agent.Session do
        ) do
     tool_name = step_to_tool_name(step)
     success = Map.get(payload, :success, true)
-    content = Map.get(payload, :content, "") || Map.get(payload, :code, "") || ""
+
+    content = extract_step_content(payload)
+
     content_str = if is_binary(content), do: content, else: inspect(content)
 
     Conversations.touch_run(run_id)
@@ -296,6 +298,17 @@ defmodule Blackboex.Agent.Session do
 
   defp translate_pipeline_event(_event, _run_id, _conversation_id), do: :ok
 
+  @spec extract_step_content(map()) :: String.t()
+  defp extract_step_content(payload) do
+    [:content, :code, :test_code]
+    |> Enum.find_value("", fn key ->
+      case Map.get(payload, key) do
+        c when is_binary(c) and c != "" -> c
+        _ -> nil
+      end
+    end)
+  end
+
   @spec step_to_tool_name(atom()) :: String.t()
   defp step_to_tool_name(:generating_code), do: "generate_code"
   defp step_to_tool_name(:formatting), do: "format_code"
@@ -338,6 +351,16 @@ defmodule Blackboex.Agent.Session do
         run_summary: result[:summary] || "Completed",
         error_summary: nil
       })
+
+    # Persist LLM usage metrics and event count on the run
+    usage = result[:usage] || %{}
+    event_count = Conversations.next_sequence(state.run_id)
+
+    Conversations.update_run_metrics(run, %{
+      input_tokens: Map.get(usage, :input_tokens, 0),
+      output_tokens: Map.get(usage, :output_tokens, 0),
+      event_count: event_count
+    })
 
     save_api_and_version(state, run, result, status)
     update_conversation_stats(state)

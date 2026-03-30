@@ -384,50 +384,90 @@ defmodule BlackboexWeb.Components.ChatPanel do
 
   defp render_code_block(assigns) do
     lines = String.split(assigns.code, "\n")
-    assigns = assign(assigns, :lines, Enum.with_index(lines, 1))
+    line_count = length(lines)
+
+    assigns =
+      assigns
+      |> assign(:line_count, line_count)
+      |> assign(:lines, Enum.with_index(lines, 1))
 
     ~H"""
-    <div class="rounded-md border bg-muted/30 overflow-hidden">
-      <div class="flex items-center justify-between px-2.5 py-1 border-b bg-muted/50">
-        <span class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+    <div class="rounded-md border bg-[#1e1e2e] overflow-hidden">
+      <div class="flex items-center justify-between px-2.5 py-1 border-b border-white/10 bg-white/5">
+        <span class="text-[10px] font-medium text-white/50 uppercase tracking-wider">
           {@label}
         </span>
-        <span class="text-[10px] text-muted-foreground">{length(@lines)} lines</span>
+        <span class="text-[10px] text-white/40">{@line_count} lines</span>
       </div>
-      <pre class="max-h-[300px] overflow-y-auto overflow-x-auto p-0 m-0"><code class="text-[11px] font-mono leading-[1.4]"><%= for {line, num} <- @lines do %><div class="flex hover:bg-muted/40 px-1"><span class="select-none text-muted-foreground/40 text-right w-7 pr-2 shrink-0">{num}</span><span class="whitespace-pre">{line}</span></div><% end %></code></pre>
+      <div class="max-h-[300px] overflow-y-auto overflow-x-auto text-[11px] font-mono leading-snug">
+        <%= for {line, num} <- @lines do %>
+          <div class="flex hover:bg-white/5">
+            <span class="select-none text-white/20 text-right w-8 pr-2 pl-2 shrink-0 border-r border-white/5">
+              {num}
+            </span><span class="pl-3 pr-2 whitespace-pre highlight">{highlight_line(line)}</span>
+          </div>
+        <% end %>
+      </div>
     </div>
     """
+  end
+
+  @makeup_mod Makeup
+  @elixir_lexer Makeup.Lexers.ElixirLexer
+
+  @spec highlight_line(String.t()) :: Phoenix.HTML.safe()
+  defp highlight_line(line) do
+    @makeup_mod.highlight_inner_html(line, lexer: @elixir_lexer)
+    |> Phoenix.HTML.raw()
+  rescue
+    _ -> line
   end
 
   # ── Tool Output (formatted per tool type) ───────────────────────────────
 
   defp render_tool_output(assigns) do
+    assigns = assign(assigns, :is_code, looks_like_code?(assigns.content))
+
     ~H"""
     <%= if @content != "" do %>
-      <div class={[
-        "rounded-md border px-2.5 py-2 text-xs",
-        if(!@success,
-          do: "border-red-300 bg-red-50/50 dark:border-red-800 dark:bg-red-950/30",
-          else: "bg-muted/30"
-        )
-      ]}>
-        <div class="flex items-center gap-1 mb-1">
-          <span class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-            Output
-          </span>
-          <%= if !@success do %>
-            <span class="text-[9px] rounded bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300 px-1 py-0.5 font-medium">
-              ERROR
+      <%= if @is_code do %>
+        <.render_code_block code={@content} label="Output" />
+      <% else %>
+        <div class={[
+          "rounded-md border px-2.5 py-2 text-xs",
+          if(!@success,
+            do: "border-red-300 bg-red-50/50 dark:border-red-800 dark:bg-red-950/30",
+            else: "bg-muted/30"
+          )
+        ]}>
+          <div class="flex items-center gap-1 mb-1">
+            <span class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+              Output
             </span>
-          <% end %>
+            <%= if !@success do %>
+              <span class="text-[9px] rounded bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300 px-1 py-0.5 font-medium">
+                ERROR
+              </span>
+            <% end %>
+          </div>
+          <pre class={[
+            "whitespace-pre-wrap font-mono text-[11px] leading-relaxed max-h-[400px] overflow-y-auto",
+            if(!@success, do: "text-red-600 dark:text-red-400", else: "text-foreground")
+          ]}><code>{@content}</code></pre>
         </div>
-        <pre class={[
-          "whitespace-pre-wrap font-mono text-[11px] leading-relaxed max-h-[400px] overflow-y-auto",
-          if(!@success, do: "text-red-600 dark:text-red-400", else: "text-foreground")
-        ]}><code>{@content}</code></pre>
-      </div>
+      <% end %>
     <% end %>
     """
+  end
+
+  @spec looks_like_code?(String.t() | nil) :: boolean()
+  defp looks_like_code?(nil), do: false
+  defp looks_like_code?(""), do: false
+
+  defp looks_like_code?(content) when is_binary(content) do
+    String.contains?(content, "defmodule") or
+      String.contains?(content, "defp ") or
+      (String.contains?(content, "def ") and String.contains?(content, "do"))
   end
 
   # ── Pending Edit ────────────────────────────────────────────────────────

@@ -162,9 +162,8 @@ defmodule Blackboex.Agent.CodePipeline do
 
     #{Templates.get(template_type)}
 
-    Generate the handler code for this API. Return ONLY the code, no explanations.
-    Do not wrap in markdown fences.
-    Keep functions under 20 lines. Extract helpers for validation and error formatting.
+    Generate the handler code for this API.
+    Return the code in a single ```elixir code block. No explanations outside the block.
     """
 
     case guarded_llm_call(description, system) do

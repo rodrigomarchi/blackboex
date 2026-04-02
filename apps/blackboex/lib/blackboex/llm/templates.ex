@@ -84,6 +84,7 @@ defmodule Blackboex.LLM.Templates do
     - You may define helper functions with `defp`.
     - Return plain maps — the framework handles JSON encoding and HTTP status codes.
     - For errors, return `%{error: "message"}`.
+    - Every public `def` MUST have @doc and @spec directly above it.
 
     Example:
     ```elixir
@@ -112,9 +113,16 @@ defmodule Blackboex.LLM.Templates do
       end
     end
 
+    @doc "Lists all items, optionally filtered by params."
+    @spec handle_list(map()) :: map()
     def handle_list(_params), do: %{items: []}
+
+    @doc "Returns a single item by ID."
+    @spec handle_get(String.t(), map()) :: map()
     def handle_get(id, _params), do: %{id: id, name: "Item"}
 
+    @doc "Creates a new item after validating input."
+    @spec handle_create(map()) :: map()
     def handle_create(params) do
       changeset = Request.changeset(params)
 
@@ -126,6 +134,8 @@ defmodule Blackboex.LLM.Templates do
       end
     end
 
+    @doc "Updates an existing item by ID."
+    @spec handle_update(String.t(), map()) :: map()
     def handle_update(id, params) do
       changeset = Request.changeset(params)
 
@@ -137,8 +147,12 @@ defmodule Blackboex.LLM.Templates do
       end
     end
 
+    @doc "Deletes an item by ID."
+    @spec handle_delete(String.t()) :: map()
     def handle_delete(id), do: %{id: id, deleted: true}
     ```
+
+    REMEMBER: Every `def` MUST have @doc and @spec directly above it. Max 20 lines per function. Max 120 chars per line.
     """
   end
 

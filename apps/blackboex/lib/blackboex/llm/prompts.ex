@@ -74,6 +74,65 @@ defmodule Blackboex.LLM.Prompts do
     - Prefer `Map.get/3` with defaults over bare `Map.get/2`
     - Return tagged tuples from helpers: `{:ok, result}` or `{:error, reason}`
 
+    ## Code Quality Rules (ENFORCED BY AUTOMATED LINTER — violations are rejected)
+    1. **Max 120 characters per line** — break long lines with multi-line syntax
+    2. **Max 20 lines per function** — extract `defp` helpers for complex logic
+    3. **Max 3 levels of nesting** (if/case/cond/with) — flatten with `with`, guards, or early return
+    4. **Every public `def` MUST have `@doc` directly above it** (before `@spec`)
+    5. **Every public `def` MUST have `@spec` directly above it** (after `@doc`)
+    6. **Code MUST be compatible with `mix format`** — standard Elixir formatting
+
+    Correct annotation order above every public function:
+    ```elixir
+    @doc "Describes what the function does."
+    @spec function_name(map()) :: map()
+    def function_name(params) do
+      ...
+    end
+    ```
+
+    WRONG patterns (will be rejected by linter):
+    ```elixir
+    # WRONG: missing @doc and @spec
+    def handle(params) do ... end
+
+    # WRONG: nesting depth > 3
+    if a do
+      if b do
+        case c do    # depth 3 — this is the limit
+          :x ->
+            if d do   # depth 4 — REJECTED
+            end
+        end
+      end
+    end
+
+    # WRONG: function > 20 lines — extract helpers instead
+    def handle(params) do
+      # ... 25 lines of logic ...
+    end
+    ```
+
+    RIGHT pattern — flat, short, documented:
+    ```elixir
+    @doc "Processes request and returns computed result."
+    @spec handle(map()) :: map()
+    def handle(params) do
+      with {:ok, data} <- validate(params),
+           {:ok, result} <- compute(data) do
+        format_response(result)
+      else
+        {:error, reason} -> %{error: reason}
+      end
+    end
+
+    @spec validate(map()) :: {:ok, map()} | {:error, String.t()}
+    defp validate(params) do
+      changeset = Request.changeset(params)
+      if changeset.valid?, do: {:ok, Ecto.Changeset.apply_changes(changeset)}, else: {:error, "Invalid input"}
+    end
+    ```
+
     ## Request/Response Schemas (REQUIRED)
     You MUST define BOTH `defmodule Request` AND `defmodule Response`.
     Use `use Blackboex.Schema` — it provides Ecto embedded_schema + Changeset.

@@ -191,7 +191,8 @@ defmodule Blackboex.Agent.Session do
       opts = [
         broadcast_fn: broadcast_fn,
         run_id: state.run_id,
-        conversation_id: state.conversation_id
+        conversation_id: state.conversation_id,
+        token_callback: build_token_callback(state.run_id)
       ]
 
       case state.run_type do
@@ -208,6 +209,45 @@ defmodule Blackboex.Agent.Session do
           CodePipeline.run_generation(api, state.trigger_message, opts)
       end
     end
+  end
+
+  @spec build_token_callback(String.t()) :: (String.t() -> :ok)
+  defp build_token_callback(run_id) do
+    fn token ->
+      buffer = Process.get(:stream_buffer, "")
+      new_buffer = buffer <> token
+
+      if String.length(new_buffer) >= 20 or String.contains?(token, "\n") do
+        Process.put(:stream_buffer, "")
+
+        Phoenix.PubSub.broadcast(
+          Blackboex.PubSub,
+          "run:#{run_id}",
+          {:agent_streaming, %{delta: new_buffer}}
+        )
+      else
+        Process.put(:stream_buffer, new_buffer)
+      end
+
+      :ok
+    end
+  end
+
+  @spec flush_remaining_stream(String.t()) :: :ok
+  defp flush_remaining_stream(run_id) do
+    buffer = Process.get(:stream_buffer, "")
+
+    if buffer != "" do
+      Process.put(:stream_buffer, "")
+
+      Phoenix.PubSub.broadcast(
+        Blackboex.PubSub,
+        "run:#{run_id}",
+        {:agent_streaming, %{delta: buffer}}
+      )
+    end
+
+    :ok
   end
 
   @spec build_broadcast_fn(t()) :: (term() -> :ok)
@@ -230,6 +270,7 @@ defmodule Blackboex.Agent.Session do
          _api_id,
          _org_id
        ) do
+    flush_remaining_stream(run_id)
     tool_name = step_to_tool_name(step)
 
     persist_event(%{

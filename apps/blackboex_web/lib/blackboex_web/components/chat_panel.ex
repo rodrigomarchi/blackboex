@@ -33,7 +33,7 @@ defmodule BlackboexWeb.Components.ChatPanel do
       </div>
 
       <%!-- Scrollable timeline area --%>
-      <div class="flex-1 min-h-0 overflow-y-auto" id="chat-messages">
+      <div class="flex-1 min-h-0 overflow-y-auto" id="chat-messages" phx-hook="ChatAutoScroll">
         <%= if @grouped_events == [] and @pending_edit == nil and @streaming_tokens == "" and not @loading do %>
           <p class="text-sm text-muted-foreground text-center py-12 px-4">
             Describe what you want the agent to build or change.
@@ -46,9 +46,9 @@ defmodule BlackboexWeb.Components.ChatPanel do
                 <% {:message, event} -> %>
                   <.render_message_step event={event} />
                 <% {:tool_group, call, result} -> %>
-                  <.render_tool_step call={call} result={result} />
+                  <.render_tool_step call={call} result={result} streaming_tokens="" />
                 <% {:tool_call, call} -> %>
-                  <.render_tool_step call={call} result={nil} />
+                  <.render_tool_step call={call} result={nil} streaming_tokens={@streaming_tokens} />
                 <% {:tool_result, result} -> %>
                   <.render_standalone_result result={result} />
                 <% {:status, event} -> %>
@@ -56,21 +56,20 @@ defmodule BlackboexWeb.Components.ChatPanel do
               <% end %>
             <% end %>
 
-            <%!-- Streaming tokens --%>
-            <%= if @loading && @streaming_tokens != "" do %>
+            <%!-- Streaming tokens fallback (when streaming before first tool step) --%>
+            <%= if @loading and not has_active_tool_call?(@grouped_events) and @streaming_tokens != "" do %>
               <div class="relative pb-2 pt-1">
                 <div class="absolute -left-[9px] top-3 size-[13px] rounded-full border-2 border-blue-500 bg-background flex items-center justify-center animate-pulse">
                   <div class="size-[5px] rounded-full bg-blue-500" />
                 </div>
-                <div class="rounded-md bg-muted/50 border px-3 py-2 ml-2">
-                  <pre class="whitespace-pre-wrap font-mono text-xs text-foreground"><code>{@streaming_tokens}</code></pre>
-                  <span class="inline-block w-1.5 h-4 bg-primary animate-pulse ml-0.5" />
+                <div class="ml-2">
+                  <.render_streaming_code code={@streaming_tokens} />
                 </div>
               </div>
             <% end %>
 
-            <%!-- Thinking indicator --%>
-            <%= if @loading && @streaming_tokens == "" do %>
+            <%!-- Thinking indicator (when loading but no active tool step and no tokens yet) --%>
+            <%= if @loading and not has_active_tool_call?(@grouped_events) and @streaming_tokens == "" do %>
               <div class="relative py-2">
                 <div class="absolute -left-[7px] top-[11px] size-[9px] rounded-full bg-blue-500 animate-pulse" />
                 <span class="text-xs text-muted-foreground animate-pulse ml-2">Thinking...</span>
@@ -271,10 +270,10 @@ defmodule BlackboexWeb.Components.ChatPanel do
         }
       >
         <div class="flex items-center gap-1.5 py-0.5">
-          <span id={"#{@step_id}-chev-r"}>
+          <span id={"#{@step_id}-chev-r"} class={if(is_nil(@result), do: "hidden", else: "")}>
             <.icon name="hero-chevron-right-mini" class="size-3 text-muted-foreground" />
           </span>
-          <span id={"#{@step_id}-chev-d"} class="hidden">
+          <span id={"#{@step_id}-chev-d"} class={if(is_nil(@result), do: "", else: "hidden")}>
             <.icon name="hero-chevron-down-mini" class="size-3 text-muted-foreground" />
           </span>
           <span class="text-xs font-medium">{format_tool_display_name(@call.tool)}</span>
@@ -298,8 +297,26 @@ defmodule BlackboexWeb.Components.ChatPanel do
         </div>
       </button>
 
-      <%!-- Expandable detail panel --%>
-      <div id={"#{@step_id}-detail"} class="hidden mt-1.5 mb-2 ml-7 space-y-2">
+      <%!-- Expandable detail panel — open when active, closed when complete --%>
+      <div
+        id={"#{@step_id}-detail"}
+        class={[
+          "mt-1.5 mb-2 ml-7 space-y-2",
+          if(@result, do: "hidden", else: "")
+        ]}
+      >
+        <%!-- Streaming tokens (inside active step) --%>
+        <%= if is_nil(@result) and @streaming_tokens != "" do %>
+          <.render_streaming_code code={@streaming_tokens} />
+        <% end %>
+
+        <%!-- Thinking inside active step (no tokens yet) --%>
+        <%= if is_nil(@result) and @streaming_tokens == "" do %>
+          <div class="py-1">
+            <span class="text-xs text-muted-foreground animate-pulse">Thinking...</span>
+          </div>
+        <% end %>
+
         <%!-- Timestamps --%>
         <div class="flex items-center gap-1 text-[10px] text-muted-foreground">
           <.icon name="hero-clock" class="size-3" />
@@ -422,6 +439,36 @@ defmodule BlackboexWeb.Components.ChatPanel do
     |> Phoenix.HTML.raw()
   rescue
     _ -> line
+  end
+
+  defp render_streaming_code(assigns) do
+    lines = String.split(assigns.code, "\n")
+
+    assigns =
+      assigns
+      |> assign(:lines, Enum.with_index(lines, 1))
+      |> assign(:line_count, length(lines))
+
+    ~H"""
+    <div class="rounded-md border bg-[#1e1e2e] overflow-hidden">
+      <div class="flex items-center justify-between px-2.5 py-1 border-b border-white/10 bg-white/5">
+        <span class="text-[10px] font-medium text-white/50 uppercase tracking-wider">
+          Streaming
+        </span>
+        <span class="inline-block w-1.5 h-3 bg-blue-400 animate-pulse rounded-sm" />
+      </div>
+      <div class="max-h-[300px] overflow-y-auto overflow-x-auto text-[11px] font-mono leading-snug">
+        <%= for {line, num} <- @lines do %>
+          <div class="flex hover:bg-white/5">
+            <span class="select-none text-white/20 text-right w-8 pr-2 pl-2 shrink-0 border-r border-white/5">
+              {num}
+            </span>
+            <span class="pl-3 pr-2 whitespace-pre highlight">{highlight_line(line)}</span>
+          </div>
+        <% end %>
+      </div>
+    </div>
+    """
   end
 
   # ── Tool Output (formatted per tool type) ───────────────────────────────
@@ -565,6 +612,13 @@ defmodule BlackboexWeb.Components.ChatPanel do
   end
 
   defp group_events(_), do: []
+
+  defp has_active_tool_call?(grouped_events) do
+    Enum.any?(grouped_events, fn
+      {:tool_call, _call} -> true
+      _ -> false
+    end)
+  end
 
   defp event_tag(%{type: :message}), do: :message
   defp event_tag(%{type: :tool_call}), do: :tool_call

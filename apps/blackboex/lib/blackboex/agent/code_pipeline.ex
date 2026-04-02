@@ -53,6 +53,7 @@ defmodule Blackboex.Agent.CodePipeline do
     broadcast = opts[:broadcast_fn] || fn _ -> :ok end
     run_id = opts[:run_id]
     reset_counters()
+    Process.put(:token_callback, opts[:token_callback])
 
     with {:ok, code} <- step_generate_code(api, description, broadcast, run_id),
          {:ok, code} <- step_validate_and_fix(api, code, broadcast, run_id),
@@ -78,6 +79,7 @@ defmodule Blackboex.Agent.CodePipeline do
     broadcast = opts[:broadcast_fn] || fn _ -> :ok end
     run_id = opts[:run_id]
     reset_counters()
+    Process.put(:token_callback, opts[:token_callback])
 
     with {:ok, code} <-
            step_edit_code(api, instruction, current_code, current_tests, broadcast, run_id),
@@ -98,7 +100,8 @@ defmodule Blackboex.Agent.CodePipeline do
     end
   end
 
-  # Guarded LLM call — prevents runaway loops across all fix steps
+  # Guarded LLM call — prevents runaway loops across all fix steps.
+  # Streams tokens via token_callback when available, falls back to sync.
   @spec guarded_llm_call(String.t(), String.t()) :: {:ok, String.t()} | {:error, String.t()}
   defp guarded_llm_call(prompt, system) do
     count = Process.get(:pipeline_llm_calls, 0)
@@ -108,16 +111,80 @@ defmodule Blackboex.Agent.CodePipeline do
     else
       Process.put(:pipeline_llm_calls, count + 1)
       client = Config.client()
+      token_callback = Process.get(:token_callback)
 
-      case client.generate_text(prompt, system: system) do
-        {:ok, %{content: content} = result} ->
-          accumulate_usage(result[:usage])
-          {:ok, content}
-
-        {:error, reason} ->
-          {:error, "LLM call failed: #{inspect(reason)}"}
+      if token_callback do
+        stream_llm_call(client, prompt, system, token_callback)
+      else
+        sync_llm_call(client, prompt, system)
       end
     end
+  end
+
+  @spec sync_llm_call(term(), String.t(), String.t()) ::
+          {:ok, String.t()} | {:error, String.t()}
+  defp sync_llm_call(client, prompt, system) do
+    case client.generate_text(prompt, system: system) do
+      {:ok, %{content: content} = result} ->
+        accumulate_usage(result[:usage])
+        {:ok, content}
+
+      {:error, reason} ->
+        {:error, "LLM call failed: #{inspect(reason)}"}
+    end
+  end
+
+  @spec stream_llm_call(term(), String.t(), String.t(), (String.t() -> :ok)) ::
+          {:ok, String.t()} | {:error, String.t()}
+  defp stream_llm_call(client, prompt, system, token_callback) do
+    case client.stream_text(prompt, system: system) do
+      {:ok, %ReqLLM.StreamResponse{} = response} ->
+        content =
+          response
+          |> ReqLLM.StreamResponse.tokens()
+          |> Enum.reduce("", fn token, acc ->
+            token_callback.(token)
+            acc <> token
+          end)
+
+        flush_stream_buffer(token_callback)
+        accumulate_usage(ReqLLM.StreamResponse.usage(response))
+        {:ok, content}
+
+      {:ok, stream} ->
+        content =
+          Enum.reduce(stream, "", fn
+            {:token, token}, acc ->
+              token_callback.(token)
+              acc <> token
+
+            token, acc when is_binary(token) ->
+              token_callback.(token)
+              acc <> token
+          end)
+
+        flush_stream_buffer(token_callback)
+        {:ok, content}
+
+      {:error, reason} ->
+        {:error, "LLM stream failed: #{inspect(reason)}"}
+    end
+  rescue
+    e ->
+      Logger.warning("Stream failed, falling back to sync: #{Exception.message(e)}")
+      sync_llm_call(client, prompt, system)
+  end
+
+  @spec flush_stream_buffer((String.t() -> :ok)) :: :ok
+  defp flush_stream_buffer(token_callback) do
+    buffer = Process.get(:stream_buffer, "")
+
+    if buffer != "" do
+      Process.put(:stream_buffer, "")
+      token_callback.(buffer)
+    end
+
+    :ok
   end
 
   @spec reset_counters() :: term()
@@ -395,7 +462,10 @@ defmodule Blackboex.Agent.CodePipeline do
     broadcast.({:step_started, %{step: :generating_tests}})
     touch_run(run_id)
 
-    case TestGenerator.generate_tests_for_code(code, api.template_type || "computation") do
+    tc = Process.get(:token_callback)
+    gen_opts = if tc, do: [token_callback: tc], else: []
+
+    case TestGenerator.generate_tests_for_code(code, api.template_type || "computation", gen_opts) do
       {:ok, %{code: test_code}} ->
         broadcast.({:step_completed, %{step: :generating_tests, test_code: test_code}})
         {:ok, test_code}
@@ -563,7 +633,10 @@ defmodule Blackboex.Agent.CodePipeline do
     # Use the API with the latest code for doc generation
     api_with_code = %{api | source_code: code}
 
-    case DocGenerator.generate(api_with_code) do
+    doc_tc = Process.get(:token_callback)
+    doc_opts = if doc_tc, do: [token_callback: doc_tc], else: []
+
+    case DocGenerator.generate(api_with_code, doc_opts) do
       {:ok, %{doc: doc} = result} ->
         accumulate_usage(result[:usage])
         broadcast.({:step_completed, %{step: :generating_docs, content: doc}})

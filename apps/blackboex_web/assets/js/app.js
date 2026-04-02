@@ -87,6 +87,24 @@ const AutoFocus = {
   updated() { this.el.focus() }
 }
 
+// Auto-scroll chat timeline to bottom on new content
+const ChatAutoScroll = {
+  mounted() {
+    this.scrollToBottom()
+    this.observer = new MutationObserver(() => this.scrollToBottom())
+    this.observer.observe(this.el, { childList: true, subtree: true, characterData: true })
+  },
+  updated() {
+    this.scrollToBottom()
+  },
+  destroyed() {
+    if (this.observer) this.observer.disconnect()
+  },
+  scrollToBottom() {
+    this.el.scrollTop = this.el.scrollHeight
+  }
+}
+
 // Command palette keyboard navigation (arrows + Enter + Escape)
 const CommandPaletteNav = {
   mounted() {
@@ -193,7 +211,7 @@ const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks, CodeEditorHook, MonacoDiffEditor, KeyboardShortcuts, AutoFocus, CommandPaletteNav, ...BackpexHooks},
+  hooks: {...colocatedHooks, CodeEditorHook, MonacoDiffEditor, KeyboardShortcuts, AutoFocus, ChatAutoScroll, CommandPaletteNav, ...BackpexHooks},
 })
 
 // Show progress bar on live navigation and form submits

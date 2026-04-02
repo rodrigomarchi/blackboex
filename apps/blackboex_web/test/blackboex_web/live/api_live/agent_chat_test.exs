@@ -57,7 +57,7 @@ defmodule BlackboexWeb.ApiLive.AgentChatTest do
       # Run started + streaming
       run_id = start_agent_run(lv)
       send(lv.pid, {:agent_streaming, %{delta: "Analyzing...", run_id: run_id}})
-      assert render(lv) =~ "Analyzing..."
+      assert render(lv) =~ "Analyzing"
 
       # Tool result in timeline
       send_tool_result(lv, run_id, "compile_code", true, "OK")

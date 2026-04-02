@@ -1861,7 +1861,8 @@ defmodule BlackboexWeb.ApiLive.Edit do
       socket
       |> assign(
         pipeline_status: agent_tool_to_status(tool_name),
-        agent_events: socket.assigns.agent_events ++ [event]
+        agent_events: socket.assigns.agent_events ++ [event],
+        streaming_tokens: ""
       )
       |> apply_action_to_editor(tool_name, args)
 

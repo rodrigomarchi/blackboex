@@ -91,3 +91,21 @@ Umbrella app with strict domain/web separation. The domain app (`blackboex`) has
 - Credo strict mode enforced
 - Dialyzer from day one
 - Two esbuild/tailwind targets: `blackboex_web` and `blackboex_admin`
+
+## Dangerous Operations — Never Do This
+
+- Compile user code outside the sandbox (`CodeGen.Compiler`)
+- Use `String.to_atom/1` with external data — use Map lookup instead
+- Skip ownership checks when fetching resources (IDOR vulnerability)
+- Return internal error details to users — log internally, show generic message
+- Use `==` to compare secrets — use `Plug.Crypto.secure_compare/2`
+- Use `send(self(), :blocking_work)` for IO/network in LiveView — use `Task.async`
+- Call domain modules directly from templates — go through context facades
+- Run `Repo.get!` with session/external data — use `Repo.get` + pattern match
+- Mark webhook as processed BEFORE handling — order is: check → process → mark
+
+## Deep Reference
+
+- `AGENTS.md` — hierarchical AI agent context (root + per-directory)
+- `docs/architecture.md` — context diagrams, data flows, supervision tree, invariants
+- `docs/gotchas.md` — consolidated gotchas from all 10 development phases

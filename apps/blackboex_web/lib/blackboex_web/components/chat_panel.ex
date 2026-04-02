@@ -404,7 +404,8 @@ defmodule BlackboexWeb.Components.ChatPanel do
           <div class="flex hover:bg-white/5">
             <span class="select-none text-white/20 text-right w-8 pr-2 pl-2 shrink-0 border-r border-white/5">
               {num}
-            </span><span class="pl-3 pr-2 whitespace-pre highlight">{highlight_line(line)}</span>
+            </span>
+            <span class="pl-3 pr-2 whitespace-pre highlight">{highlight_line(line)}</span>
           </div>
         <% end %>
       </div>

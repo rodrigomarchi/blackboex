@@ -4,12 +4,14 @@ defmodule BlackboexWeb.Admin.InvocationLogLive do
   Read-only.
   """
 
+  alias Blackboex.Apis.InvocationLog
+
   use Backpex.LiveResource,
     adapter_config: [
-      schema: Blackboex.Apis.InvocationLog,
+      schema: InvocationLog,
       repo: Blackboex.Repo,
-      update_changeset: &Blackboex.Apis.InvocationLog.admin_changeset/3,
-      create_changeset: &Blackboex.Apis.InvocationLog.admin_changeset/3
+      update_changeset: &InvocationLog.admin_changeset/3,
+      create_changeset: &InvocationLog.admin_changeset/3
     ],
     layout: {BlackboexWeb.Layouts, :admin},
     init_order: %{by: :inserted_at, direction: :desc}

@@ -30,7 +30,10 @@ defmodule BlackboexWeb.Components.Flash do
     <div
       :if={msg = render_slot(@inner_block) || Phoenix.Flash.get(@flash, @kind)}
       id={@id}
-      phx-click={JS.push("lv:clear-flash", value: %{key: @kind}) |> BlackboexWeb.Components.Helpers.hide("##{@id}")}
+      phx-click={
+        JS.push("lv:clear-flash", value: %{key: @kind})
+        |> BlackboexWeb.Components.Helpers.hide("##{@id}")
+      }
       role="alert"
       class="fixed top-4 right-4 z-[200]"
       {@rest}

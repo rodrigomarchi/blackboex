@@ -4,12 +4,14 @@ defmodule BlackboexWeb.Admin.LlmUsageLive do
   Read-only.
   """
 
+  alias Blackboex.LLM.Usage
+
   use Backpex.LiveResource,
     adapter_config: [
-      schema: Blackboex.LLM.Usage,
+      schema: Usage,
       repo: Blackboex.Repo,
-      update_changeset: &Blackboex.LLM.Usage.admin_changeset/3,
-      create_changeset: &Blackboex.LLM.Usage.admin_changeset/3
+      update_changeset: &Usage.admin_changeset/3,
+      create_changeset: &Usage.admin_changeset/3
     ],
     layout: {BlackboexWeb.Layouts, :admin},
     init_order: %{by: :inserted_at, direction: :desc}

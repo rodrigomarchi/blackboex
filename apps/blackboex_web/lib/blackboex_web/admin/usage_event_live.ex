@@ -4,12 +4,14 @@ defmodule BlackboexWeb.Admin.UsageEventLive do
   Read-only.
   """
 
+  alias Blackboex.Billing.UsageEvent
+
   use Backpex.LiveResource,
     adapter_config: [
-      schema: Blackboex.Billing.UsageEvent,
+      schema: UsageEvent,
       repo: Blackboex.Repo,
-      update_changeset: &Blackboex.Billing.UsageEvent.admin_changeset/3,
-      create_changeset: &Blackboex.Billing.UsageEvent.admin_changeset/3
+      update_changeset: &UsageEvent.admin_changeset/3,
+      create_changeset: &UsageEvent.admin_changeset/3
     ],
     layout: {BlackboexWeb.Layouts, :admin},
     init_order: %{by: :inserted_at, direction: :desc}

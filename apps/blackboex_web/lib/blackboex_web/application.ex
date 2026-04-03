@@ -14,6 +14,7 @@ defmodule BlackboexWeb.Application do
     :ok = OpentelemetryLoggerMetadata.setup()
 
     children = [
+      TwMerge.Cache,
       BlackboexWeb.PromEx,
       BlackboexWeb.Telemetry,
       {BlackboexWeb.RateLimiterBackend, clean_period: :timer.minutes(10)},

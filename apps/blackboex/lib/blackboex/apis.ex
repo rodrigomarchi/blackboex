@@ -5,6 +5,7 @@ defmodule Blackboex.Apis do
 
   import Ecto.Query, warn: false
 
+  alias Blackboex.Agent.KickoffWorker
   alias Blackboex.Apis.Api
   alias Blackboex.Apis.ApiVersion
   alias Blackboex.Apis.DiffEngine
@@ -315,7 +316,7 @@ defmodule Blackboex.Apis do
 
     update_api(api, %{generation_status: "generating"})
 
-    case args |> Blackboex.Agent.KickoffWorker.new() |> Oban.insert() do
+    case args |> KickoffWorker.new() |> Oban.insert() do
       {:ok, _job} -> {:ok, api.id}
       {:error, reason} -> {:error, reason}
     end
@@ -339,7 +340,7 @@ defmodule Blackboex.Apis do
       "current_tests" => api.test_code
     }
 
-    case args |> Blackboex.Agent.KickoffWorker.new() |> Oban.insert() do
+    case args |> KickoffWorker.new() |> Oban.insert() do
       {:ok, _job} -> {:ok, api.id}
       {:error, reason} -> {:error, reason}
     end

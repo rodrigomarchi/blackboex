@@ -4,12 +4,14 @@ defmodule BlackboexWeb.Admin.MetricRollupLive do
   Read-only.
   """
 
+  alias Blackboex.Apis.MetricRollup
+
   use Backpex.LiveResource,
     adapter_config: [
-      schema: Blackboex.Apis.MetricRollup,
+      schema: MetricRollup,
       repo: Blackboex.Repo,
-      update_changeset: &Blackboex.Apis.MetricRollup.admin_changeset/3,
-      create_changeset: &Blackboex.Apis.MetricRollup.admin_changeset/3
+      update_changeset: &MetricRollup.admin_changeset/3,
+      create_changeset: &MetricRollup.admin_changeset/3
     ],
     layout: {BlackboexWeb.Layouts, :admin}
 

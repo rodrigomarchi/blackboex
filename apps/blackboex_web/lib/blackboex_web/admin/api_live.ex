@@ -3,12 +3,14 @@ defmodule BlackboexWeb.Admin.ApiLive do
   Backpex LiveResource for managing APIs in the admin panel.
   """
 
+  alias Blackboex.Apis.Api
+
   use Backpex.LiveResource,
     adapter_config: [
-      schema: Blackboex.Apis.Api,
+      schema: Api,
       repo: Blackboex.Repo,
-      update_changeset: &Blackboex.Apis.Api.admin_changeset/3,
-      create_changeset: &Blackboex.Apis.Api.admin_changeset/3
+      update_changeset: &Api.admin_changeset/3,
+      create_changeset: &Api.admin_changeset/3
     ],
     layout: {BlackboexWeb.Layouts, :admin}
 

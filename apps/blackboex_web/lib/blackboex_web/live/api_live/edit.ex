@@ -2568,7 +2568,10 @@ defmodule BlackboexWeb.ApiLive.Edit do
   defp test_summary_class(summary) do
     if String.contains?(summary, "/") do
       [passed, total] = String.split(summary, "/")
-      if passed == total, do: "bg-success/10 text-success-foreground", else: "bg-destructive/10 text-destructive"
+
+      if passed == total,
+        do: "bg-success/10 text-success-foreground",
+        else: "bg-destructive/10 text-destructive"
     else
       "bg-muted text-muted-foreground"
     end

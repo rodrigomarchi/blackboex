@@ -78,8 +78,8 @@ config :tailwind,
 # Backpex admin panel
 config :backpex,
   pubsub_server: Blackboex.PubSub,
-  translator_function: {BlackboexWeb.CoreComponents, :translate_backpex},
-  error_translator_function: {BlackboexWeb.CoreComponents, :translate_error}
+  translator_function: {BlackboexWeb.Components.Helpers, :translate_backpex},
+  error_translator_function: {BlackboexWeb.Components.Helpers, :translate_error}
 
 # ExAudit row-level audit tracking
 config :ex_audit,

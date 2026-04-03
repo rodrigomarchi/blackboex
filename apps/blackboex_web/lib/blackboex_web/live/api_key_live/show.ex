@@ -4,6 +4,11 @@ defmodule BlackboexWeb.ApiKeyLive.Show do
   """
   use BlackboexWeb, :live_view
 
+  import BlackboexWeb.Components.Badge
+  import BlackboexWeb.Components.Card
+  import BlackboexWeb.Components.Shared.StatCard
+  import BlackboexWeb.Components.Shared.DescriptionList
+
   alias Blackboex.Apis.Keys
 
   @impl true
@@ -32,50 +37,48 @@ defmodule BlackboexWeb.ApiKeyLive.Show do
     ~H"""
     <div class="space-y-6">
       <%!-- Header --%>
-      <div class="flex items-center justify-between">
-        <div>
-          <div class="flex items-center gap-3">
-            <.link navigate={~p"/api-keys"} class="text-muted-foreground hover:text-foreground">
-              <.icon name="hero-arrow-left" class="size-5" />
+      <.header>
+        <div class="flex items-center gap-3">
+          <.link navigate={~p"/api-keys"} class="text-muted-foreground hover:text-foreground">
+            <.icon name="hero-arrow-left" class="size-5" />
+          </.link>
+          <span class="text-2xl font-bold tracking-tight font-mono">{@key.key_prefix}...</span>
+          <.badge class={api_key_status_classes(status_label(@key))}>
+            {status_label(@key)}
+          </.badge>
+        </div>
+        <:subtitle>
+          {@key.label || "Unnamed key"} · API:
+          <%= if @key.api do %>
+            <.link navigate={~p"/apis/#{@key.api_id}"} class="text-primary hover:underline">
+              {@key.api.name}
             </.link>
-            <h1 class="text-2xl font-bold tracking-tight font-mono">{@key.key_prefix}...</h1>
-            <span class={[
-              "inline-flex rounded-full px-2 py-0.5 text-xs font-semibold",
-              status_class(@key)
-            ]}>
-              {status_label(@key)}
-            </span>
+          <% else %>
+            <span>Unknown</span>
+          <% end %>
+        </:subtitle>
+        <:actions>
+          <div class="flex gap-2">
+            <.button
+              :if={!@key.revoked_at}
+              phx-click="rotate"
+              variant="default"
+              size="sm"
+            >
+              <.icon name="hero-arrow-path" class="mr-1.5 size-4" /> Rotate
+            </.button>
+            <.button
+              :if={!@key.revoked_at}
+              phx-click="revoke"
+              data-confirm="Revoke this key? API calls using it will immediately fail."
+              variant="destructive"
+              size="sm"
+            >
+              <.icon name="hero-x-circle" class="mr-1.5 size-4" /> Revoke
+            </.button>
           </div>
-          <p class="text-muted-foreground mt-1">
-            {@key.label || "Unnamed key"} · API:
-            <%= if @key.api do %>
-              <.link navigate={~p"/apis/#{@key.api_id}"} class="text-primary hover:underline">
-                {@key.api.name}
-              </.link>
-            <% else %>
-              <span>Unknown</span>
-            <% end %>
-          </p>
-        </div>
-
-        <div class="flex gap-2">
-          <button
-            :if={!@key.revoked_at}
-            phx-click="rotate"
-            class="inline-flex items-center rounded-md border px-3 py-2 text-sm hover:bg-accent"
-          >
-            <.icon name="hero-arrow-path" class="mr-1.5 size-4" /> Rotate
-          </button>
-          <button
-            :if={!@key.revoked_at}
-            phx-click="revoke"
-            data-confirm="Revoke this key? API calls using it will immediately fail."
-            class="inline-flex items-center rounded-md border border-destructive px-3 py-2 text-sm text-destructive hover:bg-destructive/10"
-          >
-            <.icon name="hero-x-circle" class="mr-1.5 size-4" /> Revoke
-          </button>
-        </div>
-      </div>
+        </:actions>
+      </.header>
 
       <%!-- Plain key flash --%>
       <%= if @plain_key_flash do %>
@@ -95,20 +98,15 @@ defmodule BlackboexWeb.ApiKeyLive.Show do
         <div class="flex items-center justify-between">
           <h2 class="text-lg font-semibold">Usage</h2>
           <div class="flex gap-1 rounded-lg border p-0.5">
-            <button
+            <.button
               :for={p <- ~w(24h 7d 30d)}
               phx-click="set_period"
               phx-value-period={p}
-              class={[
-                "rounded px-3 py-1 text-xs font-medium transition-colors",
-                if(p == @period,
-                  do: "bg-primary text-primary-foreground",
-                  else: "hover:bg-accent"
-                )
-              ]}
+              variant={if p == @period, do: "primary", else: "ghost"}
+              size="sm"
             >
               {p}
-            </button>
+            </.button>
           </div>
         </div>
 
@@ -117,7 +115,7 @@ defmodule BlackboexWeb.ApiKeyLive.Show do
           <.stat_card
             label="Errors"
             value={@metrics.errors}
-            color={if @metrics.errors > 0, do: "red"}
+            color={if @metrics.errors > 0, do: "destructive"}
           />
           <.stat_card label="Avg Latency" value={format_latency(@metrics.avg_latency)} />
           <.stat_card label="Success Rate" value={"#{@metrics.success_rate}%"} />
@@ -125,66 +123,34 @@ defmodule BlackboexWeb.ApiKeyLive.Show do
       </div>
 
       <%!-- Details --%>
-      <div class="rounded-lg border bg-card p-6 shadow-sm space-y-4">
-        <h2 class="text-lg font-semibold">Details</h2>
-        <dl class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-          <div>
-            <dt class="font-medium text-muted-foreground">Key Prefix</dt>
-            <dd class="font-mono mt-1">{@key.key_prefix}</dd>
-          </div>
-          <div>
-            <dt class="font-medium text-muted-foreground">Label</dt>
-            <dd class="mt-1">{@key.label || "—"}</dd>
-          </div>
-          <div>
-            <dt class="font-medium text-muted-foreground">Created</dt>
-            <dd class="mt-1">
+      <.card>
+        <.card_content class="pt-6">
+          <h2 class="text-lg font-semibold mb-4">Details</h2>
+          <.description_list>
+            <:item label="Key Prefix">
+              <span class="font-mono">{@key.key_prefix}</span>
+            </:item>
+            <:item label="Label">{@key.label || "—"}</:item>
+            <:item label="Created">
               {Calendar.strftime(@key.inserted_at, "%B %d, %Y at %H:%M UTC")}
-            </dd>
-          </div>
-          <div>
-            <dt class="font-medium text-muted-foreground">Last Used</dt>
-            <dd class="mt-1">{format_last_used(@key.last_used_at)}</dd>
-          </div>
-          <div>
-            <dt class="font-medium text-muted-foreground">Expires</dt>
-            <dd class="mt-1">
+            </:item>
+            <:item label="Last Used">{format_last_used(@key.last_used_at)}</:item>
+            <:item label="Expires">
               {if @key.expires_at,
                 do: Calendar.strftime(@key.expires_at, "%B %d, %Y"),
                 else: "Never"}
-            </dd>
-          </div>
-          <div>
-            <dt class="font-medium text-muted-foreground">Rate Limit</dt>
-            <dd class="mt-1">
+            </:item>
+            <:item label="Rate Limit">
               {if @key.rate_limit, do: "#{@key.rate_limit} req/min", else: "Default"}
-            </dd>
-          </div>
-          <%= if @key.revoked_at do %>
-            <div>
-              <dt class="font-medium text-muted-foreground">Revoked At</dt>
-              <dd class="mt-1 text-destructive">
+            </:item>
+            <:item :if={@key.revoked_at} label="Revoked At">
+              <span class="text-destructive">
                 {Calendar.strftime(@key.revoked_at, "%B %d, %Y at %H:%M UTC")}
-              </dd>
-            </div>
-          <% end %>
-        </dl>
-      </div>
-    </div>
-    """
-  end
-
-  attr :label, :string, required: true
-  attr :value, :any, required: true
-  attr :color, :string, default: nil
-
-  defp stat_card(assigns) do
-    ~H"""
-    <div class="rounded-lg border bg-card p-4 shadow-sm">
-      <p class="text-xs font-medium text-muted-foreground">{@label}</p>
-      <p class={["text-2xl font-bold mt-1", @color == "red" && "text-destructive"]}>
-        {@value}
-      </p>
+              </span>
+            </:item>
+          </.description_list>
+        </.card_content>
+      </.card>
     </div>
     """
   end
@@ -241,8 +207,6 @@ defmodule BlackboexWeb.ApiKeyLive.Show do
   end
 
   defp status_label(_), do: "Active"
-
-  defp status_class(key), do: api_key_status_classes(status_label(key))
 
   defp format_latency(nil), do: "—"
   defp format_latency(ms) when is_float(ms), do: "#{Float.round(ms, 1)}ms"

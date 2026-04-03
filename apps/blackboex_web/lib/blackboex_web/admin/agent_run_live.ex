@@ -4,12 +4,14 @@ defmodule BlackboexWeb.Admin.AgentRunLive do
   Read-only.
   """
 
+  alias Blackboex.Conversations.Run
+
   use Backpex.LiveResource,
     adapter_config: [
-      schema: Blackboex.Conversations.Run,
+      schema: Run,
       repo: Blackboex.Repo,
-      update_changeset: &Blackboex.Conversations.Run.admin_changeset/3,
-      create_changeset: &Blackboex.Conversations.Run.admin_changeset/3
+      update_changeset: &Run.admin_changeset/3,
+      create_changeset: &Run.admin_changeset/3
     ],
     layout: {BlackboexWeb.Layouts, :admin}
 

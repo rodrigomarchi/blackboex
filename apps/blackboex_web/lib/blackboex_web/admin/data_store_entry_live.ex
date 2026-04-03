@@ -4,12 +4,14 @@ defmodule BlackboexWeb.Admin.DataStoreEntryLive do
   Editable with caution.
   """
 
+  alias Blackboex.Apis.DataStore.Entry
+
   use Backpex.LiveResource,
     adapter_config: [
-      schema: Blackboex.Apis.DataStore.Entry,
+      schema: Entry,
       repo: Blackboex.Repo,
-      update_changeset: &Blackboex.Apis.DataStore.Entry.admin_changeset/3,
-      create_changeset: &Blackboex.Apis.DataStore.Entry.admin_changeset/3
+      update_changeset: &Entry.admin_changeset/3,
+      create_changeset: &Entry.admin_changeset/3
     ],
     layout: {BlackboexWeb.Layouts, :admin}
 

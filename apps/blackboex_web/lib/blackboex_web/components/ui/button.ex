@@ -46,7 +46,9 @@ defmodule BlackboexWeb.Components.Button do
 
   def button(%{rest: rest} = assigns) do
     assigns =
-      assign(assigns, :computed_class,
+      assign(
+        assigns,
+        :computed_class,
         classes([
           @base,
           @variants[assigns.variant],

@@ -4,6 +4,12 @@ defmodule BlackboexWeb.BillingLive.Manage do
   """
   use BlackboexWeb, :live_view
 
+  import BlackboexWeb.Components.Card
+  import BlackboexWeb.Components.Badge
+  import BlackboexWeb.Components.Spinner
+  import BlackboexWeb.Components.Shared.EmptyState
+  import BlackboexWeb.Components.Shared.DescriptionList
+
   alias Blackboex.Billing
 
   @impl true
@@ -41,92 +47,65 @@ defmodule BlackboexWeb.BillingLive.Manage do
   def render(assigns) do
     ~H"""
     <div class="max-w-2xl mx-auto py-8">
-      <h1 class="text-2xl font-bold mb-6">Subscription Management</h1>
+      <.header>
+        Subscription Management
+      </.header>
 
       <%= if @subscription do %>
-        <div class="rounded-lg border bg-card text-card-foreground shadow-sm">
-          <div class="p-6">
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <span class="text-sm text-muted-foreground">Plan</span>
-                <p class="font-semibold capitalize">{@subscription.plan}</p>
-              </div>
-              <div>
-                <span class="text-sm text-muted-foreground">Status</span>
-                <p>
-                  <span class={[
-                    "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold",
-                    status_badge_class(@subscription.status)
-                  ]}>
-                    {@subscription.status}
-                  </span>
-                </p>
-              </div>
-              <div>
-                <span class="text-sm text-muted-foreground">Current Period</span>
-                <p class="text-sm">
-                  <%= if @subscription.current_period_start && @subscription.current_period_end do %>
-                    {Calendar.strftime(@subscription.current_period_start, "%b %d, %Y")} — {Calendar.strftime(
-                      @subscription.current_period_end,
-                      "%b %d, %Y"
-                    )}
-                  <% else %>
-                    —
-                  <% end %>
-                </p>
-              </div>
-              <div>
-                <span class="text-sm text-muted-foreground">Auto-Renew</span>
-                <p>
-                  {if @subscription.cancel_at_period_end,
-                    do: "Cancels at end of period",
-                    else: "Active"}
-                </p>
-              </div>
-            </div>
+        <.card>
+          <.card_content class="pt-6">
+            <.description_list>
+              <:item label="Plan">
+                <span class="font-semibold capitalize">{@subscription.plan}</span>
+              </:item>
+              <:item label="Status">
+                <.badge class={subscription_classes(@subscription.status)}>
+                  {@subscription.status}
+                </.badge>
+              </:item>
+              <:item label="Current Period">
+                <%= if @subscription.current_period_start && @subscription.current_period_end do %>
+                  {Calendar.strftime(@subscription.current_period_start, "%b %d, %Y")} — {Calendar.strftime(
+                    @subscription.current_period_end,
+                    "%b %d, %Y"
+                  )}
+                <% else %>
+                  —
+                <% end %>
+              </:item>
+              <:item label="Auto-Renew">
+                {if @subscription.cancel_at_period_end,
+                  do: "Cancels at end of period",
+                  else: "Active"}
+              </:item>
+            </.description_list>
 
             <div class="flex gap-2 pt-2 mt-6">
-              <button
-                class="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-                phx-click="manage"
-                disabled={@loading_portal}
-              >
+              <.button variant="primary" phx-click="manage" disabled={@loading_portal}>
                 <%= if @loading_portal do %>
-                  <svg class="animate-spin size-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                <% else %>
-                  Manage Subscription
+                  <.spinner />
                 <% end %>
-              </button>
-              <.link
-                navigate={~p"/billing"}
-                class="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
-              >
+                Manage Subscription
+              </.button>
+              <.button navigate={~p"/billing"} variant="default">
                 Change Plan
-              </.link>
+              </.button>
             </div>
-          </div>
-        </div>
+          </.card_content>
+        </.card>
       <% else %>
-        <div class="rounded-lg border bg-card text-card-foreground shadow-sm">
-          <div class="p-6 text-center">
-            <p class="text-muted-foreground">You don't have an active subscription.</p>
-            <div class="flex justify-center mt-4">
-              <.link
-                navigate={~p"/billing"}
-                class="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-              >
-                View Plans
-              </.link>
-            </div>
-          </div>
-        </div>
+        <.empty_state
+          title="No active subscription"
+          description="You don't have an active subscription."
+        >
+          <:actions>
+            <.button navigate={~p"/billing"} variant="primary">
+              View Plans
+            </.button>
+          </:actions>
+        </.empty_state>
       <% end %>
     </div>
     """
   end
-
-  defp status_badge_class(status), do: subscription_classes(status)
 end

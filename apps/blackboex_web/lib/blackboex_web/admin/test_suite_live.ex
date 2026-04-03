@@ -4,12 +4,14 @@ defmodule BlackboexWeb.Admin.TestSuiteLive do
   Read-only.
   """
 
+  alias Blackboex.Testing.TestSuite
+
   use Backpex.LiveResource,
     adapter_config: [
-      schema: Blackboex.Testing.TestSuite,
+      schema: TestSuite,
       repo: Blackboex.Repo,
-      update_changeset: &Blackboex.Testing.TestSuite.admin_changeset/3,
-      create_changeset: &Blackboex.Testing.TestSuite.admin_changeset/3
+      update_changeset: &TestSuite.admin_changeset/3,
+      create_changeset: &TestSuite.admin_changeset/3
     ],
     layout: {BlackboexWeb.Layouts, :admin}
 

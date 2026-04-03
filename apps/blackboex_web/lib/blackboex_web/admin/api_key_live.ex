@@ -4,12 +4,14 @@ defmodule BlackboexWeb.Admin.ApiKeyLive do
   Read-only.
   """
 
+  alias Blackboex.Apis.ApiKey
+
   use Backpex.LiveResource,
     adapter_config: [
-      schema: Blackboex.Apis.ApiKey,
+      schema: ApiKey,
       repo: Blackboex.Repo,
-      update_changeset: &Blackboex.Apis.ApiKey.admin_changeset/3,
-      create_changeset: &Blackboex.Apis.ApiKey.admin_changeset/3
+      update_changeset: &ApiKey.admin_changeset/3,
+      create_changeset: &ApiKey.admin_changeset/3
     ],
     layout: {BlackboexWeb.Layouts, :admin}
 

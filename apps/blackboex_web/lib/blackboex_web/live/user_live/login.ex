@@ -24,7 +24,10 @@ defmodule BlackboexWeb.UserLive.Login do
         </.header>
       </div>
 
-      <div :if={local_mail_adapter?()} class="flex items-center gap-3 rounded-lg border border-info bg-info/10 p-4 text-info-foreground text-sm">
+      <div
+        :if={local_mail_adapter?()}
+        class="flex items-center gap-3 rounded-lg border border-info bg-info/10 p-4 text-info-foreground text-sm"
+      >
         <.icon name="hero-information-circle" class="size-5 shrink-0" />
         <div>
           <p>Local mail adapter active.</p>

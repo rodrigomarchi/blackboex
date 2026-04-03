@@ -4,12 +4,14 @@ defmodule BlackboexWeb.Admin.DailyUsageLive do
   Read-only.
   """
 
+  alias Blackboex.Billing.DailyUsage
+
   use Backpex.LiveResource,
     adapter_config: [
-      schema: Blackboex.Billing.DailyUsage,
+      schema: DailyUsage,
       repo: Blackboex.Repo,
-      update_changeset: &Blackboex.Billing.DailyUsage.admin_changeset/3,
-      create_changeset: &Blackboex.Billing.DailyUsage.admin_changeset/3
+      update_changeset: &DailyUsage.admin_changeset/3,
+      create_changeset: &DailyUsage.admin_changeset/3
     ],
     layout: {BlackboexWeb.Layouts, :admin}
 

@@ -18,10 +18,18 @@ defmodule BlackboexWeb.Components.StatusHelpers do
       #=> "border-status-published bg-status-published/10 text-status-published-foreground"
   """
   @spec api_status_classes(String.t()) :: String.t()
-  def api_status_classes("draft"), do: "border-status-draft bg-status-draft/10 text-status-draft-foreground"
-  def api_status_classes("compiled"), do: "border-status-compiled bg-status-compiled/10 text-status-compiled-foreground"
-  def api_status_classes("published"), do: "border-status-published bg-status-published/10 text-status-published-foreground"
-  def api_status_classes("archived"), do: "border-status-archived bg-status-archived/10 text-status-archived-foreground"
+  def api_status_classes("draft"),
+    do: "border-status-draft bg-status-draft/10 text-status-draft-foreground"
+
+  def api_status_classes("compiled"),
+    do: "border-status-compiled bg-status-compiled/10 text-status-compiled-foreground"
+
+  def api_status_classes("published"),
+    do: "border-status-published bg-status-published/10 text-status-published-foreground"
+
+  def api_status_classes("archived"),
+    do: "border-status-archived bg-status-archived/10 text-status-archived-foreground"
+
   def api_status_classes(_), do: "border bg-muted text-muted-foreground"
 
   @doc """
@@ -30,7 +38,10 @@ defmodule BlackboexWeb.Components.StatusHelpers do
   @spec api_status_border(String.t()) :: String.t()
   def api_status_border("draft"), do: "border-status-draft text-status-draft-foreground"
   def api_status_border("compiled"), do: "border-status-compiled text-status-compiled-foreground"
-  def api_status_border("published"), do: "border-status-published text-status-published-foreground"
+
+  def api_status_border("published"),
+    do: "border-status-published text-status-published-foreground"
+
   def api_status_border("archived"), do: "border-status-archived text-status-archived-foreground"
   def api_status_border(_), do: "border-border text-muted-foreground"
 
@@ -38,9 +49,17 @@ defmodule BlackboexWeb.Components.StatusHelpers do
   Returns CSS classes for process state badges (pending, generating, running, etc.).
   """
   @spec process_status_classes(String.t()) :: String.t()
-  def process_status_classes("pending"), do: "border-warning bg-warning/10 text-warning-foreground"
-  def process_status_classes("generating"), do: "border-status-generating bg-status-generating/10 text-status-generating-foreground animate-pulse"
-  def process_status_classes("validating"), do: "border-status-generating bg-status-generating/10 text-status-generating-foreground animate-pulse"
+  def process_status_classes("pending"),
+    do: "border-warning bg-warning/10 text-warning-foreground"
+
+  def process_status_classes("generating"),
+    do:
+      "border-status-generating bg-status-generating/10 text-status-generating-foreground animate-pulse"
+
+  def process_status_classes("validating"),
+    do:
+      "border-status-generating bg-status-generating/10 text-status-generating-foreground animate-pulse"
+
   def process_status_classes("running"), do: "border-info bg-info/10 text-info-foreground"
   def process_status_classes(_), do: "border bg-muted text-muted-foreground"
 
@@ -48,9 +67,15 @@ defmodule BlackboexWeb.Components.StatusHelpers do
   Returns CSS classes for pass/fail/skip result badges.
   """
   @spec result_classes(String.t() | atom()) :: String.t()
-  def result_classes(status) when status in ["pass", :pass, "passed"], do: "bg-success/10 text-success-foreground"
-  def result_classes(status) when status in ["fail", :fail, "failed", "error"], do: "bg-destructive/10 text-destructive"
-  def result_classes(status) when status in ["skip", :skip, "skipped", "pending"], do: "bg-muted text-muted-foreground"
+  def result_classes(status) when status in ["pass", :pass, "passed"],
+    do: "bg-success/10 text-success-foreground"
+
+  def result_classes(status) when status in ["fail", :fail, "failed", "error"],
+    do: "bg-destructive/10 text-destructive"
+
+  def result_classes(status) when status in ["skip", :skip, "skipped", "pending"],
+    do: "bg-muted text-muted-foreground"
+
   def result_classes(_), do: "bg-muted text-muted-foreground"
 
   @doc """
@@ -60,8 +85,13 @@ defmodule BlackboexWeb.Components.StatusHelpers do
   def subscription_classes("active"), do: "border-success bg-success/10 text-success-foreground"
   def subscription_classes("trialing"), do: "border-info bg-info/10 text-info-foreground"
   def subscription_classes("past_due"), do: "border-warning bg-warning/10 text-warning-foreground"
-  def subscription_classes("canceled"), do: "border-destructive bg-destructive/10 text-destructive"
-  def subscription_classes("incomplete"), do: "border-warning bg-warning/10 text-warning-foreground"
+
+  def subscription_classes("canceled"),
+    do: "border-destructive bg-destructive/10 text-destructive"
+
+  def subscription_classes("incomplete"),
+    do: "border-warning bg-warning/10 text-warning-foreground"
+
   def subscription_classes(_), do: "border bg-muted text-muted-foreground"
 
   @doc """

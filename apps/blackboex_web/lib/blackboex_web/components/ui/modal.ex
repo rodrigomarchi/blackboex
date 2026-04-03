@@ -1,0 +1,65 @@
+defmodule BlackboexWeb.Components.Modal do
+  @moduledoc """
+  Modal dialog component with backdrop, close button, and keyboard support.
+
+  ## Examples
+
+      <.modal show={@show_modal} on_close="close_modal" title="Confirm Action">
+        <p>Are you sure?</p>
+      </.modal>
+  """
+  use BlackboexWeb.Component
+
+  attr :show, :boolean, required: true
+  attr :on_close, :string, required: true
+  attr :title, :string, default: nil
+  attr :class, :string, default: nil
+
+  slot :inner_block, required: true
+
+  def modal(assigns) do
+    ~H"""
+    <div
+      :if={@show}
+      class="fixed inset-0 z-50 flex items-center justify-center"
+      phx-window-keydown={@on_close}
+      phx-key="Escape"
+    >
+      <div
+        class="absolute inset-0 bg-black/50"
+        phx-click={@on_close}
+      />
+      <div class={
+        classes([
+          "relative z-10 w-full max-w-lg rounded-xl border bg-card text-card-foreground shadow-lg p-6",
+          @class
+        ])
+      }>
+        <div class="flex items-start justify-between mb-4">
+          <h2 :if={@title} class="text-lg font-semibold leading-none tracking-tight">
+            {@title}
+          </h2>
+          <button
+            type="button"
+            class="ml-auto -mt-1 -mr-1 inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+            phx-click={@on_close}
+            aria-label="Close"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        {render_slot(@inner_block)}
+      </div>
+    </div>
+    """
+  end
+end

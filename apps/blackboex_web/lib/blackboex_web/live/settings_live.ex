@@ -5,6 +5,10 @@ defmodule BlackboexWeb.SettingsLive do
   use BlackboexWeb, :live_view
 
   import Ecto.Query, warn: false
+  import BlackboexWeb.Components.Badge
+  import BlackboexWeb.Components.Card
+  import BlackboexWeb.Components.Avatar
+  import BlackboexWeb.Components.Shared.DescriptionList
 
   alias Blackboex.{Audit, Billing}
 
@@ -33,7 +37,7 @@ defmodule BlackboexWeb.SettingsLive do
   def render(assigns) do
     ~H"""
     <div class="py-8">
-      <h1 class="text-2xl font-bold mb-6">Settings</h1>
+      <.header>Settings</.header>
 
       <div class="border-b mb-6">
         <nav class="flex gap-1">
@@ -60,14 +64,16 @@ defmodule BlackboexWeb.SettingsLive do
 
   defp render_tab(%{active_tab: "profile"} = assigns) do
     ~H"""
-    <div class="rounded-lg border bg-card text-card-foreground shadow-sm">
-      <div class="p-6">
+    <.card>
+      <.card_content class="pt-6">
         <h2 class="text-lg font-semibold">Profile</h2>
 
         <div class="flex items-center gap-4 mb-6 mt-4">
-          <div class="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary font-bold">
-            {String.first(@current_scope.user.email) |> String.upcase()}
-          </div>
+          <.avatar class="h-12 w-12">
+            <.avatar_fallback class="bg-primary/10 text-primary font-bold">
+              {String.first(@current_scope.user.email) |> String.upcase()}
+            </.avatar_fallback>
+          </.avatar>
           <div>
             <p class="font-medium">{@current_scope.user.email}</p>
             <p class="text-sm text-muted-foreground">
@@ -76,144 +82,119 @@ defmodule BlackboexWeb.SettingsLive do
           </div>
         </div>
 
-        <div class="space-y-4">
-          <div>
-            <span class="text-sm text-muted-foreground">Email</span>
-            <p class="font-medium">{@current_scope.user.email}</p>
-          </div>
-          <div>
-            <span class="text-sm text-muted-foreground">Account Created</span>
-            <p class="text-sm">{Calendar.strftime(@current_scope.user.inserted_at, "%B %d, %Y")}</p>
-          </div>
-          <div class="mt-4">
-            <.link
-              navigate={~p"/users/settings"}
-              class="inline-flex items-center justify-center rounded-md border border-input bg-background px-3 py-1 text-xs font-medium hover:bg-accent hover:text-accent-foreground"
-            >
-              Edit Email & Password
-            </.link>
-          </div>
+        <.description_list>
+          <:item label="Email">{@current_scope.user.email}</:item>
+          <:item label="Account Created">
+            {Calendar.strftime(@current_scope.user.inserted_at, "%B %d, %Y")}
+          </:item>
+        </.description_list>
+
+        <div class="mt-4">
+          <.button navigate={~p"/users/settings"} variant="default" size="sm">
+            Edit Email & Password
+          </.button>
         </div>
-      </div>
-    </div>
+      </.card_content>
+    </.card>
     """
   end
 
   defp render_tab(%{active_tab: "organization", current_scope: %{organization: nil}} = assigns) do
     ~H"""
-    <div class="rounded-lg border bg-card text-card-foreground shadow-sm">
-      <div class="p-6">
+    <.card>
+      <.card_content class="pt-6">
         <h2 class="text-lg font-semibold">Organization</h2>
         <p class="text-muted-foreground mt-4">No organization selected.</p>
-      </div>
-    </div>
+      </.card_content>
+    </.card>
     """
   end
 
   defp render_tab(%{active_tab: "organization"} = assigns) do
     ~H"""
-    <div class="rounded-lg border bg-card text-card-foreground shadow-sm">
-      <div class="p-6">
+    <.card>
+      <.card_content class="pt-6">
         <h2 class="text-lg font-semibold">Organization</h2>
-        <div class="mt-4 space-y-4">
-          <div>
-            <span class="text-sm text-muted-foreground">Name</span>
-            <p class="font-medium">{@current_scope.organization.name}</p>
-          </div>
-          <div>
-            <span class="text-sm text-muted-foreground">Slug</span>
-            <p class="font-mono text-sm">{@current_scope.organization.slug}</p>
-          </div>
-          <div>
-            <span class="text-sm text-muted-foreground">Plan</span>
-            <p>
-              <span class="inline-flex items-center rounded-full bg-primary px-2.5 py-0.5 text-xs font-semibold text-primary-foreground capitalize">
-                {to_string(@current_scope.organization.plan)}
-              </span>
-            </p>
-          </div>
-          <div>
-            <span class="text-sm text-muted-foreground">Your Role</span>
-            <p class="capitalize">{to_string(@current_scope.membership.role)}</p>
-          </div>
+        <div class="mt-4">
+          <.description_list>
+            <:item label="Name">{@current_scope.organization.name}</:item>
+            <:item label="Slug">
+              <span class="font-mono text-sm">{@current_scope.organization.slug}</span>
+            </:item>
+            <:item label="Plan">
+              <.badge>{to_string(@current_scope.organization.plan)}</.badge>
+            </:item>
+            <:item label="Your Role">
+              <.badge variant="outline">{to_string(@current_scope.membership.role)}</.badge>
+            </:item>
+          </.description_list>
+        </div>
 
-          <div :if={@members != []} class="mt-6">
-            <h3 class="font-semibold mb-2">Members</h3>
-            <div class="space-y-2">
-              <div
-                :for={member <- @members}
-                class="flex items-center justify-between p-2 border rounded"
-              >
-                <span class="text-sm">{member.user.email}</span>
-                <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold capitalize">
-                  {to_string(member.role)}
-                </span>
-              </div>
+        <div :if={@members != []} class="mt-6">
+          <h3 class="font-semibold mb-2">Members</h3>
+          <div class="space-y-2">
+            <div
+              :for={member <- @members}
+              class="flex items-center justify-between p-2 border rounded"
+            >
+              <span class="text-sm">{member.user.email}</span>
+              <.badge variant="outline">{to_string(member.role)}</.badge>
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </.card_content>
+    </.card>
     """
   end
 
   defp render_tab(%{active_tab: "billing", current_scope: %{organization: nil}} = assigns) do
     ~H"""
-    <div class="rounded-lg border bg-card text-card-foreground shadow-sm">
-      <div class="p-6">
+    <.card>
+      <.card_content class="pt-6">
         <h2 class="text-lg font-semibold">Billing</h2>
         <p class="text-muted-foreground mt-4">No organization selected.</p>
-      </div>
-    </div>
+      </.card_content>
+    </.card>
     """
   end
 
   defp render_tab(%{active_tab: "billing"} = assigns) do
     ~H"""
-    <div class="rounded-lg border bg-card text-card-foreground shadow-sm">
-      <div class="p-6">
+    <.card>
+      <.card_content class="pt-6">
         <h2 class="text-lg font-semibold">Billing</h2>
-        <div class="mt-4 space-y-4">
-          <div>
-            <span class="text-sm text-muted-foreground">Current Plan</span>
-            <p class="font-semibold capitalize">{to_string(@current_scope.organization.plan)}</p>
-          </div>
-
-          <%= if @subscription do %>
-            <div>
-              <span class="text-sm text-muted-foreground">Status</span>
-              <p>
-                <span class={["inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold", subscription_badge(@subscription.status)]}>
-                  {@subscription.status}
-                </span>
-              </p>
-            </div>
-          <% end %>
-
-          <div class="flex gap-2 mt-4">
-            <.link
-              navigate={~p"/billing"}
-              class="inline-flex items-center justify-center rounded-md bg-primary px-3 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90"
-            >
-              View Plans
-            </.link>
-            <.link
-              navigate={~p"/billing/manage"}
-              class="inline-flex items-center justify-center rounded-md border border-input bg-background px-3 py-1 text-xs font-medium hover:bg-accent hover:text-accent-foreground"
-            >
-              Manage Subscription
-            </.link>
-          </div>
+        <div class="mt-4">
+          <.description_list>
+            <:item label="Current Plan">
+              <span class="font-semibold capitalize">
+                {to_string(@current_scope.organization.plan)}
+              </span>
+            </:item>
+            <:item :if={@subscription} label="Status">
+              <.badge class={subscription_classes(@subscription.status)}>
+                {@subscription.status}
+              </.badge>
+            </:item>
+          </.description_list>
         </div>
-      </div>
-    </div>
+
+        <div class="flex gap-2 mt-4">
+          <.button navigate={~p"/billing"} variant="primary" size="sm">
+            View Plans
+          </.button>
+          <.button navigate={~p"/billing/manage"} variant="default" size="sm">
+            Manage Subscription
+          </.button>
+        </div>
+      </.card_content>
+    </.card>
     """
   end
 
   defp render_tab(%{active_tab: "security"} = assigns) do
     ~H"""
-    <div class="rounded-lg border bg-card text-card-foreground shadow-sm">
-      <div class="p-6">
+    <.card>
+      <.card_content class="pt-6">
         <h2 class="text-lg font-semibold">Security & Audit</h2>
 
         <div :if={@audit_logs == []} class="mt-4 text-muted-foreground">
@@ -241,15 +222,12 @@ defmodule BlackboexWeb.SettingsLive do
         </div>
 
         <div class="mt-6">
-          <.link
-            navigate={~p"/users/settings"}
-            class="inline-flex items-center justify-center rounded-md border border-input bg-background px-3 py-1 text-xs font-medium hover:bg-accent hover:text-accent-foreground"
-          >
+          <.button navigate={~p"/users/settings"} variant="default" size="sm">
             Change Password
-          </.link>
+          </.button>
         </div>
-      </div>
-    </div>
+      </.card_content>
+    </.card>
     """
   end
 
@@ -294,8 +272,6 @@ defmodule BlackboexWeb.SettingsLive do
   defp tab_label("organization"), do: "Organization"
   defp tab_label("billing"), do: "Billing"
   defp tab_label("security"), do: "Security"
-
-  defp subscription_badge(status), do: subscription_classes(status)
 
   defp tabs, do: @tabs
 end

@@ -4,12 +4,14 @@ defmodule BlackboexWeb.Admin.ApiVersionLive do
   Read-only.
   """
 
+  alias Blackboex.Apis.ApiVersion
+
   use Backpex.LiveResource,
     adapter_config: [
-      schema: Blackboex.Apis.ApiVersion,
+      schema: ApiVersion,
       repo: Blackboex.Repo,
-      update_changeset: &Blackboex.Apis.ApiVersion.admin_changeset/3,
-      create_changeset: &Blackboex.Apis.ApiVersion.admin_changeset/3
+      update_changeset: &ApiVersion.admin_changeset/3,
+      create_changeset: &ApiVersion.admin_changeset/3
     ],
     layout: {BlackboexWeb.Layouts, :admin},
     init_order: %{by: :inserted_at, direction: :desc}

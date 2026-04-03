@@ -4,12 +4,14 @@ defmodule BlackboexWeb.Admin.MembershipLive do
   Edit limited to role changes only.
   """
 
+  alias Blackboex.Organizations.Membership
+
   use Backpex.LiveResource,
     adapter_config: [
-      schema: Blackboex.Organizations.Membership,
+      schema: Membership,
       repo: Blackboex.Repo,
-      update_changeset: &Blackboex.Organizations.Membership.admin_changeset/3,
-      create_changeset: &Blackboex.Organizations.Membership.admin_changeset/3
+      update_changeset: &Membership.admin_changeset/3,
+      create_changeset: &Membership.admin_changeset/3
     ],
     layout: {BlackboexWeb.Layouts, :admin}
 

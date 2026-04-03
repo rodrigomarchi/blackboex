@@ -150,7 +150,6 @@ defmodule Blackboex.Agent.Session do
 
   # ── Chain Execution ────────────────────────────────────────────
 
-  @spec start_chain_execution(t()) :: {:noreply, t()}
   defp start_chain_execution(state) do
     run = Conversations.get_run!(state.run_id)
     Conversations.update_run_metrics(run, %{started_at: DateTime.utc_now()})
@@ -296,7 +295,7 @@ defmodule Blackboex.Agent.Session do
 
     content = extract_step_content(payload)
 
-    content_str = if is_binary(content), do: content, else: inspect(content)
+    content_str = content
 
     Conversations.touch_run(run_id)
 

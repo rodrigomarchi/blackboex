@@ -4,12 +4,14 @@ defmodule BlackboexWeb.Admin.ProcessedEventLive do
   Read-only.
   """
 
+  alias Blackboex.Billing.ProcessedEvent
+
   use Backpex.LiveResource,
     adapter_config: [
-      schema: Blackboex.Billing.ProcessedEvent,
+      schema: ProcessedEvent,
       repo: Blackboex.Repo,
-      update_changeset: &Blackboex.Billing.ProcessedEvent.admin_changeset/3,
-      create_changeset: &Blackboex.Billing.ProcessedEvent.admin_changeset/3
+      update_changeset: &ProcessedEvent.admin_changeset/3,
+      create_changeset: &ProcessedEvent.admin_changeset/3
     ],
     layout: {BlackboexWeb.Layouts, :admin}
 

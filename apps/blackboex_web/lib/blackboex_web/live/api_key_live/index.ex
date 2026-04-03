@@ -4,6 +4,10 @@ defmodule BlackboexWeb.ApiKeyLive.Index do
   """
   use BlackboexWeb, :live_view
 
+  import BlackboexWeb.Components.Modal
+  import BlackboexWeb.Components.Badge
+  import BlackboexWeb.Components.Shared.EmptyState
+
   alias Blackboex.Apis
   alias Blackboex.Apis.Keys
 
@@ -27,18 +31,15 @@ defmodule BlackboexWeb.ApiKeyLive.Index do
   def render(assigns) do
     ~H"""
     <div class="space-y-6">
-      <div class="flex items-center justify-between">
-        <div>
-          <h1 class="text-2xl font-bold tracking-tight">API Keys</h1>
-          <p class="text-muted-foreground">Manage authentication keys across all your APIs</p>
-        </div>
-        <button
-          phx-click="toggle_create_modal"
-          class="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90"
-        >
-          <.icon name="hero-plus" class="mr-2 size-4" /> New Key
-        </button>
-      </div>
+      <.header>
+        API Keys
+        <:subtitle>Manage authentication keys across all your APIs</:subtitle>
+        <:actions>
+          <.button variant="primary" phx-click="toggle_create_modal">
+            <.icon name="hero-plus" class="mr-2 size-4" /> New Key
+          </.button>
+        </:actions>
+      </.header>
 
       <%!-- Plain key flash (shown after create/rotate) --%>
       <%= if @plain_key_flash do %>
@@ -56,121 +57,75 @@ defmodule BlackboexWeb.ApiKeyLive.Index do
       <% end %>
 
       <%!-- Keys table --%>
-      <div class="rounded-lg border bg-card shadow-sm">
-        <%= if @keys == [] do %>
-          <div class="p-8 text-center text-muted-foreground">
-            <.icon name="hero-key" class="mx-auto size-12 mb-4 opacity-50" />
-            <p class="text-lg font-medium">No API keys yet</p>
-            <p class="text-sm">Create a key to authenticate API requests</p>
-          </div>
-        <% else %>
-          <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="border-b bg-muted/50">
-                  <th class="px-4 py-3 text-left font-medium text-muted-foreground">Key</th>
-                  <th class="px-4 py-3 text-left font-medium text-muted-foreground">Label</th>
-                  <th class="px-4 py-3 text-left font-medium text-muted-foreground">API</th>
-                  <th class="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
-                  <th class="px-4 py-3 text-left font-medium text-muted-foreground">Created</th>
-                  <th class="px-4 py-3 text-left font-medium text-muted-foreground">Last Used</th>
-                  <th class="px-4 py-3 text-right font-medium text-muted-foreground">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr :for={key <- @keys} class="border-b last:border-0 hover:bg-muted/30">
-                  <td class="px-4 py-3 font-mono text-xs">{key.key_prefix}...</td>
-                  <td class="px-4 py-3">{key.label || "—"}</td>
-                  <td class="px-4 py-3">
-                    <%= if key.api do %>
-                      <.link
-                        navigate={~p"/apis/#{key.api_id}"}
-                        class="text-primary hover:underline"
-                      >
-                        {key.api.name}
-                      </.link>
-                    <% else %>
-                      <span class="text-muted-foreground">—</span>
-                    <% end %>
-                  </td>
-                  <td class="px-4 py-3">
-                    <span class={[
-                      "inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold",
-                      key_status_class(key)
-                    ]}>
-                      {key_status(key)}
-                    </span>
-                  </td>
-                  <td class="px-4 py-3 text-muted-foreground text-xs">
-                    {format_date(key.inserted_at)}
-                  </td>
-                  <td class="px-4 py-3 text-muted-foreground text-xs">
-                    {format_last_used(key.last_used_at)}
-                  </td>
-                  <td class="px-4 py-3 text-right">
-                    <.link
-                      navigate={~p"/api-keys/#{key.id}"}
-                      class="text-xs text-primary hover:underline"
-                    >
-                      Details
-                    </.link>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        <% end %>
-      </div>
+      <%= if @keys == [] do %>
+        <.empty_state
+          icon="hero-key"
+          title="No API keys yet"
+          description="Create a key to authenticate API requests"
+        />
+      <% else %>
+        <.table id="keys" rows={@keys}>
+          <:col :let={key} label="Key">
+            <span class="font-mono text-xs">{key.key_prefix}...</span>
+          </:col>
+          <:col :let={key} label="Label">{key.label || "—"}</:col>
+          <:col :let={key} label="API">
+            <%= if key.api do %>
+              <.link navigate={~p"/apis/#{key.api_id}"} class="text-primary hover:underline">
+                {key.api.name}
+              </.link>
+            <% else %>
+              <span class="text-muted-foreground">—</span>
+            <% end %>
+          </:col>
+          <:col :let={key} label="Status">
+            <.badge class={api_key_status_classes(key_status(key))}>
+              {key_status(key)}
+            </.badge>
+          </:col>
+          <:col :let={key} label="Created">
+            <span class="text-muted-foreground text-xs">{format_date(key.inserted_at)}</span>
+          </:col>
+          <:col :let={key} label="Last Used">
+            <span class="text-muted-foreground text-xs">{format_last_used(key.last_used_at)}</span>
+          </:col>
+          <:action :let={key}>
+            <.link navigate={~p"/api-keys/#{key.id}"} class="text-xs text-primary hover:underline">
+              Details
+            </.link>
+          </:action>
+        </.table>
+      <% end %>
 
       <%!-- Create Modal --%>
-      <%= if @show_create_modal do %>
-        <div class="fixed inset-0 z-50 flex items-center justify-center">
-          <div class="fixed inset-0 bg-black/50" phx-click="toggle_create_modal" />
-          <div class="relative z-10 w-full max-w-md rounded-lg border bg-card text-card-foreground p-6 shadow-xl">
-            <h2 class="text-lg font-semibold mb-4">Create API Key</h2>
-            <form phx-submit="create_key" class="space-y-4">
-              <div>
-                <label class="text-sm font-medium">API</label>
-                <select
-                  name="api_id"
-                  required
-                  class="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm"
-                >
-                  <option value="">Select an API...</option>
-                  <%= for api <- @apis do %>
-                    <option value={api.id}>{api.name} ({api.slug})</option>
-                  <% end %>
-                </select>
-              </div>
-              <div>
-                <label class="text-sm font-medium">Label</label>
-                <input
-                  type="text"
-                  name="label"
-                  value="API Key"
-                  maxlength="200"
-                  class="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm"
-                />
-              </div>
-              <div class="flex justify-end gap-2">
-                <button
-                  type="button"
-                  phx-click="toggle_create_modal"
-                  class="rounded-md border px-4 py-2 text-sm hover:bg-accent"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  class="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-                >
-                  Create Key
-                </button>
-              </div>
-            </form>
+      <.modal show={@show_create_modal} on_close="toggle_create_modal" title="Create API Key">
+        <form phx-submit="create_key" class="space-y-4">
+          <.input
+            type="select"
+            name="api_id"
+            label="API"
+            required
+            prompt="Select an API..."
+            options={Enum.map(@apis, &{"#{&1.name} (#{&1.slug})", &1.id})}
+            value={nil}
+          />
+          <.input
+            type="text"
+            name="label"
+            label="Label"
+            value="API Key"
+            maxlength="200"
+          />
+          <div class="flex justify-end gap-2">
+            <.button type="button" variant="outline" phx-click="toggle_create_modal">
+              Cancel
+            </.button>
+            <.button type="submit" variant="primary">
+              Create Key
+            </.button>
           </div>
-        </div>
-      <% end %>
+        </form>
+      </.modal>
     </div>
     """
   end
@@ -219,8 +174,6 @@ defmodule BlackboexWeb.ApiKeyLive.Index do
   end
 
   defp key_status(_), do: "Active"
-
-  defp key_status_class(key), do: api_key_status_classes(key_status(key))
 
   defp format_date(nil), do: "—"
 

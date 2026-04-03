@@ -6,6 +6,10 @@ defmodule BlackboexWeb.DashboardLive do
   use BlackboexWeb, :live_view
 
   import BlackboexWeb.Components.Shared.Charts
+  import BlackboexWeb.Components.Shared.StatCard
+  import BlackboexWeb.Components.Shared.EmptyState
+  import BlackboexWeb.Components.Shared.ProgressBar
+  import BlackboexWeb.Components.Card
 
   alias Blackboex.Apis.DashboardQueries
   alias Blackboex.Audit
@@ -56,170 +60,136 @@ defmodule BlackboexWeb.DashboardLive do
   def render(assigns) do
     ~H"""
     <div class="space-y-6">
-      <div class="flex items-center justify-between">
-        <div>
-          <h1 class="text-2xl font-bold tracking-tight">Dashboard</h1>
-          <p class="text-muted-foreground">Overview of your workspace</p>
-        </div>
-        <div class="flex gap-1">
-          <button
-            :for={{value, label} <- [{"24h", "Today"}, {"7d", "7 days"}, {"30d", "30 days"}]}
-            phx-click="set_period"
-            phx-value-period={value}
-            class={[
-              "rounded-md px-3 py-1 text-sm font-medium",
-              if(value == @period,
-                do: "bg-primary text-primary-foreground",
-                else: "border text-muted-foreground hover:bg-accent"
-              )
-            ]}
-          >
-            {label}
-          </button>
-        </div>
-      </div>
+      <.header>
+        Dashboard
+        <:subtitle>Overview of your workspace</:subtitle>
+        <:actions>
+          <div class="flex gap-1">
+            <.button
+              :for={{value, label} <- [{"24h", "Today"}, {"7d", "7 days"}, {"30d", "30 days"}]}
+              phx-click="set_period"
+              phx-value-period={value}
+              variant={if value == @period, do: "primary", else: "default"}
+              size="sm"
+            >
+              {label}
+            </.button>
+          </div>
+        </:actions>
+      </.header>
 
       <%= if @summary.total_apis == 0 do %>
-        <div class="rounded-lg border bg-card p-6 text-card-foreground shadow-sm">
-          <div class="flex flex-col items-center justify-center space-y-4 py-12">
-            <.logo_icon class="size-12 text-muted-foreground" />
-            <div class="text-center space-y-2">
-              <h3 class="text-xl font-semibold">Welcome to BlackBoex</h3>
-              <p class="text-sm text-muted-foreground max-w-md">
-                Transform natural language into production-ready Elixir APIs.
-                Create your first API to get started.
-              </p>
-            </div>
-            <.link
-              navigate={~p"/apis/new"}
-              class="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90"
-            >
+        <.empty_state
+          title="Welcome to BlackBoex"
+          description="Transform natural language into production-ready Elixir APIs. Create your first API to get started."
+        >
+          <:actions>
+            <.button navigate={~p"/apis/new"} variant="primary">
               Create your first API
-            </.link>
-          </div>
-        </div>
+            </.button>
+          </:actions>
+        </.empty_state>
       <% else %>
         <%!-- Row 1: Stat cards --%>
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          <div class="rounded-lg border bg-card p-4">
-            <p class="text-sm text-muted-foreground">Total APIs</p>
-            <p class="text-2xl font-bold">{format_number(@summary.total_apis)}</p>
-          </div>
-          <div class="rounded-lg border bg-card p-4">
-            <p class="text-sm text-muted-foreground">Calls ({period_label(@period)})</p>
-            <p class="text-2xl font-bold">{format_number(period_total_calls(@metrics))}</p>
-          </div>
-          <div class="rounded-lg border bg-card p-4">
-            <p class="text-sm text-muted-foreground">Errors ({period_label(@period)})</p>
-            <p class="text-2xl font-bold">{format_number(period_total_errors(@metrics))}</p>
-          </div>
-          <div class="rounded-lg border bg-card p-4">
-            <p class="text-sm text-muted-foreground">Avg Latency ({period_label(@period)})</p>
-            <p class="text-2xl font-bold">{format_latency(period_avg_latency(@metrics))}</p>
-          </div>
-          <div class="rounded-lg border bg-card p-4">
-            <p class="text-sm text-muted-foreground">LLM Gens</p>
-            <p class="text-2xl font-bold">
-              {format_number(period_total_gens(@llm_usage))}
-            </p>
-          </div>
+          <.stat_card label="Total APIs" value={format_number(@summary.total_apis)} />
+          <.stat_card
+            label={"Calls (#{period_label(@period)})"}
+            value={format_number(period_total_calls(@metrics))}
+          />
+          <.stat_card
+            label={"Errors (#{period_label(@period)})"}
+            value={format_number(period_total_errors(@metrics))}
+          />
+          <.stat_card
+            label={"Avg Latency (#{period_label(@period)})"}
+            value={format_latency(period_avg_latency(@metrics))}
+          />
+          <.stat_card label="LLM Gens" value={format_number(period_total_gens(@llm_usage))} />
         </div>
 
         <%!-- Row 2: API Calls + Errors charts --%>
         <div class="grid gap-4 lg:grid-cols-2">
-          <div class="rounded-lg border bg-card p-4">
-            <.bar_chart data={@metrics.calls_series} title="API Calls" />
-          </div>
-          <div class="rounded-lg border bg-card p-4">
-            <.bar_chart data={@metrics.errors_series} title="Errors" color="var(--color-chart-2)" />
-          </div>
+          <.card>
+            <.card_content class="p-4">
+              <.bar_chart data={@metrics.calls_series} title="API Calls" />
+            </.card_content>
+          </.card>
+          <.card>
+            <.card_content class="p-4">
+              <.bar_chart data={@metrics.errors_series} title="Errors" color="var(--color-chart-2)" />
+            </.card_content>
+          </.card>
         </div>
 
         <%!-- Row 3: Latency chart + LLM Usage --%>
         <div class="grid gap-4 lg:grid-cols-2">
-          <div class="rounded-lg border bg-card p-4">
-            <.line_chart data={@metrics.latency_avg_series} title="Avg Latency (ms)" />
-          </div>
-          <div class="rounded-lg border bg-card p-4">
-            <p class="text-sm font-medium text-muted-foreground mb-4">LLM Usage</p>
-            <div class="space-y-3">
-              <div>
-                <div class="flex justify-between text-sm mb-1">
-                  <span>Generations</span>
-                  <span>{format_number(llm_gens_used(@usage))} / {format_llm_limit(@usage)}</span>
+          <.card>
+            <.card_content class="p-4">
+              <.line_chart data={@metrics.latency_avg_series} title="Avg Latency (ms)" />
+            </.card_content>
+          </.card>
+          <.card>
+            <.card_content class="p-4">
+              <p class="text-sm font-medium text-muted-foreground mb-4">LLM Usage</p>
+              <div class="space-y-3">
+                <.progress_bar
+                  label="Generations"
+                  used={format_number(llm_gens_used(@usage))}
+                  limit={format_llm_limit(@usage)}
+                  percentage={llm_gens_pct(@usage)}
+                />
+                <div class="flex justify-between text-sm py-2 border-t">
+                  <span class="text-muted-foreground">Tokens In</span>
+                  <span class="font-medium">{format_tokens(@llm_usage.tokens_in_total)}</span>
                 </div>
-                <div class="h-2 rounded-full bg-muted">
-                  <div
-                    class="h-full rounded-full bg-primary"
-                    style={"width: #{min(llm_gens_pct(@usage), 100)}%"}
-                  >
-                  </div>
+                <div class="flex justify-between text-sm py-2 border-t">
+                  <span class="text-muted-foreground">Tokens Out</span>
+                  <span class="font-medium">{format_tokens(@llm_usage.tokens_out_total)}</span>
+                </div>
+                <div class="flex justify-between text-sm py-2 border-t">
+                  <span class="text-muted-foreground">LLM Cost</span>
+                  <span class="font-medium">
+                    ${Float.round(@llm_usage.cost_total_cents / 100, 2)}
+                  </span>
                 </div>
               </div>
-              <div class="flex justify-between text-sm py-2 border-t">
-                <span class="text-muted-foreground">Tokens In</span>
-                <span class="font-medium">{format_tokens(@llm_usage.tokens_in_total)}</span>
-              </div>
-              <div class="flex justify-between text-sm py-2 border-t">
-                <span class="text-muted-foreground">Tokens Out</span>
-                <span class="font-medium">{format_tokens(@llm_usage.tokens_out_total)}</span>
-              </div>
-              <div class="flex justify-between text-sm py-2 border-t">
-                <span class="text-muted-foreground">LLM Cost</span>
-                <span class="font-medium">
-                  ${Float.round(@llm_usage.cost_total_cents / 100, 2)}
-                </span>
-              </div>
-            </div>
-          </div>
+            </.card_content>
+          </.card>
         </div>
 
         <%!-- Row 4: Top APIs + Recent Activity --%>
         <div class="grid gap-4 lg:grid-cols-2">
-          <div class="rounded-lg border bg-card p-4">
-            <p class="text-sm font-medium text-muted-foreground mb-3">Top APIs by Calls</p>
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="border-b text-left text-muted-foreground">
-                  <th class="pb-2 font-medium">#</th>
-                  <th class="pb-2 font-medium">Name</th>
-                  <th class="pb-2 font-medium text-right">Calls</th>
-                  <th class="pb-2 font-medium text-right">Avg Latency</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  :for={{api, idx} <- Enum.with_index(@metrics.top_apis, 1)}
-                  class="border-b last:border-0"
-                >
-                  <td class="py-2 text-muted-foreground">{idx}</td>
-                  <td class="py-2 font-medium">{api.name}</td>
-                  <td class="py-2 text-right">{format_number(api.calls)}</td>
-                  <td class="py-2 text-right">{format_latency(api.avg_latency)}</td>
-                </tr>
-                <tr :if={@metrics.top_apis == []}>
-                  <td colspan="4" class="py-4 text-center text-muted-foreground">
-                    No API calls in this period
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <div class="rounded-lg border bg-card p-4">
-            <p class="text-sm font-medium text-muted-foreground mb-3">Recent Activity</p>
-            <div :if={@recent_activity == []} class="py-4 text-center text-sm text-muted-foreground">
-              No recent activity
-            </div>
-            <div :if={@recent_activity != []} class="divide-y">
-              <div
-                :for={activity <- @recent_activity}
-                class="flex items-center justify-between py-2"
-              >
-                <span class="text-sm">{format_action(activity.action)}</span>
-                <span class="text-xs text-muted-foreground">{relative_time(activity.timestamp)}</span>
+          <.card>
+            <.card_content class="p-4">
+              <p class="text-sm font-medium text-muted-foreground mb-3">Top APIs by Calls</p>
+              <.table id="top-apis" rows={Enum.with_index(@metrics.top_apis, 1)}>
+                <:col :let={{_api, idx}} label="#">{idx}</:col>
+                <:col :let={{api, _idx}} label="Name">{api.name}</:col>
+                <:col :let={{api, _idx}} label="Calls">{format_number(api.calls)}</:col>
+                <:col :let={{api, _idx}} label="Avg Latency">{format_latency(api.avg_latency)}</:col>
+              </.table>
+            </.card_content>
+          </.card>
+          <.card>
+            <.card_content class="p-4">
+              <p class="text-sm font-medium text-muted-foreground mb-3">Recent Activity</p>
+              <div :if={@recent_activity == []} class="py-4 text-center text-sm text-muted-foreground">
+                No recent activity
               </div>
-            </div>
-          </div>
+              <div :if={@recent_activity != []} class="divide-y">
+                <div
+                  :for={activity <- @recent_activity}
+                  class="flex items-center justify-between py-2"
+                >
+                  <span class="text-sm">{format_action(activity.action)}</span>
+                  <span class="text-xs text-muted-foreground">
+                    {relative_time(activity.timestamp)}
+                  </span>
+                </div>
+              </div>
+            </.card_content>
+          </.card>
         </div>
       <% end %>
     </div>

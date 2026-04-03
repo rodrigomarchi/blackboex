@@ -4,12 +4,14 @@ defmodule BlackboexWeb.Admin.AgentEventLive do
   Read-only. Note: Event uses `inserted_at` only (no `updated_at`).
   """
 
+  alias Blackboex.Conversations.Event
+
   use Backpex.LiveResource,
     adapter_config: [
-      schema: Blackboex.Conversations.Event,
+      schema: Event,
       repo: Blackboex.Repo,
-      update_changeset: &Blackboex.Conversations.Event.admin_changeset/3,
-      create_changeset: &Blackboex.Conversations.Event.admin_changeset/3
+      update_changeset: &Event.admin_changeset/3,
+      create_changeset: &Event.admin_changeset/3
     ],
     layout: {BlackboexWeb.Layouts, :admin}
 

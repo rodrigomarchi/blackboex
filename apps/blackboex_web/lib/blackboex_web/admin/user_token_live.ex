@@ -4,12 +4,14 @@ defmodule BlackboexWeb.Admin.UserTokenLive do
   Read-only. Token values are hidden for security.
   """
 
+  alias Blackboex.Accounts.UserToken
+
   use Backpex.LiveResource,
     adapter_config: [
-      schema: Blackboex.Accounts.UserToken,
+      schema: UserToken,
       repo: Blackboex.Repo,
-      update_changeset: &Blackboex.Accounts.UserToken.admin_changeset/3,
-      create_changeset: &Blackboex.Accounts.UserToken.admin_changeset/3
+      update_changeset: &UserToken.admin_changeset/3,
+      create_changeset: &UserToken.admin_changeset/3
     ],
     layout: {BlackboexWeb.Layouts, :admin},
     init_order: %{by: :inserted_at, direction: :desc}

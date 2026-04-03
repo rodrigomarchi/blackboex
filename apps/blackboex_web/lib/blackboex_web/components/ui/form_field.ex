@@ -13,6 +13,7 @@ defmodule BlackboexWeb.Components.FormField do
   use BlackboexWeb.Component
 
   import BlackboexWeb.Components.Icon
+  alias BlackboexWeb.Components.Helpers
   alias Phoenix.HTML.Form
 
   attr :id, :any, default: nil
@@ -45,7 +46,7 @@ defmodule BlackboexWeb.Components.FormField do
 
     assigns
     |> assign(field: nil, id: assigns.id || field.id)
-    |> assign(:errors, Enum.map(errors, &BlackboexWeb.Components.Helpers.translate_error(&1)))
+    |> assign(:errors, Enum.map(errors, &Helpers.translate_error(&1)))
     |> assign_new(:name, fn -> if assigns.multiple, do: field.name <> "[]", else: field.name end)
     |> assign_new(:value, fn -> field.value end)
     |> input()

@@ -3,12 +3,14 @@ defmodule BlackboexWeb.Admin.UserLive do
   Backpex LiveResource for managing users in the admin panel.
   """
 
+  alias Blackboex.Accounts.User
+
   use Backpex.LiveResource,
     adapter_config: [
-      schema: Blackboex.Accounts.User,
+      schema: User,
       repo: Blackboex.Repo,
-      update_changeset: &Blackboex.Accounts.User.admin_changeset/3,
-      create_changeset: &Blackboex.Accounts.User.admin_changeset/3
+      update_changeset: &User.admin_changeset/3,
+      create_changeset: &User.admin_changeset/3
     ],
     layout: {BlackboexWeb.Layouts, :admin}
 

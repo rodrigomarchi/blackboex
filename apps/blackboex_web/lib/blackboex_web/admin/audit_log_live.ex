@@ -4,12 +4,14 @@ defmodule BlackboexWeb.Admin.AuditLogLive do
   Read-only.
   """
 
+  alias Blackboex.Audit.AuditLog
+
   use Backpex.LiveResource,
     adapter_config: [
-      schema: Blackboex.Audit.AuditLog,
+      schema: AuditLog,
       repo: Blackboex.Repo,
-      update_changeset: &Blackboex.Audit.AuditLog.admin_changeset/3,
-      create_changeset: &Blackboex.Audit.AuditLog.admin_changeset/3
+      update_changeset: &AuditLog.admin_changeset/3,
+      create_changeset: &AuditLog.admin_changeset/3
     ],
     layout: {BlackboexWeb.Layouts, :admin},
     init_order: %{by: :inserted_at, direction: :desc}

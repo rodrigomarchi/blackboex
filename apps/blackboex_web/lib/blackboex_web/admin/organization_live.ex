@@ -3,12 +3,14 @@ defmodule BlackboexWeb.Admin.OrganizationLive do
   Backpex LiveResource for managing organizations in the admin panel.
   """
 
+  alias Blackboex.Organizations.Organization
+
   use Backpex.LiveResource,
     adapter_config: [
-      schema: Blackboex.Organizations.Organization,
+      schema: Organization,
       repo: Blackboex.Repo,
-      update_changeset: &Blackboex.Organizations.Organization.admin_changeset/3,
-      create_changeset: &Blackboex.Organizations.Organization.admin_changeset/3
+      update_changeset: &Organization.admin_changeset/3,
+      create_changeset: &Organization.admin_changeset/3
     ],
     layout: {BlackboexWeb.Layouts, :admin}
 

@@ -4,12 +4,14 @@ defmodule BlackboexWeb.Admin.SubscriptionLive do
   Read-only.
   """
 
+  alias Blackboex.Billing.Subscription
+
   use Backpex.LiveResource,
     adapter_config: [
-      schema: Blackboex.Billing.Subscription,
+      schema: Subscription,
       repo: Blackboex.Repo,
-      update_changeset: &Blackboex.Billing.Subscription.admin_changeset/3,
-      create_changeset: &Blackboex.Billing.Subscription.admin_changeset/3
+      update_changeset: &Subscription.admin_changeset/3,
+      create_changeset: &Subscription.admin_changeset/3
     ],
     layout: {BlackboexWeb.Layouts, :admin}
 

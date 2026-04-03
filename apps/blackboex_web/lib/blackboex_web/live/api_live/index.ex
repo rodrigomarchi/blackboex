@@ -6,6 +6,11 @@ defmodule BlackboexWeb.ApiLive.Index do
 
   use BlackboexWeb, :live_view
 
+  import BlackboexWeb.Components.Modal
+  import BlackboexWeb.Components.Badge
+  import BlackboexWeb.Components.Card
+  import BlackboexWeb.Components.Shared.EmptyState
+
   alias Blackboex.Apis
   alias Blackboex.Apis.DashboardQueries
 
@@ -158,58 +163,43 @@ defmodule BlackboexWeb.ApiLive.Index do
   def render(assigns) do
     ~H"""
     <div class="space-y-6">
-      <div class="flex items-center justify-between">
-        <div>
-          <h1 class="text-2xl font-bold tracking-tight">APIs</h1>
-          <p class="text-muted-foreground">Manage and monitor your API endpoints</p>
-        </div>
-        <button
-          phx-click="open_create_modal"
-          class="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90"
-        >
-          <.icon name="hero-plus" class="mr-2 size-4" /> Create API
-        </button>
-      </div>
+      <.header>
+        APIs
+        <:subtitle>Manage and monitor your API endpoints</:subtitle>
+        <:actions>
+          <.button variant="primary" phx-click="open_create_modal">
+            <.icon name="hero-plus" class="mr-2 size-4" /> Create API
+          </.button>
+        </:actions>
+      </.header>
 
       <form phx-change="search" class="w-full">
-        <input
+        <.input
           type="text"
           name="search"
           value={@search}
           placeholder="Search APIs by name or description..."
           phx-debounce="300"
-          class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
       </form>
 
       <%= if @api_rows == [] do %>
-        <div class="rounded-lg border bg-card p-6 text-card-foreground shadow-sm">
-          <div class="flex flex-col items-center justify-center space-y-4 py-8">
-            <div class="text-center space-y-2">
-              <h3 class="text-lg font-semibold">No APIs found</h3>
-              <p class="text-sm text-muted-foreground">
-                <%= if @search != "" do %>
-                  No APIs match your search. Try a different query.
-                <% else %>
-                  Get started by creating your first API endpoint.
-                <% end %>
-              </p>
-            </div>
-            <button
-              :if={@search == ""}
-              phx-click="open_create_modal"
-              class="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90"
-            >
-              Create API
-            </button>
-          </div>
-        </div>
+        <.empty_state
+          icon="hero-square-3-stack-3d"
+          title="No APIs found"
+          description={
+            if @search != "",
+              do: "No APIs match your search. Try a different query.",
+              else: "Get started by creating your first API endpoint."
+          }
+        >
+          <:actions :if={@search == ""}>
+            <.button variant="primary" phx-click="open_create_modal">Create API</.button>
+          </:actions>
+        </.empty_state>
       <% else %>
         <div class="space-y-3">
-          <div
-            :for={row <- @api_rows}
-            class="rounded-lg border bg-card p-4 text-card-foreground shadow-sm"
-          >
+          <.card :for={row <- @api_rows} class="p-4">
             <div class="flex items-start justify-between gap-4">
               <div class="min-w-0 flex-1 space-y-1">
                 <div class="flex items-center gap-2">
@@ -219,7 +209,7 @@ defmodule BlackboexWeb.ApiLive.Index do
                   >
                     {row.api.name}
                   </.link>
-                  <.status_badge status={row.api.status} />
+                  <.badge class={api_status_classes(row.api.status)}>{row.api.status}</.badge>
                   <.generation_badge
                     :if={row.api.generation_status in ~w(pending generating validating)}
                     status={row.api.generation_status}
@@ -252,127 +242,70 @@ defmodule BlackboexWeb.ApiLive.Index do
               </div>
 
               <div class="flex items-center gap-2 shrink-0">
-                <.link
-                  navigate={~p"/apis/#{row.api.id}/edit"}
-                  class="inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-medium hover:bg-accent"
-                >
+                <.button variant="outline" size="sm" navigate={~p"/apis/#{row.api.id}/edit"}>
                   Edit
-                </.link>
-                <.link
+                </.button>
+                <.button
+                  variant="destructive"
+                  size="sm"
                   phx-click="delete"
                   phx-value-id={row.api.id}
                   data-confirm="Are you sure you want to delete this API?"
-                  class="inline-flex items-center rounded-md border border-destructive/50 px-2.5 py-1 text-xs font-medium text-destructive hover:bg-destructive/10"
                 >
                   Delete
-                </.link>
+                </.button>
               </div>
             </div>
-          </div>
+          </.card>
         </div>
       <% end %>
 
       <%!-- Create API Modal --%>
-      <div
-        :if={@show_create_modal}
-        class="fixed inset-0 z-50 flex items-center justify-center"
-        phx-window-keydown="close_create_modal"
-        phx-key="Escape"
-      >
-        <div class="fixed inset-0 bg-black/50 backdrop-blur-sm" phx-click="close_create_modal" />
-        <div class="relative z-10 w-full max-w-lg rounded-lg border bg-card p-6 shadow-xl">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-semibold">Create API</h2>
-            <button
-              phx-click="close_create_modal"
-              class="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-accent"
-            >
-              <.icon name="hero-x-mark" class="size-5" />
-            </button>
+      <.modal show={@show_create_modal} on_close="close_create_modal" title="Create API">
+        <%= if @create_error do %>
+          <div class="mb-4 rounded-md border border-destructive bg-destructive/10 p-3 text-sm text-destructive">
+            {@create_error}
           </div>
+        <% end %>
 
-          <%= if @create_error do %>
-            <div class="mb-4 rounded-md border border-destructive bg-destructive/10 p-3 text-sm text-destructive">
-              {@create_error}
-            </div>
-          <% end %>
-
-          <form phx-submit="create_api" class="space-y-4">
-            <div>
-              <label for="create-name" class="text-sm font-medium">Name *</label>
-              <input
-                type="text"
-                id="create-name"
-                name="name"
-                value={@create_form[:name].value}
-                required
-                maxlength="200"
-                placeholder="My API"
-                class="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm"
-                autofocus
-              />
-            </div>
-            <div>
-              <label for="create-description" class="text-sm font-medium">
-                What should this API do?
-              </label>
-              <textarea
-                id="create-description"
-                name="description"
-                rows="4"
-                maxlength="10000"
-                placeholder="An API that receives a list of products with prices and returns the total, average, and most expensive item."
-                class="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm"
-              >{@create_form[:description].value}</textarea>
-              <p class="mt-1 text-xs text-muted-foreground">
-                Describe in natural language. Code will be generated automatically.
-              </p>
-            </div>
-            <div class="flex justify-end gap-3 pt-2">
-              <button
-                type="button"
-                phx-click="close_create_modal"
-                class="rounded-md border px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-accent"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                class="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90"
-              >
-                <.icon name="hero-arrow-right" class="mr-2 size-4" /> Create & Edit
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
+        <form phx-submit="create_api" class="space-y-4">
+          <.input
+            type="text"
+            name="name"
+            value={@create_form[:name].value}
+            label="Name *"
+            required
+            maxlength="200"
+            placeholder="My API"
+            autofocus
+          />
+          <.input
+            type="textarea"
+            name="description"
+            value={@create_form[:description].value}
+            label="What should this API do?"
+            rows="4"
+            maxlength="10000"
+            placeholder="An API that receives a list of products with prices and returns the total, average, and most expensive item."
+          />
+          <p class="text-xs text-muted-foreground">
+            Describe in natural language. Code will be generated automatically.
+          </p>
+          <div class="flex justify-end gap-3 pt-2">
+            <.button type="button" variant="outline" phx-click="close_create_modal">
+              Cancel
+            </.button>
+            <.button type="submit" variant="primary">
+              <.icon name="hero-arrow-right" class="mr-2 size-4" /> Create & Edit
+            </.button>
+          </div>
+        </form>
+      </.modal>
     </div>
     """
   end
 
   # ── Components ───────────────────────────────────────────────────────────
-
-  defp status_badge(assigns) do
-    color_classes =
-      case assigns.status do
-        "published" ->
-          api_status_border("published")
-
-        "compiled" ->
-          "border-border bg-secondary text-secondary-foreground"
-
-        _draft_or_other ->
-          "border-border bg-muted text-muted-foreground"
-      end
-
-    assigns = assign(assigns, :color_classes, color_classes)
-
-    ~H"""
-    <span class={"inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold #{@color_classes}"}>
-      {@status}
-    </span>
-    """
-  end
 
   attr :status, :string, required: true
 

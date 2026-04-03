@@ -26,10 +26,10 @@ defmodule BlackboexWeb.ApiLive.Edit do
   alias Blackboex.Testing.SampleData
   alias Blackboex.Testing.SnippetGenerator
 
-  import BlackboexWeb.Components.EditorToolbar
-  import BlackboexWeb.Components.StatusBar
-  import BlackboexWeb.Components.CommandPalette
-  import BlackboexWeb.Components.ValidationDashboard
+  import BlackboexWeb.Components.Editor.Toolbar
+  import BlackboexWeb.Components.Editor.StatusBar
+  import BlackboexWeb.Components.Editor.CommandPalette
+  import BlackboexWeb.Components.Editor.ValidationDashboard
 
   # ── Mount ──────────────────────────────────────────────────────────────
 
@@ -196,8 +196,8 @@ defmodule BlackboexWeb.ApiLive.Edit do
                 class={[
                   "ml-1 inline-flex rounded-full px-1.5 text-[10px] font-semibold",
                   if(@validation_report.overall == :pass,
-                    do: "bg-green-100 text-green-700",
-                    else: "bg-red-100 text-red-700"
+                    do: "bg-success/10 text-success-foreground",
+                    else: "bg-destructive/10 text-destructive"
                   )
                 ]}
               >
@@ -232,7 +232,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
   defp render_tab_content(%{active_tab: "chat"} = assigns) do
     ~H"""
     <.live_component
-      module={BlackboexWeb.Components.ChatPanel}
+      module={BlackboexWeb.Components.Editor.ChatPanel}
       id="chat-panel"
       events={@agent_events}
       input={@chat_input}
@@ -370,7 +370,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
       <%!-- Request Builder --%>
       <div class="flex-1 min-w-0 overflow-auto">
         <.live_component
-          module={BlackboexWeb.Components.RequestBuilder}
+          module={BlackboexWeb.Components.Editor.RequestBuilder}
           id="request-builder"
           method={@test_method}
           url={@test_url}
@@ -387,7 +387,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
       <%!-- Response Viewer --%>
       <div class="flex-1 min-w-0 overflow-auto">
         <.live_component
-          module={BlackboexWeb.Components.ResponseViewer}
+          module={BlackboexWeb.Components.Editor.ResponseViewer}
           id="response-viewer"
           response={@test_response}
           loading={@test_loading}
@@ -511,24 +511,24 @@ defmodule BlackboexWeb.ApiLive.Edit do
       <% else %>
         <div class="grid grid-cols-2 gap-4">
           <div class="rounded-lg border p-4">
-            <BlackboexWeb.Components.Charts.bar_chart
+            <BlackboexWeb.Components.Shared.Charts.bar_chart
               data={@invocation_data}
               title="Invocations"
             />
           </div>
           <div class="rounded-lg border p-4">
-            <BlackboexWeb.Components.Charts.line_chart
+            <BlackboexWeb.Components.Shared.Charts.line_chart
               data={@latency_data}
               title="P95 Latency (ms)"
-              color="#f59e0b"
+              color="var(--color-chart-3)"
             />
           </div>
         </div>
         <div class="rounded-lg border p-4">
-          <BlackboexWeb.Components.Charts.bar_chart
+          <BlackboexWeb.Components.Shared.Charts.bar_chart
             data={@error_data}
             title="Errors"
-            color="#ef4444"
+            color="var(--color-chart-2)"
           />
         </div>
       <% end %>
@@ -552,8 +552,8 @@ defmodule BlackboexWeb.ApiLive.Edit do
       </div>
 
       <%= if @plain_key_flash do %>
-        <div class="rounded-lg border-2 border-amber-500 bg-amber-50 dark:bg-amber-950 p-4 space-y-2">
-          <p class="text-sm font-semibold text-amber-800 dark:text-amber-200">
+        <div class="rounded-lg border-2 border-warning bg-warning/10 p-4 space-y-2">
+          <p class="text-sm font-semibold text-warning-foreground">
             Copy this key now — it won't be shown again
           </p>
           <div class="flex items-center gap-2">
@@ -593,8 +593,8 @@ defmodule BlackboexWeb.ApiLive.Edit do
                 <span class={[
                   "inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold",
                   if(key.revoked_at,
-                    do: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
-                    else: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                    do: api_key_status_classes("Revoked"),
+                    else: api_key_status_classes("Active")
                   )
                 ]}>
                   {if key.revoked_at, do: "Revoked", else: "Active"}
@@ -692,7 +692,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
           <%= if @api.status == "compiled" do %>
             <button
               phx-click="publish"
-              class="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700"
+              class="rounded-md bg-info px-3 py-1.5 text-xs font-medium text-info-foreground hover:bg-info/90"
             >
               Publish API
             </button>
@@ -795,7 +795,7 @@ defmodule BlackboexWeb.ApiLive.Edit do
                 <.icon name="hero-document-check" class="size-4 text-muted-foreground" />
                 <span class="text-sm">Markdown Docs</span>
                 <%= if @api.documentation_md do %>
-                  <span class="text-[10px] text-green-600 font-medium">Auto-generated</span>
+                  <span class="text-[10px] text-success-foreground font-medium">Auto-generated</span>
                 <% else %>
                   <span class="text-[10px] text-muted-foreground">Generated on save</span>
                 <% end %>
@@ -2382,20 +2382,16 @@ defmodule BlackboexWeb.ApiLive.Edit do
     end
   end
 
-  defp status_color("draft"), do: "border bg-muted text-muted-foreground"
-  defp status_color("compiled"), do: "border-green-500 bg-green-50 text-green-700"
-  defp status_color("published"), do: "border-blue-500 bg-blue-50 text-blue-700"
-  defp status_color("archived"), do: "border-gray-500 bg-gray-50 text-gray-500"
-  defp status_color(_), do: "border bg-muted text-muted-foreground"
+  defp status_color(status), do: api_status_border(status)
 
   defp history_status_color(status) when status >= 200 and status < 300,
-    do: "bg-green-50 text-green-700"
+    do: "bg-success/10 text-success-foreground"
 
   defp history_status_color(status) when status >= 400 and status < 500,
-    do: "bg-yellow-50 text-yellow-700"
+    do: "bg-warning/10 text-warning-foreground"
 
   defp history_status_color(status) when status >= 500,
-    do: "bg-red-50 text-red-700"
+    do: "bg-destructive/10 text-destructive"
 
   defp history_status_color(_), do: "bg-muted text-muted-foreground"
 
@@ -2572,9 +2568,9 @@ defmodule BlackboexWeb.ApiLive.Edit do
   defp test_summary_class(summary) do
     if String.contains?(summary, "/") do
       [passed, total] = String.split(summary, "/")
-      if passed == total, do: "bg-green-100 text-green-700", else: "bg-red-100 text-red-700"
+      if passed == total, do: "bg-success/10 text-success-foreground", else: "bg-destructive/10 text-destructive"
     else
-      "bg-gray-100 text-gray-600"
+      "bg-muted text-muted-foreground"
     end
   end
 end

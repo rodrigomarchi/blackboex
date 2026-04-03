@@ -1,4 +1,4 @@
-defmodule BlackboexWeb.Components.Charts do
+defmodule BlackboexWeb.Components.Shared.Charts do
   @moduledoc """
   Reusable SVG chart components for analytics dashboards.
   Pure server-side rendering — zero JavaScript dependencies.
@@ -14,13 +14,13 @@ defmodule BlackboexWeb.Components.Charts do
     * `title` - chart title
     * `width` - SVG width (default 600)
     * `height` - SVG height (default 300)
-    * `color` - bar color (default "#6366f1")
+    * `color` - bar color (default "var(--color-chart-1)")
   """
   attr :data, :list, required: true
   attr :title, :string, default: ""
   attr :width, :integer, default: 600
   attr :height, :integer, default: 300
-  attr :color, :string, default: "#6366f1"
+  attr :color, :string, default: "var(--color-chart-1)"
 
   @spec bar_chart(map()) :: Phoenix.LiveView.Rendered.t()
   def bar_chart(assigns) do
@@ -51,7 +51,7 @@ defmodule BlackboexWeb.Components.Charts do
 
     ~H"""
     <div class="w-full">
-      <p :if={@title != ""} class="text-sm font-medium text-zinc-700 mb-2">{@title}</p>
+      <p :if={@title != ""} class="text-sm font-medium text-muted-foreground mb-2">{@title}</p>
       <svg viewBox={"0 0 #{@width} #{@height}"} class="w-full" role="img">
         <rect
           :for={bar <- @bars}
@@ -69,7 +69,7 @@ defmodule BlackboexWeb.Components.Charts do
           y1={@chart_height + 20}
           x2={@width - 10}
           y2={@chart_height + 20}
-          stroke="#d4d4d8"
+          stroke="var(--color-chart-axis)"
           stroke-width="1"
         />
       </svg>
@@ -85,13 +85,13 @@ defmodule BlackboexWeb.Components.Charts do
     * `title` - chart title
     * `width` - SVG width (default 600)
     * `height` - SVG height (default 300)
-    * `color` - line color (default "#6366f1")
+    * `color` - line color (default "var(--color-chart-1)")
   """
   attr :data, :list, required: true
   attr :title, :string, default: ""
   attr :width, :integer, default: 600
   attr :height, :integer, default: 300
-  attr :color, :string, default: "#6366f1"
+  attr :color, :string, default: "var(--color-chart-1)"
 
   @spec line_chart(map()) :: Phoenix.LiveView.Rendered.t()
   def line_chart(assigns) do
@@ -125,7 +125,7 @@ defmodule BlackboexWeb.Components.Charts do
 
     ~H"""
     <div class="w-full">
-      <p :if={@title != ""} class="text-sm font-medium text-zinc-700 mb-2">{@title}</p>
+      <p :if={@title != ""} class="text-sm font-medium text-muted-foreground mb-2">{@title}</p>
       <svg viewBox={"0 0 #{@width} #{@height}"} class="w-full" role="img">
         <polyline
           points={@polyline_points}
@@ -146,7 +146,7 @@ defmodule BlackboexWeb.Components.Charts do
           y1={@chart_height + 20}
           x2={@width - 10}
           y2={@chart_height + 20}
-          stroke="#d4d4d8"
+          stroke="var(--color-chart-axis)"
           stroke-width="1"
         />
       </svg>

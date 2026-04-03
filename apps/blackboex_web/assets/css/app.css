@@ -12,85 +12,190 @@
 @plugin "../vendor/heroicons";
 @plugin "@tailwindcss/typography";
 
-/* daisyUI Tailwind Plugin. You can update this file by fetching the latest version with:
-   curl -sLO https://github.com/saadeghi/daisyui/releases/latest/download/daisyui.js
-   Make sure to look at the daisyUI changelog: https://daisyui.com/docs/changelog/ */
-@plugin "../vendor/daisyui" {
-  themes: false;
+/* SaladUI / shadcn-style CSS variables — light theme (default) */
+:root {
+  --background: 0 0% 100%;
+  --foreground: 240 10% 10%;
+  --card: 0 0% 100%;
+  --card-foreground: 240 10% 10%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 240 10% 10%;
+  --primary: 239 65% 58%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 240 5% 96%;
+  --secondary-foreground: 240 6% 10%;
+  --muted: 240 5% 96%;
+  --muted-foreground: 240 4% 46%;
+  --accent: 240 5% 96%;
+  --accent-foreground: 240 6% 10%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 240 6% 90%;
+  --input: 240 6% 90%;
+  --ring: 239 65% 58%;
+  --radius: 0.5rem;
+
+  /* ── Status: API lifecycle ─────────────────────── */
+  --status-draft: 240 5% 96%;
+  --status-draft-foreground: 240 4% 46%;
+  --status-compiled: 142 71% 45%;
+  --status-compiled-foreground: 144 61% 20%;
+  --status-published: 221 83% 53%;
+  --status-published-foreground: 224 76% 20%;
+  --status-archived: 240 6% 65%;
+  --status-archived-foreground: 240 4% 46%;
+
+  /* ── Status: process states ────────────────────── */
+  --status-pending: 38 92% 50%;
+  --status-pending-foreground: 32 81% 29%;
+  --status-generating: 38 92% 50%;
+  --status-generating-foreground: 32 81% 29%;
+  --status-running: 221 83% 53%;
+  --status-running-foreground: 224 76% 20%;
+  --status-active: 142 71% 45%;
+  --status-active-foreground: 144 61% 20%;
+  --status-expired: 0 84% 60%;
+  --status-expired-foreground: 0 74% 22%;
+
+  /* ── Semantic feedback ─────────────────────────── */
+  --success: 142 71% 45%;
+  --success-foreground: 144 61% 20%;
+  --warning: 38 92% 50%;
+  --warning-foreground: 32 81% 29%;
+  --info: 221 83% 53%;
+  --info-foreground: 224 76% 20%;
+
+  /* ── Charts ────────────────────────────────────── */
+  --chart-1: 239 65% 58%;
+  --chart-2: 0 84% 60%;
+  --chart-3: 38 92% 50%;
+  --chart-4: 142 71% 45%;
+  --chart-5: 262 83% 58%;
+  --chart-axis: 240 6% 83%;
 }
 
-/* daisyUI theme plugin. You can update this file by fetching the latest version with:
-  curl -sLO https://github.com/saadeghi/daisyui/releases/latest/download/daisyui-theme.js
-  We ship with two themes, a light one inspired on Phoenix colors and a dark one inspired
-  on Elixir colors. Build your own at: https://daisyui.com/theme-generator/ */
-@plugin "../vendor/daisyui-theme" {
-  name: "dark";
-  default: false;
-  prefersdark: true;
-  color-scheme: "dark";
-  --color-base-100: oklch(30.33% 0.016 252.42);
-  --color-base-200: oklch(25.26% 0.014 253.1);
-  --color-base-300: oklch(20.15% 0.012 254.09);
-  --color-base-content: oklch(97.807% 0.029 256.847);
-  --color-primary: oklch(58% 0.233 277.117);
-  --color-primary-content: oklch(96% 0.018 272.314);
-  --color-secondary: oklch(58% 0.233 277.117);
-  --color-secondary-content: oklch(96% 0.018 272.314);
-  --color-accent: oklch(60% 0.25 292.717);
-  --color-accent-content: oklch(96% 0.016 293.756);
-  --color-neutral: oklch(37% 0.044 257.287);
-  --color-neutral-content: oklch(98% 0.003 247.858);
-  --color-info: oklch(58% 0.158 241.966);
-  --color-info-content: oklch(97% 0.013 236.62);
-  --color-success: oklch(60% 0.118 184.704);
-  --color-success-content: oklch(98% 0.014 180.72);
-  --color-warning: oklch(66% 0.179 58.318);
-  --color-warning-content: oklch(98% 0.022 95.277);
-  --color-error: oklch(58% 0.253 17.585);
-  --color-error-content: oklch(96% 0.015 12.422);
-  --radius-selector: 0.25rem;
-  --radius-field: 0.25rem;
-  --radius-box: 0.5rem;
-  --size-selector: 0.21875rem;
-  --size-field: 0.21875rem;
-  --border: 1.5px;
-  --depth: 1;
-  --noise: 0;
+/* Dark theme */
+[data-theme="dark"] {
+  --background: 240 10% 16%;
+  --foreground: 0 0% 95%;
+  --card: 240 10% 18%;
+  --card-foreground: 0 0% 95%;
+  --popover: 240 10% 18%;
+  --popover-foreground: 0 0% 95%;
+  --primary: 239 65% 58%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 240 6% 25%;
+  --secondary-foreground: 0 0% 95%;
+  --muted: 240 6% 25%;
+  --muted-foreground: 240 5% 65%;
+  --accent: 240 6% 25%;
+  --accent-foreground: 0 0% 95%;
+  --destructive: 0 63% 55%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 240 6% 28%;
+  --input: 240 6% 28%;
+  --ring: 239 65% 58%;
+
+  /* ── Status: API lifecycle ─────────────────────── */
+  --status-draft: 240 6% 25%;
+  --status-draft-foreground: 240 5% 65%;
+  --status-compiled: 142 71% 45%;
+  --status-compiled-foreground: 142 76% 80%;
+  --status-published: 217 91% 60%;
+  --status-published-foreground: 213 94% 85%;
+  --status-archived: 240 6% 35%;
+  --status-archived-foreground: 240 5% 65%;
+
+  /* ── Status: process states ────────────────────── */
+  --status-pending: 38 92% 50%;
+  --status-pending-foreground: 48 96% 80%;
+  --status-generating: 38 92% 50%;
+  --status-generating-foreground: 48 96% 80%;
+  --status-running: 217 91% 60%;
+  --status-running-foreground: 213 94% 85%;
+  --status-active: 142 71% 45%;
+  --status-active-foreground: 142 76% 80%;
+  --status-expired: 0 63% 55%;
+  --status-expired-foreground: 0 86% 80%;
+
+  /* ── Semantic feedback ─────────────────────────── */
+  --success: 142 71% 45%;
+  --success-foreground: 142 76% 80%;
+  --warning: 38 92% 50%;
+  --warning-foreground: 48 96% 80%;
+  --info: 217 91% 60%;
+  --info-foreground: 213 94% 85%;
+
+  /* ── Charts ────────────────────────────────────── */
+  --chart-1: 239 65% 65%;
+  --chart-2: 0 63% 60%;
+  --chart-3: 38 92% 55%;
+  --chart-4: 142 71% 50%;
+  --chart-5: 262 83% 65%;
+  --chart-axis: 240 6% 35%;
 }
 
-@plugin "../vendor/daisyui-theme" {
-  name: "light";
-  default: true;
-  prefersdark: false;
-  color-scheme: "light";
-  --color-base-100: oklch(98% 0 0);
-  --color-base-200: oklch(96% 0.001 286.375);
-  --color-base-300: oklch(92% 0.004 286.32);
-  --color-base-content: oklch(21% 0.006 285.885);
-  --color-primary: oklch(70% 0.213 47.604);
-  --color-primary-content: oklch(98% 0.016 73.684);
-  --color-secondary: oklch(55% 0.027 264.364);
-  --color-secondary-content: oklch(98% 0.002 247.839);
-  --color-accent: oklch(0% 0 0);
-  --color-accent-content: oklch(100% 0 0);
-  --color-neutral: oklch(44% 0.017 285.786);
-  --color-neutral-content: oklch(98% 0 0);
-  --color-info: oklch(62% 0.214 259.815);
-  --color-info-content: oklch(97% 0.014 254.604);
-  --color-success: oklch(70% 0.14 182.503);
-  --color-success-content: oklch(98% 0.014 180.72);
-  --color-warning: oklch(66% 0.179 58.318);
-  --color-warning-content: oklch(98% 0.022 95.277);
-  --color-error: oklch(58% 0.253 17.585);
-  --color-error-content: oklch(96% 0.015 12.422);
-  --radius-selector: 0.25rem;
-  --radius-field: 0.25rem;
-  --radius-box: 0.5rem;
-  --size-selector: 0.21875rem;
-  --size-field: 0.21875rem;
-  --border: 1.5px;
-  --depth: 1;
-  --noise: 0;
+/* Map CSS variables to Tailwind color utilities */
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  /* ── Status tokens ───────────────────────────── */
+  --color-status-draft: hsl(var(--status-draft));
+  --color-status-draft-foreground: hsl(var(--status-draft-foreground));
+  --color-status-compiled: hsl(var(--status-compiled));
+  --color-status-compiled-foreground: hsl(var(--status-compiled-foreground));
+  --color-status-published: hsl(var(--status-published));
+  --color-status-published-foreground: hsl(var(--status-published-foreground));
+  --color-status-archived: hsl(var(--status-archived));
+  --color-status-archived-foreground: hsl(var(--status-archived-foreground));
+  --color-status-pending: hsl(var(--status-pending));
+  --color-status-pending-foreground: hsl(var(--status-pending-foreground));
+  --color-status-generating: hsl(var(--status-generating));
+  --color-status-generating-foreground: hsl(var(--status-generating-foreground));
+  --color-status-running: hsl(var(--status-running));
+  --color-status-running-foreground: hsl(var(--status-running-foreground));
+  --color-status-active: hsl(var(--status-active));
+  --color-status-active-foreground: hsl(var(--status-active-foreground));
+  --color-status-expired: hsl(var(--status-expired));
+  --color-status-expired-foreground: hsl(var(--status-expired-foreground));
+
+  /* ── Semantic feedback ──────────────────────── */
+  --color-success: hsl(var(--success));
+  --color-success-foreground: hsl(var(--success-foreground));
+  --color-warning: hsl(var(--warning));
+  --color-warning-foreground: hsl(var(--warning-foreground));
+  --color-info: hsl(var(--info));
+  --color-info-foreground: hsl(var(--info-foreground));
+
+  /* ── Charts ─────────────────────────────────── */
+  --color-chart-1: hsl(var(--chart-1));
+  --color-chart-2: hsl(var(--chart-2));
+  --color-chart-3: hsl(var(--chart-3));
+  --color-chart-4: hsl(var(--chart-4));
+  --color-chart-5: hsl(var(--chart-5));
+  --color-chart-axis: hsl(var(--chart-axis));
 }
 
 /* Add variants based on LiveView classes */
@@ -113,19 +218,8 @@
 
 /* Modal/dialog panels: solid opaque background, no see-through */
 .modal-panel {
-  background-color: #ffffff !important;
-  color: #1f2937 !important;
-}
-[data-theme="dark"] .modal-panel,
-:where([data-theme="dark"], [data-theme="dark"] *) .modal-panel {
-  background-color: #1e1e2e !important;
-  color: #e5e7eb !important;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .modal-panel {
-    background-color: #1e1e2e !important;
-    color: #e5e7eb !important;
-  }
+  background-color: hsl(var(--card));
+  color: hsl(var(--card-foreground));
 }
 
 /* MDEx/Lumis syntax highlighting: prevent prose from overriding inline colors */

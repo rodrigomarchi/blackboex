@@ -32,7 +32,7 @@ defmodule BlackboexWeb.UserLive.Registration do
           phx-mounted={JS.focus()}
         />
 
-        <.button phx-disable-with="Creating account..." class="btn btn-primary w-full">
+        <.button phx-disable-with="Creating account..." class="w-full">
           Create an account
         </.button>
       </.form>

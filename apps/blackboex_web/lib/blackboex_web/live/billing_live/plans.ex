@@ -107,19 +107,22 @@ defmodule BlackboexWeb.BillingLive.Plans do
     <div class="max-w-5xl mx-auto py-8">
       <div class="text-center mb-10">
         <h1 class="text-3xl font-bold">Choose your plan</h1>
-        <p class="text-base-content/60 mt-2">Scale your API platform with the right plan</p>
+        <p class="text-muted-foreground mt-2">Scale your API platform with the right plan</p>
       </div>
 
-      <div :if={@usage} class="card bg-base-100 border shadow-sm mb-8">
-        <div class="card-body">
+      <div :if={@usage} class="rounded-lg border bg-card text-card-foreground shadow-sm mb-8">
+        <div class="p-6">
           <div class="flex items-center justify-between mb-4">
-            <h2 class="card-title">Current Plan: {@usage.plan}</h2>
-            <.link navigate={~p"/billing/manage"} class="btn btn-outline btn-sm">
+            <h2 class="text-lg font-semibold">Current Plan: {@usage.plan}</h2>
+            <.link
+              navigate={~p"/billing/manage"}
+              class="inline-flex items-center justify-center rounded-md border border-input bg-background px-3 py-1 text-xs font-medium hover:bg-accent hover:text-accent-foreground"
+            >
               Manage Subscription
             </.link>
           </div>
 
-          <h3 class="text-sm font-semibold text-base-content/60 mb-3">Usage this month</h3>
+          <h3 class="text-sm font-semibold text-muted-foreground mb-3">Usage this month</h3>
           <div class="space-y-4">
             <.usage_bar label="APIs" detail={@usage.apis} />
             <.usage_bar label="Calls/day" detail={@usage.invocations_today} />
@@ -132,15 +135,15 @@ defmodule BlackboexWeb.BillingLive.Plans do
         <div
           :for={plan <- @plans}
           class={[
-            "card bg-base-100 border shadow-sm",
+            "rounded-lg border bg-card text-card-foreground shadow-sm",
             plan.id == @current_plan && "border-primary ring-2 ring-primary"
           ]}
         >
-          <div class="card-body">
-            <h2 class="card-title">{plan.name}</h2>
+          <div class="p-6">
+            <h2 class="text-lg font-semibold">{plan.name}</h2>
             <div class="mt-2">
               <span class="text-3xl font-bold">{plan.price}</span>
-              <span class="text-base-content/60">{plan.period}</span>
+              <span class="text-muted-foreground">{plan.period}</span>
             </div>
 
             <ul class="mt-6 space-y-2">
@@ -150,21 +153,34 @@ defmodule BlackboexWeb.BillingLive.Plans do
               </li>
             </ul>
 
-            <div class="card-actions mt-6">
+            <div class="flex gap-2 pt-2 mt-6">
               <%= if plan.id == @current_plan do %>
-                <button class="btn btn-outline btn-block" disabled>Current Plan</button>
+                <button
+                  class="inline-flex w-full items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium opacity-50 cursor-not-allowed"
+                  disabled
+                >
+                  Current Plan
+                </button>
               <% else %>
                 <%= if plan.id == "free" do %>
-                  <button class="btn btn-outline btn-block" disabled>Free</button>
+                  <button
+                    class="inline-flex w-full items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium opacity-50 cursor-not-allowed"
+                    disabled
+                  >
+                    Free
+                  </button>
                 <% else %>
                   <button
-                    class="btn btn-primary btn-block"
+                    class="inline-flex w-full items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
                     phx-click="choose_plan"
                     phx-value-plan={plan.id}
                     disabled={@loading_plan != nil}
                   >
                     <%= if @loading_plan == plan.id do %>
-                      <span class="loading loading-spinner loading-sm"></span>
+                      <svg class="animate-spin size-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
                     <% else %>
                       Choose {plan.name}
                     <% end %>
@@ -188,7 +204,7 @@ defmodule BlackboexWeb.BillingLive.Plans do
         <span>{@detail.used} / Unlimited</span>
       </div>
       <div class="h-2 rounded-full bg-muted">
-        <div class="h-full rounded-full bg-green-500 w-full"></div>
+        <div class="h-full rounded-full bg-success w-full"></div>
       </div>
     </div>
     """

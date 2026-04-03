@@ -27,7 +27,7 @@ defmodule BlackboexWeb.UserLive.Settings do
       <.button variant="primary" phx-disable-with="Changing...">Change Email</.button>
     </.form>
 
-    <div class="divider" />
+    <div class="border-t my-6" />
 
     <.form
       for={@password_form}

@@ -1,4 +1,4 @@
-defmodule BlackboexWeb.Components.RightPanel do
+defmodule BlackboexWeb.Components.Editor.RightPanel do
   @moduledoc """
   Right panel shell for Chat or Config modes.
   Content is provided via the inner_block slot by the parent.

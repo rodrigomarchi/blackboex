@@ -84,8 +84,15 @@ defmodule BlackboexWeb do
 
       # HTML escaping functionality
       import Phoenix.HTML
-      # Core UI components
-      import BlackboexWeb.CoreComponents
+      # UI components
+      import BlackboexWeb.Components.Icon
+      import BlackboexWeb.Components.Button
+      import BlackboexWeb.Components.Flash
+      import BlackboexWeb.Components.FormField
+      import BlackboexWeb.Components.Table
+      import BlackboexWeb.Components.Header
+      import BlackboexWeb.Components.Helpers
+      import BlackboexWeb.Components.StatusHelpers
       import BlackboexWeb.Logo
 
       # Common modules used in templates

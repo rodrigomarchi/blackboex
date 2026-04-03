@@ -1,4 +1,4 @@
-defmodule BlackboexWeb.Components.RequestBuilder do
+defmodule BlackboexWeb.Components.Editor.RequestBuilder do
   @moduledoc """
   LiveComponent for building and sending API test requests.
   Renders method selector, URL field, and sub-tabs for params/headers/body/auth.

@@ -1,4 +1,4 @@
-defmodule BlackboexWeb.Components.ResponseViewer do
+defmodule BlackboexWeb.Components.Editor.ResponseViewer do
   @moduledoc """
   LiveComponent for displaying API test responses.
   Shows status badge, duration, formatted body, and headers.
@@ -29,7 +29,7 @@ defmodule BlackboexWeb.Components.ResponseViewer do
               </span>
             <% else %>
               <%= if @response do %>
-                <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold border-green-500 bg-green-50 text-green-700">
+                <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold border-success bg-success/10 text-success-foreground">
                   Valid
                 </span>
               <% end %>
@@ -129,13 +129,13 @@ defmodule BlackboexWeb.Components.ResponseViewer do
   defp format_body(body), do: inspect(body)
 
   defp status_color(status) when status >= 200 and status < 300,
-    do: "border-green-500 bg-green-50 text-green-700"
+    do: "border-success bg-success/10 text-success-foreground"
 
   defp status_color(status) when status >= 400 and status < 500,
-    do: "border-yellow-500 bg-yellow-50 text-yellow-700"
+    do: "border-warning bg-warning/10 text-warning-foreground"
 
   defp status_color(status) when status >= 500,
-    do: "border-red-500 bg-red-50 text-red-700"
+    do: "border-destructive bg-destructive/10 text-destructive"
 
   defp status_color(_), do: "border bg-muted text-muted-foreground"
 

@@ -242,13 +242,7 @@ defmodule BlackboexWeb.ApiKeyLive.Show do
 
   defp status_label(_), do: "Active"
 
-  defp status_class(key) do
-    case status_label(key) do
-      "Active" -> "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-      "Revoked" -> "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
-      "Expired" -> "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
-    end
-  end
+  defp status_class(key), do: api_key_status_classes(status_label(key))
 
   defp format_latency(nil), do: "—"
   defp format_latency(ms) when is_float(ms), do: "#{Float.round(ms, 1)}ms"

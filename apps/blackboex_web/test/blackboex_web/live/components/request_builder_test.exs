@@ -1,4 +1,4 @@
-defmodule BlackboexWeb.Components.RequestBuilderTest do
+defmodule BlackboexWeb.Components.Editor.RequestBuilderTest do
   use BlackboexWeb.ConnCase, async: false
 
   @moduletag :liveview

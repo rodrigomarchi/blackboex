@@ -1,4 +1,4 @@
-defmodule BlackboexWeb.Components.ChatPanel do
+defmodule BlackboexWeb.Components.Editor.ChatPanel do
   @moduledoc """
   LiveComponent for the agent conversation timeline.
   Renders a compact, IDE-style timeline with collapsible tool steps,
@@ -10,7 +10,7 @@ defmodule BlackboexWeb.Components.ChatPanel do
   alias Blackboex.Apis.DiffEngine
   alias Phoenix.LiveView.JS
 
-  import BlackboexWeb.Components.ValidationDashboard, only: [validation_badge: 1]
+  import BlackboexWeb.Components.Editor.ValidationDashboard, only: [validation_badge: 1]
 
   @impl true
   def render(assigns) do
@@ -59,8 +59,8 @@ defmodule BlackboexWeb.Components.ChatPanel do
             <%!-- Streaming tokens fallback (when streaming before first tool step) --%>
             <%= if @loading and not has_active_tool_call?(@grouped_events) and @streaming_tokens != "" do %>
               <div class="relative pb-2 pt-1">
-                <div class="absolute -left-[9px] top-3 size-[13px] rounded-full border-2 border-blue-500 bg-background flex items-center justify-center animate-pulse">
-                  <div class="size-[5px] rounded-full bg-blue-500" />
+                <div class="absolute -left-[9px] top-3 size-[13px] rounded-full border-2 border-info bg-background flex items-center justify-center animate-pulse">
+                  <div class="size-[5px] rounded-full bg-info" />
                 </div>
                 <div class="ml-2">
                   <.render_streaming_code code={@streaming_tokens} />
@@ -71,7 +71,7 @@ defmodule BlackboexWeb.Components.ChatPanel do
             <%!-- Thinking indicator (when loading but no active tool step and no tokens yet) --%>
             <%= if @loading and not has_active_tool_call?(@grouped_events) and @streaming_tokens == "" do %>
               <div class="relative py-2">
-                <div class="absolute -left-[7px] top-[11px] size-[9px] rounded-full bg-blue-500 animate-pulse" />
+                <div class="absolute -left-[7px] top-[11px] size-[9px] rounded-full bg-info animate-pulse" />
                 <span class="text-xs text-muted-foreground animate-pulse ml-2">Thinking...</span>
               </div>
             <% end %>
@@ -280,7 +280,7 @@ defmodule BlackboexWeb.Components.ChatPanel do
           <%= if @result do %>
             <.step_status_icon success={@result.success} />
           <% else %>
-            <span class="size-3 rounded-full bg-blue-500 animate-pulse inline-block" />
+            <span class="size-3 rounded-full bg-info animate-pulse inline-block" />
           <% end %>
           <%= if @summary do %>
             <span class={[
@@ -351,9 +351,9 @@ defmodule BlackboexWeb.Components.ChatPanel do
   defp step_status_icon(assigns) do
     ~H"""
     <%= if @success do %>
-      <.icon name="hero-check-circle" class="size-3.5 text-green-600 dark:text-green-400" />
+      <.icon name="hero-check-circle" class="size-3.5 text-success-foreground" />
     <% else %>
-      <.icon name="hero-x-circle" class="size-3.5 text-red-500 dark:text-red-400" />
+      <.icon name="hero-x-circle" class="size-3.5 text-destructive" />
     <% end %>
     """
   end
@@ -365,7 +365,7 @@ defmodule BlackboexWeb.Components.ChatPanel do
     <div class="relative pb-1 pt-0.5">
       <div class={[
         "absolute -left-[9px] top-[5px] flex items-center justify-center size-[13px] rounded-full bg-background border-2",
-        if(@result[:success], do: "border-green-500", else: "border-red-500")
+        if(@result[:success], do: "border-success", else: "border-destructive")
       ]}>
         <.icon name={tool_icon(@result.tool)} class="size-[7px]" />
       </div>
@@ -455,7 +455,7 @@ defmodule BlackboexWeb.Components.ChatPanel do
         <span class="text-[10px] font-medium text-white/50 uppercase tracking-wider">
           Streaming
         </span>
-        <span class="inline-block w-1.5 h-3 bg-blue-400 animate-pulse rounded-sm" />
+        <span class="inline-block w-1.5 h-3 bg-info animate-pulse rounded-sm" />
       </div>
       <div class="max-h-[300px] overflow-y-auto overflow-x-auto text-[11px] font-mono leading-snug">
         <%= for {line, num} <- @lines do %>
@@ -484,7 +484,7 @@ defmodule BlackboexWeb.Components.ChatPanel do
         <div class={[
           "rounded-md border px-2.5 py-2 text-xs",
           if(!@success,
-            do: "border-red-300 bg-red-50/50 dark:border-red-800 dark:bg-red-950/30",
+            do: "border-destructive bg-destructive/10",
             else: "bg-muted/30"
           )
         ]}>
@@ -493,14 +493,14 @@ defmodule BlackboexWeb.Components.ChatPanel do
               Output
             </span>
             <%= if !@success do %>
-              <span class="text-[9px] rounded bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300 px-1 py-0.5 font-medium">
+              <span class="text-[9px] rounded bg-destructive/10 text-destructive px-1 py-0.5 font-medium">
                 ERROR
               </span>
             <% end %>
           </div>
           <pre class={[
             "whitespace-pre-wrap font-mono text-[11px] leading-relaxed max-h-[400px] overflow-y-auto",
-            if(!@success, do: "text-red-600 dark:text-red-400", else: "text-foreground")
+            if(!@success, do: "text-destructive", else: "text-foreground")
           ]}><code>{@content}</code></pre>
         </div>
       <% end %>
@@ -522,12 +522,12 @@ defmodule BlackboexWeb.Components.ChatPanel do
 
   defp render_pending_edit(assigns) do
     ~H"""
-    <div class="rounded-lg border border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-950/30 p-3 space-y-2.5">
+    <div class="rounded-lg border border-info/30 bg-info/10 p-3 space-y-2.5">
       <div class="flex items-center gap-1.5">
-        <.icon name="hero-pencil-square" class="size-4 text-blue-600 dark:text-blue-400" />
-        <span class="text-xs font-semibold text-blue-700 dark:text-blue-300">Proposed Change</span>
+        <.icon name="hero-pencil-square" class="size-4 text-info-foreground" />
+        <span class="text-xs font-semibold text-info-foreground">Proposed Change</span>
       </div>
-      <p class="text-xs text-blue-600 dark:text-blue-400">{@pending_edit[:explanation] || ""}</p>
+      <p class="text-xs text-info-foreground">{@pending_edit[:explanation] || ""}</p>
 
       <%= if @pending_edit[:diff] do %>
         <div class="rounded border bg-background p-1.5 text-[11px] font-mono overflow-x-auto max-h-60 overflow-y-auto">
@@ -563,13 +563,13 @@ defmodule BlackboexWeb.Components.ChatPanel do
       <div class="flex gap-2">
         <button
           phx-click="accept_edit"
-          class="rounded-md bg-green-600 px-3 py-1 text-xs font-medium text-white hover:bg-green-700 flex items-center gap-1"
+          class="rounded-md bg-success px-3 py-1 text-xs font-medium text-success-foreground hover:bg-success/90 flex items-center gap-1"
         >
           <.icon name="hero-check" class="size-3" /> Accept
         </button>
         <button
           phx-click="reject_edit"
-          class="rounded-md border border-red-300 px-3 py-1 text-xs font-medium text-red-600 hover:bg-red-50 flex items-center gap-1"
+          class="rounded-md border border-destructive/50 px-3 py-1 text-xs font-medium text-destructive hover:bg-destructive/10 flex items-center gap-1"
         >
           <.icon name="hero-x-mark" class="size-3" /> Reject
         </button>
@@ -654,25 +654,12 @@ defmodule BlackboexWeb.Components.ChatPanel do
   defp format_tool_display_name("edit_source"), do: "Edit Source"
   defp format_tool_display_name(name), do: name
 
-  defp step_node_class(nil), do: "border-blue-500 animate-pulse"
-  defp step_node_class(%{success: true}), do: "border-green-500"
-  defp step_node_class(%{success: false}), do: "border-red-500"
+  defp step_node_class(nil), do: "border-info animate-pulse"
+  defp step_node_class(%{success: true}), do: "border-success"
+  defp step_node_class(%{success: false}), do: "border-destructive"
   defp step_node_class(_), do: "border-muted-foreground/30"
 
-  defp status_badge_class("running"),
-    do: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 animate-pulse"
-
-  defp status_badge_class("completed"),
-    do: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-
-  defp status_badge_class("failed"),
-    do: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
-
-  defp status_badge_class("partial"),
-    do: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300"
-
-  defp status_badge_class(_),
-    do: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
+  defp status_badge_class(status), do: process_status_classes(status)
 
   defp compact_summary(tool, nil) when tool in ~w(run_tests lint_code), do: nil
 
@@ -686,9 +673,9 @@ defmodule BlackboexWeb.Components.ChatPanel do
 
   defp compact_summary(_, _), do: nil
 
-  defp summary_color("lint_code", %{success: true}), do: "text-yellow-600 dark:text-yellow-400"
-  defp summary_color("run_tests", %{success: true}), do: "text-green-600 dark:text-green-400"
-  defp summary_color("run_tests", %{success: false}), do: "text-red-500 dark:text-red-400"
+  defp summary_color("lint_code", %{success: true}), do: "text-warning-foreground"
+  defp summary_color("run_tests", %{success: true}), do: "text-success-foreground"
+  defp summary_color("run_tests", %{success: false}), do: "text-destructive"
   defp summary_color(_, _), do: "text-muted-foreground"
 
   defp parse_lint_count(content) do
@@ -787,10 +774,8 @@ defmodule BlackboexWeb.Components.ChatPanel do
   defp run_type_label("doc_only"), do: "Docs Only"
   defp run_type_label(_), do: "Run"
 
-  defp diff_line_class(:ins),
-    do: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-
-  defp diff_line_class(:del), do: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+  defp diff_line_class(:ins), do: "bg-success/10 text-success-foreground"
+  defp diff_line_class(:del), do: "bg-destructive/10 text-destructive"
   defp diff_line_class(:eq), do: ""
 
   defp diff_prefix(:ins), do: "+"

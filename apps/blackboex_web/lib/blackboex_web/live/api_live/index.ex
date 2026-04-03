@@ -356,7 +356,7 @@ defmodule BlackboexWeb.ApiLive.Index do
     color_classes =
       case assigns.status do
         "published" ->
-          "border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-400"
+          api_status_border("published")
 
         "compiled" ->
           "border-border bg-secondary text-secondary-foreground"
@@ -378,7 +378,7 @@ defmodule BlackboexWeb.ApiLive.Index do
 
   defp generation_badge(assigns) do
     ~H"""
-    <span class="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-xs font-semibold text-amber-700 dark:text-amber-400 animate-pulse">
+    <span class="inline-flex items-center gap-1 rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-xs font-semibold text-warning-foreground animate-pulse">
       <.icon name="hero-arrow-path" class="size-3 animate-spin" /> Generating...
     </span>
     """

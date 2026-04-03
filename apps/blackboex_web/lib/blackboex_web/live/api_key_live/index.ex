@@ -126,7 +126,7 @@ defmodule BlackboexWeb.ApiKeyLive.Index do
       <%= if @show_create_modal do %>
         <div class="fixed inset-0 z-50 flex items-center justify-center">
           <div class="fixed inset-0 bg-black/50" phx-click="toggle_create_modal" />
-          <div class="modal-panel relative z-10 w-full max-w-md rounded-lg border p-6 shadow-xl">
+          <div class="relative z-10 w-full max-w-md rounded-lg border bg-card text-card-foreground p-6 shadow-xl">
             <h2 class="text-lg font-semibold mb-4">Create API Key</h2>
             <form phx-submit="create_key" class="space-y-4">
               <div>
@@ -220,13 +220,7 @@ defmodule BlackboexWeb.ApiKeyLive.Index do
 
   defp key_status(_), do: "Active"
 
-  defp key_status_class(key) do
-    case key_status(key) do
-      "Active" -> "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-      "Revoked" -> "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
-      "Expired" -> "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
-    end
-  end
+  defp key_status_class(key), do: api_key_status_classes(key_status(key))
 
   defp format_date(nil), do: "—"
 

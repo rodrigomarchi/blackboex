@@ -40,7 +40,7 @@ defmodule BlackboexWeb.Admin.UserTokenLive do
         only: [:show],
         render: fn assigns ->
           ~H"""
-          <span class="text-xs text-base-content/60 italic">[binary token — hidden for security]</span>
+          <span class="text-xs text-muted-foreground italic">[binary token — hidden for security]</span>
           """
         end
       },

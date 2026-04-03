@@ -1,4 +1,4 @@
-defmodule BlackboexWeb.Components.StatusBar do
+defmodule BlackboexWeb.Components.Editor.StatusBar do
   @moduledoc """
   Status bar displayed at the bottom of the editor page.
   Shows language, version number, and compilation status.
@@ -23,7 +23,7 @@ defmodule BlackboexWeb.Components.StatusBar do
       <span class={status_text_color(@api.status)}>{@api.status}</span>
       <%= if @selected_version do %>
         <span class="opacity-30">│</span>
-        <span class="text-blue-600">viewing v{@selected_version.version_number}</span>
+        <span class="text-info-foreground">viewing v{@selected_version.version_number}</span>
         <button phx-click="clear_version_view" class="text-primary hover:underline ml-1">
           ← current
         </button>
@@ -32,7 +32,5 @@ defmodule BlackboexWeb.Components.StatusBar do
     """
   end
 
-  defp status_text_color("compiled"), do: "text-green-600"
-  defp status_text_color("published"), do: "text-blue-600"
-  defp status_text_color(_), do: ""
+  defp status_text_color(status), do: api_status_classes(status)
 end

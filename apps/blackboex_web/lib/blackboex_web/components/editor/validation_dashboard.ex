@@ -1,4 +1,4 @@
-defmodule BlackboexWeb.Components.ValidationDashboard do
+defmodule BlackboexWeb.Components.Editor.ValidationDashboard do
   @moduledoc """
   Dashboard component showing results of all validation checks:
   compilation, format, Credo, and tests.
@@ -27,8 +27,8 @@ defmodule BlackboexWeb.Components.ValidationDashboard do
         <span class={[
           "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold",
           if(@report.overall == :pass,
-            do: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-            else: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+            do: "bg-success/10 text-success-foreground",
+            else: "bg-destructive/10 text-destructive"
           )
         ]}>
           {if @report.overall == :pass, do: "ALL PASS", else: "ISSUES FOUND"}
@@ -140,7 +140,7 @@ defmodule BlackboexWeb.Components.ValidationDashboard do
           :if={@status != :skipped}
           class={[
             "text-xs font-semibold",
-            if(@passed == @total, do: "text-green-600", else: "text-red-600")
+            if(@passed == @total, do: "text-success-foreground", else: "text-destructive")
           ]}
         >
           {@passed}/{@total} passing
@@ -148,10 +148,10 @@ defmodule BlackboexWeb.Components.ValidationDashboard do
       </div>
       <div :if={@results != []} class="mt-1 space-y-0.5">
         <div :for={result <- @results} class="flex items-center gap-1 text-xs pl-5">
-          <span :if={result.status == "passed"} class="text-green-600">✓</span>
-          <span :if={result.status == "failed"} class="text-red-600">✗</span>
+          <span :if={result.status == "passed"} class="text-success-foreground">✓</span>
+          <span :if={result.status == "failed"} class="text-destructive">✗</span>
           <span class="truncate text-muted-foreground" title={result.name}>{result.name}</span>
-          <span :if={result.error} class="text-red-500 truncate" title={result.error}>
+          <span :if={result.error} class="text-destructive truncate" title={result.error}>
             — {result.error}
           </span>
         </div>
@@ -168,16 +168,10 @@ defmodule BlackboexWeb.Components.ValidationDashboard do
   defp status_icon(:warn), do: "⚠"
   defp status_icon(_), do: "○"
 
-  defp status_text_class(:pass), do: "text-green-600"
-  defp status_text_class(:fail), do: "text-red-600"
+  defp status_text_class(:pass), do: "text-success-foreground"
+  defp status_text_class(:fail), do: "text-destructive"
   defp status_text_class(:skipped), do: "text-muted-foreground"
-  defp status_text_class(_), do: "text-yellow-600"
+  defp status_text_class(_), do: "text-warning-foreground"
 
-  defp badge_class(:pass), do: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-  defp badge_class(:fail), do: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
-
-  defp badge_class(:skipped),
-    do: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
-
-  defp badge_class(_), do: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300"
+  defp badge_class(status), do: result_classes(status)
 end

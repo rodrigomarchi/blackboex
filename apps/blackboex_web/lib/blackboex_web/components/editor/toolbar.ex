@@ -1,4 +1,4 @@
-defmodule BlackboexWeb.Components.EditorToolbar do
+defmodule BlackboexWeb.Components.Editor.Toolbar do
   @moduledoc """
   Compact toolbar for the API code editor page.
   Shows API name, status, save actions, and command palette trigger.
@@ -34,14 +34,14 @@ defmodule BlackboexWeb.Components.EditorToolbar do
 
       <span
         :if={@selected_version}
-        class="inline-flex items-center rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-medium text-blue-600"
+        class="inline-flex items-center rounded-full bg-info/10 px-2 py-0.5 text-[10px] font-medium text-info-foreground"
       >
         v{@selected_version.version_number}
       </span>
 
       <span
         :if={@generation_status in ~w(pending generating validating)}
-        class="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-600 animate-pulse"
+        class="inline-flex items-center gap-1 rounded-full bg-warning/10 px-2 py-0.5 text-[10px] font-medium text-warning-foreground animate-pulse"
       >
         <.icon name="hero-arrow-path" class="size-3 animate-spin" /> generating
       </span>
@@ -68,9 +68,5 @@ defmodule BlackboexWeb.Components.EditorToolbar do
     """
   end
 
-  defp status_color("draft"), do: "border bg-muted text-muted-foreground"
-  defp status_color("compiled"), do: "border-green-500 bg-green-50 text-green-700"
-  defp status_color("published"), do: "border-blue-500 bg-blue-50 text-blue-700"
-  defp status_color("archived"), do: "border-gray-500 bg-gray-50 text-gray-500"
-  defp status_color(_), do: "border bg-muted text-muted-foreground"
+  defp status_color(status), do: api_status_border(status)
 end

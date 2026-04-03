@@ -44,18 +44,18 @@ defmodule BlackboexWeb.BillingLive.Manage do
       <h1 class="text-2xl font-bold mb-6">Subscription Management</h1>
 
       <%= if @subscription do %>
-        <div class="card bg-base-100 border shadow-sm">
-          <div class="card-body">
+        <div class="rounded-lg border bg-card text-card-foreground shadow-sm">
+          <div class="p-6">
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <span class="text-sm text-base-content/60">Plan</span>
+                <span class="text-sm text-muted-foreground">Plan</span>
                 <p class="font-semibold capitalize">{@subscription.plan}</p>
               </div>
               <div>
-                <span class="text-sm text-base-content/60">Status</span>
+                <span class="text-sm text-muted-foreground">Status</span>
                 <p>
                   <span class={[
-                    "badge",
+                    "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold",
                     status_badge_class(@subscription.status)
                   ]}>
                     {@subscription.status}
@@ -63,7 +63,7 @@ defmodule BlackboexWeb.BillingLive.Manage do
                 </p>
               </div>
               <div>
-                <span class="text-sm text-base-content/60">Current Period</span>
+                <span class="text-sm text-muted-foreground">Current Period</span>
                 <p class="text-sm">
                   <%= if @subscription.current_period_start && @subscription.current_period_end do %>
                     {Calendar.strftime(@subscription.current_period_start, "%b %d, %Y")} — {Calendar.strftime(
@@ -76,7 +76,7 @@ defmodule BlackboexWeb.BillingLive.Manage do
                 </p>
               </div>
               <div>
-                <span class="text-sm text-base-content/60">Auto-Renew</span>
+                <span class="text-sm text-muted-foreground">Auto-Renew</span>
                 <p>
                   {if @subscription.cancel_at_period_end,
                     do: "Cancels at end of period",
@@ -85,30 +85,39 @@ defmodule BlackboexWeb.BillingLive.Manage do
               </div>
             </div>
 
-            <div class="card-actions mt-6">
+            <div class="flex gap-2 pt-2 mt-6">
               <button
-                class="btn btn-primary"
+                class="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
                 phx-click="manage"
                 disabled={@loading_portal}
               >
                 <%= if @loading_portal do %>
-                  <span class="loading loading-spinner loading-sm"></span>
+                  <svg class="animate-spin size-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
                 <% else %>
                   Manage Subscription
                 <% end %>
               </button>
-              <.link navigate={~p"/billing"} class="btn btn-outline">
+              <.link
+                navigate={~p"/billing"}
+                class="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+              >
                 Change Plan
               </.link>
             </div>
           </div>
         </div>
       <% else %>
-        <div class="card bg-base-100 border shadow-sm">
-          <div class="card-body text-center">
-            <p class="text-base-content/60">You don't have an active subscription.</p>
-            <div class="card-actions justify-center mt-4">
-              <.link navigate={~p"/billing"} class="btn btn-primary">
+        <div class="rounded-lg border bg-card text-card-foreground shadow-sm">
+          <div class="p-6 text-center">
+            <p class="text-muted-foreground">You don't have an active subscription.</p>
+            <div class="flex justify-center mt-4">
+              <.link
+                navigate={~p"/billing"}
+                class="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              >
                 View Plans
               </.link>
             </div>
@@ -119,9 +128,5 @@ defmodule BlackboexWeb.BillingLive.Manage do
     """
   end
 
-  defp status_badge_class("active"), do: "badge-success"
-  defp status_badge_class("trialing"), do: "badge-info"
-  defp status_badge_class("past_due"), do: "badge-warning"
-  defp status_badge_class("canceled"), do: "badge-error"
-  defp status_badge_class(_), do: "badge-ghost"
+  defp status_badge_class(status), do: subscription_classes(status)
 end

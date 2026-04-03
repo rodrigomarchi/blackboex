@@ -1,4 +1,4 @@
-defmodule BlackboexWeb.Components.ResponseViewerTest do
+defmodule BlackboexWeb.Components.Editor.ResponseViewerTest do
   use BlackboexWeb.ConnCase, async: false
 
   @moduletag :liveview

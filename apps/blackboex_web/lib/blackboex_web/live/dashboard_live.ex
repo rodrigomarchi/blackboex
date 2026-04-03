@@ -5,7 +5,7 @@ defmodule BlackboexWeb.DashboardLive do
   """
   use BlackboexWeb, :live_view
 
-  import BlackboexWeb.Components.Charts
+  import BlackboexWeb.Components.Shared.Charts
 
   alias Blackboex.Apis.DashboardQueries
   alias Blackboex.Audit
@@ -131,7 +131,7 @@ defmodule BlackboexWeb.DashboardLive do
             <.bar_chart data={@metrics.calls_series} title="API Calls" />
           </div>
           <div class="rounded-lg border bg-card p-4">
-            <.bar_chart data={@metrics.errors_series} title="Errors" color="#ef4444" />
+            <.bar_chart data={@metrics.errors_series} title="Errors" color="var(--color-chart-2)" />
           </div>
         </div>
 
@@ -141,7 +141,7 @@ defmodule BlackboexWeb.DashboardLive do
             <.line_chart data={@metrics.latency_avg_series} title="Avg Latency (ms)" />
           </div>
           <div class="rounded-lg border bg-card p-4">
-            <p class="text-sm font-medium text-zinc-700 mb-4">LLM Usage</p>
+            <p class="text-sm font-medium text-muted-foreground mb-4">LLM Usage</p>
             <div class="space-y-3">
               <div>
                 <div class="flex justify-between text-sm mb-1">
@@ -177,7 +177,7 @@ defmodule BlackboexWeb.DashboardLive do
         <%!-- Row 4: Top APIs + Recent Activity --%>
         <div class="grid gap-4 lg:grid-cols-2">
           <div class="rounded-lg border bg-card p-4">
-            <p class="text-sm font-medium text-zinc-700 mb-3">Top APIs by Calls</p>
+            <p class="text-sm font-medium text-muted-foreground mb-3">Top APIs by Calls</p>
             <table class="w-full text-sm">
               <thead>
                 <tr class="border-b text-left text-muted-foreground">
@@ -206,7 +206,7 @@ defmodule BlackboexWeb.DashboardLive do
             </table>
           </div>
           <div class="rounded-lg border bg-card p-4">
-            <p class="text-sm font-medium text-zinc-700 mb-3">Recent Activity</p>
+            <p class="text-sm font-medium text-muted-foreground mb-3">Recent Activity</p>
             <div :if={@recent_activity == []} class="py-4 text-center text-sm text-muted-foreground">
               No recent activity
             </div>

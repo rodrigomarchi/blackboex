@@ -24,7 +24,7 @@ defmodule BlackboexWeb.UserLive.Login do
         </.header>
       </div>
 
-      <div :if={local_mail_adapter?()} class="alert alert-info text-sm">
+      <div :if={local_mail_adapter?()} class="flex items-center gap-3 rounded-lg border border-info bg-info/10 p-4 text-info-foreground text-sm">
         <.icon name="hero-information-circle" class="size-5 shrink-0" />
         <div>
           <p>Local mail adapter active.</p>
@@ -59,12 +59,16 @@ defmodule BlackboexWeb.UserLive.Login do
           autocomplete="current-password"
           spellcheck="false"
         />
-        <.button class="btn btn-primary w-full" name={@form[:remember_me].name} value="true">
+        <.button class="w-full" name={@form[:remember_me].name} value="true">
           Log in <span aria-hidden="true">&rarr;</span>
         </.button>
       </.form>
 
-      <div class="divider text-xs">or</div>
+      <div class="relative my-4 flex items-center">
+        <div class="flex-grow border-t border-border"></div>
+        <span class="mx-3 text-xs text-muted-foreground">or</span>
+        <div class="flex-grow border-t border-border"></div>
+      </div>
 
       <.form
         :let={f}
@@ -82,7 +86,7 @@ defmodule BlackboexWeb.UserLive.Login do
           spellcheck="false"
           required
         />
-        <.button class="btn btn-primary btn-soft w-full">
+        <.button class="w-full">
           Send magic link
         </.button>
       </.form>

@@ -1,4 +1,4 @@
-defmodule BlackboexWeb.Components.CommandPalette do
+defmodule BlackboexWeb.Components.Editor.CommandPalette do
   @moduledoc """
   Command palette modal for quick access to editor actions via fuzzy search.
   Supports keyboard navigation (arrows + Enter).
@@ -24,7 +24,7 @@ defmodule BlackboexWeb.Components.CommandPalette do
       <div class="fixed inset-0 bg-black/15" phx-click="toggle_command_palette" />
 
       <%!-- Palette --%>
-      <div class="modal-panel relative z-10 w-full max-w-md rounded-lg border shadow-2xl overflow-hidden">
+      <div class="relative z-10 w-full max-w-md rounded-lg border bg-card text-card-foreground shadow-2xl overflow-hidden">
         <form phx-change="command_palette_search" phx-submit="command_palette_exec_first">
           <div class="border-b px-3 py-2">
             <input
@@ -51,8 +51,8 @@ defmodule BlackboexWeb.Components.CommandPalette do
             class={[
               "flex w-full items-center justify-between px-3 py-2 text-sm text-left",
               if(idx == @selected_index,
-                do: "bg-base-200",
-                else: "hover:bg-base-200"
+                do: "bg-accent",
+                else: "hover:bg-accent"
               )
             ]}
           >

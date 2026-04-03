@@ -165,24 +165,24 @@ defmodule BlackboexWeb.Admin.DashboardLive do
   defp stat_card(assigns) do
     ~H"""
     <.link :if={@href} href={@href} class="block">
-      <div class="card bg-base-100 border shadow-sm hover:border-primary transition-colors cursor-pointer">
-        <div class="card-body">
+      <div class="rounded-xl border bg-card text-card-foreground shadow-sm hover:border-primary transition-colors cursor-pointer">
+        <div class="p-6">
           <div class="flex items-center gap-3">
             <.icon name={@icon} class="size-8 text-primary" />
             <div>
-              <p class="text-sm text-base-content/60">{@title}</p>
+              <p class="text-sm text-muted-foreground">{@title}</p>
               <p class="text-2xl font-bold">{@value}</p>
             </div>
           </div>
         </div>
       </div>
     </.link>
-    <div :if={!@href} class="card bg-base-100 border shadow-sm">
-      <div class="card-body">
+    <div :if={!@href} class="rounded-xl border bg-card text-card-foreground shadow-sm">
+      <div class="p-6">
         <div class="flex items-center gap-3">
           <.icon name={@icon} class="size-8 text-primary" />
           <div>
-            <p class="text-sm text-base-content/60">{@title}</p>
+            <p class="text-sm text-muted-foreground">{@title}</p>
             <p class="text-2xl font-bold">{@value}</p>
           </div>
         </div>

@@ -1,4 +1,4 @@
-defmodule BlackboexWeb.Components.BottomPanel do
+defmodule BlackboexWeb.Components.Editor.BottomPanel do
   @moduledoc """
   Bottom panel shell with tab bar for Test, Validation, and Versions.
   Content is provided via the inner_block slot by the parent.
@@ -32,8 +32,8 @@ defmodule BlackboexWeb.Components.BottomPanel do
             class={[
               "ml-1 inline-flex rounded-full px-1.5 text-[10px] font-semibold",
               if(@validation_report.overall == :pass,
-                do: "bg-green-100 text-green-700",
-                else: "bg-red-100 text-red-700"
+                do: "bg-success/10 text-success-foreground",
+                else: "bg-destructive/10 text-destructive"
               )
             ]}
           >

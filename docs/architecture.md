@@ -170,10 +170,9 @@ BlackboexWeb.Application
 | Worker | Queue (concurrency) | Schedule | Timeout | Max Attempts |
 |--------|-------------------|----------|---------|--------------|
 | KickoffWorker | generation (3) | On-demand | 7 min | 2 |
-| GenerationWorker | generation (3) | On-demand | — | 3 |
 | RecoveryWorker | generation (3) | */2 * * * * | — | 1 |
-| UsageAggregationWorker | billing (10) | Daily | — | 3 |
-| MetricRollupWorker | analytics (5) | Hourly | — | 3 |
+| UsageAggregationWorker | billing (10) | On-demand | — | 3 |
+| MetricRollupWorker | analytics (5) | 0 * * * * (hourly) | — | 3 |
 
 ## System Invariants
 

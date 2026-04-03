@@ -31,8 +31,12 @@ Phoenix web layer. LiveViews, admin panel, dynamic API routing, components.
 - All require `is_platform_admin == true`
 - Full CRUD on all system tables
 
-### Auth Routes
-- `GET /users/register`, `GET /users/log-in`, `GET /users/log-in/:token`
+### Auth Routes (UserLive modules)
+- `GET /users/register` → `UserLive.Registration`
+- `GET /users/log-in` → `UserLive.Login`
+- `GET /users/log-in/:token` → magic link token login
+- `GET /users/settings` → `UserLive.Settings`
+- `GET /users/confirm/:token` → `UserLive.Confirmation`
 - `POST /users/log-in`, `DELETE /users/log-out`
 
 ## Auth Flow
@@ -52,13 +56,15 @@ Login → UserSessionController.create
 | Plug | Purpose |
 |------|---------|
 | `UserAuth` | Session/token management, on_mount hooks |
-| `SetOrganization` | Loads org from session, sets `current_scope.organization` |
+| `SetOrganization` | Loads org from session (exists as Plug AND Hook — Plug for controllers, Hook for LiveView on_mount) |
 | `DynamicApiRouter` | Resolves compiled module, executes in sandbox |
 | `ApiAuth` | Bearer token / X-Api-Key / query param verification |
 | `RateLimiter` | 4-layer: per-IP (100/min), per-key (60/min), per-API (1000/min), per-endpoint |
 | `AuditContext` | Injects user_id + IP into ExAudit process tracking |
 | `RequirePlatformAdmin` | Gates `/admin` scope |
 | `CacheBodyReader` | Caches raw body for auth + execution |
+| `HealthCheck` | Health check endpoint (bypass before router) |
+| `ApiDocsPlug` | Serves Swagger/OpenAPI docs for published APIs |
 
 ## Rate Limiting
 
@@ -112,10 +118,14 @@ def handle_info({:run_completed, run}, socket), do: ...
 | `ResponseViewer` | API response display with syntax highlighting |
 | `EditorToolbar` | Compile, publish, test, docs buttons |
 | `CommandPalette` | Keyboard-driven command launcher |
-| `PipelineStatus` | Compilation pipeline stage indicator |
+| `ValidationDashboard` | Validation errors dashboard in editor |
+| `StatusBar` | Editor status bar (compilation state, errors) |
+| `RightPanel` | Right sidebar panel (API testing/docs) |
+| `BottomPanel` | Bottom panel (logs/output) |
 | `Charts` | Server-side SVG charts (zero JS) |
+| `Logo` | Logo component |
 
-**Base:** SaladUI components + TwMerge for Tailwind class merging + Heroicons
+**Base:** SaladUI components in `ui/` directory (button, input, label, card, badge, avatar, separator, dropdown_menu, sheet, sidebar, tabs, tooltip, skeleton) + TwMerge for Tailwind class merging + Heroicons
 
 ## Layouts
 
@@ -125,6 +135,7 @@ def handle_info({:run_completed, run}, socket), do: ...
 | `auth` | Login, register (centered card, minimal chrome) |
 | `editor` | API editor (full-height, no chrome, editor manages toolbar) |
 | `admin` | Backpex admin panel |
+| `admin_root` | Root layout for admin panel |
 
 ## Admin Panel (Backpex)
 
@@ -134,6 +145,14 @@ def handle_info({:run_completed, run}, socket), do: ...
 - Admin changesets MUST be arity 3: `admin_changeset/3` (with `_metadata`)
 - Admin changesets MUST restrict editable fields (don't reuse regular changeset)
 - Audit logs are read-only: `only: [:index, :show]`
+
+## Infrastructure Modules
+
+| Module | Purpose |
+|--------|---------|
+| `PromEx` | Prometheus metrics collection and dashboards |
+| `BeamMonitor` | BEAM VM monitoring (process counts, memory, run queues) |
+| `RateLimiterBackend` | ETS-based rate limiting backend with periodic cleanup |
 
 ## Gotchas
 

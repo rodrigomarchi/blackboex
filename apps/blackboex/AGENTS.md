@@ -18,14 +18,20 @@ Pure business logic. Zero Phoenix dependencies. All contexts accessed via facade
 | **Docs** | Documentation generation | DocGenerator, OpenApiGenerator |
 | **Audit** | Change tracking | AuditLog |
 | **Policy** | Authorization (LetMe DSL) | — |
+| **Telemetry** | OpenTelemetry instrumentation, safe event emission | Events |
+| **Features** | FunWithFlags integration (user/plan-based flag targeting) | ActorImpl, GroupImpl |
 
 ## Public APIs (Key Functions)
 
 ### Accounts
 - `register_user/1` — creates user + personal org + membership atomically
-- `get_user_by_email_and_password/2`, `get_user_by_session_token/1`
+- `get_user_by_email/1`, `get_user_by_email_and_password/2`, `get_user_by_session_token/1`
 - `generate_user_session_token/1`, `delete_user_session_token/1`
-- `login_user_by_magic_link/1`
+- `login_user_by_magic_link/1`, `get_user_by_magic_link_token/1`
+- `change_user_password/3`, `update_user_password/2`
+- `change_user_email/3`, `update_user_email/2`
+- `deliver_login_instructions/2`, `deliver_user_update_email_instructions/3`
+- `sudo_mode?/2` — checks if authentication is recent enough
 
 ### Organizations
 - `create_organization/2` :: `(User.t(), map()) -> {:ok, %{organization, membership}} | {:error, ...}`
@@ -43,8 +49,11 @@ Pure business logic. Zero Phoenix dependencies. All contexts accessed via facade
 ### Conversations
 - `get_or_create_conversation/2` — 1:1 with API
 - `create_run/1`, `complete_run/2`, `update_run_metrics/2`
+- `touch_run/1` — heartbeat timestamp for recovery detection
+- `list_stale_runs/1` — finds runs >120s without heartbeat (used by RecoveryWorker)
 - `append_event/1`, `next_sequence/1` — event sourcing
-- `list_runs/2`, `list_events/2`, `run_summary_for_context/2`
+- `list_runs/2`, `list_events/2`
+- `get_conversation/1`, `get_conversation_by_api/1`
 
 ### Billing
 - `get_subscription/1`, `create_or_update_subscription/1`
@@ -79,7 +88,6 @@ Pure business logic. Zero Phoenix dependencies. All contexts accessed via facade
 | Worker | Queue | Schedule | Purpose |
 |--------|-------|----------|---------|
 | `KickoffWorker` | generation (3) | On-demand | Start agent run |
-| `GenerationWorker` | generation (3) | On-demand | Run code generation pipeline |
 | `RecoveryWorker` | generation (3) | Every 2 min | Recover stale runs |
 | `UsageAggregationWorker` | billing (10) | Daily | Aggregate usage events |
 | `MetricRollupWorker` | analytics (5) | Hourly | Rollup API metrics |
@@ -96,7 +104,7 @@ Pure business logic. Zero Phoenix dependencies. All contexts accessed via facade
 ## Test Infrastructure
 
 - `Blackboex.DataCase` — Ecto sandbox setup, `import Blackboex.Factory`
-- `Blackboex.Factory` — ExMachina factories for all schemas
+- `Blackboex.Factory` — ExMachina base. Test data primarily via fixtures in `test/support/fixtures/`
 - Mox mocks: `Blackboex.LLM.ClientMock`, `Blackboex.Billing.StripeClientMock`
 - Oban test mode: `:manual` — assert with `Oban.Testing.assert_enqueued/2`
-- Tags: `@tag :unit`, `@tag :integration`
+- Tags: `@moduletag :unit`, `@moduletag :integration`, `@moduletag :liveview`, `@tag :capture_log`

@@ -73,7 +73,7 @@ Accounts ──→ Organizations (creates personal org on registration)
 
 ## Key Data Flows
 
-**1. Agent Generation:** User message → `Apis.start_agent_generation/3` → Oban `KickoffWorker` → `Agent.Session` GenServer → LangChain LLM loop with tools (compile, lint, test) → `Conversations` event persistence → PubSub broadcast → LiveView update
+**1. Agent Generation:** User message → `Apis.start_agent_generation/3` → Oban `KickoffWorker` → `Agent.Session` GenServer → LangChain LLM loop with 6 tools (compile_code, format_code, lint_code, generate_tests, run_tests, submit_code) OR deterministic `CodePipeline` (2-4 LLM calls) → `Conversations` event persistence → PubSub broadcast → LiveView update
 
 **2. API Invocation:** HTTP `POST /api/*` → `DynamicApiRouter` → `ApiAuth` (key verification) → `RateLimiter` (4 layers) → `Billing.Enforcement` → Sandbox execution → JSON response
 
@@ -81,11 +81,11 @@ Accounts ──→ Organizations (creates personal org on registration)
 
 ## Test Patterns
 
-- **Factories:** ExMachina via `Blackboex.Factory`
+- **Factories:** ExMachina base in `Blackboex.Factory`. Test data primarily via fixtures in `test/support/fixtures/`
 - **Mocks:** Mox — define expectations before test, verify on exit
 - **Sandbox:** `Blackboex.DataCase` sets up Ecto SQL sandbox
 - **Oban:** Test mode `:manual` — use `Oban.Testing.assert_enqueued/2`
-- **Tags:** `@tag :unit`, `@tag :integration`, `@tag :liveview`
+- **Tags:** `@moduletag :unit`, `@moduletag :integration`, `@moduletag :liveview`, `@tag :capture_log`
 - **Async:** Tests using Mox mocks must set `async: false`
 
 ## Config Environments

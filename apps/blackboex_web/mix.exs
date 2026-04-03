@@ -74,7 +74,6 @@ defmodule BlackboexWeb.MixProject do
       {:swoosh, "~> 1.5"},
       {:salad_ui, "~> 0.14"},
       {:live_monaco_editor, "~> 0.2"},
-      {:floki, "~> 0.37", only: :test},
       {:hammer, "~> 7.2"},
       {:open_api_spex, "~> 3.22"},
       {:backpex, "~> 0.17"}

@@ -141,43 +141,4 @@ defmodule Blackboex.Conversations do
     )
     |> Repo.one()
   end
-
-  @spec count_tool_calls(String.t(), String.t()) :: non_neg_integer()
-  def count_tool_calls(run_id, tool_name) do
-    from(e in Event,
-      where: e.run_id == ^run_id,
-      where: e.event_type == "tool_call",
-      where: e.tool_name == ^tool_name
-    )
-    |> Repo.aggregate(:count)
-  end
-
-  @spec recent_tool_calls(String.t(), non_neg_integer()) :: [Event.t()]
-  def recent_tool_calls(run_id, count \\ 3) do
-    from(e in Event,
-      where: e.run_id == ^run_id,
-      where: e.event_type == "tool_call",
-      order_by: [desc: e.sequence],
-      limit: ^count
-    )
-    |> Repo.all()
-  end
-
-  @spec run_summary_for_context(String.t(), non_neg_integer()) :: [map()]
-  def run_summary_for_context(conversation_id, limit \\ 5) do
-    from(r in Run,
-      where: r.conversation_id == ^conversation_id,
-      where: r.status in ["completed", "partial"],
-      order_by: [desc: r.inserted_at],
-      limit: ^limit,
-      select: %{
-        run_type: r.run_type,
-        trigger_message: r.trigger_message,
-        run_summary: r.run_summary,
-        status: r.status
-      }
-    )
-    |> Repo.all()
-    |> Enum.reverse()
-  end
 end

@@ -40,3 +40,6 @@ Thumbs.db
 *.swp
 *.swo
 *~
+
+# oh-my-claudecode runtime state
+.omc/

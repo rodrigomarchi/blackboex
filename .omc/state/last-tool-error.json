@@ -1,7 +1,0 @@
-{
-  "tool_name": "mcp__filesystem__write_file",
-  "tool_input_preview": "{\"path\":\"/Users/rodrigo/.claude/plans/token-callback-trace.md\",\"content\":\"# Token Callback Flow Analysis\\n\\n## Critical Discovery: Separate Process Architecture\\n\\n**THE PIPELINE RUNS IN A SEPARATE TA...",
-  "error": "Access denied - path outside allowed directories: /Users/rodrigo/.claude/plans/token-callback-trace.md not in /Users/rodrigo/src/blackboex",
-  "timestamp": "2026-04-02T15:54:03.045Z",
-  "retry_count": 1
-}

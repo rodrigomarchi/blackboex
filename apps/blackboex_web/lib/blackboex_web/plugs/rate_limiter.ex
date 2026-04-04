@@ -19,6 +19,8 @@ defmodule BlackboexWeb.Plugs.RateLimiter do
   @key_scale :timer.minutes(1)
   @api_global_limit 1000
   @api_scale :timer.minutes(1)
+  @draft_ip_limit 20
+  @draft_ip_scale :timer.minutes(1)
 
   @spec check_rate(Plug.Conn.t(), map()) ::
           {:ok, Plug.Conn.t()} | {:error, :rate_limited, non_neg_integer()}
@@ -27,6 +29,22 @@ defmodule BlackboexWeb.Plugs.RateLimiter do
          {:ok, conn} <- check_api_key_limit(conn),
          {:ok, conn} <- check_api_global_limit(conn, metadata) do
       {:ok, conn}
+    end
+  end
+
+  @doc "Lighter rate limit for draft/compiled (non-published) APIs: IP-only at #{@draft_ip_limit} req/min."
+  @spec check_rate_draft(Plug.Conn.t()) ::
+          {:ok, Plug.Conn.t()} | {:error, :rate_limited, non_neg_integer()}
+  def check_rate_draft(conn) do
+    ip = conn.remote_ip |> :inet.ntoa() |> to_string()
+
+    case BlackboexWeb.RateLimiterBackend.hit(
+           "draft_ip:#{ip}",
+           @draft_ip_scale,
+           @draft_ip_limit
+         ) do
+      {:allow, _count} -> {:ok, conn}
+      {:deny, retry_after_ms} -> {:error, :rate_limited, div(retry_after_ms, 1000)}
     end
   end
 

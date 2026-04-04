@@ -13,28 +13,33 @@ defmodule Blackboex.Billing.WebhookHandler do
   @spec process_event(String.t(), String.t(), map()) ::
           :ok | {:error, :already_processed} | {:error, term()}
   def process_event(event_id, event_type, payload) do
-    # Atomic insert-first approach: try to insert the ProcessedEvent first.
-    # If it succeeds (no conflict), we own the event and can process it.
-    # If it conflicts (unique index on event_id), it was already processed.
-    case mark_processed(event_id, event_type) do
-      {:ok, _} ->
-        case handle_event(event_type, payload) do
-          :ok ->
-            :ok
+    Repo.transaction(fn ->
+      with {:ok, _} <- mark_processed(event_id, event_type),
+           :ok <- handle_event(event_type, payload) do
+        :ok
+      else
+        {:error, %Ecto.Changeset{} = cs} ->
+          handle_mark_error(event_id, cs)
 
-          {:error, reason} ->
-            Logger.warning("Webhook event #{event_id} failed: #{inspect(reason)}")
-            {:error, reason}
-        end
+        {:error, reason} ->
+          Logger.warning("Webhook event #{event_id} failed: #{inspect(reason)}")
+          Repo.rollback(reason)
+      end
+    end)
+    |> case do
+      {:ok, :ok} -> :ok
+      {:error, :already_processed} -> {:error, :already_processed}
+      {:error, reason} -> {:error, reason}
+    end
+  end
 
-      {:error, %Ecto.Changeset{errors: errors}} ->
-        if Keyword.has_key?(errors, :event_id) do
-          Logger.info("Webhook event already processed: #{event_id}")
-          {:error, :already_processed}
-        else
-          Logger.warning("Webhook event #{event_id} insert failed: #{inspect(errors)}")
-          {:error, :insert_failed}
-        end
+  defp handle_mark_error(event_id, %Ecto.Changeset{errors: errors}) do
+    if Keyword.has_key?(errors, :event_id) do
+      Logger.info("Webhook event already processed: #{event_id}")
+      Repo.rollback(:already_processed)
+    else
+      Logger.warning("Webhook event #{event_id} insert failed: #{inspect(errors)}")
+      Repo.rollback(:insert_failed)
     end
   end
 
@@ -52,16 +57,7 @@ defmodule Blackboex.Billing.WebhookHandler do
          :ok <- validate_non_empty_binary(customer_id, "customer"),
          :ok <- validate_non_empty_binary(subscription_id, "subscription"),
          :ok <- validate_plan(plan) do
-      case Billing.create_or_update_subscription(%{
-             organization_id: org_id,
-             stripe_customer_id: customer_id,
-             stripe_subscription_id: subscription_id,
-             plan: plan,
-             status: "active"
-           }) do
-        {:ok, _sub} -> :ok
-        {:error, reason} -> {:error, reason}
-      end
+      ensure_subscription(org_id, customer_id, subscription_id, plan)
     else
       {:error, :invalid_payload} = err ->
         Logger.warning("checkout.session.completed invalid payload")
@@ -144,6 +140,29 @@ defmodule Blackboex.Billing.WebhookHandler do
   def handle_event(event_type, _payload) do
     Logger.info("Unhandled webhook event type: #{event_type}")
     :ok
+  end
+
+  defp ensure_subscription(org_id, customer_id, subscription_id, plan) do
+    case Repo.get_by(Blackboex.Billing.Subscription, stripe_subscription_id: subscription_id) do
+      %Blackboex.Billing.Subscription{} ->
+        Logger.info(
+          "checkout.session.completed: subscription #{subscription_id} already exists, skipping"
+        )
+
+        :ok
+
+      nil ->
+        case Billing.create_or_update_subscription(%{
+               organization_id: org_id,
+               stripe_customer_id: customer_id,
+               stripe_subscription_id: subscription_id,
+               plan: plan,
+               status: "active"
+             }) do
+          {:ok, _sub} -> :ok
+          {:error, reason} -> {:error, reason}
+        end
+    end
   end
 
   defp mark_processed(event_id, event_type) do

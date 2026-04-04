@@ -9,10 +9,16 @@ defmodule Blackboex.Agent.KickoffWorker do
 
   use Oban.Worker,
     queue: :generation,
-    max_attempts: 2,
+    max_attempts: 5,
     unique: [keys: [:api_id, :run_type], period: 30]
 
   require Logger
+
+  @impl Oban.Worker
+  def backoff(%Oban.Job{attempt: attempt}) do
+    # Progressive backoff: 1min, 2min, 5min, 10min
+    Enum.at([60, 120, 300, 600], attempt - 1, 600)
+  end
 
   alias Blackboex.Agent.Session
   alias Blackboex.Conversations

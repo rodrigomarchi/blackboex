@@ -10,6 +10,7 @@ defmodule BlackboexWeb.ApiKeyLive.Show do
   import BlackboexWeb.Components.Shared.DescriptionList
 
   alias Blackboex.Apis.Keys
+  alias Blackboex.Policy
 
   @impl true
   def mount(%{"id" => id}, _session, socket) do
@@ -171,27 +172,41 @@ defmodule BlackboexWeb.ApiKeyLive.Show do
 
   @impl true
   def handle_event("revoke", _params, socket) do
-    case Keys.revoke_key(socket.assigns.key) do
-      {:ok, revoked_key} ->
-        {:noreply,
-         socket
-         |> assign(key: %{revoked_key | api: socket.assigns.key.api})
-         |> put_flash(:info, "Key revoked")}
+    scope = socket.assigns.current_scope
+    org = scope.organization
 
-      {:error, _changeset} ->
-        {:noreply, put_flash(socket, :error, "Failed to revoke key")}
+    with :ok <- Policy.authorize(:api_key_revoke, scope, org) do
+      case Keys.revoke_key(socket.assigns.key) do
+        {:ok, revoked_key} ->
+          {:noreply,
+           socket
+           |> assign(key: %{revoked_key | api: socket.assigns.key.api})
+           |> put_flash(:info, "Key revoked")}
+
+        {:error, _changeset} ->
+          {:noreply, put_flash(socket, :error, "Failed to revoke key")}
+      end
+    else
+      {:error, _reason} -> {:noreply, put_flash(socket, :error, "Not authorized.")}
     end
   end
 
   @impl true
   def handle_event("rotate", _params, socket) do
-    case Keys.rotate_key(socket.assigns.key) do
-      {:ok, plain_key, new_key} ->
-        new_key = Keys.get_key(new_key.id)
-        {:noreply, assign(socket, key: new_key, plain_key_flash: plain_key)}
+    scope = socket.assigns.current_scope
+    org = scope.organization
 
-      {:error, _changeset} ->
-        {:noreply, put_flash(socket, :error, "Failed to rotate key")}
+    with :ok <- Policy.authorize(:api_key_rotate, scope, org) do
+      case Keys.rotate_key(socket.assigns.key) do
+        {:ok, plain_key, new_key} ->
+          new_key = Keys.get_key(new_key.id)
+          {:noreply, assign(socket, key: new_key, plain_key_flash: plain_key)}
+
+        {:error, _changeset} ->
+          {:noreply, put_flash(socket, :error, "Failed to rotate key")}
+      end
+    else
+      {:error, _reason} -> {:noreply, put_flash(socket, :error, "Not authorized.")}
     end
   end
 

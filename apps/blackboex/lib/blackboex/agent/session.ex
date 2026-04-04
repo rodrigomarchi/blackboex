@@ -46,7 +46,8 @@ defmodule Blackboex.Agent.Session do
           organization_id: String.t() | nil,
           current_code: String.t() | nil,
           current_tests: String.t() | nil,
-          task_ref: reference() | nil
+          task_ref: reference() | nil,
+          timeout_timer: reference() | nil
         }
 
   defstruct [
@@ -59,7 +60,8 @@ defmodule Blackboex.Agent.Session do
     :organization_id,
     :current_code,
     :current_tests,
-    :task_ref
+    :task_ref,
+    :timeout_timer
   ]
 
   # ── Client API ─────────────────────────────────────────────────
@@ -102,7 +104,8 @@ defmodule Blackboex.Agent.Session do
       user_id: opts.user_id,
       organization_id: opts.organization_id,
       current_code: opts[:current_code],
-      current_tests: opts[:current_tests]
+      current_tests: opts[:current_tests],
+      timeout_timer: nil
     }
 
     send(self(), :start_chain)
@@ -122,6 +125,7 @@ defmodule Blackboex.Agent.Session do
   @impl true
   def handle_info({ref, {:ok, chain_result}}, %{task_ref: ref} = state) do
     Process.demonitor(ref, [:flush])
+    if state.timeout_timer, do: Process.cancel_timer(state.timeout_timer)
     handle_chain_success(state, chain_result)
     {:stop, :normal, state}
   end
@@ -129,13 +133,22 @@ defmodule Blackboex.Agent.Session do
   @impl true
   def handle_info({ref, {:error, error}}, %{task_ref: ref} = state) do
     Process.demonitor(ref, [:flush])
+    if state.timeout_timer, do: Process.cancel_timer(state.timeout_timer)
     handle_chain_failure(state, error)
     {:stop, :normal, state}
   end
 
   @impl true
   def handle_info({:DOWN, ref, :process, _pid, reason}, %{task_ref: ref} = state) do
+    if state.timeout_timer, do: Process.cancel_timer(state.timeout_timer)
     handle_chain_failure(state, {:crashed, reason})
+    {:stop, :normal, state}
+  end
+
+  @impl true
+  def handle_info(:task_timeout, state) do
+    Logger.warning("Agent task timeout (7 min) for run #{state.run_id}, marking as failed")
+    handle_chain_failure(state, "Agent task exceeded 7-minute timeout")
     {:stop, :normal, state}
   end
 
@@ -166,7 +179,8 @@ defmodule Blackboex.Agent.Session do
         run_chain(state)
       end)
 
-    {:noreply, %{state | task_ref: task.ref}}
+    timer_ref = Process.send_after(self(), :task_timeout, :timer.minutes(7))
+    {:noreply, %{state | task_ref: task.ref, timeout_timer: timer_ref}}
   end
 
   @spec mark_run_as_running(Blackboex.Conversations.Run.t()) ::
@@ -770,9 +784,16 @@ defmodule Blackboex.Agent.Session do
   defp format_error(error) when is_binary(error), do: error
   defp format_error(error), do: inspect(error)
 
-  @spec broadcast(String.t(), term()) :: :ok | {:error, term()}
+  @spec broadcast(String.t(), term()) :: :ok
   defp broadcast(run_id, message) do
-    Phoenix.PubSub.broadcast(Blackboex.PubSub, "run:#{run_id}", message)
+    case Phoenix.PubSub.broadcast(Blackboex.PubSub, "run:#{run_id}", message) do
+      :ok ->
+        :ok
+
+      {:error, reason} ->
+        Logger.warning("PubSub broadcast failed for run #{run_id}: #{inspect(reason)}")
+        :ok
+    end
   end
 
   @spec via(String.t()) :: {:via, Registry, {Blackboex.Agent.SessionRegistry, String.t()}}

@@ -43,6 +43,9 @@ defmodule Blackboex.LLM.Usage do
       :duration_ms
     ])
     |> validate_required([:provider, :model, :operation])
+    |> foreign_key_constraint(:user_id)
+    |> foreign_key_constraint(:organization_id)
+    |> foreign_key_constraint(:api_id)
   end
 
   @spec admin_changeset(t(), map(), map()) :: Ecto.Changeset.t()

@@ -43,7 +43,7 @@ defmodule Blackboex.CodeGen.Sandbox do
 
       # Watchdog: kills this process if handler takes too long
       caller = self()
-      watchdog = spawn(fn -> watchdog_timer(caller, timeout) end)
+      watchdog = spawn_link(fn -> watchdog_timer(caller, timeout) end)
 
       result =
         try do
@@ -56,6 +56,7 @@ defmodule Blackboex.CodeGen.Sandbox do
           :exit, :killed -> {:error, :timeout}
           :exit, reason -> {:error, {:runtime, reason}}
         after
+          Process.unlink(watchdog)
           Process.exit(watchdog, :kill)
         end
 

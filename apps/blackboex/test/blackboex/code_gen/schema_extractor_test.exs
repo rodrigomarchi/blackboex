@@ -95,8 +95,26 @@ defmodule Blackboex.CodeGen.SchemaExtractorTest do
 
   # Wrapper modules to simulate compiled API module structure (Module.Request)
   defmodule FlatApi do
-    defmodule Request, do: (use Blackboex.Schema; embedded_schema do field(:email, :string); field(:age, :integer) end)
-    defmodule Response, do: (use Blackboex.Schema; embedded_schema do field(:status, :string) end)
+    defmodule Request,
+      do:
+        (
+          use Blackboex.Schema
+
+          embedded_schema do
+            field(:email, :string)
+            field(:age, :integer)
+          end
+        )
+
+    defmodule Response,
+      do:
+        (
+          use Blackboex.Schema
+
+          embedded_schema do
+            field(:status, :string)
+          end
+        )
   end
 
   describe "generate_example/1" do
@@ -123,8 +141,15 @@ defmodule Blackboex.CodeGen.SchemaExtractorTest do
       schema = %{
         fields: %{
           coverage: :string,
-          vehicle: {:embed_one, Vehicle, %{fields: %{year: :integer, category: :string, value_brl: :float}, required: []}},
-          driver: {:embed_one, Driver, %{fields: %{age: :integer, license_years: :integer, zip_prefix: :string}, required: []}}
+          vehicle:
+            {:embed_one, Vehicle,
+             %{fields: %{year: :integer, category: :string, value_brl: :float}, required: []}},
+          driver:
+            {:embed_one, Driver,
+             %{
+               fields: %{age: :integer, license_years: :integer, zip_prefix: :string},
+               required: []
+             }}
         }
       }
 
@@ -145,7 +170,9 @@ defmodule Blackboex.CodeGen.SchemaExtractorTest do
       schema = %{
         fields: %{
           customer_name: :string,
-          items: {:embed_many, Item, %{fields: %{name: :string, quantity: :integer, price: :float}, required: []}}
+          items:
+            {:embed_many, Item,
+             %{fields: %{name: :string, quantity: :integer, price: :float}, required: []}}
         }
       }
 

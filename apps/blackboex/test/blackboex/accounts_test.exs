@@ -89,15 +89,15 @@ defmodule Blackboex.AccountsTest do
 
   describe "sudo_mode?/2" do
     test "validates the authenticated_at time" do
-      now = NaiveDateTime.utc_now()
+      now = DateTime.utc_now()
 
-      assert Accounts.sudo_mode?(%User{authenticated_at: NaiveDateTime.utc_now()})
-      assert Accounts.sudo_mode?(%User{authenticated_at: NaiveDateTime.add(now, -19, :minute)})
-      refute Accounts.sudo_mode?(%User{authenticated_at: NaiveDateTime.add(now, -21, :minute)})
+      assert Accounts.sudo_mode?(%User{authenticated_at: DateTime.utc_now()})
+      assert Accounts.sudo_mode?(%User{authenticated_at: DateTime.add(now, -19, :minute)})
+      refute Accounts.sudo_mode?(%User{authenticated_at: DateTime.add(now, -21, :minute)})
 
       # minute override
       refute Accounts.sudo_mode?(
-               %User{authenticated_at: NaiveDateTime.add(now, -11, :minute)},
+               %User{authenticated_at: DateTime.add(now, -11, :minute)},
                -10
              )
 
@@ -274,11 +274,11 @@ defmodule Blackboex.AccountsTest do
     end
 
     test "duplicates the authenticated_at of given user in new token", %{user: user} do
-      user = %{user | authenticated_at: NaiveDateTime.add(NaiveDateTime.utc_now(:second), -3600)}
+      user = %{user | authenticated_at: DateTime.add(DateTime.utc_now(), -3600, :second)}
       token = Accounts.generate_user_session_token(user)
       assert user_token = Repo.get_by(UserToken, token: token)
-      assert user_token.authenticated_at == user.authenticated_at
-      assert NaiveDateTime.compare(user_token.inserted_at, user.authenticated_at) == :gt
+      assert DateTime.compare(user_token.authenticated_at, user.authenticated_at) == :eq
+      assert DateTime.compare(user_token.inserted_at, user.authenticated_at) == :gt
     end
   end
 
@@ -301,7 +301,7 @@ defmodule Blackboex.AccountsTest do
     end
 
     test "does not return user for expired token", %{token: token} do
-      dt = ~N[2020-01-01 00:00:00]
+      dt = ~U[2020-01-01 00:00:00Z]
       {1, nil} = Repo.update_all(UserToken, set: [inserted_at: dt, authenticated_at: dt])
       refute Accounts.get_user_by_session_token(token)
     end
@@ -345,7 +345,8 @@ defmodule Blackboex.AccountsTest do
       user = user_fixture()
       assert user.confirmed_at
       {encoded_token, _hashed_token} = generate_user_magic_link_token(user)
-      assert {:ok, {^user, []}} = Accounts.login_user_by_magic_link(encoded_token)
+      assert {:ok, {logged_in_user, []}} = Accounts.login_user_by_magic_link(encoded_token)
+      assert logged_in_user.id == user.id
       # one time use only
       assert {:error, :not_found} = Accounts.login_user_by_magic_link(encoded_token)
     end

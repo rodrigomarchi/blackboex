@@ -48,16 +48,22 @@ defmodule Blackboex.Accounts do
   @doc """
   Gets a single user.
 
-  Raises `Ecto.NoResultsError` if the User does not exist.
+  Returns nil if the User does not exist.
 
   ## Examples
 
-      iex> get_user!(123)
+      iex> get_user(123)
       %User{}
 
-      iex> get_user!(456)
-      ** (Ecto.NoResultsError)
+      iex> get_user(456)
+      nil
 
+  """
+  def get_user(id), do: Repo.get(User, id)
+
+  @doc """
+  Gets a single user. Raises if not found.
+  Use only in contexts where absence is a programming error, not user input.
   """
   def get_user!(id), do: Repo.get!(User, id)
 
@@ -112,8 +118,8 @@ defmodule Blackboex.Accounts do
   """
   def sudo_mode?(user, minutes \\ -20)
 
-  def sudo_mode?(%User{authenticated_at: ts}, minutes) when is_struct(ts, NaiveDateTime) do
-    NaiveDateTime.after?(ts, NaiveDateTime.utc_now() |> NaiveDateTime.add(minutes, :minute))
+  def sudo_mode?(%User{authenticated_at: ts}, minutes) when is_struct(ts, DateTime) do
+    DateTime.after?(ts, DateTime.utc_now() |> DateTime.add(minutes, :minute))
   end
 
   def sudo_mode?(_user, _minutes), do: false

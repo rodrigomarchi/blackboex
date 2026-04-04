@@ -22,7 +22,7 @@ defmodule Blackboex.Testing.SandboxCase do
   """
   @spec test(String.t(), keyword()) :: Macro.t()
   defmacro test(name, do: block) do
-    fun_name = String.to_atom("test #{name}")
+    fun_name = :"test #{name}"
 
     quote do
       def unquote(fun_name)(_context) do

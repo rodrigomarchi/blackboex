@@ -175,8 +175,8 @@ defmodule Blackboex.Apis.Registry do
     apis =
       Api
       |> where([a], a.status in ["compiled", "published"])
+      |> preload(:organization)
       |> Repo.all()
-      |> Repo.preload(:organization)
 
     Enum.each(apis, &maybe_register_api/1)
 

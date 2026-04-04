@@ -17,7 +17,7 @@ defmodule BlackboexWeb.UserAuthTest do
       |> Map.replace!(:secret_key_base, BlackboexWeb.Endpoint.config(:secret_key_base))
       |> init_test_session(%{})
 
-    %{user: %{user_fixture() | authenticated_at: NaiveDateTime.utc_now(:second)}, conn: conn}
+    %{user: %{user_fixture() | authenticated_at: DateTime.utc_now()}, conn: conn}
   end
 
   describe "log_in_user/3" do
@@ -297,11 +297,11 @@ defmodule BlackboexWeb.UserAuthTest do
     end
 
     test "redirects when authentication is too old", %{conn: conn, user: user} do
-      eleven_minutes_ago = NaiveDateTime.utc_now(:second) |> NaiveDateTime.add(-11, :minute)
+      eleven_minutes_ago = DateTime.utc_now() |> DateTime.add(-11, :minute)
       user = %{user | authenticated_at: eleven_minutes_ago}
       user_token = Accounts.generate_user_session_token(user)
       {user, token_inserted_at} = Accounts.get_user_by_session_token(user_token)
-      assert NaiveDateTime.compare(token_inserted_at, user.authenticated_at) == :gt
+      assert DateTime.compare(token_inserted_at, user.authenticated_at) == :gt
       session = conn |> put_session(:user_token, user_token) |> get_session()
 
       socket = %LiveView.Socket{

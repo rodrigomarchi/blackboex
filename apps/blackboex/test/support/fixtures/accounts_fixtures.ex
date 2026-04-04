@@ -86,7 +86,7 @@ defmodule Blackboex.AccountsFixtures do
   end
 
   def offset_user_token(token, amount_to_add, unit) do
-    dt = NaiveDateTime.add(NaiveDateTime.utc_now(:second), amount_to_add, unit)
+    dt = DateTime.add(DateTime.utc_now(), amount_to_add, unit)
 
     Blackboex.Repo.update_all(
       from(ut in Accounts.UserToken, where: ut.token == ^token),

@@ -230,7 +230,9 @@ defmodule Blackboex.CodeGen.SchemaExtractor do
   end
 
   defp json_schema_for_type({:embed_one, _mod, _}), do: %{"type" => "object"}
-  defp json_schema_for_type({:embed_many, _mod, _}), do: %{"type" => "array", "items" => %{"type" => "object"}}
+
+  defp json_schema_for_type({:embed_many, _mod, _}),
+    do: %{"type" => "array", "items" => %{"type" => "object"}}
 
   defp json_schema_for_type(type) when is_atom(type) do
     %{"type" => Map.get(@ecto_to_json_schema, type, "string")}

@@ -81,6 +81,23 @@ defmodule Blackboex.Policy do
     end
   end
 
+  object :api_key do
+    action :create do
+      allow role: :owner
+      allow role: :admin
+    end
+
+    action :revoke do
+      allow role: :owner
+      allow role: :admin
+    end
+
+    action :rotate do
+      allow role: :owner
+      allow role: :admin
+    end
+  end
+
   object :membership do
     action :create do
       allow role: :owner

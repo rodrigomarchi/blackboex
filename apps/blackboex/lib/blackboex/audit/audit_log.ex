@@ -51,5 +51,7 @@ defmodule Blackboex.Audit.AuditLog do
     |> validate_length(:resource_type, max: 255)
     |> validate_length(:resource_id, max: 255)
     |> validate_length(:ip_address, max: 45)
+    |> foreign_key_constraint(:user_id)
+    |> foreign_key_constraint(:organization_id)
   end
 end

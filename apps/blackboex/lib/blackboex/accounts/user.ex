@@ -11,11 +11,11 @@ defmodule Blackboex.Accounts.User do
     field :email, :string
     field :password, :string, virtual: true, redact: true
     field :hashed_password, :string, redact: true
-    field :confirmed_at, :naive_datetime
-    field :authenticated_at, :naive_datetime, virtual: true
+    field :confirmed_at, :utc_datetime_usec
+    field :authenticated_at, :utc_datetime_usec, virtual: true
     field :is_platform_admin, :boolean, default: false
 
-    timestamps()
+    timestamps(type: :utc_datetime_usec)
   end
 
   @doc """
@@ -130,7 +130,7 @@ defmodule Blackboex.Accounts.User do
   """
   @spec confirm_changeset(t()) :: Ecto.Changeset.t()
   def confirm_changeset(user) do
-    now = NaiveDateTime.utc_now(:second)
+    now = DateTime.utc_now()
     change(user, confirmed_at: now)
   end
 

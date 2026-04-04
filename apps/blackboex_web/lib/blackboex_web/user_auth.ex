@@ -94,9 +94,11 @@ defmodule BlackboexWeb.UserAuth do
 
   # Reissue the session token if it is older than the configured reissue age.
   defp maybe_reissue_user_session_token(conn, user, token_inserted_at) do
-    token_age = NaiveDateTime.diff(NaiveDateTime.utc_now(:second), token_inserted_at, :day)
+    token_age = DateTime.diff(DateTime.utc_now(), token_inserted_at, :day)
 
     if token_age >= @session_reissue_age_in_days do
+      old_token = get_session(conn, :user_token)
+      if old_token, do: Accounts.delete_user_session_token(old_token)
       create_or_extend_session(conn, user, %{})
     else
       conn

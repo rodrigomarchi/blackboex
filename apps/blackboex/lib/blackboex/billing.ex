@@ -80,12 +80,7 @@ defmodule Blackboex.Billing do
       end
     end)
     |> Multi.run(:sync_org_plan, fn _repo, %{subscription: sub} ->
-      org = Repo.get!(Organization, org_id)
-      plan_atom = plan_string_to_atom(sub.plan)
-
-      org
-      |> Ecto.Changeset.change(plan: plan_atom)
-      |> Repo.update()
+      sync_org_plan(org_id, sub)
     end)
     |> Repo.transaction()
     |> case do
@@ -102,6 +97,9 @@ defmodule Blackboex.Billing do
 
       {:error, :subscription, changeset, _} ->
         {:error, changeset}
+
+      {:error, :sync_org_plan, :organization_not_found, _} ->
+        {:error, :organization_not_found}
 
       {:error, :sync_org_plan, changeset, _} ->
         {:error, changeset}
@@ -146,6 +144,20 @@ defmodule Blackboex.Billing do
   defp stripe_sub_to_plan(_), do: "free"
 
   @plan_atom_map %{"free" => :free, "pro" => :pro, "enterprise" => :enterprise}
+
+  defp sync_org_plan(org_id, sub) do
+    case Repo.get(Organization, org_id) do
+      nil ->
+        {:error, :organization_not_found}
+
+      org ->
+        plan_atom = plan_string_to_atom(sub.plan)
+
+        org
+        |> Ecto.Changeset.change(plan: plan_atom)
+        |> Repo.update()
+    end
+  end
 
   defp plan_string_to_atom(plan) when is_binary(plan) do
     Map.get(@plan_atom_map, plan, :free)

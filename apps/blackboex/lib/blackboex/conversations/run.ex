@@ -72,6 +72,7 @@ defmodule Blackboex.Conversations.Run do
     |> validate_inclusion(:status, @valid_statuses)
     |> foreign_key_constraint(:conversation_id)
     |> foreign_key_constraint(:api_id)
+    |> foreign_key_constraint(:api_version_id)
   end
 
   @spec admin_changeset(t(), map(), map()) :: Ecto.Changeset.t()

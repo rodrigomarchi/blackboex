@@ -10,6 +10,7 @@ defmodule BlackboexWeb.ApiKeyLive.Index do
 
   alias Blackboex.Apis
   alias Blackboex.Apis.Keys
+  alias Blackboex.Policy
 
   @impl true
   def mount(_params, _session, socket) do
@@ -137,10 +138,11 @@ defmodule BlackboexWeb.ApiKeyLive.Index do
 
   @impl true
   def handle_event("create_key", %{"api_id" => api_id, "label" => label}, socket) do
-    org = socket.assigns.current_scope.organization
-    api = Apis.get_api(org.id, api_id)
+    scope = socket.assigns.current_scope
+    org = scope.organization
 
-    if api do
+    with :ok <- Policy.authorize(:api_key_create, scope, org),
+         api when not is_nil(api) <- Apis.get_api(org.id, api_id) do
       case Keys.create_key(api, %{label: label, organization_id: org.id}) do
         {:ok, plain_key, _api_key} ->
           keys = Keys.list_org_keys(org.id)
@@ -156,7 +158,8 @@ defmodule BlackboexWeb.ApiKeyLive.Index do
           {:noreply, put_flash(socket, :error, "Failed to create key")}
       end
     else
-      {:noreply, put_flash(socket, :error, "API not found")}
+      {:error, _reason} -> {:noreply, put_flash(socket, :error, "Not authorized.")}
+      nil -> {:noreply, put_flash(socket, :error, "API not found")}
     end
   end
 

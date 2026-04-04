@@ -47,16 +47,6 @@ defmodule BlackboexWeb.Plugs.ApiAuthTest do
       assert conn.assigns[:api_key] != nil
     end
 
-    test "authenticates with valid query param", %{api: api, plain_key: key, metadata: meta} do
-      conn = build_conn(:get, "/api/org/test?api_key=#{key}")
-
-      # Manually set query_params since build_conn doesn't parse them
-      conn = %{conn | query_params: %{"api_key" => key}}
-
-      assert {:ok, conn} = ApiAuth.authenticate(conn, api, meta)
-      assert conn.assigns[:api_key] != nil
-    end
-
     test "returns :missing_key when no key provided", %{api: api, metadata: meta} do
       conn = build_conn(:get, "/api/org/test")
       assert {:error, :missing_key} = ApiAuth.authenticate(conn, api, meta)
@@ -163,24 +153,6 @@ defmodule BlackboexWeb.Plugs.ApiAuthTest do
         |> put_req_header("authorization", "Bearer ")
 
       assert {:error, :invalid} = ApiAuth.authenticate(conn, api, meta)
-    end
-
-    test "prefers Bearer header over query param", %{
-      api: api,
-      plain_key: key,
-      metadata: meta,
-      org: org
-    } do
-      {:ok, other_key, _} =
-        Keys.create_key(api, %{label: "Other Key", organization_id: org.id})
-
-      # Both header and query param — header should win
-      conn =
-        build_conn(:get, "/api/org/test")
-        |> put_req_header("authorization", "Bearer #{key}")
-
-      conn = %{conn | query_params: %{"api_key" => other_key}}
-      assert {:ok, _conn} = ApiAuth.authenticate(conn, api, meta)
     end
   end
 end

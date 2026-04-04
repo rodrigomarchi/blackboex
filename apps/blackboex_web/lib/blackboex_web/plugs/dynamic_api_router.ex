@@ -121,7 +121,7 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
     if api.status == "published" do
       RateLimiter.check_rate(conn, metadata)
     else
-      {:ok, conn}
+      RateLimiter.check_rate_draft(conn)
     end
   end
 

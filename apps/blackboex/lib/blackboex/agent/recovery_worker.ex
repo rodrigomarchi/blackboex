@@ -74,5 +74,10 @@ defmodule Blackboex.Agent.RecoveryWorker do
       "api:#{run.api_id}",
       {:agent_failed, %{error: "Session lost — please try again", run_id: run.id}}
     )
+  catch
+    kind, reason ->
+      Logger.error(
+        "RecoveryWorker failed to recover run #{run.id}: #{Exception.format_exit({kind, reason, __STACKTRACE__})}"
+      )
   end
 end

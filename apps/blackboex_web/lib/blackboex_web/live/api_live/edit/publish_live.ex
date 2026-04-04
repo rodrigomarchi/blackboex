@@ -145,7 +145,9 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLive do
                   <.icon name="hero-document-check" class="size-4 text-muted-foreground" />
                   <span class="text-sm">Markdown Docs</span>
                   <%= if @api.documentation_md do %>
-                    <span class="text-[10px] text-success-foreground font-medium">Auto-generated</span>
+                    <span class="text-[10px] text-success-foreground font-medium">
+                      Auto-generated
+                    </span>
                   <% else %>
                     <span class="text-[10px] text-muted-foreground">Generated on save</span>
                   <% end %>

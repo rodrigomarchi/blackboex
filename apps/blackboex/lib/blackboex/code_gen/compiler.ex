@@ -16,11 +16,17 @@ defmodule Blackboex.CodeGen.Compiler do
 
   @spec compile(Api.t(), String.t()) ::
           {:ok, module()} | {:error, {:validation, [String.t()]} | {:compilation, term()}}
+  @valid_template_types %{
+    "computation" => :computation,
+    "crud" => :crud,
+    "webhook" => :webhook
+  }
+
   def compile(%Api{} = api, source_code) do
     Tracer.with_span "blackboex.codegen.compile" do
       start_time = System.monotonic_time(:millisecond)
       module_name = module_name_for(api)
-      template_type = String.to_atom(api.template_type)
+      template_type = Map.fetch!(@valid_template_types, api.template_type)
 
       result =
         with :ok <- check_handler_style(source_code),

@@ -38,7 +38,7 @@ defmodule Blackboex.Conversations.Conversation do
     |> validate_required([:api_id, :organization_id])
     |> validate_inclusion(:status, @valid_statuses)
     |> validate_length(:title, max: 500)
-    |> unique_constraint(:api_id)
+    |> unique_constraint([:organization_id, :api_id])
   end
 
   @spec admin_changeset(t(), map(), map()) :: Ecto.Changeset.t()

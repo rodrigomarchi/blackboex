@@ -57,45 +57,53 @@ defmodule Blackboex.Apis.MetricRollupWorker do
     |> Repo.all()
   end
 
-  @spec upsert_rollups([map()], Date.t(), non_neg_integer()) :: :ok
+  @spec upsert_rollups([map()], Date.t(), non_neg_integer()) :: :ok | {:error, String.t()}
   defp upsert_rollups(aggregations, target_date, target_hour) do
-    Enum.each(aggregations, fn agg ->
-      try do
-        attrs = %{
-          api_id: agg.api_id,
-          date: target_date,
-          hour: target_hour,
-          invocations: agg.invocations,
-          errors: agg.errors,
-          avg_duration_ms: to_float(agg.avg_duration_ms),
-          p95_duration_ms: to_float(agg.p95_duration_ms),
-          unique_consumers: agg.unique_consumers
-        }
+    errors =
+      Enum.reduce(aggregations, [], fn agg, acc ->
+        try do
+          attrs = %{
+            api_id: agg.api_id,
+            date: target_date,
+            hour: target_hour,
+            invocations: agg.invocations,
+            errors: agg.errors,
+            avg_duration_ms: to_float(agg.avg_duration_ms),
+            p95_duration_ms: to_float(agg.p95_duration_ms),
+            unique_consumers: agg.unique_consumers
+          }
 
-        %MetricRollup{}
-        |> MetricRollup.changeset(attrs)
-        |> Repo.insert!(
-          on_conflict:
-            {:replace,
-             [
-               :invocations,
-               :errors,
-               :avg_duration_ms,
-               :p95_duration_ms,
-               :unique_consumers,
-               :updated_at
-             ]},
-          conflict_target: [:api_id, :date, :hour]
-        )
-      rescue
-        error ->
-          Logger.error(
-            "MetricRollupWorker: failed to upsert api_id=#{agg.api_id}: #{Exception.message(error)}"
+          %MetricRollup{}
+          |> MetricRollup.changeset(attrs)
+          |> Repo.insert!(
+            on_conflict:
+              {:replace,
+               [
+                 :invocations,
+                 :errors,
+                 :avg_duration_ms,
+                 :p95_duration_ms,
+                 :unique_consumers,
+                 :updated_at
+               ]},
+            conflict_target: [:api_id, :date, :hour]
           )
-      end
-    end)
 
-    :ok
+          acc
+        rescue
+          error ->
+            Logger.error(
+              "MetricRollupWorker: failed to upsert api_id=#{agg.api_id}: #{Exception.message(error)}"
+            )
+
+            [agg.api_id | acc]
+        end
+      end)
+
+    case errors do
+      [] -> :ok
+      failed -> {:error, "#{length(failed)} API metric rollups failed"}
+    end
   end
 
   @spec parse_target(map()) :: {Date.t(), non_neg_integer()}

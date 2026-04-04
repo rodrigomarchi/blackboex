@@ -13,6 +13,7 @@ defmodule BlackboexWeb.ApiLive.Index do
 
   alias Blackboex.Apis
   alias Blackboex.Apis.DashboardQueries
+  alias Blackboex.Policy
 
   @max_description_length 10_000
 
@@ -60,23 +61,25 @@ defmodule BlackboexWeb.ApiLive.Index do
 
   @impl true
   def handle_event("delete", %{"id" => id}, socket) do
-    org = socket.assigns.current_scope.organization
+    scope = socket.assigns.current_scope
+    org = scope.organization
 
-    case org && Apis.get_api(org.id, id) do
-      nil ->
-        {:noreply, put_flash(socket, :error, "API not found.")}
+    with :ok <- Policy.authorize(:api_delete, scope, org),
+         api when not is_nil(api) <- org && Apis.get_api(org.id, id) do
+      case Apis.delete_api(api) do
+        {:ok, _api} ->
+          api_rows =
+            DashboardQueries.list_apis_with_stats(org.id, search: socket.assigns.search)
 
-      api ->
-        case Apis.delete_api(api) do
-          {:ok, _api} ->
-            api_rows =
-              DashboardQueries.list_apis_with_stats(org.id, search: socket.assigns.search)
+          {:noreply, socket |> assign(api_rows: api_rows) |> put_flash(:info, "API deleted.")}
 
-            {:noreply, socket |> assign(api_rows: api_rows) |> put_flash(:info, "API deleted.")}
-
-          {:error, _changeset} ->
-            {:noreply, put_flash(socket, :error, "Could not delete API.")}
-        end
+        {:error, _changeset} ->
+          {:noreply, put_flash(socket, :error, "Could not delete API.")}
+      end
+    else
+      {:error, _reason} -> {:noreply, put_flash(socket, :error, "Not authorized.")}
+      nil -> {:noreply, put_flash(socket, :error, "API not found.")}
+      false -> {:noreply, put_flash(socket, :error, "API not found.")}
     end
   end
 
@@ -125,29 +128,35 @@ defmodule BlackboexWeb.ApiLive.Index do
     scope = socket.assigns.current_scope
     org = scope.organization
     user = scope.user
-    has_description = description != ""
 
-    attrs = %{
-      name: name,
-      description: if(has_description, do: description, else: nil),
-      generation_status: if(has_description, do: "pending", else: nil),
-      organization_id: org.id,
-      user_id: user.id
-    }
+    with :ok <- Policy.authorize(:api_create, scope, org) do
+      has_description = description != ""
 
-    case Apis.create_api(attrs) do
-      {:ok, api} ->
-        maybe_enqueue_generation(api, description, user.id, org.id)
-        {:noreply, push_navigate(socket, to: ~p"/apis/#{api.id}/edit")}
+      attrs = %{
+        name: name,
+        description: if(has_description, do: description, else: nil),
+        generation_status: if(has_description, do: "pending", else: nil),
+        organization_id: org.id,
+        user_id: user.id
+      }
 
-      {:error, :limit_exceeded, details} ->
-        {:noreply,
-         assign(socket,
-           create_error: "You've reached the #{details.plan} plan limit of #{details.limit} APIs."
-         )}
+      case Apis.create_api(attrs) do
+        {:ok, api} ->
+          maybe_enqueue_generation(api, description, user.id, org.id)
+          {:noreply, push_navigate(socket, to: ~p"/apis/#{api.id}/edit")}
 
-      {:error, changeset} ->
-        {:noreply, assign(socket, create_error: format_changeset_errors(changeset))}
+        {:error, :limit_exceeded, details} ->
+          {:noreply,
+           assign(socket,
+             create_error:
+               "You've reached the #{details.plan} plan limit of #{details.limit} APIs."
+           )}
+
+        {:error, changeset} ->
+          {:noreply, assign(socket, create_error: format_changeset_errors(changeset))}
+      end
+    else
+      {:error, _reason} -> {:noreply, put_flash(socket, :error, "Not authorized.")}
     end
   end
 

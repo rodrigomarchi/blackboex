@@ -2,7 +2,7 @@ defmodule BlackboexWeb.Plugs.ApiAuth do
   @moduledoc """
   Authentication for published API requests.
 
-  Extracts API key from Authorization header or query param,
+  Extracts API key from Authorization header (Bearer or X-API-Key),
   verifies it, and assigns the api_key to the connection.
 
   Called inline from DynamicApiRouter, not as a Plug.
@@ -45,8 +45,7 @@ defmodule BlackboexWeb.Plugs.ApiAuth do
 
   defp extract_key(conn) do
     with :miss <- extract_bearer(conn),
-         :miss <- extract_x_api_key(conn),
-         :miss <- extract_query_param(conn) do
+         :miss <- extract_x_api_key(conn) do
       {:error, :missing_key}
     end
   end
@@ -61,15 +60,6 @@ defmodule BlackboexWeb.Plugs.ApiAuth do
   defp extract_x_api_key(conn) do
     case get_req_header(conn, "x-api-key") do
       [key] when key != "" -> {:ok, String.trim(key)}
-      _ -> :miss
-    end
-  end
-
-  defp extract_query_param(conn) do
-    conn = Plug.Conn.fetch_query_params(conn)
-
-    case conn.query_params do
-      %{"api_key" => key} -> {:ok, key}
       _ -> :miss
     end
   end

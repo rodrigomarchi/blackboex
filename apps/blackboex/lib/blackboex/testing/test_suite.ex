@@ -52,6 +52,7 @@ defmodule Blackboex.Testing.TestSuite do
     |> validate_number(:duration_ms, greater_than_or_equal_to: 0)
     |> validate_length(:test_code, max: @max_test_code_bytes)
     |> foreign_key_constraint(:api_id)
+    |> unique_constraint([:api_id, :version_number])
   end
 
   @spec admin_changeset(t(), map(), map()) :: Ecto.Changeset.t()

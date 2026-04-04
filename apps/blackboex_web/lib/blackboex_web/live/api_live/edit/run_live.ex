@@ -19,6 +19,14 @@ defmodule BlackboexWeb.ApiLive.Edit.RunLive do
   @valid_request_tabs ~w(params headers body auth)
   @valid_response_tabs ~w(body headers)
   @valid_snippet_languages ~w(curl python javascript elixir ruby go)
+  @lang_atoms %{
+    "curl" => :curl,
+    "python" => :python,
+    "javascript" => :javascript,
+    "elixir" => :elixir,
+    "ruby" => :ruby,
+    "go" => :go
+  }
   @max_test_items 50
 
   @command_palette_events ~w(toggle_command_palette close_panels command_palette_search
@@ -298,7 +306,7 @@ defmodule BlackboexWeb.ApiLive.Edit.RunLive do
       api_key: if(socket.assigns.test_api_key != "", do: socket.assigns.test_api_key, else: nil)
     }
 
-    snippet = SnippetGenerator.generate(socket.assigns.api, String.to_atom(lang), request)
+    snippet = SnippetGenerator.generate(socket.assigns.api, @lang_atoms[lang], request)
 
     {:noreply,
      socket

@@ -56,6 +56,13 @@ defmodule Blackboex.Apis.Keys do
 
     case Repo.get_by(ApiKey, key_prefix: prefix) do
       nil ->
+        # Perform dummy compare to prevent timing-based enumeration of key prefixes
+        Plug.Crypto.secure_compare(
+          <<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0>>,
+          key_hash
+        )
+
         {:error, :invalid}
 
       %ApiKey{} = api_key ->

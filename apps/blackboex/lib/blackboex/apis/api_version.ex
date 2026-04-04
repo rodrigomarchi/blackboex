@@ -51,6 +51,7 @@ defmodule Blackboex.Apis.ApiVersion do
     |> validate_inclusion(:source, @valid_sources)
     |> validate_inclusion(:compilation_status, @valid_compilation_statuses)
     |> unique_constraint([:api_id, :version_number])
+    |> foreign_key_constraint(:created_by_id)
   end
 
   @spec admin_changeset(t(), map(), map()) :: Ecto.Changeset.t()

@@ -24,14 +24,28 @@ if stripe_webhook_secret = System.get_env("STRIPE_WEBHOOK_SECRET") do
   config :blackboex, :stripe_webhook_secret, stripe_webhook_secret
 end
 
-# ReqLLM API keys (all environments — loaded from env vars when present)
-config :req_llm,
-  anthropic_api_key: System.get_env("ANTHROPIC_API_KEY"),
-  openai_api_key: System.get_env("OPENAI_API_KEY")
+# ReqLLM API keys — required in prod, optional in dev/test
+if config_env() == :prod do
+  config :req_llm,
+    anthropic_api_key:
+      System.get_env("ANTHROPIC_API_KEY") ||
+        raise("missing ANTHROPIC_API_KEY env var"),
+    openai_api_key:
+      System.get_env("OPENAI_API_KEY") ||
+        raise("missing OPENAI_API_KEY env var")
 
-# LangChain API keys (used by agent pipeline)
-config :langchain,
-  anthropic_key: System.get_env("ANTHROPIC_API_KEY")
+  config :langchain,
+    anthropic_key:
+      System.get_env("ANTHROPIC_API_KEY") ||
+        raise("missing ANTHROPIC_API_KEY env var")
+else
+  config :req_llm,
+    anthropic_api_key: System.get_env("ANTHROPIC_API_KEY"),
+    openai_api_key: System.get_env("OPENAI_API_KEY")
+
+  config :langchain,
+    anthropic_key: System.get_env("ANTHROPIC_API_KEY")
+end
 
 # Structured JSON logging in production
 if config_env() == :prod do

@@ -55,6 +55,7 @@ defmodule Blackboex.Agent.CodePipeline do
     broadcast = opts[:broadcast_fn] || fn _ -> :ok end
     run_id = opts[:run_id]
     reset_counters()
+    Process.put(:pipeline_run_id, run_id)
     Process.put(:token_callback, opts[:token_callback])
 
     with {:ok, code} <- step_generate_code(api, description, broadcast, run_id),
@@ -81,6 +82,7 @@ defmodule Blackboex.Agent.CodePipeline do
     broadcast = opts[:broadcast_fn] || fn _ -> :ok end
     run_id = opts[:run_id]
     reset_counters()
+    Process.put(:pipeline_run_id, run_id)
     Process.put(:token_callback, opts[:token_callback])
 
     with {:ok, code} <-
@@ -175,6 +177,12 @@ defmodule Blackboex.Agent.CodePipeline do
   rescue
     e ->
       Logger.warning("Stream failed, falling back to sync: #{Exception.message(e)}")
+      run_id = Process.get(:pipeline_run_id)
+
+      if run_id do
+        Phoenix.PubSub.broadcast(Blackboex.PubSub, "run:#{run_id}", {:stream_reset, %{}})
+      end
+
       sync_llm_call(client, prompt, system)
   end
 

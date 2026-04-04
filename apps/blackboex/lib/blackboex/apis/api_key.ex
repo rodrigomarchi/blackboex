@@ -15,9 +15,9 @@ defmodule Blackboex.Apis.ApiKey do
     field :key_hash, :binary
     field :key_prefix, :string
     field :label, :string
-    field :last_used_at, :utc_datetime
-    field :expires_at, :utc_datetime
-    field :revoked_at, :utc_datetime
+    field :last_used_at, :utc_datetime_usec
+    field :expires_at, :utc_datetime_usec
+    field :revoked_at, :utc_datetime_usec
     field :rate_limit, :integer
 
     belongs_to :api, Blackboex.Apis.Api

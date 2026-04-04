@@ -226,6 +226,12 @@ defmodule Blackboex.LLM.Prompts do
     ```
 
     For NESTED input (e.g., vehicle with year/category/value), use `embeds_one` / `embeds_many`:
+
+    CRITICAL: Nested schemas used with `embeds_one`/`embeds_many` MUST define `changeset/2`
+    (receiving struct AND params), NOT `changeset/1`. Ecto's `cast_embed` calls `changeset/2`
+    internally — if you define only `changeset/1`, it will crash at runtime with
+    "function Vehicle.changeset/2 is undefined or private".
+
     ```elixir
     defmodule Vehicle do
       @moduledoc "Nested schema for vehicle data."
@@ -237,10 +243,10 @@ defmodule Blackboex.LLM.Prompts do
         field :value_brl, :float
       end
 
-      @doc "Validates vehicle params."
-      @spec changeset(map()) :: Ecto.Changeset.t()
-      def changeset(params) do
-        %__MODULE__{}
+      @doc "Validates vehicle params. Must be changeset/2 for cast_embed compatibility."
+      @spec changeset(t(), map()) :: Ecto.Changeset.t()
+      def changeset(struct \\\\ %__MODULE__{}, params) do
+        struct
         |> cast(params, [:year, :category, :value_brl])
         |> validate_required([:year, :category, :value_brl])
       end
@@ -282,6 +288,8 @@ defmodule Blackboex.LLM.Prompts do
     - The handler MUST use `Request.changeset(params)` to validate input
     - ONLY module names allowed: Request, Response, Params, and nested schema modules used by embeds
     - Nested schema modules (e.g., Vehicle, Driver, Item) MUST be defined BEFORE Request/Response
+    - Nested schemas MUST define `changeset/2` (struct, params) — NOT `changeset/1` (params only).
+      `cast_embed` calls `changeset/2` internally. Using `changeset/1` will crash at runtime.
     - NEVER use `Ecto.Repo`, `Ecto.Query`, or `unsafe_*` functions
     - NEVER use `field :name, :map` when the map has a known structure — use `embeds_one` instead
 

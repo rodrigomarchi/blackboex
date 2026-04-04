@@ -19,15 +19,15 @@ defmodule Blackboex.Testing.TestPrompts do
     - Tests ARE the specification. Each test documents a behavior the API guarantees.
     - Test names should read like requirements: "returns factorial for valid positive integer"
     - Group tests by concern using `describe` blocks that tell a story
-    - Every `describe` block should have a clear comment explaining the category
     - Cover the full spectrum: happy paths, edge cases, validation, error messages
-    - Tests should be so clear that they serve as usage examples for API consumers
+    - Tests must exercise the FULL end-to-end flow: params → handler → response with ALL fields checked
 
     ## Architecture
     The handler functions are available in a module called `Handler`.
     DO NOT copy or redefine handler code — just call `Handler.handle(params)`, etc.
     The `Handler` module is compiled separately and available at test runtime.
     The Request/Response DTOs are also available as `Handler.Request` and `Handler.Response`.
+    Nested schemas (e.g., Vehicle, Driver) are available as `Handler.Vehicle`, `Handler.Driver`, etc.
 
     ## Rules
     1. Generate a COMPLETE ExUnit test module with `defmodule GeneratedAPITest` and `use ExUnit.Case`.
@@ -36,37 +36,79 @@ defmodule Blackboex.Testing.TestPrompts do
     4. Do NOT use `Req`, `HTTPoison`, `File`, `System`, `Code`, or `Process`.
     5. Use `assert` and `refute` only.
 
-    ## Test Coverage Requirements (MINIMUM)
-    Include ALL of these categories:
+    ## Test Coverage Requirements (MANDATORY — ALL categories must be present)
 
     ### 1. Input Validation (via Changeset)
-    - Test `Handler.Request.changeset/1` with valid params → `changeset.valid? == true`
+    - Test `Handler.Request.changeset/1` with COMPLETE valid params → `changeset.valid? == true`
     - Test with missing required fields → `changeset.valid? == false`
     - Test with wrong types (string where integer expected)
     - Test with boundary values (zero, negative, very large)
     - Verify error messages are descriptive
 
-    ### 2. Happy Path
-    - Test the main handler function with valid input
-    - Assert on response structure (map keys present)
-    - Test with different valid inputs to show behavior range
+    ### 2. Nested Schema Validation (CRITICAL for APIs with embeds)
+    If the Request schema uses `embeds_one` or `embeds_many` (nested objects like vehicle, driver,
+    items, address, etc.), you MUST test:
+    - Nested changeset directly: `Handler.Vehicle.changeset(%Handler.Vehicle{}, %{"year" => 2023, ...})`
+    - Request changeset with COMPLETE nested data (all nested objects populated with valid values)
+    - Request changeset with MISSING nested objects → changeset invalid
+    - Request changeset with INVALID nested field values → changeset invalid
+    - Each nested schema's individual validations (required fields, value ranges, formats)
+
+    IMPORTANT: Nested schema changesets are called with ARITY 2 (struct + params) because
+    Ecto's `cast_embed` passes the struct. Always test with:
+    `Handler.Vehicle.changeset(%Handler.Vehicle{}, params)` — NOT `Handler.Vehicle.changeset(params)`.
+
+    ### 3. Happy Path — End-to-End
+    - Test `Handler.handle(params)` with COMPLETE, REALISTIC input including ALL nested objects
+    - Assert EVERY key in the response map is present and has the correct type
+    - Test with MULTIPLE different valid inputs to show behavior range
+    - For APIs with nested input, ALWAYS build full params with nested maps:
+      ```elixir
+      params = %{
+        "coverage" => "comprehensive",
+        "vehicle" => %{"year" => 2023, "category" => "sedan", "value_brl" => 80000},
+        "driver" => %{"age" => 30, "license_years" => 8, "claims_last_3y" => 0, "zip_prefix" => "01"}
+      }
+      result = Handler.handle(params)
+      assert is_float(result.monthly_premium_brl)
+      assert result.monthly_premium_brl > 0
+      assert is_map(result.breakdown)
+      assert is_binary(result.risk_score)
+      ```
     - **NEVER use `==` to compare computed float values** — floating point arithmetic is imprecise.
       Use `abs(expected - actual) < 0.1` for monetary values or `assert is_float(result.value)`.
       Only use `==` for exact integers or known string/atom values.
     - When asserting a value is positive, use `assert result > 0` (not `> 0.0`) since
       the handler may return integer 0 or float 0.0 depending on the computation.
 
-    ### 3. Error Handling
+    ### 4. Response Structure Validation
+    - Assert ALL top-level keys are present in the success response
+    - Assert nested response maps (like `breakdown`, `details`) have all expected keys
+    - Assert value types: `is_float`, `is_integer`, `is_binary`, `is_map`, `is_boolean`, `is_list`
+    - Assert value ranges where applicable: prices > 0, percentages between 0-100, etc.
+    - Assert enum/string values are within expected options
+
+    ### 5. Error Handling
     - Test with empty params `%{}`
     - Test with invalid/out-of-range values
+    - Test with partial params (some fields missing)
     - Verify error responses have `%{error: message}` structure
     - Verify error messages are human-readable
 
-    ### 4. Edge Cases
-    - Boundary values (0, max int, empty string, very long string)
+    ### 6. Edge Cases & Corner Cases
+    - Boundary values (minimum valid, maximum valid, just below minimum, just above maximum)
+    - Zero values where applicable (0 claims, 0 years, price of 0)
+    - Very large values (999999, very old dates, very high prices)
+    - Different valid combinations (each enum value, each category, each coverage type)
     - Type coercion scenarios (string "5" vs integer 5)
     - Nil values, missing keys
     - Special characters in string inputs
+
+    ### 7. Business Logic Variations
+    - Test each branch of business logic (every category, every coverage type, every age range)
+    - Verify that different inputs produce DIFFERENT outputs (not all the same result)
+    - Test that factors/multipliers affect the result in the expected direction
+      (e.g., more claims → higher premium, more experience → lower premium)
 
     ## Documentation Standards
     - `@moduledoc` MUST describe what API is being tested and what contract it enforces
@@ -79,56 +121,80 @@ defmodule Blackboex.Testing.TestPrompts do
     ```elixir
     defmodule GeneratedAPITest do
       @moduledoc \"\"\"
-      Tests for the Calculator API handler.
+      Tests for the Insurance Quote API handler.
 
-      Validates the full contract: input validation via Request changeset,
-      correct computation for valid inputs, and clear error messages for
-      invalid inputs.
+      Validates the full contract: nested schema validation, premium calculation
+      for different vehicle/driver profiles, coverage types, and error handling.
       \"\"\"
       use ExUnit.Case
 
-      # --- Input Validation ---
-      # The Request changeset is the first line of defense.
-      # It validates types, required fields, and domain constraints.
+      # Shared valid params — full nested structure for reuse across tests
+      @valid_params %{
+        "coverage" => "comprehensive",
+        "vehicle" => %{"year" => 2023, "category" => "sedan", "value_brl" => 80000.0},
+        "driver" => %{"age" => 35, "license_years" => 10, "claims_last_3y" => 0, "zip_prefix" => "30"}
+      }
 
-      describe "Request changeset validation" do
-        test "accepts valid integer input" do
-          changeset = Handler.Request.changeset(%{"a" => 1, "b" => 2})
+      # --- Nested Schema Validation ---
+      # Nested schemas are the building blocks. Each must validate independently.
+
+      describe "Vehicle changeset" do
+        test "accepts valid vehicle data" do
+          changeset = Handler.Vehicle.changeset(%Handler.Vehicle{}, %{
+            "year" => 2023, "category" => "sedan", "value_brl" => 80000
+          })
           assert changeset.valid?
         end
 
         test "rejects missing required fields" do
-          changeset = Handler.Request.changeset(%{})
+          changeset = Handler.Vehicle.changeset(%Handler.Vehicle{}, %{})
           refute changeset.valid?
-          # Verify the error is on the right field
-          assert Keyword.has_key?(changeset.errors, :a)
         end
       end
 
-      # --- Happy Path ---
-      # These tests prove the core computation works correctly.
+      # --- Request Changeset with Full Nested Data ---
+      # The Request changeset must validate the entire nested structure.
 
-      describe "successful computation" do
-        test "adds two positive numbers" do
-          result = Handler.handle(%{"a" => 3, "b" => 7})
-          # Use == only for exact integer results
-          assert result == %{result: 10}
+      describe "Request changeset validation" do
+        test "accepts complete valid params with nested objects" do
+          changeset = Handler.Request.changeset(@valid_params)
+          assert changeset.valid?
         end
 
-        test "handles zero values" do
-          result = Handler.handle(%{"a" => 0, "b" => 5})
-          assert result.result == 5
+        test "rejects missing nested objects" do
+          changeset = Handler.Request.changeset(%{"coverage" => "comprehensive"})
+          refute changeset.valid?
+        end
+      end
+
+      # --- Happy Path: Full End-to-End ---
+      # Prove that valid input produces a complete, correct response.
+
+      describe "successful quote calculation" do
+        test "returns complete response with all fields" do
+          result = Handler.handle(@valid_params)
+          # Verify every key exists and has correct type
+          assert is_float(result.monthly_premium_brl)
+          assert result.monthly_premium_brl > 0
+          assert is_float(result.annual_premium_brl)
+          assert is_map(result.breakdown)
+          assert is_binary(result.risk_score)
+          assert is_float(result.deductible_brl)
+          assert is_map(result.coverage_details)
         end
 
-        # For computed float values, NEVER use ==. Use tolerance:
-        # assert abs(result.price - 19.99) < 0.1
+        test "more claims produce higher premium" do
+          low = Handler.handle(@valid_params)
+          high_claims = put_in(@valid_params, ["driver", "claims_last_3y"], 3)
+          high = Handler.handle(high_claims)
+          assert high.monthly_premium_brl > low.monthly_premium_brl
+        end
       end
 
       # --- Error Handling ---
-      # Users will send bad data. The API must respond clearly.
 
       describe "error handling" do
-        test "returns descriptive error for missing params" do
+        test "returns error for empty params" do
           result = Handler.handle(%{})
           assert %{error: message} = result
           assert is_binary(message)

@@ -53,6 +53,9 @@ defmodule Blackboex.Agent.FixPrompts do
                true -> ...
              end
       Or even better, use pattern matching with multiple function clauses and guard clauses.
+    - "changeset/2 is undefined" → Nested schemas used with embeds_one/embeds_many MUST
+      define `changeset/2` (struct + params), NOT `changeset/1`. Fix:
+      `def changeset(struct \\\\ %__MODULE__{}, params)` instead of `def changeset(params)`.
     - "too many unique atoms" → reduce code size: extract repeated map keys, merge
       similar functions, remove redundant default clauses. Keep total atoms well under 800.
 

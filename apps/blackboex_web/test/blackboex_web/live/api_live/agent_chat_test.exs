@@ -46,7 +46,7 @@ defmodule BlackboexWeb.ApiLive.AgentChatTest do
   describe "agent chat happy path" do
     test "full flow: send → run_started → streaming → tools → completed → accept",
          %{conn: conn, org: org, api: api} do
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
       open_chat_and_send(lv, "Add multiply")
 
       # Loading state with user message
@@ -78,7 +78,7 @@ defmodule BlackboexWeb.ApiLive.AgentChatTest do
 
     test "completion with test_code updates test_code assign",
          %{conn: conn, org: org, api: api} do
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
       open_chat_and_send(lv, "Add tests")
 
       run_id = start_agent_run(lv)
@@ -97,7 +97,7 @@ defmodule BlackboexWeb.ApiLive.AgentChatTest do
   describe "agent failure" do
     test "agent_failed shows error and clears loading state",
          %{conn: conn, org: org, api: api} do
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
       open_chat_and_send(lv, "Do something")
 
       run_id = start_agent_run(lv)
@@ -111,7 +111,7 @@ defmodule BlackboexWeb.ApiLive.AgentChatTest do
 
     test "guardrail triggered shows warning",
          %{conn: conn, org: org, api: api} do
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
       open_chat_and_send(lv, "Do it")
 
       run_id = start_agent_run(lv)
@@ -126,8 +126,7 @@ defmodule BlackboexWeb.ApiLive.AgentChatTest do
   describe "edge cases" do
     test "empty message is ignored",
          %{conn: conn, org: org, api: api} do
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-      lv |> element(~s(button[phx-click="switch_tab"][phx-value-tab="chat"])) |> render_click()
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
 
       lv |> form("form[phx-submit=send_chat]", %{chat_input: ""}) |> render_submit()
       refute render(lv) =~ "Thinking..."
@@ -135,7 +134,7 @@ defmodule BlackboexWeb.ApiLive.AgentChatTest do
 
     test "input is disabled while loading prevents double submit",
          %{conn: conn, org: org, api: api} do
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
       open_chat_and_send(lv, "First")
 
       html = render(lv)
@@ -154,7 +153,7 @@ defmodule BlackboexWeb.ApiLive.AgentChatTest do
 
     test "completion with nil code shows info flash and preserves timeline",
          %{conn: conn, org: org, api: api} do
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
       open_chat_and_send(lv, "Analyze")
 
       run_id = start_agent_run(lv)
@@ -183,7 +182,7 @@ defmodule BlackboexWeb.ApiLive.AgentChatTest do
 
     test "reject edit clears pending_edit",
          %{conn: conn, org: org, api: api} do
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
       open_chat_and_send(lv, "Change")
 
       run_id = start_agent_run(lv)
@@ -199,7 +198,7 @@ defmodule BlackboexWeb.ApiLive.AgentChatTest do
 
     test "streaming tokens ignored after run completes",
          %{conn: conn, org: org, api: api} do
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
       open_chat_and_send(lv, "Do it")
 
       run_id = start_agent_run(lv)
@@ -212,7 +211,7 @@ defmodule BlackboexWeb.ApiLive.AgentChatTest do
 
     test "clear conversation blocked during active run",
          %{conn: conn, org: org, api: api} do
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
       open_chat_and_send(lv, "Do it")
 
       _run_id = start_agent_run(lv)
@@ -226,7 +225,7 @@ defmodule BlackboexWeb.ApiLive.AgentChatTest do
 
     test "can send new message after failure",
          %{conn: conn, org: org, api: api} do
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
       open_chat_and_send(lv, "Try 1")
 
       run_id = start_agent_run(lv)
@@ -243,7 +242,7 @@ defmodule BlackboexWeb.ApiLive.AgentChatTest do
 
     test "agent_message events appear in timeline",
          %{conn: conn, org: org, api: api} do
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
       open_chat_and_send(lv, "Do it")
 
       run_id = start_agent_run(lv)
@@ -258,7 +257,7 @@ defmodule BlackboexWeb.ApiLive.AgentChatTest do
 
     test "tool failure shows in timeline",
          %{conn: conn, org: org, api: api} do
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
       open_chat_and_send(lv, "Do it")
 
       run_id = start_agent_run(lv)
@@ -271,7 +270,7 @@ defmodule BlackboexWeb.ApiLive.AgentChatTest do
 
     test "multiple tool results accumulate in timeline",
          %{conn: conn, org: org, api: api} do
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
       open_chat_and_send(lv, "Full pipeline")
 
       run_id = start_agent_run(lv)
@@ -288,7 +287,7 @@ defmodule BlackboexWeb.ApiLive.AgentChatTest do
 
     test "agent_started message is silently handled",
          %{conn: conn, org: org, api: api} do
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
 
       send(lv.pid, {:agent_started, %{run_id: Ecto.UUID.generate(), run_type: "edit"}})
       assert render(lv) =~ "Calculator"
@@ -296,7 +295,7 @@ defmodule BlackboexWeb.ApiLive.AgentChatTest do
 
     test "non-assistant agent_message types are ignored",
          %{conn: conn, org: org, api: api} do
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
       open_chat_and_send(lv, "Test")
 
       run_id = start_agent_run(lv)
@@ -315,7 +314,7 @@ defmodule BlackboexWeb.ApiLive.AgentChatTest do
 
     test "clear conversation works when no run is active",
          %{conn: conn, org: org, api: api} do
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
       open_chat_and_send(lv, "xyzzy_unique_msg")
 
       # Complete a run first so messages exist
@@ -339,7 +338,7 @@ defmodule BlackboexWeb.ApiLive.AgentChatTest do
   describe "UX consistency" do
     test "chat input is disabled during loading",
          %{conn: conn, org: org, api: api} do
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
       open_chat_and_send(lv, "Test")
 
       html = render(lv)
@@ -348,7 +347,7 @@ defmodule BlackboexWeb.ApiLive.AgentChatTest do
 
     test "pipeline_status updates correctly for different tools",
          %{conn: conn, org: org, api: api} do
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
       open_chat_and_send(lv, "Test")
 
       run_id = start_agent_run(lv)
@@ -364,7 +363,6 @@ defmodule BlackboexWeb.ApiLive.AgentChatTest do
   # ── Test Helpers ───────────────────────────────────────────────────────
 
   defp open_chat_and_send(lv, message) do
-    lv |> element(~s(button[phx-click="switch_tab"][phx-value-tab="chat"])) |> render_click()
     lv |> form("form[phx-submit=send_chat]", %{chat_input: message}) |> render_submit()
   end
 

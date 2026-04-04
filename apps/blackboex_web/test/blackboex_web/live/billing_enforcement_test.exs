@@ -51,10 +51,7 @@ defmodule BlackboexWeb.Live.BillingEnforcementTest do
 
   describe "billing enforcement on chat edit" do
     test "free plan user at LLM limit sees error flash", %{conn: conn, org: org, api: api} do
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-
-      # Open the chat panel first
-      lv |> element(~s(button[phx-click="switch_tab"][phx-value-tab="chat"])) |> render_click()
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
 
       lv
       |> form("form[phx-submit=send_chat]", %{chat_input: "Add error handling"})
@@ -72,10 +69,7 @@ defmodule BlackboexWeb.Live.BillingEnforcementTest do
 
   describe "billing enforcement on chat edit (rate limited)" do
     test "free plan user at LLM limit sees no pending edit", %{conn: conn, org: org, api: api} do
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-
-      # Open the chat panel
-      lv |> element(~s(button[phx-click="switch_tab"][phx-value-tab="chat"])) |> render_click()
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
 
       # Send a chat message — billing enforcement blocks the LLM call
       lv
@@ -98,8 +92,7 @@ defmodule BlackboexWeb.Live.BillingEnforcementTest do
     } do
       {:ok, _api} = Apis.update_api(api, %{status: "compiled"})
 
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-      lv |> render_click("switch_tab", %{"tab" => "publish"})
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/publish?org=#{org.id}")
 
       html = render(lv)
       assert html =~ "Generated on save"

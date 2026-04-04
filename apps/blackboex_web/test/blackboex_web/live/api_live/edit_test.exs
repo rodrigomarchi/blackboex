@@ -60,13 +60,13 @@ defmodule BlackboexWeb.ApiLive.EditTest do
 
   describe "mount" do
     test "renders editor with API name", %{conn: conn, org: org, api: api} do
-      {:ok, _lv, html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
+      {:ok, _lv, html} = live(conn, ~p"/apis/#{api.id}/edit/code?org=#{org.id}")
 
       assert html =~ "Calculator"
     end
 
     test "shows all tabs in tab bar", %{conn: conn, org: org, api: api} do
-      {:ok, _lv, html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
+      {:ok, _lv, html} = live(conn, ~p"/apis/#{api.id}/edit/code?org=#{org.id}")
 
       assert html =~ "Code"
       assert html =~ "Tests"
@@ -77,9 +77,7 @@ defmodule BlackboexWeb.ApiLive.EditTest do
     end
 
     test "shows API info in info tab", %{conn: conn, org: org, api: api} do
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-
-      html = lv |> render_click("switch_tab", %{"tab" => "info"})
+      {:ok, _lv, html} = live(conn, ~p"/apis/#{api.id}/edit/info?org=#{org.id}")
 
       assert html =~ "calculator"
       assert html =~ "computation"
@@ -95,11 +93,7 @@ defmodule BlackboexWeb.ApiLive.EditTest do
         created_by_id: user.id
       })
 
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-
-      # Open bottom panel and switch to versions tab
-      lv |> render_click("switch_tab", %{"tab" => "run"})
-      html = lv |> render_click("switch_tab", %{"tab" => "versions"})
+      {:ok, _lv, html} = live(conn, ~p"/apis/#{api.id}/edit/versions?org=#{org.id}")
 
       assert html =~ "v1"
       assert html =~ "generation"
@@ -124,7 +118,7 @@ defmodule BlackboexWeb.ApiLive.EditTest do
         })
 
       assert {:error, {:live_redirect, %{to: "/apis", flash: %{"error" => "API not found"}}}} =
-               live(conn, ~p"/apis/#{other_api.id}/edit?org=#{other_org.id}")
+               live(conn, ~p"/apis/#{other_api.id}/edit/code?org=#{other_org.id}")
     end
   end
 
@@ -146,11 +140,7 @@ defmodule BlackboexWeb.ApiLive.EditTest do
           created_by_id: user.id
         })
 
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-
-      # Open bottom panel and switch to versions tab
-      lv |> render_click("switch_tab", %{"tab" => "run"})
-      lv |> render_click("switch_tab", %{"tab" => "versions"})
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/versions?org=#{org.id}")
 
       lv
       |> element(~s(button[phx-click="rollback"][phx-value-number="1"]))

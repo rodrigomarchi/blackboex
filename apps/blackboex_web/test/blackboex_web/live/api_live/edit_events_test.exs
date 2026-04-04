@@ -38,12 +38,6 @@ defmodule BlackboexWeb.ApiLive.EditEventsTest do
     %{org: org, api: api}
   end
 
-  # ── Helper to open the bottom panel (test tab is default) ──
-
-  defp open_bottom_panel(lv) do
-    lv |> render_click("switch_tab", %{"tab" => "run"})
-  end
-
   defp stub_pipeline_mocks do
     Blackboex.LLM.ClientMock
     |> stub(:stream_text, fn _prompt, _opts -> {:ok, [{:token, "no fix needed"}]} end)
@@ -61,8 +55,7 @@ defmodule BlackboexWeb.ApiLive.EditEventsTest do
 
   describe "add_param" do
     test "adds a parameter row", %{conn: conn, org: org, api: api} do
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-      open_bottom_panel(lv)
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/run?org=#{org.id}")
       render_click(lv, "switch_request_tab", %{"tab" => "params"})
 
       # Initially there are no params
@@ -73,8 +66,7 @@ defmodule BlackboexWeb.ApiLive.EditEventsTest do
     end
 
     test "respects the 50 item limit", %{conn: conn, org: org, api: api} do
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-      open_bottom_panel(lv)
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/run?org=#{org.id}")
       render_click(lv, "switch_request_tab", %{"tab" => "params"})
 
       # Add 50 params to reach the limit
@@ -91,8 +83,7 @@ defmodule BlackboexWeb.ApiLive.EditEventsTest do
 
   describe "remove_param" do
     test "removes a parameter by id", %{conn: conn, org: org, api: api} do
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-      open_bottom_panel(lv)
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/run?org=#{org.id}")
       render_click(lv, "switch_request_tab", %{"tab" => "params"})
 
       # Add two params
@@ -117,8 +108,7 @@ defmodule BlackboexWeb.ApiLive.EditEventsTest do
 
   describe "add_header" do
     test "adds a header row", %{conn: conn, org: org, api: api} do
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-      open_bottom_panel(lv)
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/run?org=#{org.id}")
 
       # Switch to headers sub-tab
       render_click(lv, "switch_request_tab", %{"tab" => "headers"})
@@ -134,8 +124,7 @@ defmodule BlackboexWeb.ApiLive.EditEventsTest do
     end
 
     test "respects the 50 item limit", %{conn: conn, org: org, api: api} do
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-      open_bottom_panel(lv)
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/run?org=#{org.id}")
       render_click(lv, "switch_request_tab", %{"tab" => "headers"})
 
       # Already has 1 default header (Content-Type), so add 49 more to reach 50
@@ -152,8 +141,7 @@ defmodule BlackboexWeb.ApiLive.EditEventsTest do
 
   describe "remove_header" do
     test "removes a header by id", %{conn: conn, org: org, api: api} do
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-      open_bottom_panel(lv)
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/run?org=#{org.id}")
       render_click(lv, "switch_request_tab", %{"tab" => "headers"})
 
       # Add a header (there's already 1 default Content-Type header)
@@ -178,8 +166,7 @@ defmodule BlackboexWeb.ApiLive.EditEventsTest do
 
   describe "update_test_method" do
     test "changes the HTTP method", %{conn: conn, org: org, api: api} do
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-      open_bottom_panel(lv)
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/run?org=#{org.id}")
 
       # Default method comes from api.method || "GET"
       html = render_click(lv, "update_test_method", %{"method" => "POST"})
@@ -188,8 +175,7 @@ defmodule BlackboexWeb.ApiLive.EditEventsTest do
     end
 
     test "ignores invalid method", %{conn: conn, org: org, api: api} do
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-      open_bottom_panel(lv)
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/run?org=#{org.id}")
 
       render_click(lv, "update_test_method", %{"method" => "HACK"})
       html = render(lv)
@@ -199,8 +185,7 @@ defmodule BlackboexWeb.ApiLive.EditEventsTest do
 
   describe "update_test_body" do
     test "invalid JSON shows error", %{conn: conn, org: org, api: api} do
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-      open_bottom_panel(lv)
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/run?org=#{org.id}")
       render_click(lv, "switch_request_tab", %{"tab" => "body"})
 
       html = render_click(lv, "update_test_body", %{"test_body_json" => "{invalid json"})
@@ -208,8 +193,7 @@ defmodule BlackboexWeb.ApiLive.EditEventsTest do
     end
 
     test "valid JSON clears error", %{conn: conn, org: org, api: api} do
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-      open_bottom_panel(lv)
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/run?org=#{org.id}")
       render_click(lv, "switch_request_tab", %{"tab" => "body"})
 
       # First set invalid JSON
@@ -224,8 +208,7 @@ defmodule BlackboexWeb.ApiLive.EditEventsTest do
 
   describe "send_request" do
     test "send_request sets loading state", %{conn: conn, org: org, api: api} do
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-      open_bottom_panel(lv)
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/run?org=#{org.id}")
 
       # Send request (the API is not compiled, so it will return an error via async)
       html = render_click(lv, "send_request")
@@ -245,8 +228,7 @@ defmodule BlackboexWeb.ApiLive.EditEventsTest do
       org: org,
       api: api
     } do
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-      open_bottom_panel(lv)
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/run?org=#{org.id}")
 
       # First send sets test_loading: true
       render_click(lv, "send_request")

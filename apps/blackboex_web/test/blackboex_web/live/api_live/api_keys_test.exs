@@ -29,12 +29,8 @@ defmodule BlackboexWeb.ApiLive.ApiKeysTest do
 
   describe "API keys lifecycle" do
     test "create -> rotate -> revoke", %{conn: conn, org: org, api: api} do
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
+      {:ok, lv, html} = live(conn, ~p"/apis/#{api.id}/edit/keys?org=#{org.id}")
 
-      # Open the Config panel (keys section is inside)
-      lv |> render_click("switch_tab", %{"tab" => "keys"})
-
-      html = render(lv)
       assert html =~ "No API keys yet"
 
       # Create a key

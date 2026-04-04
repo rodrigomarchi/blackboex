@@ -42,13 +42,9 @@ defmodule BlackboexWeb.ApiLive.PublishFlowTest do
       # Compile the API directly
       compile_directly(api)
 
-      # Mount with compiled status
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
+      # Mount on publish tab
+      {:ok, lv, html} = live(conn, ~p"/apis/#{api.id}/edit/publish?org=#{org.id}")
 
-      # Open the Config panel (publish section is inside)
-      lv |> render_click("switch_tab", %{"tab" => "publish"})
-
-      html = render(lv)
       assert html =~ "Publish API"
 
       # Publish (after publish, the handler opens the config panel with keys loaded)
@@ -61,8 +57,8 @@ defmodule BlackboexWeb.ApiLive.PublishFlowTest do
       updated_api = Apis.get_api(org.id, api.id)
       assert updated_api.status == "published"
 
-      # Switch to publish tab to see URL
-      html = render_click(lv, "switch_tab", %{"tab" => "publish"})
+      # Re-render to see URL
+      html = render(lv)
       assert html =~ "/api/puborg/pub-api"
 
       on_exit(fn ->
@@ -77,11 +73,8 @@ defmodule BlackboexWeb.ApiLive.PublishFlowTest do
       # Compile directly
       compile_directly(api)
 
-      # Mount with compiled status
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-
-      # Open config panel and publish
-      lv |> render_click("switch_tab", %{"tab" => "publish"})
+      # Mount on publish tab and publish
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/publish?org=#{org.id}")
       lv |> element(~s(button[phx-click="publish"])) |> render_click()
 
       # Verify it's published
@@ -89,12 +82,8 @@ defmodule BlackboexWeb.ApiLive.PublishFlowTest do
       assert updated_api.status == "published"
 
       # Remount to get fresh published state
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
+      {:ok, lv, html} = live(conn, ~p"/apis/#{api.id}/edit/publish?org=#{org.id}")
 
-      # Open config panel to see Unpublish button
-      lv |> render_click("switch_tab", %{"tab" => "publish"})
-
-      html = render(lv)
       assert html =~ "Unpublish"
 
       # Unpublish

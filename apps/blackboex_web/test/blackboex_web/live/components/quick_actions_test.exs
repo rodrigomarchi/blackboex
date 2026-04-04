@@ -16,9 +16,7 @@ defmodule BlackboexWeb.Components.QuickActionsTest do
     %{org: org, user: user}
   end
 
-  defp open_chat(lv) do
-    lv |> element(~s(button[phx-click="switch_tab"][phx-value-tab="chat"])) |> render_click()
-  end
+  defp open_chat(_lv), do: :ok
 
   describe "quick actions" do
     test "renders general quick action buttons for computation template", %{
@@ -36,7 +34,7 @@ defmodule BlackboexWeb.Components.QuickActionsTest do
           source_code: "def handle(params), do: params"
         })
 
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
       open_chat(lv)
 
       html = render(lv)
@@ -58,7 +56,7 @@ defmodule BlackboexWeb.Components.QuickActionsTest do
           source_code: "def handle_list(params), do: []"
         })
 
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
       open_chat(lv)
 
       html = render(lv)
@@ -81,7 +79,7 @@ defmodule BlackboexWeb.Components.QuickActionsTest do
           source_code: "def handle_webhook(payload), do: :ok"
         })
 
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
       open_chat(lv)
 
       html = render(lv)

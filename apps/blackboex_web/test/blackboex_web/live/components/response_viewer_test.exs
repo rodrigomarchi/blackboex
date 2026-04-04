@@ -31,16 +31,14 @@ defmodule BlackboexWeb.Components.Editor.ResponseViewerTest do
 
   describe "ResponseViewer rendering" do
     test "shows empty state when no response", %{conn: conn, org: org, api: api} do
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-      lv |> render_click("switch_tab", %{"tab" => "run"})
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/run?org=#{org.id}")
       html = render(lv)
 
       assert html =~ "Envie um request para ver a resposta"
     end
 
     test "shows loading spinner during request", %{conn: conn, org: org, api: api} do
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-      lv |> render_click("switch_tab", %{"tab" => "run"})
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/run?org=#{org.id}")
 
       html = render(lv)
       assert html =~ "response-viewer"
@@ -53,8 +51,7 @@ defmodule BlackboexWeb.Components.Editor.ResponseViewerTest do
       org: org,
       api: api
     } do
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit?org=#{org.id}")
-      lv |> render_click("switch_tab", %{"tab" => "run"})
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/run?org=#{org.id}")
 
       # Simulate receiving a malicious response via the handle_info callback
       xss_body = "<script>alert('xss')</script>"

@@ -1,0 +1,220 @@
+defmodule BlackboexWeb.ApiLive.Edit.InfoLive do
+  @moduledoc false
+
+  use BlackboexWeb, :live_view
+
+  import BlackboexWeb.ApiLive.Edit.EditorShell
+  import BlackboexWeb.ApiLive.Edit.Helpers, only: [count_lines: 1, format_json: 1]
+
+  alias Blackboex.Apis
+  alias BlackboexWeb.ApiLive.Edit.Shared
+
+  @command_palette_events ~w(toggle_command_palette close_panels command_palette_search
+    command_palette_navigate command_palette_exec command_palette_exec_first)
+
+  @impl true
+  def mount(params, _session, socket) do
+    case Shared.load_api(socket, params) do
+      {:ok, socket} -> {:ok, socket}
+      {:error, socket} -> {:ok, socket}
+    end
+  end
+
+  @impl true
+  def render(assigns) do
+    ~H"""
+    <.editor_shell {shared_shell_assigns(assigns)} active_tab="info">
+      <div class="p-4 overflow-y-auto h-full max-w-3xl space-y-6">
+        <h2 class="text-sm font-semibold">API Information</h2>
+
+        <%!-- General --%>
+        <div>
+          <h3 class="text-xs font-semibold text-muted-foreground uppercase mb-3">General</h3>
+          <form phx-submit="update_info" class="space-y-3">
+            <div>
+              <label class="text-xs font-medium">Name</label>
+              <input
+                type="text"
+                name="name"
+                value={@api.name}
+                maxlength="200"
+                class="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label class="text-xs font-medium">Description</label>
+              <textarea
+                name="description"
+                rows="3"
+                maxlength="10000"
+                class="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm"
+              >{@api.description}</textarea>
+            </div>
+            <div class="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span class="text-xs text-muted-foreground">Slug</span>
+                <p class="font-mono">{@api.slug}</p>
+              </div>
+              <div>
+                <span class="text-xs text-muted-foreground">Template</span>
+                <p>{@api.template_type}</p>
+              </div>
+              <div>
+                <span class="text-xs text-muted-foreground">Created</span>
+                <p>{Calendar.strftime(@api.inserted_at, "%Y-%m-%d %H:%M")}</p>
+              </div>
+              <div>
+                <span class="text-xs text-muted-foreground">Last modified</span>
+                <p>{Calendar.strftime(@api.updated_at, "%Y-%m-%d %H:%M")}</p>
+              </div>
+            </div>
+            <button
+              type="submit"
+              class="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+            >
+              Save Changes
+            </button>
+          </form>
+        </div>
+
+        <%!-- Code Stats --%>
+        <div>
+          <h3 class="text-xs font-semibold text-muted-foreground uppercase mb-3">Code Stats</h3>
+          <div class="grid grid-cols-4 gap-3">
+            <div class="rounded-lg border p-3 text-center">
+              <p class="text-xl font-bold">{count_lines(@api.source_code)}</p>
+              <p class="text-[10px] text-muted-foreground">Source Lines</p>
+            </div>
+            <div class="rounded-lg border p-3 text-center">
+              <p class="text-xl font-bold">{count_lines(@api.test_code)}</p>
+              <p class="text-[10px] text-muted-foreground">Test Lines</p>
+            </div>
+            <div class="rounded-lg border p-3 text-center">
+              <p class="text-xl font-bold">{length(@versions)}</p>
+              <p class="text-[10px] text-muted-foreground">Versions</p>
+            </div>
+            <div class="rounded-lg border p-3 text-center">
+              <p class="text-xl font-bold">
+                {if @versions != [], do: "v#{hd(@versions).version_number}", else: "-"}
+              </p>
+              <p class="text-[10px] text-muted-foreground">Latest</p>
+            </div>
+          </div>
+        </div>
+
+        <%!-- Request/Response Schema --%>
+        <%= if @api.param_schema || @api.example_request || @api.example_response do %>
+          <div>
+            <h3 class="text-xs font-semibold text-muted-foreground uppercase mb-3">
+              Request/Response Schema
+            </h3>
+            <div class="space-y-3">
+              <%= if @api.param_schema do %>
+                <div>
+                  <span class="text-xs font-medium">Param Schema</span>
+                  <pre class="mt-1 rounded-md bg-muted p-3 text-xs font-mono overflow-x-auto"><code>{format_json(@api.param_schema)}</code></pre>
+                </div>
+              <% end %>
+              <div class="grid grid-cols-2 gap-3">
+                <%= if @api.example_request do %>
+                  <div>
+                    <span class="text-xs font-medium">Example Request</span>
+                    <pre class="mt-1 rounded-md bg-muted p-3 text-xs font-mono overflow-x-auto"><code>{format_json(@api.example_request)}</code></pre>
+                  </div>
+                <% end %>
+                <%= if @api.example_response do %>
+                  <div>
+                    <span class="text-xs font-medium">Example Response</span>
+                    <pre class="mt-1 rounded-md bg-muted p-3 text-xs font-mono overflow-x-auto"><code>{format_json(@api.example_response)}</code></pre>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+          </div>
+        <% end %>
+
+        <%!-- Danger Zone --%>
+        <div>
+          <h3 class="text-xs font-semibold text-muted-foreground uppercase mb-3">Danger Zone</h3>
+          <div class="rounded-lg border border-destructive/30 p-4 flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium">Archive this API</p>
+              <p class="text-xs text-muted-foreground">
+                Removes from active list. Published APIs will be unpublished first.
+              </p>
+            </div>
+            <button
+              phx-click="archive_api"
+              data-confirm="Archive this API? Published APIs will be unpublished. This cannot be undone."
+              class="rounded-md border border-destructive px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10"
+            >
+              Archive API
+            </button>
+          </div>
+        </div>
+      </div>
+    </.editor_shell>
+    """
+  end
+
+  @impl true
+  def handle_event(event, params, socket) when event in @command_palette_events do
+    Shared.handle_command_palette(event, params, socket)
+  end
+
+  def handle_event("update_info", %{"name" => name, "description" => description}, socket) do
+    case Apis.update_api(socket.assigns.api, %{
+           name: String.trim(name),
+           description: String.trim(description)
+         }) do
+      {:ok, api} ->
+        {:noreply,
+         socket
+         |> assign(api: api, page_title: "Edit: #{api.name}")
+         |> put_flash(:info, "API info updated")}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Failed to update API info")}
+    end
+  end
+
+  def handle_event("archive_api", _params, socket) do
+    org = socket.assigns.org
+
+    case Apis.get_api(org.id, socket.assigns.api.id) do
+      nil ->
+        {:noreply, put_flash(socket, :error, "API not found")}
+
+      api ->
+        if api.status == "published", do: Apis.unpublish(api)
+        Apis.update_api(api, %{status: "archived"})
+
+        {:noreply,
+         socket
+         |> put_flash(:info, "API archived")
+         |> push_navigate(to: ~p"/apis")}
+    end
+  end
+
+  def handle_event("copy_url", _params, socket) do
+    url = "/api/#{socket.assigns.org.slug}/#{socket.assigns.api.slug}"
+    {:noreply, push_event(socket, "copy_to_clipboard", %{text: url})}
+  end
+
+  # ── Private ───────────────────────────────────────────────────────────
+
+  @spec shared_shell_assigns(map()) :: map()
+  defp shared_shell_assigns(assigns) do
+    Map.take(assigns, [
+      :api,
+      :versions,
+      :selected_version,
+      :generation_status,
+      :validation_report,
+      :test_summary,
+      :command_palette_open,
+      :command_palette_query,
+      :command_palette_selected
+    ])
+  end
+end

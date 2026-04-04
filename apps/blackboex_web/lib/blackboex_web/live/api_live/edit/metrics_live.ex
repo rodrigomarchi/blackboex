@@ -106,6 +106,40 @@ defmodule BlackboexWeb.ApiLive.Edit.MetricsLive do
             />
           </div>
         <% end %>
+
+        <%!-- Recent Errors --%>
+        <%= if @recent_errors != [] do %>
+          <div class="space-y-3">
+            <h3 class="text-sm font-semibold">Recent Errors</h3>
+            <div class="rounded-lg border divide-y">
+              <div
+                :for={error <- @recent_errors}
+                class="px-4 py-3 flex items-start gap-3 text-xs"
+              >
+                <span class={[
+                  "shrink-0 rounded px-1.5 py-0.5 font-mono font-medium",
+                  if(error.status_code >= 500,
+                    do: "bg-destructive/10 text-destructive",
+                    else: "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400"
+                  )
+                ]}>
+                  {error.status_code}
+                </span>
+                <div class="min-w-0 flex-1">
+                  <p class="font-mono text-muted-foreground">
+                    {error.method} {error.path}
+                  </p>
+                  <%= if error.error_message do %>
+                    <p class="mt-1 text-destructive break-words">{error.error_message}</p>
+                  <% end %>
+                </div>
+                <span class="shrink-0 text-muted-foreground">
+                  {format_time_ago(error.inserted_at)}
+                </span>
+              </div>
+            </div>
+          </div>
+        <% end %>
       </div>
     </.editor_shell>
     """
@@ -141,7 +175,8 @@ defmodule BlackboexWeb.ApiLive.Edit.MetricsLive do
       total_invocations: 0,
       total_errors: 0,
       error_rate: 0.0,
-      avg_latency: 0
+      avg_latency: 0,
+      recent_errors: []
     )
   end
 
@@ -187,6 +222,7 @@ defmodule BlackboexWeb.ApiLive.Edit.MetricsLive do
       end
 
     avg_latency = Analytics.avg_latency(api_id, period: period_atom)
+    recent_errors = Analytics.recent_errors(api_id)
 
     assign(socket,
       invocation_data: Enum.map(daily, &%{label: &1.label, value: &1.invocations}),
@@ -196,6 +232,7 @@ defmodule BlackboexWeb.ApiLive.Edit.MetricsLive do
       total_errors: total_errors,
       error_rate: error_rate,
       avg_latency: avg_latency,
+      recent_errors: recent_errors,
       metrics_loaded: true
     )
   rescue
@@ -210,12 +247,24 @@ defmodule BlackboexWeb.ApiLive.Edit.MetricsLive do
         total_errors: 0,
         error_rate: 0.0,
         avg_latency: 0,
+        recent_errors: [],
         metrics_loaded: true
       )
   end
 
   defp metrics_average([]), do: 0.0
   defp metrics_average(list), do: Enum.sum(list) / length(list)
+
+  defp format_time_ago(%NaiveDateTime{} = time) do
+    diff = NaiveDateTime.diff(NaiveDateTime.utc_now(), time, :second)
+
+    cond do
+      diff < 60 -> "#{diff}s ago"
+      diff < 3600 -> "#{div(diff, 60)}m ago"
+      diff < 86_400 -> "#{div(diff, 3600)}h ago"
+      true -> "#{div(diff, 86_400)}d ago"
+    end
+  end
 
   defp shared_shell_assigns(assigns) do
     Map.take(assigns, [

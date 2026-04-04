@@ -77,14 +77,15 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
       with {:ok, conn} <- maybe_rate_limit(conn, api, metadata),
            {:ok, conn} <- maybe_authenticate(conn, api, metadata),
            {:ok, conn} <- maybe_check_enforcement(conn, api) do
-        {:ok, execute_module(conn, module, rest)}
+        {resp_conn, error_msg} = execute_module(conn, module, rest)
+        {:ok, resp_conn, error_msg}
       end
 
     duration_ms = System.monotonic_time(:millisecond) - start_time
 
     case result do
-      {:ok, result_conn} ->
-        log_request(conn, result_conn, metadata, api, duration_ms)
+      {:ok, result_conn, error_msg} ->
+        log_request(conn, result_conn, metadata, api, duration_ms, error_msg)
         result_conn
 
       {:error, :rate_limited, retry_after} ->
@@ -241,27 +242,31 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
 
     case Sandbox.execute_plug(module, conn, timeout: 30_000) do
       {:ok, result_conn} ->
-        result_conn
+        {result_conn, extract_error_from_response(result_conn)}
 
       {:error, :timeout} ->
+        error = "API execution timed out"
         Logger.warning("API execution timeout: #{inspect(module)}")
-        send_json(conn, 504, %{error: "API execution timed out"})
+        {send_json(conn, 504, %{error: error}), error}
 
       {:error, :memory_exceeded} ->
+        error = "API execution exceeded memory limit"
         Logger.warning("API execution memory exceeded: #{inspect(module)}")
-        send_json(conn, 503, %{error: "API execution exceeded memory limit"})
+        {send_json(conn, 503, %{error: error}), error}
 
       {:error, {:exception, message}} ->
+        sanitized = sanitize_error(message)
         Logger.error("API execution error: #{message}")
-        send_json(conn, 500, %{error: "API execution failed"})
+        {send_json(conn, 500, %{error: "API execution failed", detail: sanitized}), sanitized}
 
-      {:error, {:runtime, _reason}} ->
-        Logger.error("API runtime error: #{inspect(module)}")
-        send_json(conn, 500, %{error: "API execution failed"})
+      {:error, {:runtime, reason}} ->
+        sanitized = sanitize_error(reason)
+        Logger.error("API runtime error: #{inspect(module)} — #{inspect(reason)}")
+        {send_json(conn, 500, %{error: "API execution failed", detail: sanitized}), sanitized}
     end
   end
 
-  defp log_request(conn, result_conn, metadata, api, duration_ms) do
+  defp log_request(conn, result_conn, metadata, api, duration_ms, error_message \\ nil) do
     Events.emit_api_request(%{
       duration_ms: duration_ms,
       api_id: metadata.api_id,
@@ -284,7 +289,8 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
       duration_ms: duration_ms,
       request_body_size: raw_body_size(conn.assigns[:raw_body]),
       response_body_size: byte_size(result_conn.resp_body || ""),
-      ip_address: ip
+      ip_address: ip,
+      error_message: error_message
     })
 
     if api.status == "published" do
@@ -299,6 +305,29 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
   defp raw_body_size(nil), do: 0
   defp raw_body_size(body) when is_binary(body), do: byte_size(body)
   defp raw_body_size(body) when is_list(body), do: body |> IO.iodata_length()
+
+  defp extract_error_from_response(%{assigns: %{handler_error: detail}}) when is_binary(detail),
+    do: detail
+
+  defp extract_error_from_response(%{status: status, resp_body: body})
+       when status >= 400 and is_binary(body) and byte_size(body) > 0 do
+    case Jason.decode(body) do
+      {:ok, %{"detail" => detail}} when is_binary(detail) -> detail
+      _ -> nil
+    end
+  end
+
+  defp extract_error_from_response(_), do: nil
+
+  defp sanitize_error(message) when is_binary(message) do
+    # Remove module paths (Elixir.Blackboex.DynamicApi.Api_xxx...) for cleaner output
+    message
+    |> String.replace(~r/Blackboex\.DynamicApi\.Api_[a-f0-9_]+\./, "")
+    |> String.replace(~r/Elixir\./, "")
+    |> String.slice(0, 500)
+  end
+
+  defp sanitize_error(reason), do: inspect(reason) |> String.slice(0, 500)
 
   defp send_json(conn, status, body) do
     conn

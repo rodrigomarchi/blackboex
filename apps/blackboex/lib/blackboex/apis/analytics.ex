@@ -80,6 +80,15 @@ defmodule Blackboex.Apis.Analytics do
     |> Repo.one()
   end
 
+  @spec recent_errors(Ecto.UUID.t(), non_neg_integer()) :: [InvocationLog.t()]
+  def recent_errors(api_id, limit \\ 10) do
+    InvocationLog
+    |> where([l], l.api_id == ^api_id and l.status_code >= 400)
+    |> order_by([l], desc: l.inserted_at)
+    |> limit(^limit)
+    |> Repo.all()
+  end
+
   defp base_query(api_id, opts) do
     period = Keyword.get(opts, :period, :all)
 

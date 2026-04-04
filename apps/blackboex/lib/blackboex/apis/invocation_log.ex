@@ -18,6 +18,7 @@ defmodule Blackboex.Apis.InvocationLog do
     field :request_body_size, :integer
     field :response_body_size, :integer
     field :ip_address, :string
+    field :error_message, :string
 
     belongs_to :api, Blackboex.Apis.Api
     belongs_to :api_key, Blackboex.Apis.ApiKey
@@ -37,7 +38,8 @@ defmodule Blackboex.Apis.InvocationLog do
       :duration_ms,
       :request_body_size,
       :response_body_size,
-      :ip_address
+      :ip_address,
+      :error_message
     ])
     |> validate_required([:api_id, :method])
     |> validate_length(:method, max: 10)

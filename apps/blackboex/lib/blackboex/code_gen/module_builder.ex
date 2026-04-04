@@ -33,7 +33,10 @@ defmodule Blackboex.CodeGen.ModuleBuilder do
           e ->
             require Logger
             Logger.error("API handler error: \#{Exception.message(e)}")
-            send_resp(conn, 500, Jason.encode!(%{error: "handler error"}))
+            detail = Exception.message(e) |> String.replace(~r/Blackboex\\.DynamicApi\\.Api_[a-f0-9_]+\\./, "") |> String.replace(~r/Elixir\\./, "") |> String.slice(0, 500)
+            conn
+            |> Plug.Conn.assign(:handler_error, detail)
+            |> send_resp(500, Jason.encode!(%{error: "handler error", detail: detail}))
         end
       end
 
@@ -69,7 +72,10 @@ defmodule Blackboex.CodeGen.ModuleBuilder do
           e ->
             require Logger
             Logger.error("API handler error: \#{Exception.message(e)}")
-            send_resp(conn, 500, Jason.encode!(%{error: "handler error"}))
+            detail = Exception.message(e) |> String.replace(~r/Blackboex\\.DynamicApi\\.Api_[a-f0-9_]+\\./, "") |> String.replace(~r/Elixir\\./, "") |> String.slice(0, 500)
+            conn
+            |> Plug.Conn.assign(:handler_error, detail)
+            |> send_resp(500, Jason.encode!(%{error: "handler error", detail: detail}))
         end
       end
 
@@ -137,7 +143,10 @@ defmodule Blackboex.CodeGen.ModuleBuilder do
           e ->
             require Logger
             Logger.error("API handler error: \#{Exception.message(e)}")
-            send_resp(conn, 500, Jason.encode!(%{error: "handler error"}))
+            detail = Exception.message(e) |> String.replace(~r/Blackboex\\.DynamicApi\\.Api_[a-f0-9_]+\\./, "") |> String.replace(~r/Elixir\\./, "") |> String.slice(0, 500)
+            conn
+            |> Plug.Conn.assign(:handler_error, detail)
+            |> send_resp(500, Jason.encode!(%{error: "handler error", detail: detail}))
         end
       end
 

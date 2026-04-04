@@ -117,7 +117,7 @@ defmodule Blackboex.CodeGen.SchemaExtractor do
       name in ~w(cnpj) -> "12.345.678/0001-90"
       name in ~w(description) -> "Sample description"
       name in ~w(title) -> "Sample Title"
-      name in ~w(category type kind) -> "standard"
+      name in ~w(type kind) -> "standard"
       name in ~w(status) -> "active"
       name in ~w(currency) -> "BRL"
       name in ~w(percentage percent) -> 10.0

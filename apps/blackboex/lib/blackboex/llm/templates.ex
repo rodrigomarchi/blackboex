@@ -57,7 +57,8 @@ defmodule Blackboex.LLM.Templates do
         data = Ecto.Changeset.apply_changes(changeset)
         %{result: data.x + data.y, operation: "addition"}
       else
-        %{error: "Invalid input"}
+        errors = Ecto.Changeset.traverse_errors(changeset, fn {msg, _opts} -> msg end)
+        %{error: "Validation failed", details: errors}
       end
     end
     ```
@@ -130,7 +131,8 @@ defmodule Blackboex.LLM.Templates do
         data = Ecto.Changeset.apply_changes(changeset)
         %{created: true, data: Map.from_struct(data)}
       else
-        %{error: "Invalid input"}
+        errors = Ecto.Changeset.traverse_errors(changeset, fn {msg, _opts} -> msg end)
+        %{error: "Validation failed", details: errors}
       end
     end
 
@@ -143,7 +145,8 @@ defmodule Blackboex.LLM.Templates do
         data = Ecto.Changeset.apply_changes(changeset)
         %{id: id, updated: true, data: Map.from_struct(data)}
       else
-        %{error: "Invalid input"}
+        errors = Ecto.Changeset.traverse_errors(changeset, fn {msg, _opts} -> msg end)
+        %{error: "Validation failed", details: errors}
       end
     end
 

@@ -28,6 +28,7 @@ defmodule Blackboex.Agent.CodePipeline do
   alias Blackboex.Conversations
   alias Blackboex.Docs.DocGenerator
   alias Blackboex.LLM.Config
+  alias Blackboex.LLM.EditPrompts
   alias Blackboex.LLM.Prompts
   alias Blackboex.LLM.Templates
   alias Blackboex.Testing.TestGenerator
@@ -85,7 +86,8 @@ defmodule Blackboex.Agent.CodePipeline do
     with {:ok, code} <-
            step_edit_code(api, instruction, current_code, current_tests, broadcast, run_id),
          {:ok, code} <- step_validate_and_fix(api, code, broadcast, run_id),
-         {:ok, test_code} <- step_generate_tests(api, code, broadcast, run_id),
+         {:ok, test_code} <-
+           step_edit_tests(api, code, instruction, current_tests, broadcast, run_id),
          {:ok, test_code} <- step_run_and_fix_tests(api, code, test_code, broadcast, run_id),
          {:ok, doc_md} <- step_generate_docs(api, code, broadcast, run_id) do
       broadcast.({:step_completed, %{step: :submitting}})
@@ -282,21 +284,22 @@ defmodule Blackboex.Agent.CodePipeline do
           String.t() | nil
         ) ::
           {:ok, String.t()} | {:error, String.t()}
-  defp step_edit_code(api, instruction, current_code, current_tests, broadcast, run_id) do
+  defp step_edit_code(api, instruction, current_code, _current_tests, broadcast, run_id) do
     broadcast.({:step_started, %{step: :generating_code}})
     touch_run(run_id)
 
-    template_type = template_atom(api.template_type)
-    base_prompt = "#{Prompts.system_prompt()}\n\n#{Templates.get(template_type)}"
-    {system, prompt} = FixPrompts.edit_code(base_prompt, instruction, current_code, current_tests)
+    system = EditPrompts.system_prompt()
+    prompt = EditPrompts.build_edit_prompt(current_code, instruction, [])
 
     case guarded_llm_call(prompt, system) do
       {:ok, content} ->
-        code = extract_code(content)
+        code = apply_edits_or_extract(current_code, content)
+        log_step("edit_code", :pass, "Applied edit: #{String.slice(instruction, 0, 100)}")
         broadcast.({:step_completed, %{step: :generating_code, code: code}})
         {:ok, code}
 
       {:error, reason} ->
+        log_step("edit_code", :fail, reason)
         broadcast.({:step_failed, %{step: :generating_code, error: reason}})
         {:error, reason}
     end
@@ -487,6 +490,73 @@ defmodule Blackboex.Agent.CodePipeline do
 
       {:error, reason} ->
         {:error, reason}
+    end
+  end
+
+  # ── Step 5b: Edit Tests (diff-based) ────────────────────────────
+
+  @spec step_edit_tests(
+          Api.t(),
+          String.t(),
+          String.t(),
+          String.t(),
+          broadcast_fn(),
+          String.t() | nil
+        ) ::
+          {:ok, String.t()} | {:error, String.t()}
+  defp step_edit_tests(api, code, instruction, current_tests, broadcast, run_id) do
+    if current_tests == nil or String.trim(current_tests) == "" do
+      step_generate_tests(api, code, broadcast, run_id)
+    else
+      broadcast.({:step_started, %{step: :generating_tests}})
+      touch_run(run_id)
+
+      system = """
+      You are an expert Elixir test engineer. The handler code was just edited.
+      Update the existing tests to match the code changes. Use SEARCH/REPLACE blocks.
+
+      The edit instruction was: #{instruction}
+
+      Rules:
+      - Only change tests affected by the code edit — do NOT rewrite the whole suite.
+      - If new behavior was added, ADD new test cases.
+      - If behavior changed, UPDATE the relevant assertions.
+      - Use SEARCH/REPLACE format (same as code edits).
+      - If no test changes are needed, return: NO CHANGES NEEDED
+      """
+
+      prompt = """
+      ## Current Handler Code
+      ```elixir
+      #{code}
+      ```
+
+      ## Current Test Code
+      ```elixir
+      #{current_tests}
+      ```
+
+      Return ONLY SEARCH/REPLACE blocks for the test changes needed.
+      """
+
+      case guarded_llm_call(prompt, system) do
+        {:ok, content} ->
+          if String.contains?(content, "NO CHANGES NEEDED") do
+            log_step("edit_tests", :pass, "No test changes needed")
+            broadcast.({:step_completed, %{step: :generating_tests, test_code: current_tests}})
+            {:ok, current_tests}
+          else
+            test_code = apply_edits_or_extract(current_tests, content)
+            log_step("edit_tests", :pass, "Tests updated via diff")
+            broadcast.({:step_completed, %{step: :generating_tests, test_code: test_code}})
+            {:ok, test_code}
+          end
+
+        {:error, reason} ->
+          log_step("edit_tests", :fail, reason)
+          # Fallback to full test generation
+          step_generate_tests(api, code, broadcast, run_id)
+      end
     end
   end
 

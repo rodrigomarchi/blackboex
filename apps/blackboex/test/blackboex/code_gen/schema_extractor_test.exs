@@ -133,7 +133,7 @@ defmodule Blackboex.CodeGen.SchemaExtractorTest do
       assert example["coverage"] == "comprehensive"
       assert is_map(example["vehicle"])
       assert example["vehicle"]["year"] == 2023
-      assert example["vehicle"]["category"] == "standard"
+      assert example["vehicle"]["category"] == "example"
       assert example["vehicle"]["value_brl"] == 10_000.00
       assert is_map(example["driver"])
       assert example["driver"]["age"] == 30

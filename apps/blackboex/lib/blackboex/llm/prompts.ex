@@ -41,7 +41,16 @@ defmodule Blackboex.LLM.Prompts do
     3. Do NOT use `conn`, `json/2`, `put_status/2`, or any Plug/Phoenix functions.
     4. You MAY define `defmodule Request`, `defmodule Response`, and nested schema modules for embeds.
     5. Return plain Elixir maps like `%{result: value}`. The framework handles JSON.
-    6. For errors, return `%{error: "human-readable message"}`.
+    6. For validation errors, return detailed changeset errors:
+       ```elixir
+       errors = Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
+         Regex.replace(~r"%{(\\w+)}", msg, fn _, key ->
+           opts |> Keyword.get(String.to_existing_atom(key), key) |> to_string()
+         end)
+       end)
+       %{error: "Validation failed", details: errors}
+       ```
+       For other errors, return `%{error: "human-readable message"}`.
     7. NEVER use modules from the prohibited list.
     8. NEVER access filesystem, network, or system commands.
     9. NEVER use dynamic code execution, spawn, send, receive, or atom creation.
@@ -164,7 +173,12 @@ defmodule Blackboex.LLM.Prompts do
     @spec validate(map()) :: {:ok, map()} | {:error, String.t()}
     defp validate(params) do
       changeset = Request.changeset(params)
-      if changeset.valid?, do: {:ok, Ecto.Changeset.apply_changes(changeset)}, else: {:error, "Invalid input"}
+      if changeset.valid? do
+          {:ok, Ecto.Changeset.apply_changes(changeset)}
+        else
+          errors = Ecto.Changeset.traverse_errors(changeset, fn {msg, _opts} -> msg end)
+          {:error, errors}
+        end
     end
     ```
 

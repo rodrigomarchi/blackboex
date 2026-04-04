@@ -152,7 +152,7 @@ defmodule Blackboex.LLM.Templates do
     def handle_delete(id), do: %{id: id, deleted: true}
     ```
 
-    REMEMBER: Every `def` MUST have @doc and @spec directly above it. Max 20 lines per function. Max 120 chars per line.
+    REMEMBER: Every `def` MUST have @doc and @spec directly above it. Max 40 lines per function. Max 120 chars per line.
     """
   end
 

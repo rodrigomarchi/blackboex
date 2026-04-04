@@ -60,7 +60,7 @@ defmodule Blackboex.LLM.EditPrompts do
     1. Return ONLY function definitions (`def`/`defp`) and schema modules.
     2. Functions receive params as a plain map and return a plain map.
     3. Do NOT use `conn`, `json/2`, `put_status/2`, or any Plug/Phoenix functions.
-    4. You MAY define `defmodule Request` and `defmodule Response` — no other modules.
+    4. You MAY define `defmodule Request`, `defmodule Response`, and nested schema modules for embeds.
     5. Return plain Elixir maps. For errors, return `%{error: "human-readable message"}`.
     6. NEVER use prohibited modules or dynamic code execution.
 

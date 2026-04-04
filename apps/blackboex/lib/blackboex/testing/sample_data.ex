@@ -35,6 +35,7 @@ defmodule Blackboex.Testing.SampleData do
   defp sample_value("boolean"), do: true
   defp sample_value("array"), do: []
   defp sample_value("object"), do: %{}
+  defp sample_value(%{} = nested_schema), do: generate_happy_path(nested_schema)
   defp sample_value(_), do: "example"
 
   defp generate_edge_cases(schema) do

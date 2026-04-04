@@ -63,7 +63,8 @@ defmodule Blackboex.CodeGen.Compiler do
     Module.concat([Blackboex.DynamicApi, "Api_#{safe_id}"])
   end
 
-  # Only these module names are allowed in defmodule within handler code
+  # These module names are always allowed; additional modules are allowed
+  # if they use Blackboex.Schema (nested embedded schemas for embeds_one/embeds_many)
   @allowed_dto_modules ~w(Request Response Params)
 
   defp check_handler_style(source_code) do
@@ -98,18 +99,28 @@ defmodule Blackboex.CodeGen.Compiler do
   end
 
   defp check_defmodule(acc, source_code) do
-    # Find all defmodule occurrences and check that they only define allowed DTO modules
+    # Extract module names that use Blackboex.Schema (nested embedded schemas)
+    schema_modules = extract_schema_modules(source_code)
+
+    # Find all defmodule occurrences and check that they are allowed
     Regex.scan(~r/\bdefmodule\s+(\w+)\b/, source_code)
     |> Enum.reduce(acc, fn [_full, name], issues ->
-      if name in @allowed_dto_modules do
+      if name in @allowed_dto_modules or name in schema_modules do
         issues
       else
         [
-          "defines disallowed module #{name} — only Request, Response, Params are allowed"
+          "defines disallowed module #{name} — only Request, Response, Params, and Blackboex.Schema modules are allowed"
           | issues
         ]
       end
     end)
+  end
+
+  defp extract_schema_modules(source_code) do
+    # Match: defmodule Name do ... use Blackboex.Schema
+    ~r/\bdefmodule\s+(\w+)\b[\s\S]*?use\s+Blackboex\.Schema/
+    |> Regex.scan(source_code)
+    |> Enum.map(fn [_full, name] -> name end)
   end
 
   defp check_pattern(acc, code, pattern, message) do

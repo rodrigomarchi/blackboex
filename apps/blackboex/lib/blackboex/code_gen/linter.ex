@@ -13,8 +13,8 @@ defmodule Blackboex.CodeGen.Linter do
         }
 
   @max_line_length 120
-  @max_function_lines 20
-  @max_nesting_depth 3
+  @max_function_lines 40
+  @max_nesting_depth 4
 
   @doc "Run all lint checks on handler code."
   @spec run_all(String.t()) :: [check_result()]

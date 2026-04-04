@@ -34,9 +34,9 @@ defmodule Blackboex.CodeGen.UnifiedPrompts do
     6. Functions receive params as a plain map and return a plain map.
     7. Do NOT use `conn`, `json/2`, `put_status/2`, `send_resp/3`, or any Plug/Phoenix functions.
     8. Max 120 characters per line — break long lines.
-    9. Max 20 lines per function — extract `defp` helpers for complex logic.
-    10. Max 3 levels of nesting (if/case/cond/with) — use `with` or function clauses to flatten.
-    11. Only allowed defmodule names: Request, Response, Params.
+    9. Max 40 lines per function — extract `defp` helpers for complex logic.
+    10. Max 4 levels of nesting (if/case/cond/with) — use `with` or function clauses to flatten.
+    11. Allowed defmodule names: Request, Response, Params, and nested schema modules (using Blackboex.Schema).
 
     Return the fixed code in a single ```elixir code block.
     """

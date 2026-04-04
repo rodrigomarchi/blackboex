@@ -87,21 +87,49 @@ const AutoFocus = {
   updated() { this.el.focus() }
 }
 
-// Auto-scroll chat timeline to bottom on new content
+// Auto-scroll chat timeline to bottom on new content (including streaming tokens)
 const ChatAutoScroll = {
   mounted() {
+    this._userScrolledUp = false
+    this._lastHeight = 0
     this.scrollToBottom()
-    this.observer = new MutationObserver(() => this.scrollToBottom())
+
+    // MutationObserver catches DOM changes from LiveView patches
+    this.observer = new MutationObserver(() => {
+      if (!this._userScrolledUp) this.scrollToBottom()
+    })
     this.observer.observe(this.el, { childList: true, subtree: true, characterData: true })
+
+    // Polling fallback for streaming — MutationObserver can miss morphdom text patches
+    this._poll = setInterval(() => {
+      if (this.el.scrollHeight !== this._lastHeight) {
+        this._lastHeight = this.el.scrollHeight
+        if (!this._userScrolledUp) this.scrollToBottom()
+      }
+    }, 150)
+
+    // Detect if user scrolled up manually — pause auto-scroll
+    this.el.addEventListener("scroll", () => {
+      const threshold = 80
+      const atBottom = this.el.scrollHeight - this.el.scrollTop - this.el.clientHeight < threshold
+      this._userScrolledUp = !atBottom
+    })
   },
   updated() {
-    this.scrollToBottom()
+    if (!this._userScrolledUp) this.scrollToBottom()
   },
   destroyed() {
     if (this.observer) this.observer.disconnect()
+    if (this._poll) clearInterval(this._poll)
   },
   scrollToBottom() {
-    this.el.scrollTop = this.el.scrollHeight
+    requestAnimationFrame(() => {
+      this.el.scrollTop = this.el.scrollHeight
+      // Also scroll inner streaming/code containers (they have max-h + overflow-y-auto)
+      this.el.querySelectorAll(".overflow-y-auto").forEach(inner => {
+        inner.scrollTop = inner.scrollHeight
+      })
+    })
   }
 }
 

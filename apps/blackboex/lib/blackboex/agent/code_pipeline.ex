@@ -22,6 +22,7 @@ defmodule Blackboex.Agent.CodePipeline do
 
   alias Blackboex.Agent.FixPrompts
   alias Blackboex.Apis.Api
+  alias Blackboex.Apis.DiffEngine
   alias Blackboex.CodeGen.Compiler
   alias Blackboex.CodeGen.Linter
   alias Blackboex.Conversations
@@ -32,8 +33,8 @@ defmodule Blackboex.Agent.CodePipeline do
   alias Blackboex.Testing.TestGenerator
   alias Blackboex.Testing.TestRunner
 
-  @max_fix_attempts 2
-  @max_total_llm_calls 8
+  @max_fix_attempts 3
+  @max_total_llm_calls 15
 
   @type broadcast_fn :: (term() -> :ok)
   @type pipeline_opts :: [
@@ -192,6 +193,29 @@ defmodule Blackboex.Agent.CodePipeline do
     Process.put(:pipeline_llm_calls, 0)
     Process.put(:pipeline_input_tokens, 0)
     Process.put(:pipeline_output_tokens, 0)
+    Process.put(:pipeline_log, [])
+  end
+
+  # ── Rolling Context Log ────────────────────────────────────────
+  # Accumulates a lightweight log of pipeline steps so fix prompts
+  # can include what happened before. No extra LLM calls needed.
+
+  @spec log_step(String.t(), :pass | :fail, String.t()) :: :ok
+  defp log_step(step, status, detail) do
+    entry = "[#{step}] #{status}: #{String.slice(detail, 0, 200)}"
+    log = Process.get(:pipeline_log, [])
+    Process.put(:pipeline_log, log ++ [entry])
+    :ok
+  end
+
+  @spec get_context_log() :: String.t()
+  defp get_context_log do
+    log = Process.get(:pipeline_log, [])
+
+    case log do
+      [] -> ""
+      entries -> Enum.take(entries, -10) |> Enum.join("\n")
+    end
   end
 
   @spec accumulate_usage(map() | nil) :: :ok
@@ -236,10 +260,12 @@ defmodule Blackboex.Agent.CodePipeline do
     case guarded_llm_call(description, system) do
       {:ok, content} ->
         code = extract_code(content)
+        log_step("generate", :pass, "Generated #{String.length(code)} chars of handler code")
         broadcast.({:step_completed, %{step: :generating_code, code: code}})
         {:ok, code}
 
       {:error, reason} ->
+        log_step("generate", :fail, reason)
         broadcast.({:step_failed, %{step: :generating_code, error: reason}})
         {:error, reason}
     end
@@ -294,10 +320,12 @@ defmodule Blackboex.Agent.CodePipeline do
 
     case Linter.auto_format(code) do
       {:ok, formatted} ->
+        log_step("format", :pass, "Code formatted successfully")
         broadcast.({:step_completed, %{step: :formatting, content: "Code formatted"}})
         {:ok, formatted}
 
       {:error, reason} ->
+        log_step("format", :fail, to_string(reason))
         broadcast.({:step_failed, %{step: :formatting, error: reason}})
         # Format failure is non-fatal — proceed with unformatted code
         {:ok, code}
@@ -318,6 +346,8 @@ defmodule Blackboex.Agent.CodePipeline do
 
     case Compiler.compile(api, code) do
       {:ok, module} ->
+        log_step("compile", :pass, "Module: #{inspect(module)}")
+
         broadcast.(
           {:step_completed,
            %{
@@ -331,11 +361,13 @@ defmodule Blackboex.Agent.CodePipeline do
 
       {:error, {:validation, errors}} ->
         error_text = Enum.join(errors, "\n")
+        log_step("compile", :fail, error_text)
         broadcast.({:step_completed, %{step: :compiling, success: false, content: error_text}})
         maybe_fix_compilation(api, code, error_text, broadcast, run_id, attempt)
 
       {:error, {:compilation, reason}} ->
         error_text = inspect(reason)
+        log_step("compile", :fail, error_text)
         broadcast.({:step_completed, %{step: :compiling, success: false, content: error_text}})
         maybe_fix_compilation(api, code, error_text, broadcast, run_id, attempt)
     end
@@ -359,11 +391,12 @@ defmodule Blackboex.Agent.CodePipeline do
     broadcast.({:step_started, %{step: :fixing_compilation, attempt: attempt + 1}})
     touch_run(run_id)
 
-    {system, prompt} = FixPrompts.fix_compilation(code, error_text)
+    {system, prompt} = FixPrompts.fix_compilation(code, error_text, get_context_log())
 
     case guarded_llm_call(prompt, system) do
       {:ok, content} ->
-        fixed_code = extract_code(content)
+        fixed_code = apply_edits_or_extract(code, content)
+        log_step("fix_compile", :pass, "Fix applied (attempt #{attempt + 1})")
 
         broadcast.(
           {:step_completed,
@@ -403,6 +436,7 @@ defmodule Blackboex.Agent.CodePipeline do
     case issues do
       [] ->
         lint_summary = format_lint_results(results)
+        log_step("lint", :pass, "All checks passed")
 
         broadcast.({:step_completed, %{step: :linting, success: true, content: lint_summary}})
 
@@ -410,6 +444,7 @@ defmodule Blackboex.Agent.CodePipeline do
 
       _issues ->
         issue_text = format_lint_results(results)
+        log_step("lint", :fail, issue_text)
         broadcast.({:step_completed, %{step: :linting, success: false, content: issue_text}})
         maybe_fix_lint(api, code, issue_text, broadcast, run_id, attempt)
     end
@@ -433,11 +468,12 @@ defmodule Blackboex.Agent.CodePipeline do
     broadcast.({:step_started, %{step: :fixing_lint, attempt: attempt + 1}})
     touch_run(run_id)
 
-    {system, prompt} = FixPrompts.fix_lint(code, issue_text)
+    {system, prompt} = FixPrompts.fix_lint(code, issue_text, get_context_log())
 
     case guarded_llm_call(prompt, system) do
       {:ok, content} ->
-        fixed_code = extract_code(content)
+        fixed_code = apply_edits_or_extract(code, content)
+        log_step("fix_lint", :pass, "Fix applied (attempt #{attempt + 1})")
 
         broadcast.(
           {:step_completed,
@@ -490,6 +526,7 @@ defmodule Blackboex.Agent.CodePipeline do
   defp step_run_and_fix_tests(api, code, test_code, broadcast, run_id, attempt \\ 0) do
     broadcast.({:step_started, %{step: :running_tests}})
     touch_run(run_id)
+    Process.put(:last_test_code, test_code)
 
     case TestRunner.run(test_code, handler_code: code) do
       {:ok, results} ->
@@ -497,6 +534,7 @@ defmodule Blackboex.Agent.CodePipeline do
 
         if failed == [] do
           success_text = format_test_successes(results)
+          log_step("tests", :pass, "#{length(results)} tests passed")
 
           broadcast.(
             {:step_completed,
@@ -510,6 +548,7 @@ defmodule Blackboex.Agent.CodePipeline do
           {:ok, test_code}
         else
           failure_text = format_test_failures(results)
+          log_step("tests", :fail, failure_text)
 
           broadcast.(
             {:step_completed, %{step: :running_tests, success: false, content: failure_text}}
@@ -519,6 +558,8 @@ defmodule Blackboex.Agent.CodePipeline do
         end
 
       {:error, :compile_error, message} ->
+        log_step("tests", :fail, "Compile error: #{message}")
+
         broadcast.(
           {:step_completed,
            %{step: :running_tests, success: false, content: "Compile error: #{message}"}}
@@ -568,7 +609,7 @@ defmodule Blackboex.Agent.CodePipeline do
     broadcast.({:step_started, %{step: :fixing_tests, attempt: attempt + 1}})
     touch_run(run_id)
 
-    {system, prompt} = FixPrompts.fix_tests(code, test_code, failure_text)
+    {system, prompt} = FixPrompts.fix_tests(code, test_code, failure_text, get_context_log())
 
     case guarded_llm_call(prompt, system) do
       {:ok, content} ->
@@ -589,18 +630,54 @@ defmodule Blackboex.Agent.CodePipeline do
         ) ::
           {:ok, String.t()} | {:error, String.t()}
   defp apply_test_fix(api, code, content, broadcast, run_id, attempt) do
-    case FixPrompts.parse_code_and_tests(content) do
-      {fixed_code, fixed_tests} ->
+    case FixPrompts.parse_test_fix_edits(content) do
+      {code_edits, test_edits} ->
+        # Apply search/replace edits to code and tests
+        fixed_code =
+          case DiffEngine.apply_search_replace(code, code_edits) do
+            {:ok, result} -> result
+            {:error, _, _} -> code
+          end
+
+        fixed_tests =
+          case DiffEngine.apply_search_replace(
+                 Process.get(:last_test_code, ""),
+                 test_edits
+               ) do
+            {:ok, result} -> result
+            {:error, _, _} -> Process.get(:last_test_code, "")
+          end
+
+        log_step("fix_tests", :pass, "Edit fix applied (attempt #{attempt + 1})")
+
         broadcast.(
           {:step_completed,
            %{step: :fixing_tests, content: "Test fix applied (attempt #{attempt + 1})"}}
         )
 
-        revalidate_and_rerun_tests(api, fixed_code, fixed_tests, broadcast, run_id, attempt)
+        if code_edits != [] do
+          revalidate_and_rerun_tests(api, fixed_code, fixed_tests, broadcast, run_id, attempt)
+        else
+          step_run_and_fix_tests(api, code, fixed_tests, broadcast, run_id, attempt + 1)
+        end
 
       :error ->
-        fixed_tests = extract_code(content)
-        step_run_and_fix_tests(api, code, fixed_tests, broadcast, run_id, attempt + 1)
+        # Fallback: try legacy full-code format
+        case FixPrompts.parse_code_and_tests(content) do
+          {fixed_code, fixed_tests} ->
+            log_step("fix_tests", :pass, "Full fix applied (attempt #{attempt + 1})")
+
+            broadcast.(
+              {:step_completed,
+               %{step: :fixing_tests, content: "Test fix applied (attempt #{attempt + 1})"}}
+            )
+
+            revalidate_and_rerun_tests(api, fixed_code, fixed_tests, broadcast, run_id, attempt)
+
+          :error ->
+            fixed_tests = extract_code(content)
+            step_run_and_fix_tests(api, code, fixed_tests, broadcast, run_id, attempt + 1)
+        end
     end
   end
 
@@ -671,6 +748,37 @@ defmodule Blackboex.Agent.CodePipeline do
       # Fallback: return as-is, let compiler catch the error downstream
       Logger.warning("LLM response may not contain valid code: #{String.slice(response, 0, 100)}")
       code
+    end
+  end
+
+  # Tries to apply SEARCH/REPLACE edits from LLM response. Falls back to full code extraction.
+  @spec apply_edits_or_extract(String.t(), String.t()) :: String.t()
+  defp apply_edits_or_extract(original_code, response) do
+    blocks = FixPrompts.parse_search_replace_blocks(response)
+
+    if blocks != [] do
+      case DiffEngine.apply_search_replace(original_code, blocks) do
+        {:ok, patched} ->
+          # Safety check: if SEARCH/REPLACE markers leaked into the patched code, fall back
+          if String.contains?(patched, "<<<<<<< SEARCH") or
+               String.contains?(patched, "=======") or
+               String.contains?(patched, ">>>>>>> REPLACE") do
+            Logger.warning("Search/replace markers leaked into patched code, falling back")
+            extract_code(response)
+          else
+            Logger.debug("Applied #{length(blocks)} search/replace edit(s)")
+            patched
+          end
+
+        {:error, :search_not_found, search_snippet} ->
+          Logger.warning(
+            "Search/replace failed (match not found: #{String.slice(search_snippet, 0, 80)}), falling back to full extraction"
+          )
+
+          extract_code(response)
+      end
+    else
+      extract_code(response)
     end
   end
 

@@ -48,9 +48,13 @@ defmodule Blackboex.Testing.TestPrompts do
 
     ### 2. Happy Path
     - Test the main handler function with valid input
-    - Assert on exact return values where possible
     - Assert on response structure (map keys present)
     - Test with different valid inputs to show behavior range
+    - **NEVER use `==` to compare computed float values** — floating point arithmetic is imprecise.
+      Use `abs(expected - actual) < 0.1` for monetary values or `assert is_float(result.value)`.
+      Only use `==` for exact integers or known string/atom values.
+    - When asserting a value is positive, use `assert result > 0` (not `> 0.0`) since
+      the handler may return integer 0 or float 0.0 depending on the computation.
 
     ### 3. Error Handling
     - Test with empty params `%{}`
@@ -107,6 +111,7 @@ defmodule Blackboex.Testing.TestPrompts do
       describe "successful computation" do
         test "adds two positive numbers" do
           result = Handler.handle(%{"a" => 3, "b" => 7})
+          # Use == only for exact integer results
           assert result == %{result: 10}
         end
 
@@ -114,6 +119,9 @@ defmodule Blackboex.Testing.TestPrompts do
           result = Handler.handle(%{"a" => 0, "b" => 5})
           assert result.result == 5
         end
+
+        # For computed float values, NEVER use ==. Use tolerance:
+        # assert abs(result.price - 19.99) < 0.1
       end
 
       # --- Error Handling ---

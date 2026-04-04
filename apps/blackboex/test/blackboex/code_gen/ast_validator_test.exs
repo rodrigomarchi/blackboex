@@ -490,9 +490,9 @@ defmodule Blackboex.CodeGen.ASTValidatorTest do
 
   describe "validate/1 atom table protection" do
     test "rejects code with excessive unknown atoms" do
-      # Generate code with many unique atoms to exhaust atom table
+      # Generate code with many unique atoms to exhaust atom table (limit: 1000)
       atoms =
-        1..600
+        1..1100
         |> Enum.map(fn i -> ":unique_atom_#{i}_#{:rand.uniform(999_999)}" end)
         |> Enum.join(", ")
 

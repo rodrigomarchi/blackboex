@@ -65,7 +65,7 @@ defmodule Blackboex.CodeGen.ASTValidator do
     Ecto.Changeset => [:unsafe_validate_unique]
   }
 
-  @max_atoms 500
+  @max_atoms 1000
 
   @spec validate(String.t()) :: {:ok, Macro.t()} | {:error, [String.t()]}
   def validate(code) when is_binary(code) do
@@ -101,7 +101,8 @@ defmodule Blackboex.CodeGen.ASTValidator do
         end
 
       {:error, {_meta, message, token}} ->
-        {:error, ["parse error: #{message}#{token}"]}
+        msg = format_parse_error(message, token)
+        {:error, ["parse error: #{msg}"]}
     end
   end
 
@@ -232,5 +233,20 @@ defmodule Blackboex.CodeGen.ASTValidator do
     else
       acc
     end
+  end
+
+  # Safely format parse error messages — Code.string_to_quoted can return
+  # tuples like {"unexpected reserved word: ", ""} instead of plain strings.
+  @spec format_parse_error(term(), term()) :: String.t()
+  defp format_parse_error(message, token) when is_binary(message) and is_binary(token) do
+    "#{message}#{token}"
+  end
+
+  defp format_parse_error({msg, extra}, token) when is_binary(msg) do
+    format_parse_error("#{msg}#{extra}", token)
+  end
+
+  defp format_parse_error(message, token) do
+    "#{inspect(message)}#{inspect(token)}"
   end
 end

@@ -20,12 +20,12 @@ defmodule Blackboex.LLM.ReqLLMClientTest do
     end
 
     test "exports generate_text/2" do
-      # Default args compile as /2 only (prompt, opts \\ [])
+      Code.ensure_loaded!(ReqLLMClient)
       assert function_exported?(ReqLLMClient, :generate_text, 2)
     end
 
     test "exports stream_text/2" do
-      # Default args compile as /2 only (prompt, opts \\ [])
+      Code.ensure_loaded!(ReqLLMClient)
       assert function_exported?(ReqLLMClient, :stream_text, 2)
     end
   end

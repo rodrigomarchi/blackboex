@@ -150,6 +150,195 @@ defmodule Blackboex.Telemetry.EventsTest do
     end
   end
 
+  describe "emit_agent_run/1" do
+    test "emits [:blackboex, :agent, :run] with all fields", ctx do
+      :telemetry.attach(
+        ctx.handler_id,
+        [:blackboex, :agent, :run],
+        fn event, measurements, metadata, _config ->
+          send(ctx.test_pid, {:telemetry, event, measurements, metadata})
+        end,
+        nil
+      )
+
+      Events.emit_agent_run(%{
+        duration_ms: 5000,
+        iteration_count: 3,
+        cost_cents: 12,
+        run_id: "run-1",
+        run_type: "kickoff",
+        status: "completed"
+      })
+
+      assert_receive {:telemetry, [:blackboex, :agent, :run], measurements, metadata}
+      assert measurements.duration == 5000
+      assert measurements.iteration_count == 3
+      assert measurements.cost_cents == 12
+      assert metadata.run_id == "run-1"
+      assert metadata.run_type == "kickoff"
+      assert metadata.status == "completed"
+    end
+
+    test "defaults duration_ms, iteration_count, cost_cents to 0 when missing", ctx do
+      :telemetry.attach(
+        ctx.handler_id,
+        [:blackboex, :agent, :run],
+        fn _event, measurements, _metadata, _config ->
+          send(ctx.test_pid, {:telemetry_measurements, measurements})
+        end,
+        nil
+      )
+
+      Events.emit_agent_run(%{run_id: "r", run_type: "fix", status: "error"})
+
+      assert_receive {:telemetry_measurements, measurements}
+      assert measurements.duration == 0
+      assert measurements.iteration_count == 0
+      assert measurements.cost_cents == 0
+    end
+  end
+
+  describe "emit_agent_tool/1" do
+    test "emits [:blackboex, :agent, :tool] with correct fields", ctx do
+      :telemetry.attach(
+        ctx.handler_id,
+        [:blackboex, :agent, :tool],
+        fn event, measurements, metadata, _config ->
+          send(ctx.test_pid, {:telemetry, event, measurements, metadata})
+        end,
+        nil
+      )
+
+      Events.emit_agent_tool(%{
+        duration_ms: 75,
+        tool_name: "http_request",
+        success: true,
+        run_id: "run-2"
+      })
+
+      assert_receive {:telemetry, [:blackboex, :agent, :tool], measurements, metadata}
+      assert measurements.duration == 75
+      assert metadata.tool_name == "http_request"
+      assert metadata.success == true
+      assert metadata.run_id == "run-2"
+    end
+
+    test "duration defaults to 0 when missing", ctx do
+      :telemetry.attach(
+        ctx.handler_id,
+        [:blackboex, :agent, :tool],
+        fn _event, measurements, _metadata, _config ->
+          send(ctx.test_pid, {:telemetry_measurements, measurements})
+        end,
+        nil
+      )
+
+      Events.emit_agent_tool(%{tool_name: "t", success: false, run_id: "r"})
+
+      assert_receive {:telemetry_measurements, measurements}
+      assert measurements.duration == 0
+    end
+  end
+
+  describe "emit_circuit_breaker/1" do
+    test "emits [:blackboex, :circuit_breaker, :state_change] with state transition", ctx do
+      :telemetry.attach(
+        ctx.handler_id,
+        [:blackboex, :circuit_breaker, :state_change],
+        fn event, measurements, metadata, _config ->
+          send(ctx.test_pid, {:telemetry, event, measurements, metadata})
+        end,
+        nil
+      )
+
+      Events.emit_circuit_breaker(%{provider: "openai", from_state: :closed, to_state: :open})
+
+      assert_receive {:telemetry, [:blackboex, :circuit_breaker, :state_change], measurements, metadata}
+      assert measurements == %{}
+      assert metadata.provider == "openai"
+      assert metadata.from_state == :closed
+      assert metadata.to_state == :open
+    end
+  end
+
+  describe "emit_session_timeout/1" do
+    test "emits [:blackboex, :agent, :session_timeout] with count 1 and run_id", ctx do
+      :telemetry.attach(
+        ctx.handler_id,
+        [:blackboex, :agent, :session_timeout],
+        fn event, measurements, metadata, _config ->
+          send(ctx.test_pid, {:telemetry, event, measurements, metadata})
+        end,
+        nil
+      )
+
+      Events.emit_session_timeout(%{run_id: "run-timeout"})
+
+      assert_receive {:telemetry, [:blackboex, :agent, :session_timeout], measurements, metadata}
+      assert measurements.count == 1
+      assert metadata.run_id == "run-timeout"
+    end
+  end
+
+  describe "emit_policy_denied/1" do
+    test "emits [:blackboex, :policy, :denied] with action and user_id", ctx do
+      :telemetry.attach(
+        ctx.handler_id,
+        [:blackboex, :policy, :denied],
+        fn event, measurements, metadata, _config ->
+          send(ctx.test_pid, {:telemetry, event, measurements, metadata})
+        end,
+        nil
+      )
+
+      Events.emit_policy_denied(%{action: :create_api, user_id: "user-99"})
+
+      assert_receive {:telemetry, [:blackboex, :policy, :denied], measurements, metadata}
+      assert measurements.count == 1
+      assert metadata.action == :create_api
+      assert metadata.user_id == "user-99"
+    end
+  end
+
+  describe "emit_rate_limit_rejected/1" do
+    test "emits [:blackboex, :rate_limit, :rejected] with type and key", ctx do
+      :telemetry.attach(
+        ctx.handler_id,
+        [:blackboex, :rate_limit, :rejected],
+        fn event, measurements, metadata, _config ->
+          send(ctx.test_pid, {:telemetry, event, measurements, metadata})
+        end,
+        nil
+      )
+
+      Events.emit_rate_limit_rejected(%{type: :api_invocation, key: "api-key-123"})
+
+      assert_receive {:telemetry, [:blackboex, :rate_limit, :rejected], measurements, metadata}
+      assert measurements.count == 1
+      assert metadata.type == :api_invocation
+      assert metadata.key == "api-key-123"
+    end
+  end
+
+  describe "emit_pool_saturation/1" do
+    test "emits [:blackboex, :ecto, :pool_saturation] with queue_time_ms", ctx do
+      :telemetry.attach(
+        ctx.handler_id,
+        [:blackboex, :ecto, :pool_saturation],
+        fn event, measurements, metadata, _config ->
+          send(ctx.test_pid, {:telemetry, event, measurements, metadata})
+        end,
+        nil
+      )
+
+      Events.emit_pool_saturation(%{queue_time_ms: 250})
+
+      assert_receive {:telemetry, [:blackboex, :ecto, :pool_saturation], measurements, metadata}
+      assert measurements.queue_time_ms == 250
+      assert metadata == %{}
+    end
+  end
+
   describe "safe_execute resilience" do
     test "does not crash caller when handler raises", ctx do
       :telemetry.attach(

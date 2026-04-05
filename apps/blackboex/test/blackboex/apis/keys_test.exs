@@ -1,5 +1,5 @@
 defmodule Blackboex.Apis.KeysTest do
-  use Blackboex.DataCase, async: true
+  use Blackboex.DataCase, async: false
 
   @moduletag :unit
 
@@ -11,9 +11,7 @@ defmodule Blackboex.Apis.KeysTest do
 
   setup do
     user = user_fixture()
-
-    {:ok, %{organization: org}} =
-      Blackboex.Organizations.create_organization(user, %{name: "Test Org"})
+    [org] = Blackboex.Organizations.list_user_organizations(user)
 
     {:ok, api} =
       Apis.create_api(%{
@@ -189,6 +187,150 @@ defmodule Blackboex.Apis.KeysTest do
       Blackboex.Repo.delete!(api)
 
       assert Keys.list_keys(api.id) == []
+    end
+  end
+
+  describe "list_org_keys/1" do
+    test "returns keys across multiple APIs in the same org", %{api: api, org: org, user: user} do
+      {:ok, other_api} =
+        Apis.create_api(%{name: "Other API", organization_id: org.id, user_id: user.id})
+
+      {:ok, _plain, _k1} =
+        Keys.create_key(api, %{label: "Org Key 1", organization_id: org.id})
+
+      {:ok, _plain, _k2} =
+        Keys.create_key(other_api, %{label: "Org Key 2", organization_id: org.id})
+
+      keys = Keys.list_org_keys(org.id)
+      assert length(keys) == 2
+      assert Enum.all?(keys, &(&1.organization_id == org.id))
+      assert Enum.all?(keys, &(&1.api != nil))
+    end
+
+    test "does not return keys from a different org", %{api: api, org: org} do
+      other_user = user_fixture()
+
+      [other_org] = Blackboex.Organizations.list_user_organizations(other_user)
+
+      {:ok, other_api} =
+        Apis.create_api(%{name: "Other Org API", organization_id: other_org.id, user_id: other_user.id})
+
+      {:ok, _plain, _k1} =
+        Keys.create_key(api, %{label: "My Key", organization_id: org.id})
+
+      {:ok, _plain, _k2} =
+        Keys.create_key(other_api, %{label: "Their Key", organization_id: other_org.id})
+
+      keys = Keys.list_org_keys(org.id)
+      assert length(keys) == 1
+      assert hd(keys).label == "My Key"
+    end
+  end
+
+  describe "get_key/1" do
+    test "returns the key struct with preloaded api", %{api: api, org: org} do
+      {:ok, _plain, api_key} =
+        Keys.create_key(api, %{label: "Get Me", organization_id: org.id})
+
+      result = Keys.get_key(api_key.id)
+      assert result != nil
+      assert result.id == api_key.id
+      assert result.label == "Get Me"
+      assert result.api != nil
+      assert result.api.id == api.id
+    end
+
+    test "returns nil for unknown id" do
+      assert Keys.get_key(Ecto.UUID.generate()) == nil
+    end
+  end
+
+  describe "key_metrics/1 and key_metrics/2" do
+    test "returns zero metrics when no invocations exist", %{api: api, org: org} do
+      {:ok, _plain, api_key} =
+        Keys.create_key(api, %{label: "No Invocations", organization_id: org.id})
+
+      metrics = Keys.key_metrics(api_key.id)
+
+      assert metrics.total_requests == 0
+      assert metrics.errors == 0
+      assert metrics.avg_latency == nil
+      assert metrics.success_rate == 100.0
+    end
+
+    test "counts requests and errors with success rate", %{api: api, org: org} do
+      {:ok, _plain, api_key} =
+        Keys.create_key(api, %{label: "With Invocations", organization_id: org.id})
+
+      Blackboex.Repo.insert!(%Blackboex.Apis.InvocationLog{
+        api_id: api.id,
+        api_key_id: api_key.id,
+        method: "GET",
+        path: "/test",
+        status_code: 200,
+        duration_ms: 100
+      })
+
+      Blackboex.Repo.insert!(%Blackboex.Apis.InvocationLog{
+        api_id: api.id,
+        api_key_id: api_key.id,
+        method: "POST",
+        path: "/test",
+        status_code: 500,
+        duration_ms: 200
+      })
+
+      metrics = Keys.key_metrics(api_key.id)
+
+      assert metrics.total_requests == 2
+      assert metrics.errors == 1
+      assert metrics.success_rate == 50.0
+      assert metrics.avg_latency != nil
+    end
+
+    test "accepts explicit period atom", %{api: api, org: org} do
+      {:ok, _plain, api_key} =
+        Keys.create_key(api, %{label: "Period Test", organization_id: org.id})
+
+      for period <- [:day, :week, :month] do
+        metrics = Keys.key_metrics(api_key.id, period)
+        assert metrics.total_requests == 0
+        assert metrics.success_rate == 100.0
+      end
+    end
+  end
+
+  describe "full lifecycle" do
+    test "create -> verify -> touch -> rotate -> old fails -> new works -> revoke -> new fails",
+         %{api: api, org: org} do
+      # 1. Create
+      assert {:ok, plain_key, api_key} =
+               Keys.create_key(api, %{label: "Lifecycle", organization_id: org.id})
+
+      # 2. Verify works
+      assert {:ok, _} = Keys.verify_key(plain_key)
+
+      # 3. Touch last used
+      :ok = Keys.touch_last_used(api_key)
+      updated = Blackboex.Repo.get!(ApiKey, api_key.id)
+      assert updated.last_used_at != nil
+
+      # 4. Rotate: old revoked, new created
+      assert {:ok, new_plain, new_key} = Keys.rotate_key(api_key)
+      assert new_plain != plain_key
+      assert new_key.id != api_key.id
+
+      # 5. Old key fails
+      assert {:error, :revoked} = Keys.verify_key(plain_key)
+
+      # 6. New key works
+      assert {:ok, _} = Keys.verify_key(new_plain)
+
+      # 7. Revoke new key
+      assert {:ok, _} = Keys.revoke_key(new_key)
+
+      # 8. New key now fails
+      assert {:error, :revoked} = Keys.verify_key(new_plain)
     end
   end
 end

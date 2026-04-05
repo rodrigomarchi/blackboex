@@ -73,7 +73,6 @@ defmodule BlackboexWeb.MixProject do
       {:bandit, "~> 1.5"},
       {:swoosh, "~> 1.5"},
       {:salad_ui, "~> 0.14"},
-      {:live_monaco_editor, "~> 0.2"},
       {:hammer, "~> 7.2"},
       {:open_api_spex, "~> 3.22"},
       {:backpex, "~> 0.17"}

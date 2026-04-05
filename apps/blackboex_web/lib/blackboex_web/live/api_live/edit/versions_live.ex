@@ -97,8 +97,7 @@ defmodule BlackboexWeb.ApiLive.Edit.VersionsLive do
     if version do
       {:noreply,
        socket
-       |> assign(code: version.code, selected_version: version)
-       |> push_editor_value(version.code)}
+       |> assign(code: version.code, selected_version: version)}
     else
       {:noreply, put_flash(socket, :error, "Version not found")}
     end
@@ -110,8 +109,7 @@ defmodule BlackboexWeb.ApiLive.Edit.VersionsLive do
 
     {:noreply,
      socket
-     |> assign(code: code, selected_version: nil, api: api)
-     |> push_editor_value(code)}
+     |> assign(code: code, selected_version: nil, api: api)}
   end
 
   def handle_event("rollback", %{"number" => number_str}, socket) do
@@ -136,7 +134,6 @@ defmodule BlackboexWeb.ApiLive.Edit.VersionsLive do
            validation_report: restore_validation_report(api.validation_report),
            test_summary: derive_test_summary(api.validation_report)
          )
-         |> push_editor_value(code)
          |> put_flash(:info, "Rolled back to v#{number}")}
 
       {:error, :version_not_found} ->
@@ -145,13 +142,6 @@ defmodule BlackboexWeb.ApiLive.Edit.VersionsLive do
   end
 
   # ── Private ───────────────────────────────────────────────────────────
-
-  @spec push_editor_value(Phoenix.LiveView.Socket.t(), String.t()) ::
-          Phoenix.LiveView.Socket.t()
-  defp push_editor_value(socket, code) do
-    editor_path = "api_#{socket.assigns.api.id}.ex"
-    LiveMonacoEditor.set_value(socket, code, to: editor_path)
-  end
 
   @spec restore_validation_report(map() | nil) :: map() | nil
   defp restore_validation_report(nil), do: nil

@@ -23,7 +23,6 @@ import "phoenix_html"
 import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 import {hooks as colocatedHooks} from "phoenix-colocated/blackboex_web"
-import { CodeEditorHook } from "live_monaco_editor/priv/static/live_monaco_editor.esm"
 import { Hooks as BackpexHooks } from "backpex"
 import topbar from "../vendor/topbar"
 
@@ -165,81 +164,11 @@ const CommandPaletteNav = {
   }
 }
 
-// Monaco Diff Editor hook — fullscreen side-by-side diff viewer
-const MonacoDiffEditor = {
-  mounted() {
-    this.diffEditor = null
-    this.originalModel = null
-    this.modifiedModel = null
-
-    this.handleEvent("open_diff", ({ original, modified, language }) => {
-      this._createDiffEditor(original, modified, language || "elixir")
-    })
-  },
-
-  updated() {
-    if (this.diffEditor) this.diffEditor.layout()
-  },
-
-  async _createDiffEditor(original, modified, language) {
-    this._dispose()
-
-    const monaco = await this._waitForMonaco()
-
-    this.originalModel = monaco.editor.createModel(original, language)
-    this.modifiedModel = monaco.editor.createModel(modified, language)
-
-    const theme = document.documentElement.getAttribute("data-theme")
-    const isLight = theme === "light" ||
-      (!theme && window.matchMedia("(prefers-color-scheme: light)").matches)
-
-    this.diffEditor = monaco.editor.createDiffEditor(this.el, {
-      automaticLayout: true,
-      readOnly: true,
-      originalEditable: false,
-      renderSideBySide: true,
-      theme: isLight ? "vs" : "default",
-      minimap: { enabled: false },
-      scrollBeyondLastLine: false,
-      fontSize: 13,
-      lineNumbers: "on",
-      enableSplitViewResizing: true,
-      ignoreTrimWhitespace: true,
-      renderIndicators: true,
-    })
-
-    this.diffEditor.setModel({
-      original: this.originalModel,
-      modified: this.modifiedModel,
-    })
-  },
-
-  _waitForMonaco() {
-    return new Promise((resolve, reject) => {
-      if (window.monaco) return resolve(window.monaco)
-      let attempts = 0
-      const interval = setInterval(() => {
-        attempts++
-        if (window.monaco) { clearInterval(interval); resolve(window.monaco) }
-        else if (attempts > 50) { clearInterval(interval); reject(new Error("Monaco not available")) }
-      }, 100)
-    })
-  },
-
-  _dispose() {
-    if (this.originalModel) { this.originalModel.dispose(); this.originalModel = null }
-    if (this.modifiedModel) { this.modifiedModel.dispose(); this.modifiedModel = null }
-    if (this.diffEditor) { this.diffEditor.dispose(); this.diffEditor = null }
-  },
-
-  destroyed() { this._dispose() },
-}
-
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks, CodeEditorHook, MonacoDiffEditor, KeyboardShortcuts, AutoFocus, ChatAutoScroll, CommandPaletteNav, ...BackpexHooks},
+  hooks: {...colocatedHooks, KeyboardShortcuts, AutoFocus, ChatAutoScroll, CommandPaletteNav, ...BackpexHooks},
 })
 
 // Show progress bar on live navigation and form submits
@@ -255,70 +184,6 @@ window.addEventListener("phx:copy_to_clipboard", (event) => {
   if (navigator.clipboard && event.detail.text) {
     navigator.clipboard.writeText(event.detail.text)
   }
-})
-
-// Force Monaco editor to recalculate layout when panels toggle.
-// Monaco doesn't automatically detect container size changes.
-const relayoutMonaco = () => {
-  // Monaco stores editor instances on the window.monaco global
-  if (window.monaco && window.monaco.editor) {
-    const editors = window.monaco.editor.getEditors()
-    if (editors) {
-      editors.forEach(e => e.layout())
-    }
-  }
-}
-
-// Use MutationObserver on the editor root to detect panel open/close
-const setupMonacoRelayout = () => {
-  const root = document.getElementById("editor-root")
-  if (!root) return
-
-  const observer = new MutationObserver(() => {
-    // Debounce to avoid rapid relayout calls
-    clearTimeout(window._monacoRelayoutTimer)
-    window._monacoRelayoutTimer = setTimeout(relayoutMonaco, 50)
-  })
-
-  observer.observe(root, { childList: true, subtree: true })
-}
-
-// Sync Monaco editor theme with app theme (light/dark)
-const syncMonacoTheme = () => {
-  if (!window.monaco || !window.monaco.editor) return
-
-  const theme = document.documentElement.getAttribute("data-theme")
-  const isLight = theme === "light" ||
-    (!theme && window.matchMedia("(prefers-color-scheme: light)").matches)
-
-  // "default" is the dark theme defined by LiveMonacoEditor, "vs" is Monaco's built-in light theme
-  window.monaco.editor.setTheme(isLight ? "vs" : "default")
-}
-
-// Relayout Monaco after panels toggle or tab switch
-const setupMonacoResizeObserver = () => {
-  const container = document.getElementById("monaco-container")
-  if (!container || container._resizeObserverAttached) return
-
-  const observer = new ResizeObserver(() => {
-    clearTimeout(window._monacoResizeTimer)
-    window._monacoResizeTimer = setTimeout(relayoutMonaco, 30)
-  })
-  observer.observe(container)
-  container._resizeObserverAttached = true
-}
-
-// Setup after LiveView connects
-window.addEventListener("phx:page-loading-stop", () => {
-  setTimeout(setupMonacoRelayout, 100)
-  setTimeout(setupMonacoResizeObserver, 150)
-  setTimeout(syncMonacoTheme, 200)
-})
-
-// Re-sync when theme changes
-window.addEventListener("phx:set-theme", () => setTimeout(syncMonacoTheme, 50))
-window.addEventListener("storage", (e) => {
-  if (e.key === "phx:theme") setTimeout(syncMonacoTheme, 50)
 })
 
 // expose liveSocket on window for web console debug logs and latency simulation:

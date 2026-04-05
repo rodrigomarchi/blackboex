@@ -47,11 +47,10 @@ Consolidated from 10 development phases. Organized by category.
 
 | # | Problem | Fix |
 |---|---------|-----|
-| 1 | **Monaco set_value** — doesn't react to assign changes after mount | Use `LiveMonacoEditor.set_value(socket, code, to: path)` |
-| 2 | **`@attr` in HEEx** — resolves to assigns, not module attributes | Hardcode value or pass as explicit assign |
-| 3 | **LiveComponent assigns** — not inherited from parent | Pass every required assign explicitly in component tag |
-| 4 | **defp between callbacks** — "clauses should be grouped" warning | ALL public callbacks first, private helpers at bottom |
-| 5 | **Stale assigns IDOR** — `Enum.find(assigns.list, &(&1.id == id))` | Verify ownership server-side: check `owner_id == current_owner_id` |
+| 1 | **`@attr` in HEEx** — resolves to assigns, not module attributes | Hardcode value or pass as explicit assign |
+| 2 | **LiveComponent assigns** — not inherited from parent | Pass every required assign explicitly in component tag |
+| 3 | **defp between callbacks** — "clauses should be grouped" warning | ALL public callbacks first, private helpers at bottom |
+| 4 | **Stale assigns IDOR** — `Enum.find(assigns.list, &(&1.id == id))` | Verify ownership server-side: check `owner_id == current_owner_id` |
 
 ## Database
 

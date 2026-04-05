@@ -121,15 +121,6 @@ defmodule BlackboexWeb.ApiLive.Edit.Helpers do
     end
   end
 
-  # ── Editor ───────────────────────────────────────────────────────────
-
-  @spec push_editor_value(Phoenix.LiveView.Socket.t(), String.t()) ::
-          Phoenix.LiveView.Socket.t()
-  def push_editor_value(socket, code) do
-    editor_path = "api_#{socket.assigns.api.id}.ex"
-    LiveMonacoEditor.set_value(socket, code, to: editor_path)
-  end
-
   @spec edit_tab_path(Phoenix.LiveView.Socket.t(), String.t()) :: String.t()
   def edit_tab_path(socket, tab) do
     "/apis/#{socket.assigns.api.id}/edit/#{tab}"

@@ -156,10 +156,9 @@ def handle_info({:run_completed, run}, socket), do: ...
 
 ## Gotchas
 
-1. **Monaco Editor** — doesn't react to `value` assign changes. Use `LiveMonacoEditor.set_value/3`.
-2. **`@module_attr` in HEEx** — resolves to assigns, NOT module attributes. Hardcode or pass as assign.
-3. **handle_event clause grouping** — keep all clauses of same name/arity adjacent. Don't interleave defp.
-4. **LiveComponent assigns** — not inherited from parent. Pass every required assign explicitly.
-5. **Esbuild umbrella imports** — use NODE_PATH, not relative paths like `../../deps/`.
-6. **SetOrganization hook order** — must run AFTER `:mount_current_scope`. Check on_mount order in live_session.
+1. **`@module_attr` in HEEx** — resolves to assigns, NOT module attributes. Hardcode or pass as assign.
+2. **handle_event clause grouping** — keep all clauses of same name/arity adjacent. Don't interleave defp.
+3. **LiveComponent assigns** — not inherited from parent. Pass every required assign explicitly.
+4. **Esbuild umbrella imports** — use NODE_PATH, not relative paths like `../../deps/`.
+5. **SetOrganization hook order** — must run AFTER `:mount_current_scope`. Check on_mount order in live_session.
 7. **Backpex can? defensive match** — `current_scope` may not exist if hook order wrong.

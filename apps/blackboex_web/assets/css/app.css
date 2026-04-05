@@ -209,13 +209,6 @@
 /* Make LiveView wrapper divs transparent for layout */
 [data-phx-session], [data-phx-teleported-src] { display: contents }
 
-/* Prevent Monaco auto-grow: LiveMonacoEditor sets element height to content
-   height via JS. Override with !important so the editor stays within its
-   container and uses its internal scrollbar instead. */
-#monaco-container [id^="lme-code-"] {
-  height: 100% !important;
-}
-
 /* Modal/dialog panels: solid opaque background, no see-through */
 .modal-panel {
   background-color: hsl(var(--card));

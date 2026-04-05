@@ -131,7 +131,6 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
       if previous = socket.assigns[:pre_edit_code] do
         socket
         |> assign(code: previous, pre_edit_code: nil)
-        |> push_editor_value(previous)
         |> put_flash(:info, "Edit cancelled, code reverted")
       else
         socket
@@ -379,7 +378,6 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
        current_run_id: nil,
        streaming_tokens: ""
      )
-     |> push_editor_value(proposed_code)
      |> put_flash(:info, "Change applied")}
   end
 
@@ -516,7 +514,6 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
       {:noreply,
        socket
        |> assign(code: code, test_code: test_code)
-       |> push_editor_value(code)
        |> put_flash(:info, summary || "Code generated successfully")}
     end
   end
@@ -545,11 +542,6 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
   end
 
   defp apply_result_to_editor(socket, _tool, _success, _content), do: socket
-
-  defp push_editor_value(socket, code) do
-    editor_path = "api_#{socket.assigns.api.id}.ex"
-    LiveMonacoEditor.set_value(socket, code, to: editor_path)
-  end
 
   defp edit_tab_path(socket, tab) do
     "/apis/#{socket.assigns.api.id}/edit/#{tab}"

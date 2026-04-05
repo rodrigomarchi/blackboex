@@ -68,5 +68,43 @@ defmodule BlackboexWeb.Plugs.RateLimiterTest do
     end
   end
 
+  describe "check_rate_draft/1" do
+    test "allows requests within draft limit (20/min)" do
+      ip = {10, 2, 0, unique_integer()}
+      conn = %{build_conn(:get, "/api/org/test") | remote_ip: ip}
+
+      assert {:ok, _conn} = RateLimiter.check_rate_draft(conn)
+    end
+
+    test "denies requests beyond draft limit (20/min)" do
+      ip = {10, 3, 0, unique_integer()}
+
+      for _ <- 1..20 do
+        conn = %{build_conn(:get, "/api/org/test") | remote_ip: ip}
+        assert {:ok, _conn} = RateLimiter.check_rate_draft(conn)
+      end
+
+      conn = %{build_conn(:get, "/api/org/test") | remote_ip: ip}
+      assert {:error, :rate_limited, retry_after} = RateLimiter.check_rate_draft(conn)
+      assert is_integer(retry_after)
+      assert retry_after >= 0
+    end
+
+    test "returns retry_after in seconds (not milliseconds)" do
+      ip = {10, 4, 0, unique_integer()}
+
+      for _ <- 1..20 do
+        conn = %{build_conn(:get, "/api/org/test") | remote_ip: ip}
+        RateLimiter.check_rate_draft(conn)
+      end
+
+      conn = %{build_conn(:get, "/api/org/test") | remote_ip: ip}
+      {:error, :rate_limited, retry_after} = RateLimiter.check_rate_draft(conn)
+
+      # Retry-after should be in seconds (< 120), not milliseconds (60_000+)
+      assert retry_after < 120
+    end
+  end
+
   defp unique_integer, do: System.unique_integer([:positive]) |> rem(254) |> Kernel.+(1)
 end

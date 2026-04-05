@@ -99,6 +99,32 @@ defmodule Blackboex.PolicyTest do
     end
   end
 
+  describe "api_key permissions" do
+    test "owner can create, revoke, and rotate api keys" do
+      {scope, org} = scope_with_role(:owner)
+
+      assert Policy.authorize?(:api_key_create, scope, org)
+      assert Policy.authorize?(:api_key_revoke, scope, org)
+      assert Policy.authorize?(:api_key_rotate, scope, org)
+    end
+
+    test "admin can create, revoke, and rotate api keys" do
+      {scope, org} = scope_with_role(:admin)
+
+      assert Policy.authorize?(:api_key_create, scope, org)
+      assert Policy.authorize?(:api_key_revoke, scope, org)
+      assert Policy.authorize?(:api_key_rotate, scope, org)
+    end
+
+    test "member cannot create, revoke, or rotate api keys" do
+      {scope, org} = scope_with_role(:member)
+
+      refute Policy.authorize?(:api_key_create, scope, org)
+      refute Policy.authorize?(:api_key_revoke, scope, org)
+      refute Policy.authorize?(:api_key_rotate, scope, org)
+    end
+  end
+
   describe "cross-org access" do
     test "user cannot access resources from another org" do
       {scope, _org} = scope_with_role(:owner)

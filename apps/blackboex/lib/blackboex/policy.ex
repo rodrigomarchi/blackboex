@@ -5,6 +5,27 @@ defmodule Blackboex.Policy do
   """
   use LetMe.Policy
 
+  alias Blackboex.Telemetry.Events
+
+  @doc "Authorize with telemetry: emits [:blackboex, :policy, :denied] on failure."
+  @spec authorize_and_track(atom(), term(), term()) :: :ok | {:error, :unauthorized}
+  def authorize_and_track(action, scope, object) do
+    case authorize(action, scope, object) do
+      :ok ->
+        :ok
+
+      {:error, _} = error ->
+        user_id =
+          case scope do
+            %{user: %{id: id}} -> id
+            _ -> nil
+          end
+
+        Events.emit_policy_denied(%{action: action, user_id: user_id})
+        error
+    end
+  end
+
   object :organization do
     action :create do
       allow role: :owner

@@ -31,6 +31,7 @@ defmodule Blackboex.Agent.CodePipeline do
   alias Blackboex.LLM.EditPrompts
   alias Blackboex.LLM.Prompts
   alias Blackboex.LLM.Templates
+  alias Blackboex.LogSanitizer
   alias Blackboex.Testing.TestGenerator
   alias Blackboex.Testing.TestRunner
 
@@ -135,7 +136,7 @@ defmodule Blackboex.Agent.CodePipeline do
         {:ok, content}
 
       {:error, reason} ->
-        {:error, "LLM call failed: #{inspect(reason)}"}
+        {:error, "LLM call failed: #{LogSanitizer.sanitize(reason)}"}
     end
   end
 
@@ -172,7 +173,7 @@ defmodule Blackboex.Agent.CodePipeline do
         {:ok, content}
 
       {:error, reason} ->
-        {:error, "LLM stream failed: #{inspect(reason)}"}
+        {:error, "LLM stream failed: #{LogSanitizer.sanitize(reason)}"}
     end
   rescue
     e ->
@@ -292,7 +293,7 @@ defmodule Blackboex.Agent.CodePipeline do
           String.t() | nil
         ) ::
           {:ok, String.t()} | {:error, String.t()}
-  defp step_edit_code(api, instruction, current_code, _current_tests, broadcast, run_id) do
+  defp step_edit_code(_api, instruction, current_code, _current_tests, broadcast, run_id) do
     broadcast.({:step_started, %{step: :generating_code}})
     touch_run(run_id)
 
@@ -513,7 +514,7 @@ defmodule Blackboex.Agent.CodePipeline do
         ) ::
           {:ok, String.t()} | {:error, String.t()}
   defp step_edit_tests(api, code, instruction, current_tests, broadcast, run_id) do
-    if current_tests == nil or String.trim(current_tests) == "" do
+    if String.trim(current_tests) == "" do
       step_generate_tests(api, code, broadcast, run_id)
     else
       broadcast.({:step_started, %{step: :generating_tests}})
@@ -549,22 +550,28 @@ defmodule Blackboex.Agent.CodePipeline do
 
       case guarded_llm_call(prompt, system) do
         {:ok, content} ->
-          if String.contains?(content, "NO CHANGES NEEDED") do
-            log_step("edit_tests", :pass, "No test changes needed")
-            broadcast.({:step_completed, %{step: :generating_tests, test_code: current_tests}})
-            {:ok, current_tests}
-          else
-            test_code = apply_edits_or_extract(current_tests, content)
-            log_step("edit_tests", :pass, "Tests updated via diff")
-            broadcast.({:step_completed, %{step: :generating_tests, test_code: test_code}})
-            {:ok, test_code}
-          end
+          apply_test_edits_or_skip(content, current_tests, broadcast)
 
         {:error, reason} ->
           log_step("edit_tests", :fail, reason)
           # Fallback to full test generation
           step_generate_tests(api, code, broadcast, run_id)
       end
+    end
+  end
+
+  @spec apply_test_edits_or_skip(String.t(), String.t(), broadcast_fn()) ::
+          {:ok, String.t()}
+  defp apply_test_edits_or_skip(content, current_tests, broadcast) do
+    if String.contains?(content, "NO CHANGES NEEDED") do
+      log_step("edit_tests", :pass, "No test changes needed")
+      broadcast.({:step_completed, %{step: :generating_tests, test_code: current_tests}})
+      {:ok, current_tests}
+    else
+      test_code = apply_edits_or_extract(current_tests, content)
+      log_step("edit_tests", :pass, "Tests updated via diff")
+      broadcast.({:step_completed, %{step: :generating_tests, test_code: test_code}})
+      {:ok, test_code}
     end
   end
 
@@ -740,22 +747,34 @@ defmodule Blackboex.Agent.CodePipeline do
         end
 
       :error ->
-        # Fallback: try legacy full-code format
-        case FixPrompts.parse_code_and_tests(content) do
-          {fixed_code, fixed_tests} ->
-            log_step("fix_tests", :pass, "Full fix applied (attempt #{attempt + 1})")
+        apply_legacy_test_fix(api, code, content, broadcast, run_id, attempt)
+    end
+  end
 
-            broadcast.(
-              {:step_completed,
-               %{step: :fixing_tests, content: "Test fix applied (attempt #{attempt + 1})"}}
-            )
+  @spec apply_legacy_test_fix(
+          Api.t(),
+          String.t(),
+          String.t(),
+          broadcast_fn(),
+          String.t() | nil,
+          non_neg_integer()
+        ) ::
+          {:ok, String.t()} | {:error, String.t()}
+  defp apply_legacy_test_fix(api, code, content, broadcast, run_id, attempt) do
+    case FixPrompts.parse_code_and_tests(content) do
+      {fixed_code, fixed_tests} ->
+        log_step("fix_tests", :pass, "Full fix applied (attempt #{attempt + 1})")
 
-            revalidate_and_rerun_tests(api, fixed_code, fixed_tests, broadcast, run_id, attempt)
+        broadcast.(
+          {:step_completed,
+           %{step: :fixing_tests, content: "Test fix applied (attempt #{attempt + 1})"}}
+        )
 
-          :error ->
-            fixed_tests = extract_code(content)
-            step_run_and_fix_tests(api, code, fixed_tests, broadcast, run_id, attempt + 1)
-        end
+        revalidate_and_rerun_tests(api, fixed_code, fixed_tests, broadcast, run_id, attempt)
+
+      :error ->
+        fixed_tests = extract_code(content)
+        step_run_and_fix_tests(api, code, fixed_tests, broadcast, run_id, attempt + 1)
     end
   end
 
@@ -835,28 +854,37 @@ defmodule Blackboex.Agent.CodePipeline do
     blocks = FixPrompts.parse_search_replace_blocks(response)
 
     if blocks != [] do
-      case DiffEngine.apply_search_replace(original_code, blocks) do
-        {:ok, patched} ->
-          # Safety check: if SEARCH/REPLACE markers leaked into the patched code, fall back
-          if String.contains?(patched, "<<<<<<< SEARCH") or
-               String.contains?(patched, "=======") or
-               String.contains?(patched, ">>>>>>> REPLACE") do
-            Logger.warning("Search/replace markers leaked into patched code, falling back")
-            extract_code(response)
-          else
-            Logger.debug("Applied #{length(blocks)} search/replace edit(s)")
-            patched
-          end
-
-        {:error, :search_not_found, search_snippet} ->
-          Logger.warning(
-            "Search/replace failed (match not found: #{String.slice(search_snippet, 0, 80)}), falling back to full extraction"
-          )
-
-          extract_code(response)
-      end
+      apply_parsed_edits(original_code, blocks, response)
     else
       extract_code(response)
+    end
+  end
+
+  @spec apply_parsed_edits(String.t(), list(), String.t()) :: String.t()
+  defp apply_parsed_edits(original_code, blocks, response) do
+    case DiffEngine.apply_search_replace(original_code, blocks) do
+      {:ok, patched} ->
+        validate_patched_code(patched, blocks, response)
+
+      {:error, :search_not_found, search_snippet} ->
+        Logger.warning(
+          "Search/replace failed (match not found: #{String.slice(search_snippet, 0, 80)}), falling back to full extraction"
+        )
+
+        extract_code(response)
+    end
+  end
+
+  @spec validate_patched_code(String.t(), list(), String.t()) :: String.t()
+  defp validate_patched_code(patched, blocks, response) do
+    if String.contains?(patched, "<<<<<<< SEARCH") or
+         String.contains?(patched, "=======") or
+         String.contains?(patched, ">>>>>>> REPLACE") do
+      Logger.warning("Search/replace markers leaked into patched code, falling back")
+      extract_code(response)
+    else
+      Logger.debug("Applied #{length(blocks)} search/replace edit(s)")
+      patched
     end
   end
 

@@ -133,6 +133,26 @@ defmodule Blackboex.BillingTest do
       assert updated_org.plan == :pro
     end
 
+    test "returns changeset error when organization does not exist", %{org: org} do
+      nonexistent_org_id = Ecto.UUID.generate()
+
+      attrs = %{
+        organization_id: nonexistent_org_id,
+        stripe_customer_id: "cus_ghost",
+        stripe_subscription_id: "sub_ghost",
+        plan: "pro",
+        status: "active"
+      }
+
+      assert {:error, %Ecto.Changeset{} = changeset} =
+               Billing.create_or_update_subscription(attrs)
+
+      assert {:organization_id, {"does not exist", _}} = hd(changeset.errors)
+
+      # Verify no subscription was created
+      assert Billing.get_subscription(org.id) == nil
+    end
+
     test "updates existing subscription", %{org: org} do
       {:ok, _sub} =
         %Subscription{}

@@ -170,5 +170,43 @@ defmodule Blackboex.Apis.MetricRollupWorkerTest do
       # Should not crash even with no data
       assert :ok = MetricRollupWorker.perform(job)
     end
+
+    test "partial failure returns error with count of failed APIs", %{api: api} do
+      now = NaiveDateTime.utc_now()
+      date = NaiveDateTime.to_date(now)
+      hour = now.hour
+
+      # Insert valid log for the real API
+      insert_log(api.id, %{duration_ms: 100, ip_address: "10.0.0.1"})
+
+      # Insert a log with a nonexistent api_id by temporarily disabling FK checks.
+      # The aggregation will find it, but the rollup upsert will fail on FK.
+      fake_api_id = Ecto.UUID.generate()
+
+      Repo.query!("SET session_replication_role = 'replica'")
+
+      Repo.query!(
+        """
+        INSERT INTO invocation_logs
+          (id, api_id, method, path, status_code, duration_ms,
+           request_body_size, response_body_size, ip_address, inserted_at)
+        VALUES (gen_random_uuid(), $1, 'GET', '/test', 200, 50, 0, 100, '10.0.0.99', $2)
+        """,
+        [Ecto.UUID.dump!(fake_api_id), NaiveDateTime.utc_now()]
+      )
+
+      Repo.query!("SET session_replication_role = 'origin'")
+
+      job = %Oban.Job{args: %{"date" => Date.to_iso8601(date), "hour" => hour}}
+      result = MetricRollupWorker.perform(job)
+
+      assert {:error, msg} = result
+      assert msg =~ "1 API metric rollups failed"
+
+      # The valid API's rollup was still created
+      rollup = Repo.get_by(MetricRollup, api_id: api.id, date: date, hour: hour)
+      assert rollup != nil
+      assert rollup.invocations == 1
+    end
   end
 end

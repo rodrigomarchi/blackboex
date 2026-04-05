@@ -12,8 +12,10 @@ defmodule BlackboexWeb.Plugs.HealthCheck do
 
   @behaviour Plug
 
+  alias Blackboex.LLM.CircuitBreaker
   alias Ecto.Adapters.SQL
 
+  require Ecto.Query
   require Logger
 
   import Plug.Conn
@@ -44,11 +46,15 @@ defmodule BlackboexWeb.Plugs.HealthCheck do
 
   def call(conn, _opts), do: conn
 
+  @oban_queue_threshold 100
+
   @spec readiness_check(Plug.Conn.t()) :: Plug.Conn.t()
   defp readiness_check(conn) do
     checks = %{
       database: check_database(),
-      registry: check_registry()
+      registry: check_registry(),
+      circuit_breaker: check_circuit_breaker(),
+      oban_queues: check_oban_queues()
     }
 
     all_ok? = Enum.all?(Map.values(checks), &(&1 == "ok"))
@@ -75,6 +81,29 @@ defmodule BlackboexWeb.Plugs.HealthCheck do
       :undefined -> "unavailable"
       _ -> "ok"
     end
+  end
+
+  @spec check_circuit_breaker() :: String.t()
+  defp check_circuit_breaker do
+    if CircuitBreaker.allow?(:anthropic), do: "ok", else: "open"
+  rescue
+    _ -> "unknown"
+  end
+
+  @spec check_oban_queues() :: String.t()
+  defp check_oban_queues do
+    query =
+      Ecto.Query.from(j in "oban_jobs",
+        where: j.state == "available",
+        group_by: j.queue,
+        select: {j.queue, count(j.id)}
+      )
+
+    queues = Blackboex.Repo.all(query)
+    backlogged? = Enum.any?(queues, fn {_queue, count} -> count > @oban_queue_threshold end)
+    if backlogged?, do: "backlogged", else: "ok"
+  rescue
+    _ -> "unknown"
   end
 
   @spec status_label(boolean()) :: String.t()

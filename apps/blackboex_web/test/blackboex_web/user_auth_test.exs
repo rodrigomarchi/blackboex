@@ -208,6 +208,51 @@ defmodule BlackboexWeb.UserAuthTest do
       assert new_signed_token != signed_token
       assert max_age == @remember_me_cookie_max_age
     end
+
+    test "old token is deleted from DB after reissue", %{conn: conn, user: user} do
+      logged_in_conn =
+        conn |> fetch_cookies() |> UserAuth.log_in_user(user, %{"remember_me" => "true"})
+
+      old_token = logged_in_conn.cookies[@remember_me_cookie]
+      %{value: signed_token} = logged_in_conn.resp_cookies[@remember_me_cookie]
+
+      # Age the token past the reissue threshold
+      offset_user_token(old_token, -10, :day)
+
+      conn
+      |> put_session(:user_token, old_token)
+      |> put_session(:user_remember_me, true)
+      |> put_req_cookie(@remember_me_cookie, signed_token)
+      |> UserAuth.fetch_current_scope_for_user([])
+
+      # Old token should no longer authenticate
+      assert Accounts.get_user_by_session_token(old_token) == nil
+    end
+
+    test "old token cannot authenticate after reissue", %{conn: conn, user: user} do
+      logged_in_conn =
+        conn |> fetch_cookies() |> UserAuth.log_in_user(user, %{"remember_me" => "true"})
+
+      old_token = logged_in_conn.cookies[@remember_me_cookie]
+      %{value: signed_token} = logged_in_conn.resp_cookies[@remember_me_cookie]
+
+      offset_user_token(old_token, -10, :day)
+
+      reissued_conn =
+        conn
+        |> put_session(:user_token, old_token)
+        |> put_session(:user_remember_me, true)
+        |> put_req_cookie(@remember_me_cookie, signed_token)
+        |> UserAuth.fetch_current_scope_for_user([])
+
+      # New token works
+      new_token = get_session(reissued_conn, :user_token)
+      assert {%{id: user_id}, _} = Accounts.get_user_by_session_token(new_token)
+      assert user_id == user.id
+
+      # Old token is gone
+      assert Accounts.get_user_by_session_token(old_token) == nil
+    end
   end
 
   describe "on_mount :mount_current_scope" do

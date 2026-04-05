@@ -41,6 +41,13 @@ defmodule Blackboex.Application do
       &__MODULE__.handle_req_llm_token_usage/4,
       %{}
     )
+
+    :telemetry.attach(
+      "blackboex-ecto-pool-saturation",
+      [:blackboex, :repo, :query, :stop],
+      &__MODULE__.handle_ecto_query/4,
+      %{}
+    )
   end
 
   @doc false
@@ -53,5 +60,20 @@ defmodule Blackboex.Application do
       provider: Map.get(metadata, :provider, "unknown"),
       model: Map.get(metadata, :model, "unknown")
     })
+  end
+
+  @pool_saturation_threshold_ms 50
+
+  @doc false
+  @spec handle_ecto_query([atom()], map(), map(), map()) :: :ok
+  def handle_ecto_query(_event, measurements, _metadata, _config) do
+    queue_time_ms =
+      Map.get(measurements, :queue_time, 0) |> System.convert_time_unit(:native, :millisecond)
+
+    if queue_time_ms > @pool_saturation_threshold_ms do
+      Events.emit_pool_saturation(%{queue_time_ms: queue_time_ms})
+    end
+
+    :ok
   end
 end

@@ -118,6 +118,42 @@ defmodule Blackboex.Telemetry.Events do
     )
   end
 
+  @spec emit_session_timeout(map()) :: :ok
+  def emit_session_timeout(metadata) do
+    safe_execute(
+      [:blackboex, :agent, :session_timeout],
+      %{count: 1},
+      %{run_id: metadata.run_id}
+    )
+  end
+
+  @spec emit_policy_denied(map()) :: :ok
+  def emit_policy_denied(metadata) do
+    safe_execute(
+      [:blackboex, :policy, :denied],
+      %{count: 1},
+      %{action: metadata.action, user_id: metadata.user_id}
+    )
+  end
+
+  @spec emit_rate_limit_rejected(map()) :: :ok
+  def emit_rate_limit_rejected(metadata) do
+    safe_execute(
+      [:blackboex, :rate_limit, :rejected],
+      %{count: 1},
+      %{type: metadata.type, key: metadata.key}
+    )
+  end
+
+  @spec emit_pool_saturation(map()) :: :ok
+  def emit_pool_saturation(metadata) do
+    safe_execute(
+      [:blackboex, :ecto, :pool_saturation],
+      %{queue_time_ms: metadata.queue_time_ms},
+      %{}
+    )
+  end
+
   @spec safe_execute([atom()], map(), map()) :: :ok
   defp safe_execute(event, measurements, metadata) do
     :telemetry.execute(event, measurements, metadata)

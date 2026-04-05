@@ -89,52 +89,85 @@ defmodule Blackboex.CodeGen.SchemaExtractor do
     end
   end
 
+  # Exact-match lookup for field names → sample values
+  @name_values %{
+    "age" => 30,
+    "year" => 2023,
+    "birth_year" => 2023,
+    "years" => 5,
+    "license_years" => 5,
+    "experience_years" => 5,
+    "quantity" => 3,
+    "qty" => 3,
+    "count" => 3,
+    "name" => "John Doe",
+    "full_name" => "John Doe",
+    "first_name" => "John",
+    "last_name" => "Doe",
+    "surname" => "Doe",
+    "email" => "user@example.com",
+    "phone" => "+5511999990000",
+    "telephone" => "+5511999990000",
+    "mobile" => "+5511999990000",
+    "zip_prefix" => "01",
+    "cep_prefix" => "01",
+    "city" => "São Paulo",
+    "state" => "SP",
+    "uf" => "SP",
+    "country" => "BR",
+    "address" => "Av. Paulista, 1000",
+    "street" => "Av. Paulista, 1000",
+    "cpf" => "123.456.789-00",
+    "cnpj" => "12.345.678/0001-90",
+    "description" => "Sample description",
+    "title" => "Sample Title",
+    "type" => "standard",
+    "kind" => "standard",
+    "status" => "active",
+    "currency" => "BRL",
+    "percentage" => 10.0,
+    "percent" => 10.0,
+    "weight" => 70.5,
+    "height" => 175,
+    "score" => 8.5,
+    "rating" => 8.5,
+    "latitude" => -23.5505,
+    "lat" => -23.5505,
+    "longitude" => -46.6333,
+    "lng" => -46.6333,
+    "lon" => -46.6333,
+    "coverage" => "comprehensive",
+    "model" => "Model X",
+    "brand" => "Toyota",
+    "make" => "Toyota",
+    "manufacturer" => "Toyota",
+    "color" => "black",
+    "plate" => "ABC1D23",
+    "license_plate" => "ABC1D23"
+  }
+
+  # Regex-based patterns for names not captured by exact match
+  @name_patterns [
+    {~r/price|cost|amount|value|salary|income|premium|total|subtotal|fee/, 10_000},
+    {~r/_brl$/, 10_000.00},
+    {~r/_usd$/, 1_000.00},
+    {~r/_pct$|_percent$|_rate$|rate_pct/, 5.0},
+    {~r/zip|cep|postal/, "01310"},
+    {~r/^is_|^has_|^can_|^should_|^allow/, true},
+    {~r/claims|incidents|accidents/, 0}
+  ]
+
   @spec smart_value_for_name(atom()) :: term() | nil
   defp smart_value_for_name(field) do
     name = to_string(field)
+    Map.get(@name_values, name) || match_name_pattern(name)
+  end
 
-    cond do
-      name in ~w(age) -> 30
-      name in ~w(year birth_year) -> 2023
-      name in ~w(years license_years experience_years) -> 5
-      name =~ ~r/price|cost|amount|value|salary|income|premium|total|subtotal|fee/ -> 10_000
-      name =~ ~r/_brl$/ -> 10_000.00
-      name =~ ~r/_usd$/ -> 1_000.00
-      name =~ ~r/_pct$|_percent$|_rate$|rate_pct/ -> 5.0
-      name in ~w(quantity qty count) -> 3
-      name in ~w(name full_name) -> "John Doe"
-      name in ~w(first_name) -> "John"
-      name in ~w(last_name surname) -> "Doe"
-      name in ~w(email) -> "user@example.com"
-      name in ~w(phone telephone mobile) -> "+5511999990000"
-      name in ~w(zip_prefix cep_prefix) -> "01"
-      name =~ ~r/zip|cep|postal/ -> "01310"
-      name in ~w(city) -> "São Paulo"
-      name in ~w(state uf) -> "SP"
-      name in ~w(country) -> "BR"
-      name in ~w(address street) -> "Av. Paulista, 1000"
-      name in ~w(cpf) -> "123.456.789-00"
-      name in ~w(cnpj) -> "12.345.678/0001-90"
-      name in ~w(description) -> "Sample description"
-      name in ~w(title) -> "Sample Title"
-      name in ~w(type kind) -> "standard"
-      name in ~w(status) -> "active"
-      name in ~w(currency) -> "BRL"
-      name in ~w(percentage percent) -> 10.0
-      name in ~w(weight) -> 70.5
-      name in ~w(height) -> 175
-      name in ~w(score rating) -> 8.5
-      name in ~w(latitude lat) -> -23.5505
-      name in ~w(longitude lng lon) -> -46.6333
-      name =~ ~r/^is_|^has_|^can_|^should_|^allow/ -> true
-      name =~ ~r/claims|incidents|accidents/ -> 0
-      name in ~w(coverage) -> "comprehensive"
-      name in ~w(model) -> "Model X"
-      name in ~w(brand make manufacturer) -> "Toyota"
-      name in ~w(color) -> "black"
-      name in ~w(plate license_plate) -> "ABC1D23"
-      true -> nil
-    end
+  @spec match_name_pattern(String.t()) :: term() | nil
+  defp match_name_pattern(name) do
+    Enum.find_value(@name_patterns, fn {pattern, value} ->
+      if Regex.match?(pattern, name), do: value
+    end)
   end
 
   defp type_sample_value(:string), do: "example"

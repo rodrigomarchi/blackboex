@@ -175,7 +175,7 @@ defmodule BlackboexWeb.ApiKeyLive.Show do
     scope = socket.assigns.current_scope
     org = scope.organization
 
-    with :ok <- Policy.authorize(:api_key_revoke, scope, org) do
+    with :ok <- Policy.authorize_and_track(:api_key_revoke, scope, org) do
       case Keys.revoke_key(socket.assigns.key) do
         {:ok, revoked_key} ->
           {:noreply,
@@ -196,7 +196,7 @@ defmodule BlackboexWeb.ApiKeyLive.Show do
     scope = socket.assigns.current_scope
     org = scope.organization
 
-    with :ok <- Policy.authorize(:api_key_rotate, scope, org) do
+    with :ok <- Policy.authorize_and_track(:api_key_rotate, scope, org) do
       case Keys.rotate_key(socket.assigns.key) do
         {:ok, plain_key, new_key} ->
           new_key = Keys.get_key(new_key.id)

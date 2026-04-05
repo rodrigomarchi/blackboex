@@ -102,7 +102,9 @@ if config_env() == :prod do
     http: [
       # Enable IPv6 and bind on all interfaces.
       # Set it to  {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.
-      ip: {0, 0, 0, 0, 0, 0, 0, 0}
+      ip: {0, 0, 0, 0, 0, 0, 0, 0},
+      # Graceful shutdown: allow 30s for in-flight requests to complete on deploy
+      shutdown_timeout: 30_000
     ],
     secret_key_base: secret_key_base
 

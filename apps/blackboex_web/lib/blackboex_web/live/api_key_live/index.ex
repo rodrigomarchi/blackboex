@@ -141,7 +141,7 @@ defmodule BlackboexWeb.ApiKeyLive.Index do
     scope = socket.assigns.current_scope
     org = scope.organization
 
-    with :ok <- Policy.authorize(:api_key_create, scope, org),
+    with :ok <- Policy.authorize_and_track(:api_key_create, scope, org),
          api when not is_nil(api) <- Apis.get_api(org.id, api_id) do
       case Keys.create_key(api, %{label: label, organization_id: org.id}) do
         {:ok, plain_key, _api_key} ->

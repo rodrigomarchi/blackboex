@@ -64,7 +64,7 @@ defmodule BlackboexWeb.ApiLive.Index do
     scope = socket.assigns.current_scope
     org = scope.organization
 
-    with :ok <- Policy.authorize(:api_delete, scope, org),
+    with :ok <- Policy.authorize_and_track(:api_delete, scope, org),
          api when not is_nil(api) <- org && Apis.get_api(org.id, id) do
       case Apis.delete_api(api) do
         {:ok, _api} ->
@@ -129,7 +129,7 @@ defmodule BlackboexWeb.ApiLive.Index do
     org = scope.organization
     user = scope.user
 
-    with :ok <- Policy.authorize(:api_create, scope, org) do
+    with :ok <- Policy.authorize_and_track(:api_create, scope, org) do
       has_description = description != ""
 
       attrs = %{

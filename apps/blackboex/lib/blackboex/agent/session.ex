@@ -148,6 +148,7 @@ defmodule Blackboex.Agent.Session do
   @impl true
   def handle_info(:task_timeout, state) do
     Logger.warning("Agent task timeout (7 min) for run #{state.run_id}, marking as failed")
+    Events.emit_session_timeout(%{run_id: state.run_id})
     handle_chain_failure(state, "Agent task exceeded 7-minute timeout")
     {:stop, :normal, state}
   end

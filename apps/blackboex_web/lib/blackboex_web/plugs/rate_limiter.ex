@@ -11,6 +11,8 @@ defmodule BlackboexWeb.Plugs.RateLimiter do
   Called inline from DynamicApiRouter, not as a Plug.
   """
 
+  alias Blackboex.Telemetry.Events
+
   import Plug.Conn
 
   @ip_limit 100
@@ -43,8 +45,13 @@ defmodule BlackboexWeb.Plugs.RateLimiter do
            @draft_ip_scale,
            @draft_ip_limit
          ) do
-      {:allow, _count} -> {:ok, conn}
-      {:deny, retry_after_ms} -> {:error, :rate_limited, div(retry_after_ms, 1000)}
+      {:allow, _count} ->
+        {:ok, conn}
+
+      {:deny, retry_after_ms} ->
+        ip = conn.remote_ip |> :inet.ntoa() |> to_string()
+        Events.emit_rate_limit_rejected(%{type: :draft, key: ip})
+        {:error, :rate_limited, div(retry_after_ms, 1000)}
     end
   end
 
@@ -61,6 +68,7 @@ defmodule BlackboexWeb.Plugs.RateLimiter do
         {:ok, conn}
 
       {:deny, retry_after_ms} ->
+        Events.emit_rate_limit_rejected(%{type: :ip, key: ip})
         {:error, :rate_limited, div(retry_after_ms, 1000)}
     end
   end
@@ -74,8 +82,12 @@ defmodule BlackboexWeb.Plugs.RateLimiter do
         limit = api_key.rate_limit || @default_key_limit
 
         case BlackboexWeb.RateLimiterBackend.hit("key:#{api_key.id}", @key_scale, limit) do
-          {:allow, _count} -> {:ok, conn}
-          {:deny, retry_after_ms} -> {:error, :rate_limited, div(retry_after_ms, 1000)}
+          {:allow, _count} ->
+            {:ok, conn}
+
+          {:deny, retry_after_ms} ->
+            Events.emit_rate_limit_rejected(%{type: :api_key, key: api_key.id})
+            {:error, :rate_limited, div(retry_after_ms, 1000)}
         end
     end
   end
@@ -84,8 +96,12 @@ defmodule BlackboexWeb.Plugs.RateLimiter do
     api_id = metadata.api_id
 
     case BlackboexWeb.RateLimiterBackend.hit("api:#{api_id}", @api_scale, @api_global_limit) do
-      {:allow, _count} -> {:ok, conn}
-      {:deny, retry_after_ms} -> {:error, :rate_limited, div(retry_after_ms, 1000)}
+      {:allow, _count} ->
+        {:ok, conn}
+
+      {:deny, retry_after_ms} ->
+        Events.emit_rate_limit_rejected(%{type: :global, key: api_id})
+        {:error, :rate_limited, div(retry_after_ms, 1000)}
     end
   end
 end

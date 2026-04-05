@@ -112,7 +112,8 @@ defmodule BlackboexWeb.ApiLive.Edit.DocsLive do
 
   # ── Private ───────────────────────────────────────────────────────────
 
-  @spec record_generation_usage(Phoenix.LiveView.Socket.t(), String.t(), map()) :: :ok
+  @spec record_generation_usage(Phoenix.LiveView.Socket.t(), String.t(), map()) ::
+          {:ok, Blackboex.LLM.Usage.t()} | {:error, Ecto.Changeset.t()}
   defp record_generation_usage(socket, operation, usage) do
     scope = socket.assigns.current_scope
     provider = Config.default_provider()

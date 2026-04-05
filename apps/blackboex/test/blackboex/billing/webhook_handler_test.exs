@@ -182,5 +182,62 @@ defmodule Blackboex.Billing.WebhookHandlerTest do
       assert {:error, :already_processed} =
                WebhookHandler.process_event("evt_test123", "checkout.session.completed", payload)
     end
+
+    test "rolls back mark_processed when handle_event fails", %{org: _org} do
+      # Use a nonexistent org_id so subscription insert fails with FK constraint
+      nonexistent_org_id = Ecto.UUID.generate()
+
+      payload = %{
+        "customer" => "cus_rollback",
+        "subscription" => "sub_rollback",
+        "metadata" => %{
+          "organization_id" => nonexistent_org_id,
+          "plan" => "pro"
+        }
+      }
+
+      assert {:error, :insert_failed} =
+               WebhookHandler.process_event("evt_rollback", "checkout.session.completed", payload)
+
+      # Verify the processed_event was rolled back — retrying should NOT return :already_processed
+      # It should fail again with the same error, proving the transaction rolled back
+      assert {:error, :insert_failed} =
+               WebhookHandler.process_event("evt_rollback", "checkout.session.completed", payload)
+    end
+  end
+
+  describe "ensure_subscription idempotency" do
+    setup [:create_org]
+
+    test "does not duplicate subscription when it already exists", %{org: org} do
+      payload = %{
+        "customer" => "cus_dup",
+        "subscription" => "sub_dup",
+        "metadata" => %{
+          "organization_id" => org.id,
+          "plan" => "pro"
+        }
+      }
+
+      # First call creates the subscription
+      assert :ok = WebhookHandler.handle_event("checkout.session.completed", payload)
+
+      sub_before = Billing.get_subscription(org.id)
+      assert sub_before.stripe_subscription_id == "sub_dup"
+
+      # Second call with same subscription_id should be idempotent
+      assert :ok = WebhookHandler.handle_event("checkout.session.completed", payload)
+
+      # Verify no duplicate was created
+      count =
+        Blackboex.Repo.aggregate(
+          Ecto.Query.from(s in Subscription,
+            where: s.stripe_subscription_id == "sub_dup"
+          ),
+          :count
+        )
+
+      assert count == 1
+    end
   end
 end

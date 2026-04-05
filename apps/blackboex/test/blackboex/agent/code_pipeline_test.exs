@@ -39,6 +39,205 @@ defmodule Blackboex.Agent.CodePipelineTest do
     %{api: api, run: run, org: org}
   end
 
+  # ── run_generation: LLM failure on first call ──────────────────
+
+  describe "run_generation with LLM failure" do
+    setup [:create_api_with_run]
+
+    test "returns error when code generation LLM call fails", %{api: api, run: run} do
+      Blackboex.LLM.ClientMock
+      |> stub(:stream_text, fn _prompt, _opts ->
+        {:error, "API rate limit exceeded"}
+      end)
+      |> stub(:generate_text, fn _prompt, _opts ->
+        {:error, "API rate limit exceeded"}
+      end)
+
+      result =
+        CodePipeline.run_generation(api, "Create a handler",
+          run_id: run.id,
+          broadcast_fn: fn _event -> :ok end
+        )
+
+      assert {:error, reason} = result
+      assert reason =~ "LLM"
+    end
+
+    test "calls broadcast_fn with step_started and step_failed", %{api: api, run: run} do
+      test_pid = self()
+
+      Blackboex.LLM.ClientMock
+      |> stub(:stream_text, fn _prompt, _opts ->
+        {:error, "API error"}
+      end)
+      |> stub(:generate_text, fn _prompt, _opts ->
+        {:error, "API error"}
+      end)
+
+      broadcast = fn event -> send(test_pid, {:broadcast, event}) end
+
+      CodePipeline.run_generation(api, "Create a handler",
+        run_id: run.id,
+        broadcast_fn: broadcast
+      )
+
+      assert_received {:broadcast, {:step_started, %{step: :generating_code}}}
+      assert_received {:broadcast, {:step_failed, %{step: :generating_code, error: _}}}
+    end
+  end
+
+  # ── guarded_llm_call: max calls exceeded ───────────────────────
+
+  describe "max LLM calls guard" do
+    setup [:create_api_with_run]
+
+    test "stops after exceeding max total LLM calls", %{api: api, run: run} do
+      call_count = :counters.new(1, [:atomics])
+
+      # No streaming — force sync path so we don't need to construct StreamResponse
+      Blackboex.LLM.ClientMock
+      |> stub(:stream_text, fn _prompt, _opts ->
+        :counters.add(call_count, 1, 1)
+        # Return non-StreamResponse to trigger sync fallback
+        raise "force sync fallback"
+      end)
+      |> stub(:generate_text, fn _prompt, _opts ->
+        :counters.add(call_count, 1, 1)
+        # Always return code that fails compilation so pipeline retries
+        {:ok, %{content: "```elixir\ndef handle(p), do: p\n```"}}
+      end)
+
+      result =
+        CodePipeline.run_generation(api, "Create a handler",
+          run_id: run.id,
+          token_callback: fn _t -> :ok end,
+          broadcast_fn: fn _event -> :ok end
+        )
+
+      # Pipeline should eventually error out (either from max calls or max retries)
+      assert {:error, _reason} = result
+      # Verify it didn't go infinite — should be bounded
+      total_calls = :counters.get(call_count, 1)
+      assert total_calls <= 20
+    end
+  end
+
+  # ── run_generation: broadcast events ───────────────────────────
+
+  describe "run_generation broadcasts pipeline events" do
+    setup [:create_api_with_run]
+
+    test "broadcasts step_started for generating_code step", %{api: api, run: run} do
+      test_pid = self()
+
+      Blackboex.LLM.ClientMock
+      |> stub(:stream_text, fn _prompt, _opts ->
+        {:error, "fail fast"}
+      end)
+      |> stub(:generate_text, fn _prompt, _opts ->
+        {:error, "fail fast"}
+      end)
+
+      broadcast = fn event -> send(test_pid, {:broadcast, event}) end
+
+      CodePipeline.run_generation(api, "Create handler",
+        run_id: run.id,
+        broadcast_fn: broadcast
+      )
+
+      assert_received {:broadcast, {:step_started, %{step: :generating_code}}}
+    end
+  end
+
+  # ── run_edit: basic path ───────────────────────────────────────
+
+  describe "run_edit" do
+    setup [:create_api_with_run]
+
+    test "returns error when edit LLM call fails", %{api: api, run: run} do
+      Blackboex.LLM.ClientMock
+      |> stub(:stream_text, fn _prompt, _opts ->
+        {:error, "LLM unavailable"}
+      end)
+      |> stub(:generate_text, fn _prompt, _opts ->
+        {:error, "LLM unavailable"}
+      end)
+
+      result =
+        CodePipeline.run_edit(
+          api,
+          "Add validation",
+          "def handle(p), do: p",
+          "test \"basic\" do end",
+          run_id: run.id,
+          broadcast_fn: fn _event -> :ok end
+        )
+
+      assert {:error, reason} = result
+      assert reason =~ "LLM"
+    end
+
+    test "broadcasts generating_code step for edit", %{api: api, run: run} do
+      test_pid = self()
+
+      Blackboex.LLM.ClientMock
+      |> stub(:stream_text, fn _prompt, _opts ->
+        {:error, "fail"}
+      end)
+      |> stub(:generate_text, fn _prompt, _opts ->
+        {:error, "fail"}
+      end)
+
+      broadcast = fn event -> send(test_pid, {:broadcast, event}) end
+
+      CodePipeline.run_edit(
+        api,
+        "Add validation",
+        "def handle(p), do: p",
+        "",
+        run_id: run.id,
+        broadcast_fn: broadcast
+      )
+
+      assert_received {:broadcast, {:step_started, %{step: :generating_code}}}
+    end
+  end
+
+  # ── default broadcast_fn ───────────────────────────────────────
+
+  describe "default broadcast_fn" do
+    setup [:create_api_with_run]
+
+    test "run_generation works without explicit broadcast_fn", %{api: api, run: run} do
+      Blackboex.LLM.ClientMock
+      |> stub(:stream_text, fn _prompt, _opts ->
+        {:error, "no LLM"}
+      end)
+      |> stub(:generate_text, fn _prompt, _opts ->
+        {:error, "no LLM"}
+      end)
+
+      # Should not crash even without broadcast_fn
+      result = CodePipeline.run_generation(api, "Create handler", run_id: run.id)
+      assert {:error, _} = result
+    end
+
+    test "run_edit works without explicit broadcast_fn", %{api: api, run: run} do
+      Blackboex.LLM.ClientMock
+      |> stub(:stream_text, fn _prompt, _opts ->
+        {:error, "no LLM"}
+      end)
+      |> stub(:generate_text, fn _prompt, _opts ->
+        {:error, "no LLM"}
+      end)
+
+      result = CodePipeline.run_edit(api, "edit", "code", "tests", run_id: run.id)
+      assert {:error, _} = result
+    end
+  end
+
+  # ── stream_reset broadcast on stream failure ──────────────────
+
   describe "stream_reset broadcast on stream failure" do
     setup [:create_api_with_run]
 

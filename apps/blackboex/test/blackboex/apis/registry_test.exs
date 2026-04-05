@@ -86,5 +86,122 @@ defmodule Blackboex.Apis.RegistryTest do
       assert {:error, :not_found} = Registry.lookup(api_id)
       assert {:error, :not_found} = Registry.lookup_by_path("org", "test")
     end
+
+    test "unregistering non-existent API does not crash" do
+      assert :ok = Registry.unregister(Ecto.UUID.generate())
+    end
+
+    test "unregistering same API twice does not crash" do
+      api_id = Ecto.UUID.generate()
+      Registry.register(api_id, SomeModule)
+
+      assert :ok = Registry.unregister(api_id)
+      assert :ok = Registry.unregister(api_id)
+    end
+  end
+
+  describe "register/3 — edge cases" do
+    test "re-registering same api_id overwrites module" do
+      api_id = Ecto.UUID.generate()
+      Registry.register(api_id, OldModule)
+      Registry.register(api_id, NewModule)
+
+      assert {:ok, NewModule, _metadata} = Registry.lookup(api_id)
+    end
+
+    test "re-registering same api_id overwrites metadata" do
+      api_id = Ecto.UUID.generate()
+
+      Registry.register(api_id, Mod, requires_auth: true, visibility: "private")
+      Registry.register(api_id, Mod, requires_auth: false, visibility: "public")
+
+      assert {:ok, Mod, metadata} = Registry.lookup(api_id)
+      assert metadata.requires_auth == false
+      assert metadata.visibility == "public"
+    end
+
+    test "defaults to requires_auth: true and visibility: private" do
+      api_id = Ecto.UUID.generate()
+      Registry.register(api_id, Mod)
+
+      assert {:ok, Mod, metadata} = Registry.lookup(api_id)
+      assert metadata.requires_auth == true
+      assert metadata.visibility == "private"
+    end
+
+    test "register without slug does not create path entry" do
+      api_id = Ecto.UUID.generate()
+      Registry.register(api_id, Mod)
+
+      # No path registered, so lookup_by_path should fail
+      assert {:error, :not_found} = Registry.lookup_by_path("any", "path")
+    end
+
+    test "two APIs with different paths in same org" do
+      api_a = Ecto.UUID.generate()
+      api_b = Ecto.UUID.generate()
+
+      Registry.register(api_a, ModA, org_slug: "org", slug: "api-a")
+      Registry.register(api_b, ModB, org_slug: "org", slug: "api-b")
+
+      assert {:ok, ModA, _} = Registry.lookup_by_path("org", "api-a")
+      assert {:ok, ModB, _} = Registry.lookup_by_path("org", "api-b")
+    end
+
+    test "same slug in different orgs are independent" do
+      api_a = Ecto.UUID.generate()
+      api_b = Ecto.UUID.generate()
+
+      Registry.register(api_a, ModA, org_slug: "org1", slug: "calc")
+      Registry.register(api_b, ModB, org_slug: "org2", slug: "calc")
+
+      assert {:ok, ModA, _} = Registry.lookup_by_path("org1", "calc")
+      assert {:ok, ModB, _} = Registry.lookup_by_path("org2", "calc")
+    end
+  end
+
+  describe "clear/0" do
+    test "removes all entries" do
+      api_a = Ecto.UUID.generate()
+      api_b = Ecto.UUID.generate()
+
+      Registry.register(api_a, ModA, org_slug: "org", slug: "a")
+      Registry.register(api_b, ModB, org_slug: "org", slug: "b")
+
+      assert :ok = Registry.clear()
+
+      assert {:error, :not_found} = Registry.lookup(api_a)
+      assert {:error, :not_found} = Registry.lookup(api_b)
+      assert {:error, :not_found} = Registry.lookup_by_path("org", "a")
+      assert {:error, :not_found} = Registry.lookup_by_path("org", "b")
+    end
+
+    test "clear followed by register works" do
+      api_id = Ecto.UUID.generate()
+      Registry.register(api_id, Mod)
+      Registry.clear()
+      Registry.register(api_id, Mod)
+
+      assert {:ok, Mod, _} = Registry.lookup(api_id)
+    end
+  end
+
+  describe "shutting_down?/0" do
+    test "returns false when not shutting down" do
+      # Reset shutdown flag if it was set by a previous test
+      :persistent_term.put(:api_registry_shutting_down, false)
+
+      refute Registry.shutting_down?()
+    end
+  end
+
+  describe "lookup edge cases" do
+    test "lookup with invalid (non-UUID) key returns not_found" do
+      assert {:error, :not_found} = Registry.lookup("not-a-uuid")
+    end
+
+    test "lookup_by_path with empty strings returns not_found" do
+      assert {:error, :not_found} = Registry.lookup_by_path("", "")
+    end
   end
 end

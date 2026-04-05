@@ -179,6 +179,9 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
           {:error, :not_found}
         end
 
+      {:error, :shutting_down} ->
+        {:error, :shutting_down}
+
       {:error, :not_found} ->
         compile_from_db(org_slug, slug)
     end

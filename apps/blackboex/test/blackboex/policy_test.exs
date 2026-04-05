@@ -125,6 +125,131 @@ defmodule Blackboex.PolicyTest do
     end
   end
 
+  describe "api permissions" do
+    test "owner can do all api actions" do
+      {scope, org} = scope_with_role(:owner)
+
+      for action <- [
+            :api_create,
+            :api_read,
+            :api_update,
+            :api_delete,
+            :api_publish,
+            :api_unpublish,
+            :api_generate_tests,
+            :api_run_tests,
+            :api_generate_docs
+          ] do
+        assert Policy.authorize?(action, scope, org),
+               "Owner should be allowed #{action}"
+      end
+    end
+
+    test "admin can do all api actions" do
+      {scope, org} = scope_with_role(:admin)
+
+      for action <- [
+            :api_create,
+            :api_read,
+            :api_update,
+            :api_delete,
+            :api_publish,
+            :api_unpublish,
+            :api_generate_tests,
+            :api_run_tests,
+            :api_generate_docs
+          ] do
+        assert Policy.authorize?(action, scope, org),
+               "Admin should be allowed #{action}"
+      end
+    end
+
+    test "member can create, read, update, generate_tests, run_tests, generate_docs" do
+      {scope, org} = scope_with_role(:member)
+
+      for action <- [
+            :api_create,
+            :api_read,
+            :api_update,
+            :api_generate_tests,
+            :api_run_tests,
+            :api_generate_docs
+          ] do
+        assert Policy.authorize?(action, scope, org),
+               "Member should be allowed #{action}"
+      end
+    end
+
+    test "member cannot delete, publish, or unpublish APIs" do
+      {scope, org} = scope_with_role(:member)
+
+      refute Policy.authorize?(:api_delete, scope, org)
+      refute Policy.authorize?(:api_publish, scope, org)
+      refute Policy.authorize?(:api_unpublish, scope, org)
+    end
+  end
+
+  describe "authorize_and_track/3" do
+    test "returns :ok for authorized action" do
+      {scope, org} = scope_with_role(:owner)
+
+      assert :ok = Policy.authorize_and_track(:organization_read, scope, org)
+    end
+
+    test "returns {:error, :unauthorized} for denied action" do
+      {scope, org} = scope_with_role(:member)
+
+      assert {:error, :unauthorized} =
+               Policy.authorize_and_track(:organization_delete, scope, org)
+    end
+
+    test "emits telemetry on denied action" do
+      {scope, org} = scope_with_role(:member)
+
+      # Attach a telemetry handler to verify emission
+      ref = make_ref()
+      test_pid = self()
+
+      :telemetry.attach(
+        "test-policy-denied-#{inspect(ref)}",
+        [:blackboex, :policy, :denied],
+        fn _event, _measurements, metadata, _config ->
+          send(test_pid, {:telemetry_fired, metadata})
+        end,
+        nil
+      )
+
+      Policy.authorize_and_track(:organization_delete, scope, org)
+
+      assert_receive {:telemetry_fired, metadata}
+      assert metadata.action == :organization_delete
+
+      :telemetry.detach("test-policy-denied-#{inspect(ref)}")
+    end
+
+    test "does not emit telemetry on allowed action" do
+      {scope, org} = scope_with_role(:owner)
+
+      ref = make_ref()
+      test_pid = self()
+
+      :telemetry.attach(
+        "test-policy-allowed-#{inspect(ref)}",
+        [:blackboex, :policy, :denied],
+        fn _event, _measurements, metadata, _config ->
+          send(test_pid, {:telemetry_fired, metadata})
+        end,
+        nil
+      )
+
+      Policy.authorize_and_track(:organization_read, scope, org)
+
+      refute_receive {:telemetry_fired, _}, 100
+
+      :telemetry.detach("test-policy-allowed-#{inspect(ref)}")
+    end
+  end
+
   describe "cross-org access" do
     test "user cannot access resources from another org" do
       {scope, _org} = scope_with_role(:owner)
@@ -135,6 +260,29 @@ defmodule Blackboex.PolicyTest do
 
       refute Policy.authorize?(:organization_read, scope, other_org)
       refute Policy.authorize?(:organization_update, scope, other_org)
+    end
+
+    test "user cannot access APIs from another org" do
+      {scope, _org} = scope_with_role(:owner)
+      other_user = user_fixture()
+
+      {:ok, %{organization: other_org}} =
+        Organizations.create_organization(other_user, %{name: "Other Org 2"})
+
+      refute Policy.authorize?(:api_read, scope, other_org)
+      refute Policy.authorize?(:api_create, scope, other_org)
+      refute Policy.authorize?(:api_delete, scope, other_org)
+    end
+
+    test "user cannot manage api_keys from another org" do
+      {scope, _org} = scope_with_role(:owner)
+      other_user = user_fixture()
+
+      {:ok, %{organization: other_org}} =
+        Organizations.create_organization(other_user, %{name: "Other Org 3"})
+
+      refute Policy.authorize?(:api_key_create, scope, other_org)
+      refute Policy.authorize?(:api_key_revoke, scope, other_org)
     end
   end
 end

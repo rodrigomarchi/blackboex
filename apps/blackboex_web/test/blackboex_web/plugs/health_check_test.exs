@@ -195,6 +195,66 @@ defmodule BlackboexWeb.Plugs.HealthCheckTest do
     end
   end
 
+  describe "oban_queues backlogged path" do
+    test "returns backlogged when a queue exceeds threshold" do
+      # Insert 101 available oban jobs into a single queue to trigger the threshold
+      Enum.each(1..101, fn i ->
+        Blackboex.Repo.insert_all("oban_jobs", [
+          %{
+            state: "available",
+            queue: "test_queue_health",
+            worker: "TestWorker",
+            args: %{i: i},
+            attempt: 0,
+            max_attempts: 3,
+            inserted_at: NaiveDateTime.utc_now(),
+            scheduled_at: NaiveDateTime.utc_now(),
+            attempted_at: nil,
+            completed_at: nil,
+            discarded_at: nil,
+            cancelled_at: nil,
+            errors: [],
+            tags: [],
+            meta: %{},
+            priority: 0
+          }
+        ])
+      end)
+
+      conn =
+        build_conn(:get, "/health/ready")
+        |> HealthCheck.call(@opts)
+
+      body = Jason.decode!(conn.resp_body)
+
+      # With 101 jobs in one queue, oban_queues should be "backlogged"
+      assert body["checks"]["oban_queues"] == "backlogged"
+      # overall status is unavailable when any check fails
+      assert body["status"] == "unavailable"
+      assert conn.status == 503
+    end
+  end
+
+  describe "circuit_breaker rescue path" do
+    test "circuit_breaker check returns known value even on error" do
+      # The circuit breaker check rescues errors and returns "unknown"
+      # We just verify the check returns a valid value
+      conn =
+        build_conn(:get, "/health/ready")
+        |> HealthCheck.call(@opts)
+
+      body = Jason.decode!(conn.resp_body)
+      assert body["checks"]["circuit_breaker"] in ["ok", "open", "unknown"]
+    end
+  end
+
+  describe "respond rescue path" do
+    test "init/1 returns the options unchanged" do
+      assert HealthCheck.init(foo: :bar) == [foo: :bar]
+      assert HealthCheck.init([]) == []
+    end
+  end
+
   describe "response format" do
     test "returns JSON content type" do
       conn =

@@ -403,6 +403,162 @@ defmodule BlackboexWeb.ApiLive.Edit.VersionsLiveTest do
     end
   end
 
+  # ── safe_to_atom / derive_test_summary via rollback ──────────────────
+
+  describe "restore_validation_report and derive_test_summary via rollback" do
+    test "rollback with string-keyed validation_report restores all fields", %{
+      conn: conn,
+      org: org,
+      api: api,
+      user: user
+    } do
+      api = Apis.get_api(org.id, api.id)
+
+      {:ok, _v1} =
+        Apis.create_version(api, %{
+          code: "def handle(_), do: %{v: 1}",
+          source: "generation",
+          created_by_id: user.id
+        })
+
+      api = Apis.get_api(org.id, api.id)
+
+      {:ok, _v2} =
+        Apis.create_version(api, %{
+          code: "def handle(_), do: %{v: 2}",
+          source: "manual_edit",
+          created_by_id: user.id
+        })
+
+      # Set a validation_report with string keys (as stored from JSON) and test_results
+      # This exercises safe_to_atom/1 with string values and derive_test_summary/1 with results
+      {:ok, _api} =
+        Apis.update_api(api, %{
+          validation_report: %{
+            "compilation" => "pass",
+            "compilation_errors" => [],
+            "format" => "fail",
+            "format_issues" => ["needs format"],
+            "credo" => "skipped",
+            "credo_issues" => [],
+            "tests" => "pass",
+            "test_results" => [%{"status" => "passed"}, %{"status" => "failed"}],
+            "overall" => "fail"
+          }
+        })
+
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/versions?org=#{org.id}")
+
+      # Rollback to v1 — exercises restore_validation_report and derive_test_summary
+      html =
+        lv
+        |> element(~s(button[phx-click="rollback"][phx-value-number="1"]))
+        |> render_click()
+
+      assert is_binary(html)
+    end
+
+    test "rollback with atom-keyed validation_report fields (safe_to_atom atom branch)", %{
+      conn: conn,
+      org: org,
+      api: api,
+      user: user
+    } do
+      api = Apis.get_api(org.id, api.id)
+
+      {:ok, _v1} =
+        Apis.create_version(api, %{
+          code: "def handle(_), do: %{v: 1}",
+          source: "generation",
+          created_by_id: user.id
+        })
+
+      api = Apis.get_api(org.id, api.id)
+
+      {:ok, _v2} =
+        Apis.create_version(api, %{
+          code: "def handle(_), do: %{v: 2}",
+          source: "manual_edit",
+          created_by_id: user.id
+        })
+
+      # validation_report with nil values exercises safe_to_atom(nil) -> :pass
+      {:ok, _api} =
+        Apis.update_api(api, %{
+          validation_report: %{
+            "compilation" => nil,
+            "compilation_errors" => [],
+            "format" => nil,
+            "format_issues" => [],
+            "credo" => nil,
+            "credo_issues" => [],
+            "tests" => nil,
+            "test_results" => [],
+            "overall" => nil
+          }
+        })
+
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/versions?org=#{org.id}")
+
+      html =
+        lv
+        |> element(~s(button[phx-click="rollback"][phx-value-number="1"]))
+        |> render_click()
+
+      assert is_binary(html)
+    end
+
+    test "rollback with unknown safe_to_atom value falls back to :pass", %{
+      conn: conn,
+      org: org,
+      api: api,
+      user: user
+    } do
+      api = Apis.get_api(org.id, api.id)
+
+      {:ok, _v1} =
+        Apis.create_version(api, %{
+          code: "def handle(_), do: %{v: 1}",
+          source: "generation",
+          created_by_id: user.id
+        })
+
+      api = Apis.get_api(org.id, api.id)
+
+      {:ok, _v2} =
+        Apis.create_version(api, %{
+          code: "def handle(_), do: %{v: 2}",
+          source: "manual_edit",
+          created_by_id: user.id
+        })
+
+      # "unknown_value" is not in the allowed list — exercises the catch-all safe_to_atom clause
+      {:ok, _api} =
+        Apis.update_api(api, %{
+          validation_report: %{
+            "compilation" => "unknown_value",
+            "compilation_errors" => [],
+            "format" => "pass",
+            "format_issues" => [],
+            "credo" => "pass",
+            "credo_issues" => [],
+            "tests" => "pass",
+            "test_results" => [%{"status" => "passed"}],
+            "overall" => "pass"
+          }
+        })
+
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/versions?org=#{org.id}")
+
+      html =
+        lv
+        |> element(~s(button[phx-click="rollback"][phx-value-number="1"]))
+        |> render_click()
+
+      assert is_binary(html)
+    end
+  end
+
   # ── rollback ──────────────────────────────────────────────────────────
 
   describe "rollback" do

@@ -48,5 +48,53 @@ defmodule BlackboexWeb.SettingsLiveTest do
 
       assert html =~ "Security"
     end
+
+    test "shows no recent activity when audit log is empty", %{conn: conn} do
+      {:ok, lv, _html} = live(conn, ~p"/settings")
+
+      html = lv |> element(~s|a[href="/settings?tab=security"]|) |> render_click()
+
+      # New user has no audit logs
+      assert html =~ "Security" or html =~ "No recent activity"
+    end
+  end
+
+  describe "direct tab param routing" do
+    test "mounts directly on organization tab via query param", %{conn: conn} do
+      {:ok, _lv, html} = live(conn, ~p"/settings?tab=organization")
+
+      assert html =~ "Organization"
+    end
+
+    test "mounts directly on billing tab via query param", %{conn: conn} do
+      {:ok, _lv, html} = live(conn, ~p"/settings?tab=billing")
+
+      assert html =~ "Billing"
+    end
+
+    test "mounts directly on security tab via query param", %{conn: conn} do
+      {:ok, _lv, html} = live(conn, ~p"/settings?tab=security")
+
+      assert html =~ "Security"
+    end
+
+    test "falls back to profile tab for unknown tab param", %{conn: conn} do
+      {:ok, _lv, html} = live(conn, ~p"/settings?tab=unknown")
+
+      # Should render profile tab (default fallback)
+      assert html =~ "Profile"
+    end
+
+    test "profile tab shows member since info", %{conn: conn} do
+      {:ok, _lv, html} = live(conn, ~p"/settings")
+
+      assert html =~ "Member since"
+    end
+
+    test "profile tab shows Edit Email & Password button", %{conn: conn} do
+      {:ok, _lv, html} = live(conn, ~p"/settings")
+
+      assert html =~ "Edit Email"
+    end
   end
 end

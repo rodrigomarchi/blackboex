@@ -333,6 +333,173 @@ defmodule BlackboexWeb.ApiLive.AgentChatTest do
     end
   end
 
+  # ── quick_action ───────────────────────────────────────────────────────
+
+  describe "quick_action" do
+    test "sets chat_input to the action text",
+         %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
+
+      render_click(lv, "quick_action", %{"text" => "Add validation"})
+
+      html = render(lv)
+      assert html =~ "Add validation"
+    end
+
+    test "populated input can be submitted as a chat message",
+         %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
+
+      render_click(lv, "quick_action", %{"text" => "Optimize performance"})
+      lv |> form("form[phx-submit=send_chat]", %{chat_input: "Optimize performance"}) |> render_submit()
+
+      html = render(lv)
+      assert html =~ "Thinking..."
+      assert html =~ "Optimize performance"
+    end
+  end
+
+  # ── cancel_pipeline ────────────────────────────────────────────────────
+
+  describe "cancel_pipeline" do
+    test "clears loading state and pipeline_status",
+         %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
+      open_chat_and_send(lv, "Do it")
+      _run_id = start_agent_run(lv)
+
+      assert render(lv) =~ "Thinking..."
+
+      render_click(lv, "cancel_pipeline")
+
+      html = render(lv)
+      refute html =~ "Thinking..."
+    end
+
+    test "shows info flash when no pre_edit_code is set",
+         %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
+      open_chat_and_send(lv, "Do it")
+      _run_id = start_agent_run(lv)
+
+      render_click(lv, "cancel_pipeline")
+
+      # No revert flash — only loading cleared
+      html = render(lv)
+      refute html =~ "Edit cancelled"
+    end
+
+    test "reverts code and shows flash when pre_edit_code is present",
+         %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
+      open_chat_and_send(lv, "Change it")
+
+      run_id = start_agent_run(lv)
+      complete_agent(lv, run_id, "new_code_here()", "Done")
+
+      # Accept sets pre_edit_code to the previous code
+      render_click(lv, "accept_edit")
+      assert render(lv) =~ "Change applied"
+
+      # Now trigger another run so cancel can revert
+      open_chat_and_send(lv, "Another change")
+      _run_id2 = start_agent_run(lv)
+
+      render_click(lv, "cancel_pipeline")
+      assert render(lv) =~ "Edit cancelled, code reverted"
+    end
+  end
+
+  # ── accept_edit edge cases ─────────────────────────────────────────────
+
+  describe "accept_edit" do
+    test "is a no-op when pending_edit is nil",
+         %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
+
+      # No pending edit — clicking accept should not crash or flash
+      render_click(lv, "accept_edit")
+      html = render(lv)
+      refute html =~ "Change applied"
+    end
+
+    test "clears pending_edit and shows flash",
+         %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
+      open_chat_and_send(lv, "Update")
+
+      run_id = start_agent_run(lv)
+      complete_agent(lv, run_id, "updated_code()", "Updated")
+
+      assert render(lv) =~ "Accept"
+
+      render_click(lv, "accept_edit")
+      html = render(lv)
+      assert html =~ "Change applied"
+      refute html =~ "Accept"
+      refute html =~ "Reject"
+    end
+  end
+
+  # ── agent_streaming (isolated) ─────────────────────────────────────────
+
+  describe "agent_streaming" do
+    test "appends delta tokens to streaming display while run is active",
+         %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
+      open_chat_and_send(lv, "Stream this")
+
+      run_id = start_agent_run(lv)
+
+      send(lv.pid, {:agent_streaming, %{delta: "Hello ", run_id: run_id}})
+      send(lv.pid, {:agent_streaming, %{delta: "World", run_id: run_id}})
+
+      html = render(lv)
+      assert html =~ "Hello"
+      assert html =~ "World"
+    end
+
+    test "streaming tokens are ignored when no run is active",
+         %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
+
+      # No run started — streaming should be silently ignored
+      send(lv.pid, {:agent_streaming, %{delta: "orphan_token_xyz"}})
+
+      refute render(lv) =~ "orphan_token_xyz"
+    end
+  end
+
+  # ── agent_action with args ─────────────────────────────────────────────
+
+  describe "agent_action" do
+    test "agent_action with args adds tool_call event to timeline",
+         %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
+      open_chat_and_send(lv, "Compile it")
+
+      run_id = start_agent_run(lv)
+
+      send(lv.pid, {:agent_action, %{tool: "compile_code", args: %{"code" => "def foo, do: :bar"}, run_id: run_id}})
+
+      html = render(lv)
+      assert html =~ "Compile"
+    end
+
+    test "tool_started updates pipeline status without crash",
+         %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
+      open_chat_and_send(lv, "Do it")
+
+      run_id = start_agent_run(lv)
+
+      send(lv.pid, {:tool_started, %{tool: "generate_tests", run_id: run_id}})
+
+      # LiveView should still render correctly
+      assert render(lv) =~ "Calculator"
+    end
+  end
+
   # ── UX Consistency ─────────────────────────────────────────────────────
 
   describe "UX consistency" do

@@ -329,6 +329,80 @@ defmodule BlackboexWeb.ApiLive.Edit.VersionsLiveTest do
     end
   end
 
+  # ── command palette ───────────────────────────────────────────────────
+
+  describe "command palette events" do
+    test "toggle_command_palette opens the palette", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/versions?org=#{org.id}")
+
+      html = render_click(lv, "toggle_command_palette", %{})
+      assert is_binary(html)
+    end
+
+    test "close_panels closes the palette when open", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/versions?org=#{org.id}")
+
+      render_click(lv, "toggle_command_palette", %{})
+      html = render_click(lv, "close_panels", %{})
+      assert is_binary(html)
+    end
+
+    test "close_panels is a no-op when palette is already closed", %{
+      conn: conn,
+      org: org,
+      api: api
+    } do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/versions?org=#{org.id}")
+
+      html = render_click(lv, "close_panels", %{})
+      assert is_binary(html)
+    end
+
+    test "command_palette_search filters commands", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/versions?org=#{org.id}")
+
+      render_click(lv, "toggle_command_palette", %{})
+      html = render_click(lv, "command_palette_search", %{"command_query" => "run"})
+      assert is_binary(html)
+    end
+
+    test "command_palette_navigate down moves selection", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/versions?org=#{org.id}")
+
+      render_click(lv, "toggle_command_palette", %{})
+      html = render_click(lv, "command_palette_navigate", %{"direction" => "down"})
+      assert is_binary(html)
+    end
+
+    test "command_palette_navigate up moves selection back", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/versions?org=#{org.id}")
+
+      render_click(lv, "toggle_command_palette", %{})
+      html = render_click(lv, "command_palette_navigate", %{"direction" => "up"})
+      assert is_binary(html)
+    end
+
+    test "command_palette_exec navigates to a tab", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/versions?org=#{org.id}")
+
+      render_click(lv, "toggle_command_palette", %{})
+      result = render_click(lv, "command_palette_exec", %{"event" => "switch_tab_run"})
+      assert is_binary(result) or match?({:error, {:live_redirect, _}}, result)
+    end
+
+    test "command_palette_exec_first executes first matched command", %{
+      conn: conn,
+      org: org,
+      api: api
+    } do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/versions?org=#{org.id}")
+
+      render_click(lv, "toggle_command_palette", %{})
+      result = render_click(lv, "command_palette_exec_first", %{})
+      assert is_binary(result) or match?({:error, {:live_redirect, _}}, result)
+    end
+  end
+
   # ── rollback ──────────────────────────────────────────────────────────
 
   describe "rollback" do

@@ -1,5 +1,5 @@
 defmodule BlackboexWeb.ApiLive.Edit.HelpersTest do
-  use ExUnit.Case, async: true
+  use BlackboexWeb.ConnCase, async: true
 
   alias BlackboexWeb.ApiLive.Edit.Helpers
 
@@ -287,6 +287,73 @@ defmodule BlackboexWeb.ApiLive.Edit.HelpersTest do
       }
 
       assert Helpers.derive_test_summary(report) == "2/2"
+    end
+  end
+
+  # ── edit_tab_path ─────────────────────────────────────────────────────
+
+  describe "edit_tab_path/2" do
+    test "builds path with api id and tab" do
+      # Build a minimal socket-like struct with an api assign
+      api_id = Ecto.UUID.generate()
+      socket = %Phoenix.LiveView.Socket{assigns: %{api: %{id: api_id}}}
+
+      assert Helpers.edit_tab_path(socket, "run") == "/apis/#{api_id}/edit/run"
+      assert Helpers.edit_tab_path(socket, "metrics") == "/apis/#{api_id}/edit/metrics"
+      assert Helpers.edit_tab_path(socket, "info") == "/apis/#{api_id}/edit/info"
+      assert Helpers.edit_tab_path(socket, "docs") == "/apis/#{api_id}/edit/docs"
+    end
+  end
+
+  # ── resolve_organization ──────────────────────────────────────────────
+
+  describe "resolve_organization/2" do
+    setup :register_and_log_in_user
+
+    test "returns scope.organization when no org param", %{scope: scope} do
+      # Build a minimal socket with current_scope
+      socket = %Phoenix.LiveView.Socket{assigns: %{current_scope: scope}}
+
+      org = Helpers.resolve_organization(socket, %{})
+      assert org == scope.organization
+    end
+
+    test "returns the organization when org param matches and user is a member", %{
+      conn: _conn,
+      user: user,
+      scope: scope
+    } do
+      {:ok, %{organization: org}} =
+        Blackboex.Organizations.create_organization(user, %{
+          name: "Helpers Org #{System.unique_integer([:positive])}",
+          slug: "helpersorg-#{System.unique_integer([:positive])}"
+        })
+
+      socket = %Phoenix.LiveView.Socket{assigns: %{current_scope: scope}}
+      result = Helpers.resolve_organization(socket, %{"org" => org.id})
+
+      assert result.id == org.id
+    end
+
+    test "returns nil when org param points to non-existent organization", %{scope: scope} do
+      socket = %Phoenix.LiveView.Socket{assigns: %{current_scope: scope}}
+      result = Helpers.resolve_organization(socket, %{"org" => Ecto.UUID.generate()})
+      assert result == nil
+    end
+
+    test "returns nil when user is not a member of the given org", %{scope: scope, user: _user} do
+      # Create an org owned by a different user
+      other_user = Blackboex.AccountsFixtures.user_fixture()
+
+      {:ok, %{organization: other_org}} =
+        Blackboex.Organizations.create_organization(other_user, %{
+          name: "Other Org #{System.unique_integer([:positive])}",
+          slug: "otherorg-#{System.unique_integer([:positive])}"
+        })
+
+      socket = %Phoenix.LiveView.Socket{assigns: %{current_scope: scope}}
+      result = Helpers.resolve_organization(socket, %{"org" => other_org.id})
+      assert result == nil
     end
   end
 end

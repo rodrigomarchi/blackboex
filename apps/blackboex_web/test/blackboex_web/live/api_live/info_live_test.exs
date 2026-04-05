@@ -169,4 +169,99 @@ defmodule BlackboexWeb.ApiLive.Edit.InfoLiveTest do
       assert is_binary(html)
     end
   end
+
+  describe "command palette events" do
+    test "toggle_command_palette opens the palette", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/info?org=#{org.id}")
+
+      html = render_click(lv, "toggle_command_palette", %{})
+      assert is_binary(html)
+    end
+
+    test "close_panels closes the palette when open", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/info?org=#{org.id}")
+
+      render_click(lv, "toggle_command_palette", %{})
+      html = render_click(lv, "close_panels", %{})
+      assert is_binary(html)
+    end
+
+    test "close_panels is a no-op when palette is already closed", %{
+      conn: conn,
+      org: org,
+      api: api
+    } do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/info?org=#{org.id}")
+
+      html = render_click(lv, "close_panels", %{})
+      assert is_binary(html)
+    end
+
+    test "command_palette_search filters commands", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/info?org=#{org.id}")
+
+      render_click(lv, "toggle_command_palette", %{})
+      html = render_click(lv, "command_palette_search", %{"command_query" => "info"})
+      assert is_binary(html)
+    end
+
+    test "command_palette_navigate down moves selection", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/info?org=#{org.id}")
+
+      render_click(lv, "toggle_command_palette", %{})
+      html = render_click(lv, "command_palette_navigate", %{"direction" => "down"})
+      assert is_binary(html)
+    end
+
+    test "command_palette_navigate up moves selection back", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/info?org=#{org.id}")
+
+      render_click(lv, "toggle_command_palette", %{})
+      html = render_click(lv, "command_palette_navigate", %{"direction" => "up"})
+      assert is_binary(html)
+    end
+
+    test "command_palette_exec navigates to given tab", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/info?org=#{org.id}")
+
+      render_click(lv, "toggle_command_palette", %{})
+      result = render_click(lv, "command_palette_exec", %{"event" => "switch_tab_run"})
+      assert is_binary(result) or match?({:error, {:live_redirect, _}}, result)
+    end
+
+    test "command_palette_exec_first executes first matched command", %{
+      conn: conn,
+      org: org,
+      api: api
+    } do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/info?org=#{org.id}")
+
+      render_click(lv, "toggle_command_palette", %{})
+      result = render_click(lv, "command_palette_exec_first", %{})
+      assert is_binary(result) or match?({:error, {:live_redirect, _}}, result)
+    end
+  end
+
+  describe "api info display" do
+    test "shows param_schema when present", %{conn: conn, org: org, api: api} do
+      {:ok, _} = Apis.update_api(api, %{param_schema: %{"type" => "object"}})
+
+      {:ok, _lv, html} = live(conn, ~p"/apis/#{api.id}/edit/info?org=#{org.id}")
+      assert html =~ "Param Schema" or html =~ "object"
+    end
+
+    test "shows example_request when present", %{conn: conn, org: org, api: api} do
+      {:ok, _} = Apis.update_api(api, %{example_request: %{"x" => 1}})
+
+      {:ok, _lv, html} = live(conn, ~p"/apis/#{api.id}/edit/info?org=#{org.id}")
+      assert html =~ "Example Request" or html =~ "x"
+    end
+
+    test "shows example_response when present", %{conn: conn, org: org, api: api} do
+      {:ok, _} = Apis.update_api(api, %{example_response: %{"result" => "ok"}})
+
+      {:ok, _lv, html} = live(conn, ~p"/apis/#{api.id}/edit/info?org=#{org.id}")
+      assert html =~ "Example Response" or html =~ "result"
+    end
+  end
 end

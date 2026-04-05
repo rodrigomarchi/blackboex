@@ -500,6 +500,176 @@ defmodule BlackboexWeb.ApiLive.AgentChatTest do
     end
   end
 
+  # ── LLM Limit Enforcement ─────────────────────────────────────────────
+
+  describe "LLM limit enforcement" do
+    test "shows error when LLM generation limit is exceeded",
+         %{conn: conn, org: org, api: api} do
+      # Exhaust the free plan limit (50 generations)
+      Enum.each(1..50, fn _ ->
+        Blackboex.Billing.record_usage_event(%{
+          organization_id: org.id,
+          event_type: "llm_generation",
+          quantity: 1,
+          metadata: %{}
+        })
+      end)
+
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
+      lv |> form("form[phx-submit=send_chat]", %{chat_input: "Add something"}) |> render_submit()
+
+      html = render(lv)
+      assert html =~ "LLM generation limit reached"
+      refute html =~ "Thinking..."
+    end
+  end
+
+  # ── apply_action_to_editor branches ───────────────────────────────────
+
+  describe "apply_action_to_editor" do
+    test "run_tests action updates code and test_code assigns",
+         %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
+      open_chat_and_send(lv, "Run tests")
+      run_id = start_agent_run(lv)
+
+      send(lv.pid, {
+        :agent_action,
+        %{
+          tool: "run_tests",
+          args: %{"code" => "def handle(p), do: :ok", "test_code" => "defmodule T, do: :ok"},
+          run_id: run_id
+        }
+      })
+
+      assert render(lv) =~ "Calculator"
+    end
+
+    test "submit_code action updates code and optional test_code",
+         %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
+      open_chat_and_send(lv, "Submit")
+      run_id = start_agent_run(lv)
+
+      send(lv.pid, {
+        :agent_action,
+        %{
+          tool: "submit_code",
+          args: %{"code" => "def handle(p), do: :submitted", "test_code" => "defmodule T do end"},
+          run_id: run_id
+        }
+      })
+
+      assert render(lv) =~ "Calculator"
+    end
+
+    test "submit_code action without test_code preserves existing test_code",
+         %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
+      open_chat_and_send(lv, "Submit no tests")
+      run_id = start_agent_run(lv)
+
+      send(lv.pid, {
+        :agent_action,
+        %{
+          tool: "submit_code",
+          args: %{"code" => "def handle(p), do: :submitted"},
+          run_id: run_id
+        }
+      })
+
+      assert render(lv) =~ "Calculator"
+    end
+  end
+
+  # ── apply_result_to_editor branches ───────────────────────────────────
+
+  describe "apply_result_to_editor" do
+    test "format_code success result updates code assign",
+         %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
+      open_chat_and_send(lv, "Format")
+      run_id = start_agent_run(lv)
+
+      send(lv.pid, {
+        :tool_result,
+        %{tool: "format_code", success: true, content: "def handle(p), do: :formatted", run_id: run_id}
+      })
+
+      assert render(lv) =~ "Calculator"
+    end
+
+    test "generate_tests success result updates test_code assign",
+         %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
+      open_chat_and_send(lv, "Generate tests")
+      run_id = start_agent_run(lv)
+
+      send(lv.pid, {
+        :tool_result,
+        %{tool: "generate_tests", success: true, content: "defmodule MyTest do\nend", run_id: run_id}
+      })
+
+      assert render(lv) =~ "Calculator"
+    end
+
+    test "format_code with success false does not update code",
+         %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
+      open_chat_and_send(lv, "Format fail")
+      run_id = start_agent_run(lv)
+
+      send(lv.pid, {
+        :tool_result,
+        %{tool: "format_code", success: false, content: "formatter error", run_id: run_id}
+      })
+
+      assert render(lv) =~ "Calculator"
+    end
+  end
+
+  # ── handle_agent_code_completed: no previous code path ────────────────
+
+  describe "agent_completed with no previous source_code" do
+    test "auto-applies code without showing accept/reject when api has no prior code",
+         %{conn: conn, user: user} do
+      {:ok, %{organization: org}} =
+        Blackboex.Organizations.create_organization(user, %{
+          name: "Empty Code Org",
+          slug: "emptycode#{System.unique_integer([:positive])}"
+        })
+
+      {:ok, api_no_code} =
+        Blackboex.Apis.create_api(%{
+          name: "Fresh API",
+          slug: "freshapi#{System.unique_integer([:positive])}",
+          template_type: "computation",
+          organization_id: org.id,
+          user_id: user.id
+          # no source_code provided → defaults to nil/empty
+        })
+
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api_no_code.id}/edit/chat?org=#{org.id}")
+      open_chat_and_send(lv, "Generate")
+      run_id = start_agent_run(lv)
+
+      send(lv.pid, {
+        :agent_completed,
+        %{
+          code: "def handle(p), do: p",
+          test_code: nil,
+          summary: "Code generated",
+          run_id: run_id,
+          status: "completed"
+        }
+      })
+
+      html = render(lv)
+      # No previous code → auto-apply, no accept/reject UI
+      refute html =~ "Thinking..."
+    end
+  end
+
   # ── UX Consistency ─────────────────────────────────────────────────────
 
   describe "UX consistency" do

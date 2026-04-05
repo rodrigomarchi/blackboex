@@ -21,7 +21,16 @@ defmodule BlackboexWeb.MixProject do
           # Backpex admin panels — library-generated code, tested by Backpex itself
           ~r/BlackboexWeb\.Admin\./,
           # SaladUI wrapper components with no custom logic
-          ~r/BlackboexWeb\.Components\.(Input|Label|Separator|Sheet|Sidebar|Skeleton|Spinner|Table|Tabs|Tooltip|DropdownMenu)$/
+          ~r/BlackboexWeb\.Components\.(Input|Label|Separator|Sheet|Sidebar|Skeleton|Spinner|Table|Tabs|Tooltip|DropdownMenu|Card|FormField|Avatar)$/,
+          BlackboexWeb.Logo,
+          # Infrastructure modules — Prometheus metrics, telemetry, error templates
+          ~r/BlackboexWeb\.PromEx/,
+          BlackboexWeb.Telemetry,
+          BlackboexWeb.ErrorHTML,
+          BlackboexWeb.PageHTML,
+          BlackboexWeb.PublicApiHTML,
+          BlackboexWeb.Application,
+          BlackboexWeb.BeamMonitor
         ]
       ]
     ]

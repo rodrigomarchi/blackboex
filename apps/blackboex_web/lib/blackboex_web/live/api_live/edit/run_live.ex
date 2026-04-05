@@ -427,6 +427,8 @@ defmodule BlackboexWeb.ApiLive.Edit.RunLive do
     {:noreply, assign(socket, test_loading: false, test_ref: nil)}
   end
 
+  def handle_info(_msg, socket), do: {:noreply, socket}
+
   # ── Private Helpers ───────────────────────────────────────────────────
 
   defp init_assigns(socket) do

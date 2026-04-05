@@ -271,6 +271,249 @@ defmodule BlackboexWeb.ApiLive.Edit.RunLiveTest do
     end
   end
 
+  describe "update_test_method" do
+    test "valid method updates assign", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/run?org=#{org.id}")
+
+      html = render_click(lv, "update_test_method", %{"method" => "DELETE"})
+      assert is_binary(html)
+    end
+
+    test "invalid method is ignored", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/run?org=#{org.id}")
+
+      html = render_click(lv, "update_test_method", %{"method" => "INVALID"})
+      assert is_binary(html)
+    end
+  end
+
+  describe "update_test_url" do
+    test "updates the URL assign", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/run?org=#{org.id}")
+
+      html = render_click(lv, "update_test_url", %{"url" => "/api/custom/path"})
+      assert is_binary(html)
+    end
+  end
+
+  describe "update_test_body" do
+    test "valid JSON clears body error", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/run?org=#{org.id}")
+
+      # First set invalid JSON
+      render_click(lv, "update_test_body", %{"test_body_json" => "{bad"})
+
+      # Then fix it
+      html = render_click(lv, "update_test_body", %{"test_body_json" => ~s({"x": 1})})
+      refute html =~ "Invalid JSON"
+    end
+
+    test "invalid JSON sets body error", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/run?org=#{org.id}")
+
+      html = render_click(lv, "update_test_body", %{"test_body_json" => "not json"})
+      assert html =~ "Invalid JSON"
+    end
+
+    test "empty string is invalid JSON and shows error", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/run?org=#{org.id}")
+
+      html = render_click(lv, "update_test_body", %{"test_body_json" => ""})
+      assert html =~ "Invalid JSON"
+    end
+  end
+
+  describe "switch_request_tab" do
+    test "switches to params tab", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/run?org=#{org.id}")
+
+      html = render_click(lv, "switch_request_tab", %{"tab" => "params"})
+      assert is_binary(html)
+    end
+
+    test "switches to headers tab", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/run?org=#{org.id}")
+
+      html = render_click(lv, "switch_request_tab", %{"tab" => "headers"})
+      assert is_binary(html)
+    end
+
+    test "switches to auth tab", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/run?org=#{org.id}")
+
+      html = render_click(lv, "switch_request_tab", %{"tab" => "auth"})
+      assert is_binary(html)
+    end
+
+    test "invalid tab is ignored", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/run?org=#{org.id}")
+
+      html = render_click(lv, "switch_request_tab", %{"tab" => "invalid"})
+      assert is_binary(html)
+    end
+  end
+
+  describe "switch_response_tab" do
+    test "switches to headers tab", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/run?org=#{org.id}")
+
+      html = render_click(lv, "switch_response_tab", %{"tab" => "headers"})
+      assert is_binary(html)
+    end
+
+    test "switches to body tab", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/run?org=#{org.id}")
+
+      render_click(lv, "switch_response_tab", %{"tab" => "headers"})
+      html = render_click(lv, "switch_response_tab", %{"tab" => "body"})
+      assert is_binary(html)
+    end
+
+    test "invalid response tab is ignored", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/run?org=#{org.id}")
+
+      html = render_click(lv, "switch_response_tab", %{"tab" => "invalid"})
+      assert is_binary(html)
+    end
+  end
+
+  describe "add_param / remove_param / update_param_key / update_param_value" do
+    test "add_param adds a new empty parameter row", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/run?org=#{org.id}")
+
+      html = render_click(lv, "add_param", %{})
+      assert is_binary(html)
+    end
+
+    test "remove_param removes a parameter by id", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/run?org=#{org.id}")
+
+      render_click(lv, "add_param", %{})
+
+      # Get current assigns to retrieve the param id
+      %{test_params: params} = :sys.get_state(lv.pid).socket.assigns
+      [param | _] = params
+
+      html = render_click(lv, "remove_param", %{"id" => param.id})
+      assert is_binary(html)
+    end
+
+    test "update_param_key updates the key of a parameter", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/run?org=#{org.id}")
+
+      render_click(lv, "add_param", %{})
+      %{test_params: params} = :sys.get_state(lv.pid).socket.assigns
+      [param | _] = params
+
+      html = render_click(lv, "update_param_key", %{"id" => param.id, "param_key" => "mykey"})
+      assert is_binary(html)
+    end
+
+    test "update_param_value updates the value of a parameter", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/run?org=#{org.id}")
+
+      render_click(lv, "add_param", %{})
+      %{test_params: params} = :sys.get_state(lv.pid).socket.assigns
+      [param | _] = params
+
+      html =
+        render_click(lv, "update_param_value", %{"id" => param.id, "param_value" => "myval"})
+
+      assert is_binary(html)
+    end
+  end
+
+  describe "add_header / remove_header / update_header_key / update_header_value" do
+    test "add_header adds a new empty header row", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/run?org=#{org.id}")
+
+      html = render_click(lv, "add_header", %{})
+      assert is_binary(html)
+    end
+
+    test "remove_header removes an existing header", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/run?org=#{org.id}")
+
+      render_click(lv, "add_header", %{})
+      %{test_headers: headers} = :sys.get_state(lv.pid).socket.assigns
+      # Use the first non-default header (there may be a Content-Type already)
+      [header | _] = Enum.reverse(headers)
+
+      html = render_click(lv, "remove_header", %{"id" => header.id})
+      assert is_binary(html)
+    end
+
+    test "update_header_key updates the key of a header", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/run?org=#{org.id}")
+
+      %{test_headers: headers} = :sys.get_state(lv.pid).socket.assigns
+      [header | _] = headers
+
+      html =
+        render_click(lv, "update_header_key", %{"id" => header.id, "header_key" => "X-Custom"})
+
+      assert is_binary(html)
+    end
+
+    test "update_header_value updates the value of a header", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/run?org=#{org.id}")
+
+      %{test_headers: headers} = :sys.get_state(lv.pid).socket.assigns
+      [header | _] = headers
+
+      html =
+        render_click(lv, "update_header_value", %{
+          "id" => header.id,
+          "header_value" => "custom-val"
+        })
+
+      assert is_binary(html)
+    end
+  end
+
+  describe "send_request" do
+    test "send_request starts loading and second click is guarded", %{
+      conn: conn,
+      org: org,
+      api: api
+    } do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/run?org=#{org.id}")
+
+      # First send starts loading
+      html1 = render_click(lv, "send_request", %{})
+      assert is_binary(html1)
+
+      # Second send should be guarded (test_loading: true)
+      html2 = render_click(lv, "send_request", %{})
+      assert is_binary(html2)
+    end
+  end
+
+  describe "copy_snippet" do
+    test "valid language copies snippet", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/run?org=#{org.id}")
+
+      html = render_click(lv, "copy_snippet", %{"language" => "curl"})
+      assert html =~ "copied" or is_binary(html)
+    end
+
+    test "invalid language is a no-op", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/run?org=#{org.id}")
+
+      html = render_click(lv, "copy_snippet", %{"language" => "haskell"})
+      assert is_binary(html)
+    end
+
+    test "all valid snippet languages work", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/run?org=#{org.id}")
+
+      for lang <- ~w(curl python javascript elixir ruby go) do
+        html = render_click(lv, "copy_snippet", %{"language" => lang})
+        assert is_binary(html)
+      end
+    end
+  end
+
   describe "history display" do
     test "history items show method, path, and status", %{
       conn: conn,

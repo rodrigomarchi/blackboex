@@ -84,5 +84,56 @@ defmodule BlackboexWeb.Plugs.CacheBodyReaderTest do
       assert raw == payload
       assert byte_size(raw) == byte_size(payload)
     end
+
+    test "read_body/2 returns :ok tuple with binary body and updated conn" do
+      body = ~s({"amount":1000})
+      conn = conn(:post, "/webhook", body)
+
+      result = CacheBodyReader.read_body(conn, [])
+
+      assert {:ok, ^body, %Plug.Conn{}} = result
+    end
+
+    test "raw_body assign is a list after first read" do
+      body = "hello"
+      conn = conn(:post, "/webhook", body)
+
+      {:ok, _read, conn} = CacheBodyReader.read_body(conn, [])
+
+      assert is_list(conn.assigns[:raw_body])
+    end
+
+    test "get_raw_body/1 joins multiple chunks in correct order" do
+      # Simulate three sequential reads accumulated in raw_body list
+      # (list is stored in reverse order, reversed on read)
+      conn = build_conn(:post, "/webhook")
+      conn = Plug.Conn.assign(conn, :raw_body, ["c", "b", "a"])
+
+      # get_raw_body reverses then joins: ["a","b","c"] -> "abc"
+      assert CacheBodyReader.get_raw_body(conn) == "abc"
+    end
+
+    test "initial read when raw_body assign is nil sets it to a list" do
+      body = "first"
+      conn = conn(:post, "/webhook", body)
+
+      # raw_body starts as nil
+      assert is_nil(conn.assigns[:raw_body])
+
+      {:ok, _read, conn} = CacheBodyReader.read_body(conn, [])
+
+      # After read, raw_body is a list containing the body chunk
+      assert conn.assigns[:raw_body] == [body]
+    end
+
+    test "works with binary (non-JSON) body" do
+      binary_body = <<0, 1, 2, 3, 255>>
+      conn = conn(:post, "/webhook", binary_body)
+
+      {:ok, read_body, conn} = CacheBodyReader.read_body(conn, [])
+
+      assert read_body == binary_body
+      assert CacheBodyReader.get_raw_body(conn) == binary_body
+    end
   end
 end

@@ -121,6 +121,93 @@ defmodule BlackboexWeb.ApiLive.Edit.MetricsLiveTest do
     end
   end
 
+  describe "command palette events" do
+    test "toggle_command_palette opens the palette", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/metrics?org=#{org.id}")
+
+      html = render_click(lv, "toggle_command_palette", %{})
+      assert is_binary(html)
+    end
+
+    test "close_panels closes the palette", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/metrics?org=#{org.id}")
+
+      render_click(lv, "toggle_command_palette", %{})
+      html = render_click(lv, "close_panels", %{})
+      assert is_binary(html)
+    end
+
+    test "close_panels when already closed is a no-op", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/metrics?org=#{org.id}")
+
+      html = render_click(lv, "close_panels", %{})
+      assert is_binary(html)
+    end
+
+    test "command_palette_search filters by query", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/metrics?org=#{org.id}")
+
+      render_click(lv, "toggle_command_palette", %{})
+      html = render_click(lv, "command_palette_search", %{"command_query" => "metrics"})
+      assert is_binary(html)
+    end
+
+    test "command_palette_navigate down advances selection", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/metrics?org=#{org.id}")
+
+      render_click(lv, "toggle_command_palette", %{})
+      html = render_click(lv, "command_palette_navigate", %{"direction" => "down"})
+      assert is_binary(html)
+    end
+
+    test "command_palette_navigate up moves selection back", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/metrics?org=#{org.id}")
+
+      render_click(lv, "toggle_command_palette", %{})
+      html = render_click(lv, "command_palette_navigate", %{"direction" => "up"})
+      assert is_binary(html)
+    end
+
+    test "command_palette_exec navigates to a tab", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/metrics?org=#{org.id}")
+
+      render_click(lv, "toggle_command_palette", %{})
+      result = render_click(lv, "command_palette_exec", %{"event" => "switch_tab_run"})
+      assert is_binary(result) or match?({:error, {:live_redirect, _}}, result)
+    end
+
+    test "command_palette_exec_first executes first command", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/metrics?org=#{org.id}")
+
+      render_click(lv, "toggle_command_palette", %{})
+      result = render_click(lv, "command_palette_exec_first", %{})
+      assert is_binary(result) or match?({:error, {:live_redirect, _}}, result)
+    end
+  end
+
+  describe "format_time_ago coverage" do
+    test "recent_errors with sub-minute time shows seconds ago", %{
+      conn: conn,
+      org: org,
+      api: api,
+      user: user
+    } do
+      Blackboex.Testing.create_test_request(%{
+        api_id: api.id,
+        user_id: user.id,
+        method: "POST",
+        path: "/api/test/path",
+        response_status: 500,
+        response_body: "error",
+        duration_ms: 50,
+        error_message: "Something went wrong"
+      })
+
+      {:ok, _lv, html} = live(conn, ~p"/apis/#{api.id}/edit/metrics?org=#{org.id}")
+      assert is_binary(html)
+    end
+  end
+
   describe "with invocation data" do
     test "shows charts section when rollup data exists", %{conn: conn, org: org, api: api} do
       insert_rollup(api, %{

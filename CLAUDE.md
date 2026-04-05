@@ -6,7 +6,7 @@ NUNCA fazer commit sem o usuario pedir explicitamente. Sempre esperar a instruca
 
 ## Active Technologies
 
-- Elixir ~> 1.15 / OTP 26+ + Phoenix 1.8+, Phoenix LiveView ~> 1.0, Ecto 3.x
+- Elixir ~> 1.15 / OTP 26+ + Phoenix 1.8+, Phoenix LiveView ~> 1.1, Ecto 3.x
 - PostgreSQL 16+ via Ecto
 - Tailwind CSS + esbuild for asset bundling (no npm for build)
 - SaladUI component library + Backpex (admin panel)
@@ -48,58 +48,14 @@ make docker.reset              # Reset Docker volumes
 
 ## Architecture
 
-Umbrella app with strict domain/web separation. The domain app (`blackboex`) has zero Phoenix dependencies.
+Umbrella app with strict domain/web separation. See `AGENTS.md` for full context map, inter-context dependencies, data flows, test patterns, and config differences.
 
-### Domain Contexts (`apps/blackboex/lib/blackboex/`)
+## Development Workflow — Mandatory Rules
 
-- **Accounts** — Users, auth tokens, scopes. Multi-tenant via `Accounts.Scope` (user + organization context). Modules: `User`, `UserToken`, `UserNotifier`, `Scope`.
-- **Organizations** — Multi-tenancy: orgs, memberships, org-level access control. Modules: `Organization`, `Membership`.
-- **Apis** — Core business entity. API definitions with lifecycle: `draft -> compiled -> published -> archived`. Modules: `Api`, `ApiKey`, `ApiVersion`, `Analytics`, `DashboardQueries`, `DataStore`, `DataStore.Entry`, `Deployer`, `DiffEngine`, `InvocationLog`, `Keys`, `MetricRollup`, `MetricRollupWorker`, `Registry` (GenServer tracking deployed versions).
-- **Conversations** — Agent interaction history. 1:1 per API. Event-sourced: Conversation -> Run -> Event. Tracks token usage, costs, total runs/events. Modules: `Conversation`, `Run`, `Event`.
-- **Agent** — AI code generation orchestration via LangChain. `Agent.Session` GenServer per run. Entry point: `Agent.KickoffWorker` (Oban). `CodePipeline` for deterministic generation (2-4 LLM calls). `FixPrompts` for retry logic. `RecoveryWorker` cron recovers failed runs every 2 min.
-- **CodeGen** — Compilation/validation pipeline. `UnifiedPipeline` orchestrates `Compiler`, `Sandbox`, `Linter`, `AstValidator`, `SchemaExtractor`. Also: `Pipeline` (classification), `ModuleBuilder`, `GenerationResult`, `UnifiedPrompts`. Called by Agent.CodePipeline and Agent.Session.
-- **Billing** — Stripe integration. Modules: `Subscription`, `UsageEvent`, `DailyUsage`, `ProcessedEvent`, `Enforcement` (plan limit gates), `StripeClient` (behaviour) + `StripeClient.Live` (prod impl), `WebhookHandler`, `UsageAggregationWorker` (Oban, on-demand).
-- **LLM** — Model interface with `CircuitBreaker` GenServer and `RateLimiter`. Behaviour: `ClientBehaviour`. Clients: `ReqLLMClient` (prod). Also: `Config`, `Prompts`, `EditPrompts`, `Templates`, `StreamHandler`, `Usage`, `schemas/GeneratedEndpoint`.
-- **Testing** — API test framework. Modules: `TestRunner`, `TestGenerator`, `TestSuite`, `TestRequest`, `TestPrompts`, `ResponseValidator`, `ContractValidator`, `RequestExecutor`, `SampleData`, `SnippetGenerator`, `TestFormatter`, `SandboxCase`.
-- **Docs** — `DocGenerator` (markdown), `OpenApiGenerator` (OpenAPI specs), `DocPrompts`.
-- **Audit** — Row-level change tracking via ExAudit. Modules: `AuditLog`, `Version`. Tracked schemas: Subscription, Api, ApiKey, Organization.
-- **Policy** — Authorization via LetMe DSL. Module: `Checks`. Policy checks used by contexts.
-- **Telemetry** — `Telemetry.Events` for OpenTelemetry instrumentation and safe event emission.
-- **Features** — FunWithFlags integration. Modules: `features/ActorImpl`, `features/GroupImpl` (user-based and plan-based flag targeting).
-
-### Web App (`apps/blackboex_web/lib/blackboex_web/`)
-
-- **LiveViews**: Dashboard, ApiLive (Index/New/Show/Edit/Analytics), ApiKeyLive (Index/Show), BillingLive (Plans/Manage), SettingsLive, UserLive (Registration/Login/Confirmation/Settings)
-- **Controllers**: `PageController`, `UserSessionController`, `WebhookController` (Stripe), `PublicApiController`, `ErrorHtml`, `ErrorJson`
-- **Admin**: Backpex-powered at `/admin` — 23 LiveResource modules (users, user_tokens, orgs, memberships, apis, api_keys, api_versions, agent conversations/runs/events, data_store entries, invocation_logs, metric_rollups, test_requests/suites, daily_usage, usage_events, processed_events, audit_logs, versions, llm_usage, subscriptions)
-- **Dynamic API routing**: `/api/*` forwarded to `DynamicApiRouter` plug which dispatches to deployed API versions
-- **Public**: `/p/:org_slug/:api_slug` via `PublicApiController` serves published API documentation
-- **Layouts**: Root, AdminRoot, App, Editor (for API editing), Admin, Auth
-- **Components**: CoreComponents, ChatPanel, RequestBuilder, ResponseViewer, EditorToolbar, CommandPalette, ValidationDashboard, StatusBar, RightPanel, BottomPanel, Charts, Logo + `ui/` directory with SaladUI components (button, input, card, badge, avatar, dropdown_menu, sheet, sidebar, tabs, tooltip, skeleton, etc.)
-- **Plugs**: `ApiAuth`, `DynamicApiRouter`, `RateLimiter`, `SetOrganization`, `AuditContext`, `RequirePlatformAdmin`, `CacheBodyReader`, `HealthCheck`, `ApiDocsPlug`
-- **Infrastructure**: `PromEx` (Prometheus metrics), `BeamMonitor` (BEAM VM monitoring), `RateLimiterBackend` (ETS-based)
-
-### Key Patterns
-
-- **PubSub**: Real-time updates broadcast on `api:#{api_id}` topic
-- **Oban queues**: `billing` (10), `analytics` (5), `generation` (3). Cron: `Apis.MetricRollupWorker` (hourly), `Agent.RecoveryWorker` (every 2 min). On-demand: `Agent.KickoffWorker`, `Billing.UsageAggregationWorker`
-- **Advisory locks**: `pg_advisory_xact_lock` for API creation consistency
-- **Feature flags**: `fun_with_flags` (e.g., `:agent_pipeline`)
-- **Multi-tenant auth**: `SetOrganization` on_mount hook loads org from session
-
-### Test Patterns
-
-- **Factories**: ExMachina via `Blackboex.Factory`
-- **Mocks**: Mox for LLM (`ClientBehaviour` → `ClientMock`) and Stripe (`StripeClient` → `StripeClientMock`)
-- **Sandbox**: `Blackboex.DataCase` sets up Ecto SQL sandbox
-- **Oban**: Test mode `:manual` — jobs don't auto-execute, use `Oban.Testing`
-- **Tags**: `@moduletag :unit`, `@moduletag :integration`, `@moduletag :liveview`, `@tag :capture_log`
-
-### Config Differences
-
-- **Dev**: Real LLM client, PostgreSQL on port 5434, OpenTelemetry disabled
-- **Test**: Mock LLM + Stripe clients, PostgreSQL on port 5435, Oban manual mode, FunWithFlags cache disabled
-- **Prod**: Env vars for DATABASE_URL, Stripe keys, ANTHROPIC_API_KEY, OPENAI_API_KEY. Postmark mailer. OTLP tracing with 10% sampling
+- **TDD mandatory** — Write tests FIRST, see them fail, then implement. No exceptions.
+- **Always run `make test` + `make lint`** after every change. Fix ALL issues including pre-existing ones.
+- **Zero warnings policy** — Never ignore Credo [D] design warnings. Never dismiss Dialyzer warnings without root cause investigation.
+- **Living documentation** — Update AGENTS.md when adding/changing modules, functions, components, or patterns. Drift causes AI agents to generate wrong code.
 
 ## Code Style
 
@@ -126,3 +82,32 @@ Umbrella app with strict domain/web separation. The domain app (`blackboex`) has
 - `AGENTS.md` — hierarchical AI agent context (root + per-directory)
 - `docs/architecture.md` — context diagrams, data flows, supervision tree, invariants
 - `docs/gotchas.md` — consolidated gotchas from all 10 development phases
+
+### AGENTS.md Hierarchy (always consult before generating code)
+
+```
+AGENTS.md                                          — Root: stack, structure, critical rules
+├── apps/blackboex/AGENTS.md                       — Domain: context map, public APIs, invariants
+│   ├── lib/blackboex/accounts/AGENTS.md           — Auth, Scope, UserToken, multi-tenancy
+│   ├── lib/blackboex/apis/AGENTS.md               — Core entity, lifecycle, Registry, deployment
+│   ├── lib/blackboex/agent/AGENTS.md              — AI pipeline, Session, CodePipeline
+│   ├── lib/blackboex/billing/AGENTS.md            — Stripe, enforcement, webhooks
+│   ├── lib/blackboex/code_gen/AGENTS.md           — Compiler, sandbox, validation
+│   ├── lib/blackboex/conversations/AGENTS.md      — Event-sourced runs/events
+│   ├── lib/blackboex/docs/AGENTS.md               — DocGenerator, OpenAPI
+│   ├── lib/blackboex/features/AGENTS.md           — FunWithFlags, feature flags
+│   ├── lib/blackboex/llm/AGENTS.md                — CircuitBreaker, RateLimiter, prompts
+│   ├── lib/blackboex/organizations/AGENTS.md      — Multi-tenancy, memberships
+│   ├── lib/blackboex/policy/AGENTS.md             — LetMe DSL, authorization
+│   ├── lib/blackboex/telemetry/AGENTS.md          — OpenTelemetry, events
+│   ├── lib/blackboex/testing/AGENTS.md            — TestRunner, TestGenerator, validation
+│   └── lib/blackboex/audit/AGENTS.md              — ExAudit, AuditLog
+├── apps/blackboex_web/AGENTS.md                   — Web: routing, auth flow, plugs
+│   ├── lib/blackboex_web/components/AGENTS.md     — FULL component catalog (SaladUI + shared + editor)
+│   ├── lib/blackboex_web/live/AGENTS.md           — LiveView patterns + catalog of all views
+│   ├── lib/blackboex_web/admin/AGENTS.md          — Backpex admin, 23 LiveResources
+│   ├── lib/blackboex_web/plugs/AGENTS.md          — All custom plugs, composition order
+│   └── lib/blackboex_web/controllers/AGENTS.md    — Controllers, UserAuth, hooks
+```
+
+**Rule:** Before generating code in ANY area, read the relevant AGENTS.md first. The component catalog (`components/AGENTS.md`) is especially critical — all UI must be compositions of existing components.

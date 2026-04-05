@@ -2,6 +2,8 @@
 
 Pure business logic. Zero Phoenix dependencies. All contexts accessed via facade modules.
 
+Each context has its own AGENTS.md — **read it before generating code in that area.**
+
 ## Context Map
 
 | Context | Purpose | Key Schemas |
@@ -103,8 +105,4 @@ Pure business logic. Zero Phoenix dependencies. All contexts accessed via facade
 
 ## Test Infrastructure
 
-- `Blackboex.DataCase` — Ecto sandbox setup, `import Blackboex.Factory`
-- `Blackboex.Factory` — ExMachina base. Test data primarily via fixtures in `test/support/fixtures/`
-- Mox mocks: `Blackboex.LLM.ClientMock`, `Blackboex.Billing.StripeClientMock`
-- Oban test mode: `:manual` — assert with `Oban.Testing.assert_enqueued/2`
-- Tags: `@moduletag :unit`, `@moduletag :integration`, `@moduletag :liveview`, `@tag :capture_log`
+See root `AGENTS.md § Test Patterns`. Key: `DataCase` for sandbox, `Factory` for data, Mox for LLM/Stripe, Oban manual mode.

@@ -2,6 +2,10 @@
 
 Phoenix web layer. LiveViews, admin panel, dynamic API routing, components.
 
+**ALL UI = component compositions** — NEVER write inline HTML when a component exists. Read `components/AGENTS.md` before ANY UI work.
+
+Each directory has its own AGENTS.md — **read it before generating code in that area.**
+
 ## Routing Map
 
 ### Public (no auth)
@@ -161,4 +165,4 @@ def handle_info({:run_completed, run}, socket), do: ...
 3. **LiveComponent assigns** — not inherited from parent. Pass every required assign explicitly.
 4. **Esbuild umbrella imports** — use NODE_PATH, not relative paths like `../../deps/`.
 5. **SetOrganization hook order** — must run AFTER `:mount_current_scope`. Check on_mount order in live_session.
-7. **Backpex can? defensive match** — `current_scope` may not exist if hook order wrong.
+6. **Backpex can? defensive match** — `current_scope` may not exist if hook order wrong.

@@ -23,10 +23,26 @@ infra/                — Docker, deployment
 
 See sub-AGENTS.md for deeper context:
 - `apps/blackboex/AGENTS.md` — Domain contexts, public APIs, invariants
+- `apps/blackboex/lib/blackboex/accounts/AGENTS.md` — Auth, Scope, UserToken
+- `apps/blackboex/lib/blackboex/apis/AGENTS.md` — Core entity, lifecycle, Registry
 - `apps/blackboex/lib/blackboex/agent/AGENTS.md` — AI agent pipeline
-- `apps/blackboex/lib/blackboex/code_gen/AGENTS.md` — Compilation/validation pipeline
 - `apps/blackboex/lib/blackboex/billing/AGENTS.md` — Stripe/billing
-- `apps/blackboex_web/AGENTS.md` — Web layer, routing, components
+- `apps/blackboex/lib/blackboex/code_gen/AGENTS.md` — Compilation/validation pipeline
+- `apps/blackboex/lib/blackboex/conversations/AGENTS.md` — Event-sourced runs/events
+- `apps/blackboex/lib/blackboex/docs/AGENTS.md` — DocGenerator, OpenAPI
+- `apps/blackboex/lib/blackboex/features/AGENTS.md` — Feature flags
+- `apps/blackboex/lib/blackboex/llm/AGENTS.md` — CircuitBreaker, prompts
+- `apps/blackboex/lib/blackboex/organizations/AGENTS.md` — Multi-tenancy
+- `apps/blackboex/lib/blackboex/policy/AGENTS.md` — LetMe authorization
+- `apps/blackboex/lib/blackboex/telemetry/AGENTS.md` — OpenTelemetry, events
+- `apps/blackboex/lib/blackboex/testing/AGENTS.md` — TestRunner, validation
+- `apps/blackboex/lib/blackboex/audit/AGENTS.md` — ExAudit, AuditLog
+- `apps/blackboex_web/AGENTS.md` — Web layer, routing, auth flow
+- `apps/blackboex_web/lib/blackboex_web/components/AGENTS.md` — **FULL component catalog** (read before ANY UI work)
+- `apps/blackboex_web/lib/blackboex_web/live/AGENTS.md` — LiveView patterns + catalog
+- `apps/blackboex_web/lib/blackboex_web/admin/AGENTS.md` — Backpex admin panel
+- `apps/blackboex_web/lib/blackboex_web/plugs/AGENTS.md` — Custom plugs
+- `apps/blackboex_web/lib/blackboex_web/controllers/AGENTS.md` — Controllers, UserAuth, hooks
 
 ## Essential Commands
 
@@ -49,17 +65,9 @@ make test.web     # Web app only
 5. **All async work uses Task.async** — never `send(self(), :blocking_work)` in LiveView
 6. **Mox for external services** — `ClientMock` (LLM), `StripeClientMock` (Stripe)
 7. **Oban for background jobs** — never spawn unsupervised processes for business logic
-
-## Never Do This
-
-- Compile user code outside the sandbox (CodeGen.Compiler)
-- Use `String.to_atom/1` with external data — use Map lookup instead
-- Skip ownership checks when fetching resources (IDOR vulnerability)
-- Return internal error details to users — log internally, show generic message
-- Use `==` to compare secrets — use `Plug.Crypto.secure_compare/2`
-- Use `send(self())` for IO/network work in LiveView processes
-- Call domain modules directly from templates — go through context facades
-- Run `Repo.get!` with session/external data — use `Repo.get` + pattern match
+8. **TDD mandatory** — write tests FIRST, see them fail, then implement. No exceptions.
+9. **Always run `make test` + `make lint` after changes** — fix ALL issues including pre-existing ones
+10. **Keep AGENTS.md in sync** — update documentation when adding/changing modules, functions, components, or patterns
 
 ## Inter-Context Dependencies
 
@@ -81,19 +89,8 @@ Accounts ──→ Organizations (creates personal org on registration)
 
 ## Test Patterns
 
-- **Factories:** ExMachina base in `Blackboex.Factory`. Test data primarily via fixtures in `test/support/fixtures/`
-- **Mocks:** Mox — define expectations before test, verify on exit
-- **Sandbox:** `Blackboex.DataCase` sets up Ecto SQL sandbox
-- **Oban:** Test mode `:manual` — use `Oban.Testing.assert_enqueued/2`
-- **Tags:** `@moduletag :unit`, `@moduletag :integration`, `@moduletag :liveview`, `@tag :capture_log`
-- **Async:** Tests using Mox mocks must set `async: false`
-
-## Config Environments
-
-| Aspect | Dev | Test | Prod |
-|--------|-----|------|------|
-| LLM | Real client | ClientMock | Real client |
-| Stripe | Real client | StripeClientMock | Real client |
-| DB port | 5434 | 5435 | DATABASE_URL |
-| Oban | Normal | Manual mode | Normal |
-| OTel | Disabled | Disabled | 10% sampling |
+- **Factories:** ExMachina via `Blackboex.Factory` + fixtures in `test/support/fixtures/`
+- **Mocks:** Mox — `ClientMock` (LLM), `StripeClientMock` (Stripe). Tests with Mox must set `async: false`
+- **Sandbox:** `Blackboex.DataCase` for Ecto SQL sandbox
+- **Oban:** Manual mode — use `Oban.Testing.assert_enqueued/2`
+- **Tags:** `@moduletag :unit`, `:integration`, `:liveview`, `@tag :capture_log`

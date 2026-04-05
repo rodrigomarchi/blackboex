@@ -338,18 +338,15 @@ defmodule Blackboex.Agent.FixPromptsTest do
       assert block.replace == "new1\nnew2"
     end
 
-    @tag :known_bug
-    test "KNOWN BUG: fails with Windows line endings in SEARCH/REPLACE markers" do
-      # LLM might return \r\n — the regex uses literal \n which doesn't match \r\n.
-      # This test documents the bug. Fix: normalize \r\n -> \n before parsing,
-      # or change regex \n to [\r\n]+ or ~r/\R/
+    test "handles Windows line endings (\\r\\n) in SEARCH/REPLACE markers" do
+      # LLMs can return \r\n — input is normalized to \n before parsing.
       response =
         "<<<<<<< SEARCH\r\ndef old, do: 1\r\n=======\r\ndef new, do: 2\r\n>>>>>>> REPLACE"
 
-      blocks = FixPrompts.parse_search_replace_blocks(response)
+      [block] = FixPrompts.parse_search_replace_blocks(response)
 
-      # Currently returns [] because \r\n doesn't match \n in the regex
-      assert blocks == []
+      assert block.search == "def old, do: 1"
+      assert block.replace == "def new, do: 2"
     end
 
     test "ignores text between blocks" do

@@ -216,8 +216,12 @@ defmodule Blackboex.Agent.FixPrompts do
   @doc "Parse SEARCH/REPLACE blocks from LLM response into structured edits."
   @spec parse_search_replace_blocks(String.t()) :: [%{search: String.t(), replace: String.t()}]
   def parse_search_replace_blocks(response) do
+    # Normalize Windows line endings (\r\n) to Unix (\n) before parsing.
+    # LLMs can return either format depending on training data.
+    normalized = String.replace(response, "\r\n", "\n")
+
     ~r/<<<<<<< SEARCH\n(.*?)=======\n(.*?)>>>>>>> REPLACE/s
-    |> Regex.scan(response)
+    |> Regex.scan(normalized)
     |> Enum.map(fn [_, search, replace] ->
       %{search: String.trim_trailing(search, "\n"), replace: String.trim_trailing(replace, "\n")}
     end)

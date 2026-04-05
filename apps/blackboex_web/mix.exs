@@ -15,7 +15,15 @@ defmodule BlackboexWeb.MixProject do
       aliases: aliases(),
       deps: deps(),
       compilers: [:phoenix_live_view] ++ Mix.compilers(),
-      listeners: [Phoenix.CodeReloader]
+      listeners: [Phoenix.CodeReloader],
+      test_coverage: [
+        ignore_modules: [
+          # Backpex admin panels — library-generated code, tested by Backpex itself
+          ~r/BlackboexWeb\.Admin\./,
+          # SaladUI wrapper components with no custom logic
+          ~r/BlackboexWeb\.Components\.(Input|Label|Separator|Sheet|Sidebar|Skeleton|Spinner|Table|Tabs|Tooltip|DropdownMenu)$/
+        ]
+      ]
     ]
   end
 

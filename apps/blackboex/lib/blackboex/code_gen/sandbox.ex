@@ -33,31 +33,48 @@ defmodule Blackboex.CodeGen.Sandbox do
   def execute_plug(module, conn, opts \\ []) do
     # Plug.Conn is tied to the HTTP process — it CANNOT be used from a
     # Task process (Bandit raises "Adapter functions must be called by
-    # stream owner"). We execute the Plug in the current process with
-    # a timeout watchdog in a separate process instead.
+    # stream owner"). We run the Plug call in a linked Task that inherits
+    # the caller's process group, then use Task.yield + Task.shutdown
+    # for safe timeout handling (same pattern as execute/3).
+    #
+    # Previous approach used Process.exit(caller, :kill) which is
+    # untrappable and would kill the Bandit stream owner process.
     plug_opts = module.init([])
     timeout = Keyword.get(opts, :timeout, @default_timeout)
 
     Tracer.with_span "blackboex.sandbox.execute" do
       start_time = System.monotonic_time(:millisecond)
 
-      # Watchdog: kills this process if handler takes too long
-      caller = self()
-      watchdog = spawn_link(fn -> watchdog_timer(caller, timeout) end)
+      # Run the Plug call in a Task under the caller's process context.
+      # The task inherits the caller's group leader, so conn adapter
+      # calls (send_resp etc.) route back through the HTTP process.
+      task =
+        Task.async(fn ->
+          try do
+            result_conn = module.call(conn, plug_opts)
+            {:ok, result_conn}
+          rescue
+            error ->
+              {:exception, Exception.message(error)}
+          end
+        end)
 
       result =
-        try do
-          result_conn = module.call(conn, plug_opts)
-          {:ok, result_conn}
-        rescue
-          error ->
-            {:error, {:exception, Exception.message(error)}}
-        catch
-          :exit, :killed -> {:error, :timeout}
-          :exit, reason -> {:error, {:runtime, reason}}
-        after
-          Process.unlink(watchdog)
-          Process.exit(watchdog, :kill)
+        case Task.yield(task, timeout) || Task.shutdown(task, :brutal_kill) do
+          {:ok, {:ok, result_conn}} ->
+            {:ok, result_conn}
+
+          {:ok, {:exception, message}} ->
+            {:error, {:exception, message}}
+
+          {:exit, :killed} ->
+            {:error, :memory_exceeded}
+
+          {:exit, reason} ->
+            {:error, {:runtime, reason}}
+
+          nil ->
+            {:error, :timeout}
         end
 
       duration_ms = System.monotonic_time(:millisecond) - start_time
@@ -66,16 +83,6 @@ defmodule Blackboex.CodeGen.Sandbox do
       Events.emit_sandbox_execute(%{duration_ms: duration_ms, api_id: api_id})
 
       result
-    end
-  end
-
-  defp watchdog_timer(target, timeout) do
-    Process.monitor(target)
-
-    receive do
-      {:DOWN, _, :process, ^target, _} -> :ok
-    after
-      timeout -> Process.exit(target, :kill)
     end
   end
 

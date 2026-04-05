@@ -561,8 +561,8 @@ _(To be filled during test development)_
 
 | Module | Bug Description | Severity | Fixed? |
 |--------|----------------|----------|--------|
-| Agent.FixPrompts | `parse_search_replace_blocks/1` fails with `\r\n` (Windows line endings). Regex uses literal `\n` which doesn't match `\r\n`. LLMs can return Windows-style line endings. Fix: normalize input or use `[\r\n]+` in regex. | Medium | No |
-| CodeGen.Sandbox | `execute_plug/3` watchdog uses `Process.exit(target, :kill)` which is un-trappable. The `catch :exit, :killed` in the caller never fires — the process simply dies. In production this kills the HTTP process (Bandit stream owner). Should use `:brutal_kill` via a Task wrapper instead, or switch to a similar pattern as `execute/3` (Task.Supervisor + yield). | High | No |
+| Agent.FixPrompts | `parse_search_replace_blocks/1` fails with `\r\n` (Windows line endings). Regex uses literal `\n` which doesn't match `\r\n`. LLMs can return Windows-style line endings. Fix: normalize `\r\n` → `\n` before parsing. | Medium | Yes |
+| CodeGen.Sandbox | `execute_plug/3` watchdog uses `Process.exit(target, :kill)` which is un-trappable. The `catch :exit, :killed` in the caller never fires — the process simply dies. In production this kills the HTTP process (Bandit stream owner). Fix: replaced with Task.async + Task.yield/shutdown pattern (same as `execute/3`). | High | Yes |
 | DynamicApiRouter | `resolve_api/2` missing `{:error, :shutting_down}` clause — the `dispatch/4` shutdown branch was dead code. Registry returns `{:error, :shutting_down}` but `resolve_api` only matched `{:error, :not_found}`, causing a `CaseClauseError` crash. | High | Yes |
 
 ---

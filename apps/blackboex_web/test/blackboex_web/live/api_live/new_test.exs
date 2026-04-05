@@ -5,6 +5,14 @@ defmodule BlackboexWeb.ApiLive.NewTest do
 
   @moduletag :liveview
 
+  describe "render" do
+    test "renders an empty div" do
+      assigns = %{__changed__: nil}
+      html = Phoenix.LiveViewTest.render_component(&BlackboexWeb.ApiLive.New.render/1, assigns)
+      assert html =~ "<div"
+    end
+  end
+
   describe "unauthenticated" do
     test "redirects to login", %{conn: conn} do
       assert {:error, {:redirect, %{to: "/users/log-in"}}} = live(conn, ~p"/apis/new")

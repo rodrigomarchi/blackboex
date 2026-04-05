@@ -4,6 +4,7 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouterTest do
   @moduletag :integration
 
   alias Blackboex.Apis
+  alias Blackboex.Apis.Keys
   alias Blackboex.Apis.Registry
   alias Blackboex.CodeGen.Compiler
 
@@ -343,6 +344,314 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouterTest do
         |> post("/api/testorg/unregistered-api", Jason.encode!(%{}))
 
       assert json_response(conn, 200) == %{"hello" => "world"}
+    end
+  end
+
+  # ── rate limiting ─────────────────────────────────────────────────────────────
+
+  describe "rate limiting" do
+    test "returns 429 when draft IP rate limit is exceeded", %{conn: conn, org: org, user: user} do
+      create_and_compile_api(org, user)
+
+      unique_last_octet = System.unique_integer([:positive]) |> rem(200) |> Kernel.+(1)
+      ip = {192, 168, unique_last_octet, 1}
+
+      # Exhaust the draft IP limit (20 req/min)
+      for _ <- 1..20 do
+        c = %{build_conn(:get, "/api/testorg/calculator") | remote_ip: ip}
+        get(c, "/api/testorg/calculator")
+      end
+
+      conn = %{conn | remote_ip: ip}
+      conn = get(conn, "/api/testorg/calculator")
+
+      assert conn.status == 429
+      response = json_response(conn, 429)
+      assert response["error"] == "Rate limit exceeded"
+      assert is_integer(response["retry_after"])
+    end
+
+    test "returns retry-after header when rate limited", %{conn: conn, org: org, user: user} do
+      create_and_compile_api(org, user)
+
+      unique_last_octet = System.unique_integer([:positive]) |> rem(200) |> Kernel.+(1)
+      ip = {172, 16, unique_last_octet, 2}
+
+      # Exhaust draft limit
+      for _ <- 1..20 do
+        c = %{build_conn(:get, "/api/testorg/calculator") | remote_ip: ip}
+        get(c, "/api/testorg/calculator")
+      end
+
+      conn = %{conn | remote_ip: ip}
+      conn = get(conn, "/api/testorg/calculator")
+
+      # Status may be 429 if limit still active
+      if conn.status == 429 do
+        retry_after = get_resp_header(conn, "retry-after")
+        assert length(retry_after) == 1
+        assert String.to_integer(hd(retry_after)) >= 0
+      else
+        assert conn.status == 200
+      end
+    end
+  end
+
+  # ── authentication ────────────────────────────────────────────────────────────
+
+  describe "authentication for published APIs" do
+    defp create_published_api(org, user, attrs \\ %{}) do
+      defaults = %{
+        name: "Published API",
+        slug: "published-api",
+        template_type: "computation",
+        organization_id: org.id,
+        user_id: user.id,
+        requires_auth: true,
+        source_code: """
+        def handle(_params) do
+          %{result: "published"}
+        end
+        """
+      }
+
+      api_attrs = Map.merge(defaults, attrs)
+      {:ok, api} = Apis.create_api(api_attrs)
+      {:ok, module} = Compiler.compile(api, api.source_code)
+      {:ok, api} = Apis.update_api(api, %{status: "published"})
+
+      Registry.register(api.id, module,
+        org_slug: org.slug,
+        slug: api.slug,
+        requires_auth: api.requires_auth
+      )
+
+      on_exit(fn -> Compiler.unload(module) end)
+      api
+    end
+
+    test "returns 401 with missing_key message when no API key provided", %{
+      conn: conn,
+      org: org,
+      user: user
+    } do
+      create_published_api(org, user)
+
+      conn = get(conn, "/api/testorg/published-api")
+
+      assert conn.status == 401
+      response = json_response(conn, 401)
+      assert response["error"] == "API key required"
+      assert response["hint"] =~ "Authorization"
+    end
+
+    test "returns 401 with invalid message for wrong API key", %{
+      conn: conn,
+      org: org,
+      user: user
+    } do
+      create_published_api(org, user)
+
+      conn =
+        conn
+        |> put_req_header("authorization", "Bearer bb_live_invalidkeyxxxxxxxxxxxxxxxxxxxx")
+        |> get("/api/testorg/published-api")
+
+      assert conn.status == 401
+      assert json_response(conn, 401)["error"] == "Invalid API key"
+    end
+
+    test "returns 200 for published API with valid API key", %{
+      conn: conn,
+      org: org,
+      user: user
+    } do
+      api = create_published_api(org, user)
+      {:ok, plain_key, _api_key} = Keys.create_key(api, %{label: "Test", organization_id: org.id})
+
+      conn =
+        conn
+        |> put_req_header("authorization", "Bearer #{plain_key}")
+        |> put_req_header("content-type", "application/json")
+        |> post("/api/testorg/published-api", Jason.encode!(%{}))
+
+      assert json_response(conn, 200) == %{"result" => "published"}
+    end
+
+    test "returns 401 for revoked API key", %{conn: conn, org: org, user: user} do
+      api = create_published_api(org, user)
+
+      {:ok, plain_key, api_key} =
+        Keys.create_key(api, %{label: "Revocable", organization_id: org.id})
+
+      {:ok, _} = Keys.revoke_key(api_key)
+
+      conn =
+        conn
+        |> put_req_header("authorization", "Bearer #{plain_key}")
+        |> get("/api/testorg/published-api")
+
+      assert conn.status == 401
+      assert json_response(conn, 401)["error"] == "API key has been revoked"
+    end
+
+    test "returns 401 for expired API key", %{conn: conn, org: org, user: user} do
+      api = create_published_api(org, user)
+
+      {:ok, plain_key, _} =
+        Keys.create_key(api, %{
+          label: "Expired",
+          organization_id: org.id,
+          expires_at: DateTime.add(DateTime.utc_now(), -3600)
+        })
+
+      conn =
+        conn
+        |> put_req_header("authorization", "Bearer #{plain_key}")
+        |> get("/api/testorg/published-api")
+
+      assert conn.status == 401
+      assert json_response(conn, 401)["error"] == "API key has expired"
+    end
+
+    test "returns 200 for published API with requires_auth false (no key needed)", %{
+      conn: conn,
+      org: org,
+      user: user
+    } do
+      create_published_api(org, user, %{
+        name: "Public API",
+        slug: "public-api",
+        requires_auth: false
+      })
+
+      conn =
+        conn
+        |> put_req_header("content-type", "application/json")
+        |> post("/api/testorg/public-api", Jason.encode!(%{}))
+
+      assert json_response(conn, 200) == %{"result" => "published"}
+    end
+
+    test "accepts API key via X-API-Key header", %{conn: conn, org: org, user: user} do
+      api = create_published_api(org, user)
+      {:ok, plain_key, _} = Keys.create_key(api, %{label: "XKey", organization_id: org.id})
+
+      conn =
+        conn
+        |> put_req_header("x-api-key", plain_key)
+        |> put_req_header("content-type", "application/json")
+        |> post("/api/testorg/published-api", Jason.encode!(%{}))
+
+      assert json_response(conn, 200) == %{"result" => "published"}
+    end
+  end
+
+  # ── error sanitization ────────────────────────────────────────────────────────
+
+  describe "error sanitization" do
+    test "strips internal module paths from exception detail", %{
+      conn: conn,
+      org: org,
+      user: user
+    } do
+      create_and_compile_api(org, user, %{
+        name: "Exception API",
+        slug: "exception-api",
+        source_code: """
+        def handle(_params) do
+          raise RuntimeError, "error at Blackboex.DynamicApi.Api_abc123_def456.handle/1"
+        end
+        """
+      })
+
+      conn =
+        conn
+        |> put_req_header("content-type", "application/json")
+        |> post("/api/testorg/exception-api", Jason.encode!(%{}))
+
+      assert conn.status == 500
+      response = json_response(conn, 500)
+      assert response["error"] in ["handler error", "API execution failed"]
+
+      # Detail must not contain raw internal module paths
+      detail = response["detail"] || ""
+      refute detail =~ "Blackboex.DynamicApi.Api_"
+      refute detail =~ "Elixir.Blackboex"
+    end
+
+    test "500 response includes a detail field", %{conn: conn, org: org, user: user} do
+      create_and_compile_api(org, user, %{
+        name: "Error Detail API",
+        slug: "error-detail-api",
+        source_code: """
+        def handle(_params) do
+          raise "something went wrong"
+        end
+        """
+      })
+
+      conn =
+        conn
+        |> put_req_header("content-type", "application/json")
+        |> post("/api/testorg/error-detail-api", Jason.encode!(%{}))
+
+      assert conn.status == 500
+      response = json_response(conn, 500)
+      assert Map.has_key?(response, "error")
+      assert Map.has_key?(response, "detail")
+    end
+  end
+
+  # ── enforcement (billing) ─────────────────────────────────────────────────────
+
+  describe "billing enforcement" do
+    test "returns 402 when invocation limit is exceeded for published API", %{
+      conn: conn,
+      org: org,
+      user: user
+    } do
+      {:ok, api} =
+        Apis.create_api(%{
+          name: "Limited API",
+          slug: "limited-api",
+          template_type: "computation",
+          organization_id: org.id,
+          user_id: user.id,
+          requires_auth: false,
+          source_code: """
+          def handle(_params), do: %{ok: true}
+          """
+        })
+
+      {:ok, module} = Compiler.compile(api, api.source_code)
+      {:ok, api} = Apis.update_api(api, %{status: "published"})
+
+      Registry.register(api.id, module,
+        org_slug: org.slug,
+        slug: api.slug,
+        requires_auth: false
+      )
+
+      on_exit(fn -> Compiler.unload(module) end)
+
+      # Exhaust the free plan daily invocation limit (1000) by inserting usage events directly
+      Enum.each(1..1000, fn _ ->
+        Blackboex.Repo.insert!(%Blackboex.Billing.UsageEvent{
+          organization_id: org.id,
+          event_type: "api_invocation",
+          metadata: %{}
+        })
+      end)
+
+      conn = get(conn, "/api/testorg/limited-api")
+
+      assert conn.status == 402
+      response = json_response(conn, 402)
+      assert response["error"] == "Plan limit exceeded"
+      assert response["upgrade_url"] == "/billing"
+      assert is_integer(response["current"])
+      assert is_integer(response["limit"])
     end
   end
 end

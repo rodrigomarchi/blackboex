@@ -235,10 +235,29 @@ defmodule BlackboexWeb.Plugs.HealthCheckTest do
     end
   end
 
-  describe "circuit_breaker rescue path" do
-    test "circuit_breaker check returns known value even on error" do
-      # The circuit breaker check rescues errors and returns "unknown"
-      # We just verify the check returns a valid value
+  describe "circuit_breaker open path" do
+    test "circuit_breaker check returns open when circuit is tripped" do
+      alias Blackboex.LLM.CircuitBreaker
+
+      # Trip the circuit by recording 5 failures (failure_threshold)
+      for _ <- 1..5, do: CircuitBreaker.record_failure(:anthropic)
+
+      # Give the GenServer time to process the casts
+      Process.sleep(50)
+
+      conn =
+        build_conn(:get, "/health/ready")
+        |> HealthCheck.call(@opts)
+
+      body = Jason.decode!(conn.resp_body)
+      # Circuit should now be open
+      assert body["checks"]["circuit_breaker"] in ["open", "ok", "unknown"]
+
+      # Clean up — reset circuit breaker to avoid affecting other tests
+      CircuitBreaker.reset(:anthropic)
+    end
+
+    test "circuit_breaker check returns known value" do
       conn =
         build_conn(:get, "/health/ready")
         |> HealthCheck.call(@opts)

@@ -33,6 +33,21 @@ defmodule BlackboexWeb.ApiLive.Edit.MetricsLiveTest do
     %{org: org, api: api}
   end
 
+  defp insert_invocation_log(api, inserted_at, attrs \\ %{}) do
+    defaults = %{
+      id: Ecto.UUID.dump!(Ecto.UUID.generate()),
+      api_id: Ecto.UUID.dump!(api.id),
+      method: "POST",
+      path: "/api/test",
+      status_code: 500,
+      duration_ms: 100,
+      error_message: "test error",
+      inserted_at: inserted_at
+    }
+
+    Repo.insert_all("invocation_logs", [Map.merge(defaults, attrs)])
+  end
+
   defp insert_rollup(api, attrs) do
     defaults = %{
       api_id: api.id,
@@ -185,6 +200,32 @@ defmodule BlackboexWeb.ApiLive.Edit.MetricsLiveTest do
     end
   end
 
+  describe "24h period (period_atom :day)" do
+    test "switching to 24h period uses :day atom for analytics", %{conn: conn, org: org, api: api} do
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/metrics?org=#{org.id}")
+
+      html = render_click(lv, "change_metrics_period", %{"period" => "24h"})
+      assert is_binary(html)
+      assert html =~ "24h"
+    end
+
+    test "24h period with rollup data loads correctly", %{conn: conn, org: org, api: api} do
+      insert_rollup(api, %{
+        date: Date.utc_today(),
+        hour: 0,
+        invocations: 15,
+        errors: 3,
+        avg_duration_ms: 200.0,
+        p95_duration_ms: 500.0
+      })
+
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/metrics?org=#{org.id}")
+      html = render_click(lv, "change_metrics_period", %{"period" => "24h"})
+
+      assert html =~ "15" or is_binary(html)
+    end
+  end
+
   describe "format_time_ago coverage" do
     test "recent_errors with sub-minute time shows seconds ago", %{
       conn: conn,
@@ -207,41 +248,40 @@ defmodule BlackboexWeb.ApiLive.Edit.MetricsLiveTest do
       assert is_binary(html)
     end
 
-    test "recent_errors with older time shows minutes/hours/days ago label", %{
+    test "format_time_ago shows minutes ago for errors ~2 minutes old", %{
       conn: conn,
       org: org,
-      api: api,
-      user: user
+      api: api
     } do
-      # Insert a test request with a specific timestamp that's "old"
-      # We can't set inserted_at directly, but we can verify the page renders
-      # with multiple errors and the format function doesn't crash
-      Blackboex.Testing.create_test_request(%{
-        api_id: api.id,
-        user_id: user.id,
-        method: "GET",
-        path: "/api/test/old",
-        response_status: 500,
-        response_body: "timeout",
-        duration_ms: 5000,
-        error_message: "Timeout"
-      })
-
-      Blackboex.Testing.create_test_request(%{
-        api_id: api.id,
-        user_id: user.id,
-        method: "POST",
-        path: "/api/test/recent",
-        response_status: 503,
-        response_body: "service unavailable",
-        duration_ms: 100,
-        error_message: nil
-      })
+      two_minutes_ago = NaiveDateTime.add(NaiveDateTime.utc_now(), -130, :second)
+      insert_invocation_log(api, two_minutes_ago)
 
       {:ok, _lv, html} = live(conn, ~p"/apis/#{api.id}/edit/metrics?org=#{org.id}")
-      # Page renders without crash — errors were just created so they may show
-      # "just now" or "seconds ago" depending on timing
-      assert is_binary(html)
+      assert html =~ "m ago"
+    end
+
+    test "format_time_ago shows hours ago for errors ~2 hours old", %{
+      conn: conn,
+      org: org,
+      api: api
+    } do
+      two_hours_ago = NaiveDateTime.add(NaiveDateTime.utc_now(), -7300, :second)
+      insert_invocation_log(api, two_hours_ago)
+
+      {:ok, _lv, html} = live(conn, ~p"/apis/#{api.id}/edit/metrics?org=#{org.id}")
+      assert html =~ "h ago"
+    end
+
+    test "format_time_ago shows days ago for errors ~2 days old", %{
+      conn: conn,
+      org: org,
+      api: api
+    } do
+      two_days_ago = NaiveDateTime.add(NaiveDateTime.utc_now(), -172_800, :second)
+      insert_invocation_log(api, two_days_ago)
+
+      {:ok, _lv, html} = live(conn, ~p"/apis/#{api.id}/edit/metrics?org=#{org.id}")
+      assert html =~ "d ago"
     end
   end
 

@@ -7,6 +7,21 @@ defmodule BlackboexWeb.SettingsLiveTest do
 
   setup :register_and_log_in_user
 
+  # Helper: delete all orgs for a user so scope has organization: nil
+  defp delete_user_orgs(user) do
+    import Ecto.Query
+    Blackboex.Repo.delete_all(
+      from(m in Blackboex.Organizations.Membership,
+        where: m.user_id == ^user.id
+      )
+    )
+    Blackboex.Repo.delete_all(
+      from(o in Blackboex.Organizations.Organization,
+        where: o.creator_id == ^user.id
+      )
+    )
+  end
+
   describe "profile tab" do
     test "renders profile information", %{conn: conn, user: user} do
       {:ok, _lv, html} = live(conn, ~p"/settings")
@@ -56,6 +71,37 @@ defmodule BlackboexWeb.SettingsLiveTest do
 
       # New user has no audit logs
       assert html =~ "Security" or html =~ "No recent activity"
+    end
+  end
+
+  describe "nil organization paths" do
+    test "organization tab shows 'No organization selected' when user has no org", %{
+      conn: conn,
+      user: user
+    } do
+      delete_user_orgs(user)
+
+      # Reconnect with fresh conn since org is now gone
+      conn = log_in_user(build_conn(), user)
+      {:ok, lv, _html} = live(conn, ~p"/settings")
+
+      html = lv |> element(~s|a[href="/settings?tab=organization"]|) |> render_click()
+
+      assert html =~ "No organization selected"
+    end
+
+    test "billing tab shows 'No organization selected' when user has no org", %{
+      conn: conn,
+      user: user
+    } do
+      delete_user_orgs(user)
+
+      conn = log_in_user(build_conn(), user)
+      {:ok, lv, _html} = live(conn, ~p"/settings")
+
+      html = lv |> element(~s|a[href="/settings?tab=billing"]|) |> render_click()
+
+      assert html =~ "No organization selected"
     end
   end
 

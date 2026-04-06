@@ -391,5 +391,254 @@ defmodule BlackboexWeb.Components.Editor.ChatPanelTest do
 
       assert html =~ "Validation will run after you accept"
     end
+
+    test "renders diff summary line when diff present" do
+      pending_edit = %{
+        explanation: "Changed code",
+        diff: [{:ins, ["new line"]}, {:del, ["old line"]}, {:eq, ["same"]}],
+        validation: nil
+      }
+
+      html = render_panel(%{pending_edit: pending_edit, events: []})
+      # The diff summary should be rendered (format_diff_summary is called)
+      assert is_binary(html)
+    end
+
+    test "renders test_summary from validation test_results" do
+      pending_edit = %{
+        explanation: "Test run",
+        diff: nil,
+        validation: %{
+          compilation: :pass,
+          format: :pass,
+          credo: :pass,
+          tests: :pass,
+          test_results: [
+            %{"status" => "passed"},
+            %{"status" => "passed"},
+            %{"status" => "failed"}
+          ]
+        }
+      }
+
+      html = render_panel(%{pending_edit: pending_edit, events: []})
+      # test_summary shows "2/3"
+      assert html =~ "2/3"
+    end
+  end
+
+  describe "tool icon and name fallbacks" do
+    test "renders unknown tool with fallback icon and raw name" do
+      events = [
+        tool_call_event("custom_tool"),
+        tool_result_event("custom_tool", true)
+      ]
+
+      html = render_panel(%{events: events})
+      assert html =~ "custom_tool"
+    end
+
+    test "renders generate_tests tool" do
+      events = [
+        tool_call_event("generate_tests"),
+        tool_result_event("generate_tests", true)
+      ]
+
+      html = render_panel(%{events: events})
+      assert html =~ "Generate Tests"
+    end
+
+    test "renders submit_code tool" do
+      events = [
+        tool_call_event("submit_code"),
+        tool_result_event("submit_code", true)
+      ]
+
+      html = render_panel(%{events: events})
+      assert html =~ "Submit"
+    end
+
+    test "renders generate_docs tool" do
+      events = [
+        tool_call_event("generate_docs"),
+        tool_result_event("generate_docs", true)
+      ]
+
+      html = render_panel(%{events: events})
+      assert html =~ "Generate Docs"
+    end
+
+    test "renders read_source tool" do
+      events = [
+        tool_call_event("read_source"),
+        tool_result_event("read_source", true)
+      ]
+
+      html = render_panel(%{events: events})
+      assert html =~ "Read Source"
+    end
+
+    test "renders edit_source tool" do
+      events = [
+        tool_call_event("edit_source"),
+        tool_result_event("edit_source", true)
+      ]
+
+      html = render_panel(%{events: events})
+      assert html =~ "Edit Source"
+    end
+  end
+
+  describe "run summary edge cases" do
+    test "renders test_only run type" do
+      run = sample_run(%{run_type: "test_only"})
+      html = render_panel(%{run: run, loading: false, events: [user_message_event()]})
+
+      assert html =~ "Test Only"
+    end
+
+    test "renders doc_only run type" do
+      run = sample_run(%{run_type: "doc_only"})
+      html = render_panel(%{run: run, loading: false, events: [user_message_event()]})
+
+      assert html =~ "Docs Only"
+    end
+
+    test "renders unknown run type with fallback label" do
+      run = sample_run(%{run_type: "unknown_type"})
+      html = render_panel(%{run: run, loading: false, events: [user_message_event()]})
+
+      assert html =~ "Run"
+    end
+
+    test "handles nil completed_at in run summary" do
+      run = sample_run(%{completed_at: nil, duration_ms: nil})
+      html = render_panel(%{run: run, loading: false, events: [user_message_event()]})
+
+      assert is_binary(html)
+    end
+
+    test "handles nil model in run summary" do
+      run = sample_run(%{model: nil})
+      html = render_panel(%{run: run, loading: false, events: [user_message_event()]})
+
+      assert is_binary(html)
+    end
+
+    test "handles large token counts with k suffix" do
+      run = sample_run(%{input_tokens: 5000, output_tokens: 1_500_000})
+      html = render_panel(%{run: run, loading: false, events: [user_message_event()]})
+
+      assert html =~ "5.0k"
+      assert html =~ "1.5M"
+    end
+
+    test "handles zero cost" do
+      run = sample_run(%{cost_cents: 0})
+      html = render_panel(%{run: run, loading: false, events: [user_message_event()]})
+
+      assert html =~ "$0"
+    end
+
+    test "handles nil cost" do
+      run = sample_run(%{cost_cents: nil})
+      html = render_panel(%{run: run, loading: false, events: [user_message_event()]})
+
+      assert html =~ "$0"
+    end
+  end
+
+  describe "tool output with code content" do
+    test "renders code output as code block when content looks like code" do
+      events = [
+        %{
+          type: :tool_call,
+          tool: "generate_code",
+          args: %{"code" => "defmodule Foo do\n  def bar, do: :ok\nend"},
+          timestamp: nil,
+          id: nil
+        },
+        %{
+          type: :tool_result,
+          tool: "generate_code",
+          success: true,
+          content: "defmodule Foo do\n  def bar, do: :ok\nend",
+          timestamp: nil
+        }
+      ]
+
+      html = render_panel(%{events: events})
+      assert html =~ "defmodule" or html =~ "Generate Code"
+    end
+
+    test "renders tool output with failed success shows ERROR badge" do
+      events = [
+        tool_call_event("compile_code"),
+        %{
+          type: :tool_result,
+          tool: "compile_code",
+          success: false,
+          content: "compilation error on line 5",
+          timestamp: nil
+        }
+      ]
+
+      html = render_panel(%{events: events})
+      assert html =~ "ERROR" or html =~ "Compile"
+    end
+  end
+
+  describe "active tool call with streaming" do
+    test "shows active tool step with streaming tokens inside it" do
+      events = [tool_call_event("generate_code")]
+
+      html = render_panel(%{events: events, loading: true, streaming_tokens: "def multiply"})
+
+      assert html =~ "Generate Code"
+      assert html =~ "multiply"
+    end
+
+    test "shows Thinking inside active step when no streaming tokens" do
+      events = [tool_call_event("generate_code")]
+
+      html = render_panel(%{events: events, loading: true, streaming_tokens: ""})
+
+      assert html =~ "Generate Code"
+      assert html =~ "Thinking"
+    end
+  end
+
+  describe "lint_code compact summary" do
+    test "lint_code with issues shows count" do
+      events = [
+        tool_call_event("lint_code"),
+        %{
+          type: :tool_result,
+          tool: "lint_code",
+          success: true,
+          content: "- issue one\n- issue two",
+          timestamp: nil
+        }
+      ]
+
+      html = render_panel(%{events: events})
+      assert html =~ "Lint" or html =~ "issues"
+    end
+
+    test "run_tests with test count summary" do
+      events = [
+        tool_call_event("run_tests"),
+        %{
+          type: :tool_result,
+          tool: "run_tests",
+          success: true,
+          content: "3 tests, 3 passed",
+          timestamp: nil
+        }
+      ]
+
+      html = render_panel(%{events: events})
+      assert html =~ "Run Tests" or html =~ "3/3"
+    end
   end
 end

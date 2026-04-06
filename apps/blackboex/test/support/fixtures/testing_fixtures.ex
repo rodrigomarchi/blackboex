@@ -3,8 +3,8 @@ defmodule Blackboex.TestingFixtures do
   Test helpers for creating testing domain entities.
   """
 
-  alias Blackboex.Testing.TestSuite
   alias Blackboex.Repo
+  alias Blackboex.Testing.TestSuite
 
   @doc """
   Creates a test suite for the given API.

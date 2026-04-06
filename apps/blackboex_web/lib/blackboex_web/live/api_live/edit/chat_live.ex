@@ -684,8 +684,14 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
       :streaming_source when assigns.streaming_tokens != "" ->
         strip_code_fences(assigns.streaming_tokens)
 
+      :streaming_source ->
+        assigns.code
+
       :streaming_test when assigns.streaming_tokens != "" ->
         strip_code_fences(assigns.streaming_tokens)
+
+      :streaming_test ->
+        assigns.test_code
 
       :source ->
         assigns.code

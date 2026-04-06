@@ -227,8 +227,7 @@ defmodule Blackboex.Apis.Registry do
     if source_files == [] do
       {:error, :no_source_code}
     else
-      source_code = Enum.map_join(source_files, "\n\n", & &1.content)
-      Compiler.compile(api, source_code)
+      Compiler.compile_files(api, source_files)
     end
   end
 

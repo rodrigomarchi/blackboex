@@ -19,6 +19,7 @@ defmodule Blackboex.Agent.Session do
 
   alias Blackboex.Agent.CodePipeline
   alias Blackboex.Apis
+  alias Blackboex.CodeGen.Compiler
   alias Blackboex.Conversations
   alias Blackboex.LLM.CircuitBreaker
   alias Blackboex.Organizations
@@ -491,8 +492,6 @@ defmodule Blackboex.Agent.Session do
   defp do_register_module(nil, _org_id), do: :ok
 
   defp do_register_module(api, org_id) do
-    alias Blackboex.CodeGen.Compiler
-
     source_files = Apis.get_source_for_compilation(api.id)
 
     if source_files == [] do
@@ -503,9 +502,7 @@ defmodule Blackboex.Agent.Session do
   end
 
   defp compile_and_register(api, source_files, org_id) do
-    source_code = Enum.map_join(source_files, "\n\n", & &1.content)
-
-    case Compiler.compile(api, source_code) do
+    case Compiler.compile_files(api, source_files) do
       {:ok, module} ->
         org = Organizations.get_organization(org_id)
         org_slug = if(org, do: org.slug, else: "")

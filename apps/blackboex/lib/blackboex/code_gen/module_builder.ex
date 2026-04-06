@@ -12,6 +12,47 @@ defmodule Blackboex.CodeGen.ModuleBuilder do
     {:ok, code}
   end
 
+  @doc """
+  Builds a Plug module with namespaced helper modules and auto-generated aliases.
+
+  Helper modules are prepended before the main module. Aliases for each helper
+  are injected into the handler module so user code can reference them by short name.
+  """
+  @spec build_module_with_helpers(atom(), String.t(), atom(), [String.t()], [String.t()]) ::
+          {:ok, String.t()}
+  def build_module_with_helpers(
+        module_name,
+        handler_code,
+        template_type,
+        namespaced_helpers,
+        helper_module_names
+      ) do
+    alias_block =
+      helper_module_names
+      |> Enum.map(fn name -> "  alias #{inspect(module_name)}.#{name}" end)
+      |> Enum.join("\n")
+
+    handler_with_aliases =
+      if alias_block == "" do
+        handler_code
+      else
+        alias_block <> "\n\n" <> handler_code
+      end
+
+    {:ok, main_module} = build_module(module_name, handler_with_aliases, template_type)
+
+    helpers_code = Enum.join(namespaced_helpers, "\n\n")
+
+    full_code =
+      if helpers_code == "" do
+        main_module
+      else
+        helpers_code <> "\n\n" <> main_module
+      end
+
+    {:ok, full_code}
+  end
+
   defp build_template(module_name, handler_code, :computation) do
     """
     defmodule #{inspect(module_name)} do

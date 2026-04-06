@@ -18,9 +18,8 @@ defmodule Blackboex.Apis.Deployer do
           {:ok, Api.t()} | {:error, :not_published | :compilation_failed | :smoke_test_failed}
   def deploy(%Api{status: "published"} = api, %Organization{} = org) do
     source_files = Apis.get_source_for_compilation(api.id)
-    source_code = Enum.map_join(source_files, "\n\n", & &1.content)
 
-    with {:ok, module} <- Compiler.compile(api, source_code),
+    with {:ok, module} <- Compiler.compile_files(api, source_files),
          :ok <- smoke_test(module, api) do
       # Update registry with new module
       Registry.register(api.id, module,
@@ -46,11 +45,12 @@ defmodule Blackboex.Apis.Deployer do
   def rollback_deploy(%Api{} = api, target_version, created_by_id \\ nil) do
     case Apis.rollback_to_version(api, target_version, created_by_id) do
       {:ok, version} ->
-        source_code =
+        source_files =
           version.file_snapshots
-          |> Enum.map_join("\n\n", &(&1["content"] || &1[:content] || ""))
+          |> Enum.filter(&(infer_file_type(&1) == "source"))
+          |> Enum.map(&%{path: &1["path"] || &1[:path], content: &1["content"] || &1[:content]})
 
-        case Compiler.compile(api, source_code) do
+        case Compiler.compile_files(api, source_files) do
           {:ok, module} ->
             api_preloaded = Blackboex.Repo.preload(api, :organization)
 
@@ -70,6 +70,11 @@ defmodule Blackboex.Apis.Deployer do
       {:error, _} = error ->
         error
     end
+  end
+
+  defp infer_file_type(snapshot) do
+    path = snapshot["path"] || snapshot[:path] || ""
+    if String.starts_with?(path, "/test"), do: "test", else: "source"
   end
 
   defp smoke_test(module, api) do

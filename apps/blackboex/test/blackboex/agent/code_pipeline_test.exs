@@ -3,19 +3,13 @@ defmodule Blackboex.Agent.CodePipelineTest do
 
   alias Blackboex.Agent.CodePipeline
   alias Blackboex.Apis
-  alias Blackboex.Conversations
-  alias Blackboex.Organizations
 
-  import Blackboex.AccountsFixtures
   import Mox
 
   @moduletag :unit
 
-  setup :verify_on_exit!
-
   defp create_api_with_run(_context) do
-    user = user_fixture()
-    [org] = Organizations.list_user_organizations(user)
+    {user, org} = user_and_org_fixture()
 
     {:ok, api} =
       Apis.create_api(%{
@@ -24,15 +18,14 @@ defmodule Blackboex.Agent.CodePipelineTest do
         user_id: user.id
       })
 
-    {:ok, conversation} = Conversations.get_or_create_conversation(api.id, org.id)
+    conversation = conversation_fixture(api.id, org.id)
 
-    {:ok, run} =
-      Conversations.create_run(%{
+    run =
+      run_fixture(%{
         conversation_id: conversation.id,
         api_id: api.id,
         user_id: user.id,
         organization_id: org.id,
-        run_type: "generation",
         trigger_message: "test"
       })
 

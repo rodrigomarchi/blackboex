@@ -9,11 +9,9 @@ defmodule BlackboexWeb.ApiLive.AgentChatTest do
   @moduletag :liveview
 
   import Mox
-  import Phoenix.LiveViewTest
 
   alias Blackboex.Apis
 
-  setup :verify_on_exit!
   setup :register_and_log_in_user
 
   setup %{user: user} do

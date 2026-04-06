@@ -2,17 +2,8 @@ defmodule Blackboex.Billing.SubscriptionTest do
   use Blackboex.DataCase, async: true
 
   alias Blackboex.Billing.Subscription
-  alias Blackboex.Organizations
-
-  import Blackboex.AccountsFixtures
 
   @moduletag :unit
-
-  defp create_org(_context) do
-    user = user_fixture()
-    [org] = Organizations.list_user_organizations(user)
-    %{org: org}
-  end
 
   defp valid_attrs(org) do
     %{
@@ -27,7 +18,7 @@ defmodule Blackboex.Billing.SubscriptionTest do
   end
 
   describe "changeset/2" do
-    setup [:create_org]
+    setup :create_user_and_org
 
     test "valid changeset with all fields", %{org: org} do
       changeset = Subscription.changeset(%Subscription{}, valid_attrs(org))

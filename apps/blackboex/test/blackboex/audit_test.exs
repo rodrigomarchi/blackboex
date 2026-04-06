@@ -4,8 +4,6 @@ defmodule Blackboex.AuditTest do
   alias Blackboex.Audit
   alias Blackboex.Organizations
 
-  import Blackboex.AccountsFixtures
-
   @moduletag :unit
 
   defp create_context(_ctx) do

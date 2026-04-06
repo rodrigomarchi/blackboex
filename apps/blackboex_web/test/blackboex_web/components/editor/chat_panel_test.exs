@@ -8,8 +8,6 @@ defmodule BlackboexWeb.Components.Editor.ChatPanelTest do
 
   @moduletag :unit
 
-  import Phoenix.LiveViewTest
-
   alias BlackboexWeb.Components.Editor.ChatPanel
 
   # ── Helpers ────────────────────────────────────────────────────────────

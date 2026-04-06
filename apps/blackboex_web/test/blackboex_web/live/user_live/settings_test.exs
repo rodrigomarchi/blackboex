@@ -2,8 +2,6 @@ defmodule BlackboexWeb.UserLive.SettingsTest do
   use BlackboexWeb.ConnCase, async: true
 
   alias Blackboex.Accounts
-  import Phoenix.LiveViewTest
-  import Blackboex.AccountsFixtures
 
   describe "Settings page" do
     test "renders settings page", %{conn: conn} do

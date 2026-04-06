@@ -3,7 +3,6 @@ defmodule BlackboexWeb.Components.Editor.ValidationDashboardTest do
 
   @moduletag :unit
 
-  import Phoenix.LiveViewTest
   import BlackboexWeb.Components.Editor.ValidationDashboard
 
   # ── validation_dashboard/1 ────────────────────────────────────────────

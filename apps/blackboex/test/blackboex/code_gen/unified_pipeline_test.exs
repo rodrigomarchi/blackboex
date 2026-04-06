@@ -7,8 +7,6 @@ defmodule Blackboex.CodeGen.UnifiedPipelineTest do
 
   alias Blackboex.CodeGen.UnifiedPipeline
 
-  setup :verify_on_exit!
-
   # Valid handler code that compiles and passes format/lint
   @valid_handler_code """
   def handle(params) do

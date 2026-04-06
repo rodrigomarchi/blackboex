@@ -5,8 +5,6 @@ defmodule BlackboexWeb.PublicApiControllerTest do
 
   alias Blackboex.Apis
 
-  import Blackboex.AccountsFixtures
-
   setup do
     user = user_fixture()
 

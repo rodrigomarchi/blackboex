@@ -6,8 +6,6 @@ defmodule BlackboexWeb.RouterTest do
 
   use BlackboexWeb.ConnCase, async: true
 
-  import Phoenix.LiveViewTest
-
   @moduletag :unit
 
   setup :register_and_log_in_user

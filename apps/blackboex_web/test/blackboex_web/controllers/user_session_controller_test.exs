@@ -1,7 +1,6 @@
 defmodule BlackboexWeb.UserSessionControllerTest do
   use BlackboexWeb.ConnCase, async: true
 
-  import Blackboex.AccountsFixtures
   alias Blackboex.Accounts
 
   setup do

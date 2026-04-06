@@ -7,13 +7,9 @@ defmodule Blackboex.Apis.MetricRollupWorkerTest do
   alias Blackboex.Apis.InvocationLog
   alias Blackboex.Apis.MetricRollup
   alias Blackboex.Apis.MetricRollupWorker
-  alias Blackboex.Organizations
 
-  import Blackboex.AccountsFixtures
-
-  defp create_api(_context) do
-    user = user_fixture()
-    [org] = Organizations.list_user_organizations(user)
+  defp setup_test_api(_context) do
+    {user, org} = user_and_org_fixture()
 
     {:ok, api} =
       %Api{}
@@ -30,25 +26,8 @@ defmodule Blackboex.Apis.MetricRollupWorkerTest do
     %{api: api, org: org, user: user}
   end
 
-  defp insert_log(api_id, attrs) do
-    base = %{
-      api_id: api_id,
-      method: "GET",
-      path: "/api/test",
-      status_code: 200,
-      duration_ms: 50,
-      request_body_size: 0,
-      response_body_size: 100,
-      ip_address: "127.0.0.1"
-    }
-
-    %InvocationLog{}
-    |> InvocationLog.changeset(Map.merge(base, attrs))
-    |> Repo.insert!()
-  end
-
   describe "perform/1" do
-    setup [:create_api]
+    setup [:setup_test_api]
 
     test "aggregates invocation_logs into metric_rollup", %{api: api} do
       now = NaiveDateTime.utc_now()
@@ -57,7 +36,8 @@ defmodule Blackboex.Apis.MetricRollupWorkerTest do
 
       # Insert logs in the current hour
       for i <- 1..5 do
-        insert_log(api.id, %{
+        invocation_log_fixture(%{
+          api_id: api.id,
           duration_ms: i * 10,
           status_code: if(i == 5, do: 500, else: 200),
           ip_address: "10.0.0.#{i}"
@@ -80,7 +60,7 @@ defmodule Blackboex.Apis.MetricRollupWorkerTest do
       date = NaiveDateTime.to_date(now)
       hour = now.hour
 
-      insert_log(api.id, %{duration_ms: 100, ip_address: "10.0.0.1"})
+      invocation_log_fixture(%{api_id: api.id, duration_ms: 100, ip_address: "10.0.0.1"})
 
       job = %Oban.Job{args: %{"date" => Date.to_iso8601(date), "hour" => hour}}
       assert :ok = MetricRollupWorker.perform(job)
@@ -118,9 +98,15 @@ defmodule Blackboex.Apis.MetricRollupWorkerTest do
       date = NaiveDateTime.to_date(now)
       hour = now.hour
 
-      insert_log(api.id, %{duration_ms: 100, ip_address: "10.0.0.1"})
-      insert_log(api.id, %{duration_ms: 200, ip_address: "10.0.0.2"})
-      insert_log(api2.id, %{duration_ms: 50, ip_address: "10.0.0.3", status_code: 500})
+      invocation_log_fixture(%{api_id: api.id, duration_ms: 100, ip_address: "10.0.0.1"})
+      invocation_log_fixture(%{api_id: api.id, duration_ms: 200, ip_address: "10.0.0.2"})
+
+      invocation_log_fixture(%{
+        api_id: api2.id,
+        duration_ms: 50,
+        ip_address: "10.0.0.3",
+        status_code: 500
+      })
 
       job = %Oban.Job{args: %{"date" => Date.to_iso8601(date), "hour" => hour}}
       assert :ok = MetricRollupWorker.perform(job)
@@ -177,7 +163,7 @@ defmodule Blackboex.Apis.MetricRollupWorkerTest do
       hour = now.hour
 
       # Insert valid log for the real API
-      insert_log(api.id, %{duration_ms: 100, ip_address: "10.0.0.1"})
+      invocation_log_fixture(%{api_id: api.id, duration_ms: 100, ip_address: "10.0.0.1"})
 
       # Insert a log with a nonexistent api_id by temporarily disabling FK checks.
       # The aggregation will find it, but the rollup upsert will fail on FK.

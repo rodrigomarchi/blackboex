@@ -4,20 +4,12 @@ defmodule Blackboex.Apis.DashboardQueriesTest do
   @moduletag :unit
 
   alias Blackboex.Apis
-  alias Blackboex.Apis.{DashboardQueries, InvocationLog, MetricRollup}
+  alias Blackboex.Apis.DashboardQueries
   alias Blackboex.Billing.DailyUsage
-  alias Blackboex.Organizations
   alias Blackboex.Repo
 
-  import Blackboex.AccountsFixtures
-
   setup do
-    user = user_fixture()
-
-    {:ok, %{organization: org}} =
-      Organizations.create_organization(user, %{
-        name: "Dashboard Org #{System.unique_integer([:positive])}"
-      })
+    {user, org} = user_and_org_fixture()
 
     {:ok, api} =
       Apis.create_api(%{
@@ -62,9 +54,9 @@ defmodule Blackboex.Apis.DashboardQueriesTest do
 
     test "counts today's invocations and errors", %{org: org, api: api} do
       # Insert invocations for today
-      insert_invocation_log(api.id, 200, 50)
-      insert_invocation_log(api.id, 200, 30)
-      insert_invocation_log(api.id, 500, 100)
+      invocation_log_fixture(%{api_id: api.id, status_code: 200, duration_ms: 50})
+      invocation_log_fixture(%{api_id: api.id, status_code: 200, duration_ms: 30})
+      invocation_log_fixture(%{api_id: api.id, status_code: 500, duration_ms: 100})
 
       summary = DashboardQueries.get_org_summary(org.id)
 
@@ -83,7 +75,7 @@ defmodule Blackboex.Apis.DashboardQueriesTest do
       other_user = user_fixture()
 
       {:ok, %{organization: other_org}} =
-        Organizations.create_organization(other_user, %{name: "Other"})
+        Blackboex.Organizations.create_organization(other_user, %{name: "Other"})
 
       {:ok, other_api} =
         Apis.create_api(%{
@@ -94,8 +86,8 @@ defmodule Blackboex.Apis.DashboardQueriesTest do
           user_id: other_user.id
         })
 
-      insert_invocation_log(other_api.id, 200, 50)
-      insert_invocation_log(api.id, 200, 30)
+      invocation_log_fixture(%{api_id: other_api.id, status_code: 200, duration_ms: 50})
+      invocation_log_fixture(%{api_id: api.id, status_code: 200, duration_ms: 30})
 
       summary = DashboardQueries.get_org_summary(org.id)
       assert summary.calls_today == 1
@@ -118,8 +110,8 @@ defmodule Blackboex.Apis.DashboardQueriesTest do
     end
 
     test "returns correct stats for recent invocations", %{org: org, api: api} do
-      insert_invocation_log(api.id, 200, 50)
-      insert_invocation_log(api.id, 404, 30)
+      invocation_log_fixture(%{api_id: api.id, status_code: 200, duration_ms: 50})
+      invocation_log_fixture(%{api_id: api.id, status_code: 404, duration_ms: 30})
 
       [row] = DashboardQueries.list_apis_with_stats(org.id)
 
@@ -311,14 +303,18 @@ defmodule Blackboex.Apis.DashboardQueriesTest do
       today = Date.utc_today()
       yesterday = Date.add(today, -1)
 
-      insert_daily_usage(org.id, today, %{
+      daily_usage_fixture(%{
+        organization_id: org.id,
+        date: today,
         llm_generations: 10,
         tokens_input: 1000,
         tokens_output: 500,
         llm_cost_cents: 50
       })
 
-      insert_daily_usage(org.id, yesterday, %{
+      daily_usage_fixture(%{
+        organization_id: org.id,
+        date: yesterday,
         llm_generations: 5,
         tokens_input: 600,
         tokens_output: 300,
@@ -335,7 +331,9 @@ defmodule Blackboex.Apis.DashboardQueriesTest do
     test "7d period only includes last 7 days", %{org: org} do
       old_date = Date.add(Date.utc_today(), -10)
 
-      insert_daily_usage(org.id, old_date, %{
+      daily_usage_fixture(%{
+        organization_id: org.id,
+        date: old_date,
         llm_generations: 100,
         tokens_input: 9999,
         tokens_output: 9999,
@@ -368,29 +366,7 @@ defmodule Blackboex.Apis.DashboardQueriesTest do
   # Helpers
   # ──────────────────────────────────────────────────────────────
 
-  defp insert_invocation_log(api_id, status_code, duration_ms) do
-    %InvocationLog{}
-    |> InvocationLog.changeset(%{
-      api_id: api_id,
-      method: "POST",
-      path: "/api/test",
-      status_code: status_code,
-      duration_ms: duration_ms,
-      request_body_size: 100,
-      response_body_size: 200
-    })
-    |> Repo.insert!()
-  end
-
   defp insert_metric_rollup(api_id, date, hour, attrs) do
-    %MetricRollup{}
-    |> MetricRollup.changeset(Map.merge(attrs, %{api_id: api_id, date: date, hour: hour}))
-    |> Repo.insert!()
-  end
-
-  defp insert_daily_usage(org_id, date, attrs) do
-    %DailyUsage{}
-    |> DailyUsage.changeset(Map.merge(attrs, %{organization_id: org_id, date: date}))
-    |> Repo.insert!()
+    metric_rollup_fixture(Map.merge(attrs, %{api_id: api_id, date: date, hour: hour}))
   end
 end

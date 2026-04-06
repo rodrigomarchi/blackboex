@@ -127,10 +127,7 @@ defmodule Blackboex.Testing.TestSuiteTest do
     end
 
     test "insert and retrieve", %{api: api} do
-      {:ok, suite} =
-        %TestSuite{}
-        |> TestSuite.changeset(%{api_id: api.id, test_code: "test code"})
-        |> Repo.insert()
+      suite = test_suite_fixture(%{api_id: api.id, test_code: "test code"})
 
       assert suite.id
       assert suite.api_id == api.id
@@ -141,20 +138,14 @@ defmodule Blackboex.Testing.TestSuiteTest do
     end
 
     test "cascade delete when API is deleted", %{api: api} do
-      {:ok, suite} =
-        %TestSuite{}
-        |> TestSuite.changeset(%{api_id: api.id, test_code: "test code"})
-        |> Repo.insert()
+      suite = test_suite_fixture(%{api_id: api.id, test_code: "test code"})
 
       Repo.delete!(api)
       assert Repo.get(TestSuite, suite.id) == nil
     end
 
     test "belongs_to api association", %{api: api} do
-      {:ok, suite} =
-        %TestSuite{}
-        |> TestSuite.changeset(%{api_id: api.id, test_code: "test code"})
-        |> Repo.insert()
+      suite = test_suite_fixture(%{api_id: api.id, test_code: "test code"})
 
       suite = Repo.preload(suite, :api)
       assert suite.api.id == api.id

@@ -3,18 +3,9 @@ defmodule BlackboexWeb.Components.QuickActionsTest do
 
   @moduletag :liveview
 
-  import Phoenix.LiveViewTest
-
   alias Blackboex.Apis
 
-  setup :register_and_log_in_user
-
-  setup %{user: user} do
-    {:ok, %{organization: org}} =
-      Blackboex.Organizations.create_organization(user, %{name: "Test Org", slug: "testorg"})
-
-    %{org: org, user: user}
-  end
+  setup [:register_and_log_in_user, :create_org]
 
   defp open_chat(_lv), do: :ok
 

@@ -3,19 +3,16 @@ defmodule Blackboex.Conversations.RunTest do
 
   @moduletag :unit
 
-  import Blackboex.AccountsFixtures
-
   alias Blackboex.Conversations
   alias Blackboex.Conversations.Run
 
   setup do
-    user = user_fixture()
-    [org] = Blackboex.Organizations.list_user_organizations(user)
+    {user, org} = user_and_org_fixture()
 
     {:ok, api} =
       Blackboex.Apis.create_api(%{name: "Run Test", organization_id: org.id, user_id: user.id})
 
-    {:ok, conversation} = Conversations.get_or_create_conversation(api.id, org.id)
+    conversation = conversation_fixture(api.id, org.id)
     %{user: user, org: org, api: api, conversation: conversation}
   end
 

@@ -8,8 +8,6 @@ defmodule Blackboex.Apis.DeployerTest do
   alias Blackboex.Apis.Deployer
   alias Blackboex.Apis.Registry
 
-  import Blackboex.AccountsFixtures
-
   @valid_source_code """
   def handle(params) do
     %{status: 200, body: %{result: "ok"}}
@@ -17,10 +15,7 @@ defmodule Blackboex.Apis.DeployerTest do
   """
 
   setup do
-    user = user_fixture()
-
-    {:ok, %{organization: org}} =
-      Blackboex.Organizations.create_organization(user, %{name: "Deploy Org"})
+    {user, org} = user_and_org_fixture()
 
     {:ok, api} =
       Apis.create_api(%{

@@ -2,11 +2,8 @@ defmodule BlackboexWeb.BillingLive.PlansTest do
   use BlackboexWeb.ConnCase, async: false
 
   import Mox
-  import Phoenix.LiveViewTest
 
   @moduletag :liveview
-
-  setup :verify_on_exit!
   setup :register_and_log_in_user
 
   test "renders three plan cards", %{conn: conn} do

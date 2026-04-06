@@ -3,34 +3,14 @@ defmodule BlackboexWeb.ApiLive.Edit.MetricsLiveTest do
 
   @moduletag :liveview
 
-  import Phoenix.LiveViewTest
-
   alias Blackboex.Apis
-  alias Blackboex.Apis.MetricRollup
   alias Blackboex.Repo
 
-  setup :register_and_log_in_user
+  setup [:register_and_log_in_user, :create_org_and_api]
 
-  setup %{user: user} do
+  setup do
     Apis.Registry.clear()
-
-    {:ok, %{organization: org}} =
-      Blackboex.Organizations.create_organization(user, %{
-        name: "Metrics Org #{System.unique_integer([:positive])}",
-        slug: "metricsorg-#{System.unique_integer([:positive])}"
-      })
-
-    {:ok, api} =
-      Apis.create_api(%{
-        name: "Metrics Test API",
-        slug: "metrics-test-#{System.unique_integer([:positive])}",
-        template_type: "computation",
-        organization_id: org.id,
-        user_id: user.id,
-        source_code: "def handle(_), do: %{ok: true}"
-      })
-
-    %{org: org, api: api}
+    :ok
   end
 
   defp insert_invocation_log(api, inserted_at, attrs \\ %{}) do
@@ -60,9 +40,7 @@ defmodule BlackboexWeb.ApiLive.Edit.MetricsLiveTest do
       unique_consumers: 2
     }
 
-    %MetricRollup{}
-    |> MetricRollup.changeset(Map.merge(defaults, attrs))
-    |> Repo.insert!()
+    metric_rollup_fixture(Map.merge(defaults, attrs))
   end
 
   describe "mount" do

@@ -65,6 +65,58 @@ Umbrella app with strict domain/web separation. See `AGENTS.md` for full context
 - Dialyzer from day one
 - Two esbuild/tailwind targets: `blackboex_web` and `blackboex_admin`
 
+## Test Standards — Mandatory Rules
+
+### Fixture-First Policy
+
+Every schema that needs to be inserted in a test MUST use a fixture function — never create entities inline with `%Schema{} |> changeset |> Repo.insert`. The only exception is changeset validation tests that test the changeset itself without inserting.
+
+**Fixture modules** (all auto-imported via `DataCase` and `ConnCase`):
+
+| Module | Functions | Schemas |
+|--------|-----------|---------|
+| `AccountsFixtures` | `user_fixture/1`, `user_scope_fixture/0,1` | User |
+| `OrganizationsFixtures` | `org_fixture/1`, `user_and_org_fixture/1` | Organization |
+| `ApisFixtures` | `api_fixture/1`, `api_key_fixture/2`, `invocation_log_fixture/1`, `metric_rollup_fixture/1` | Api, ApiKey, InvocationLog, MetricRollup |
+| `BillingFixtures` | `subscription_fixture/1`, `daily_usage_fixture/1`, `usage_event_fixture/1` | Subscription, DailyUsage, UsageEvent |
+| `ConversationsFixtures` | `conversation_fixture/2`, `run_fixture/1` | Conversation, Run |
+| `TestingFixtures` | `test_suite_fixture/1` | TestSuite |
+| `MockDefaults` | `stub_llm_client/1`, `stub_stripe/1` | — |
+
+### Named Setup Composition
+
+Use composable named setups instead of inline setup blocks:
+
+```elixir
+# CORRECT — compose named setups
+setup [:register_and_log_in_user, :create_org_and_api]
+
+# WRONG — inline setup block duplicating fixture logic
+setup %{user: user} do
+  {:ok, %{organization: org}} = Organizations.create_organization(user, %{name: "Test"})
+  {:ok, api} = Apis.create_api(%{...})
+  %{org: org, api: api}
+end
+```
+
+Available named setups:
+- `:register_and_log_in_user` — creates user, logs in, returns `%{conn, user, scope}`
+- `:create_user_and_org` — creates user + org, returns `%{user, org}`
+- `:create_org` — creates org for existing user in context, returns `%{org}`
+- `:create_api` — creates API for existing user + org, returns `%{api}`
+- `:create_org_and_api` — creates org + API for existing user, returns `%{org, api}`
+- `:stub_llm_client` — stubs LLM mock with safe defaults
+- `:stub_stripe` — stubs Stripe mock with safe defaults
+
+### Test Structure Rules
+
+1. **No redundant imports** — `DataCase` auto-imports all fixtures, `Mox.verify_on_exit!`, `Ecto` helpers. `ConnCase` auto-imports all of that plus `Phoenix.LiveViewTest` and `LiveViewHelpers`
+2. **No `import Mox` for verify only** — `Mox.verify_on_exit!` is automatic in DataCase. Only add `import Mox` if tests use `expect/3` or `stub/3` directly
+3. **No `defp` helpers that duplicate fixture logic** — if you need `create_org`, `build_api`, `insert_log`, etc., use the shared fixture. If a fixture doesn't exist for a schema, create one
+4. **New schema = new fixture** — when adding a new Ecto schema that will be inserted in tests, create the fixture function in the appropriate `*Fixtures` module BEFORE writing tests
+5. **Specific names in setup** — if a test asserts on a specific name/slug, pass it to the fixture (`api_fixture(%{name: "My API"})`) instead of inlining the whole creation
+6. **LiveView helpers** — use `assert_has(view, selector)` and `refute_has(view, selector)` from `LiveViewHelpers` instead of raw `has_element?`
+
 ## Dangerous Operations — Never Do This
 
 - Compile user code outside the sandbox (`CodeGen.Compiler`)

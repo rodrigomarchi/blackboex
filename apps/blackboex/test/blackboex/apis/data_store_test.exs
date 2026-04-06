@@ -6,13 +6,8 @@ defmodule Blackboex.Apis.DataStoreTest do
   alias Blackboex.Apis
   alias Blackboex.Apis.DataStore
 
-  import Blackboex.AccountsFixtures
-
   setup do
-    user = user_fixture()
-
-    {:ok, %{organization: org}} =
-      Blackboex.Organizations.create_organization(user, %{name: "Test Org"})
+    {user, org} = user_and_org_fixture()
 
     {:ok, api} =
       Apis.create_api(%{

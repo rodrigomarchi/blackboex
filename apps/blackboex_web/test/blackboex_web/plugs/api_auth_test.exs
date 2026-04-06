@@ -7,8 +7,6 @@ defmodule BlackboexWeb.Plugs.ApiAuthTest do
   alias Blackboex.Apis.Keys
   alias BlackboexWeb.Plugs.ApiAuth
 
-  import Blackboex.AccountsFixtures
-
   setup do
     user = user_fixture()
 

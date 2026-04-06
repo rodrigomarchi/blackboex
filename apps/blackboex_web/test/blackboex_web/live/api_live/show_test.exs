@@ -3,9 +3,6 @@ defmodule BlackboexWeb.ApiLive.ShowTest do
 
   @moduletag :liveview
 
-  import Phoenix.LiveViewTest
-
-  alias Blackboex.Apis
   alias BlackboexWeb.ApiLive.Show
 
   describe "unauthenticated" do
@@ -24,24 +21,7 @@ defmodule BlackboexWeb.ApiLive.ShowTest do
   end
 
   describe "authenticated" do
-    setup :register_and_log_in_user
-
-    setup %{user: user} do
-      {:ok, %{organization: org}} =
-        Blackboex.Organizations.create_organization(user, %{name: "Test Org", slug: "testorg"})
-
-      {:ok, api} =
-        Apis.create_api(%{
-          name: "Show API",
-          slug: "show-api",
-          template_type: "computation",
-          organization_id: org.id,
-          user_id: user.id,
-          source_code: "def handle(_), do: %{ok: true}"
-        })
-
-      %{org: org, api: api}
-    end
+    setup [:register_and_log_in_user, :create_org_and_api]
 
     test "redirects to editor for the correct API", %{conn: conn, api: api} do
       assert {:error, {:live_redirect, %{to: redirect_path}}} =

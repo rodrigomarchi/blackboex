@@ -6,8 +6,6 @@ defmodule BlackboexWeb.UserAuthTest do
   alias BlackboexWeb.UserAuth
   alias Phoenix.LiveView
 
-  import Blackboex.AccountsFixtures
-
   @remember_me_cookie "_blackboex_web_user_remember_me"
   @remember_me_cookie_max_age 60 * 60 * 24 * 14
 

@@ -5,8 +5,6 @@ defmodule BlackboexWeb.Hooks.SetOrganizationTest do
   alias Blackboex.Organizations
   alias BlackboexWeb.Hooks.SetOrganization
 
-  import Blackboex.AccountsFixtures
-
   @moduletag :unit
 
   defp build_socket(assigns) do

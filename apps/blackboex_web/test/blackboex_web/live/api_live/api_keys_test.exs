@@ -3,29 +3,9 @@ defmodule BlackboexWeb.ApiLive.ApiKeysTest do
 
   @moduletag :liveview
 
-  import Phoenix.LiveViewTest
-
-  alias Blackboex.Apis
   alias Blackboex.Apis.Keys
 
-  setup :register_and_log_in_user
-
-  setup %{user: user} do
-    {:ok, %{organization: org}} =
-      Blackboex.Organizations.create_organization(user, %{name: "Test Org", slug: "testorg"})
-
-    {:ok, api} =
-      Apis.create_api(%{
-        name: "Key Test API",
-        slug: "key-test-api",
-        template_type: "computation",
-        organization_id: org.id,
-        user_id: user.id,
-        source_code: "def handle(_), do: %{ok: true}"
-      })
-
-    %{org: org, api: api}
-  end
+  setup [:register_and_log_in_user, :create_org_and_api]
 
   describe "API keys lifecycle" do
     test "create -> rotate -> revoke", %{conn: conn, org: org, api: api} do

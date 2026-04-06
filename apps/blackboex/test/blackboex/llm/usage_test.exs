@@ -5,16 +5,7 @@ defmodule Blackboex.LLM.UsageTest do
 
   alias Blackboex.LLM.Usage
 
-  import Blackboex.AccountsFixtures
-
-  setup do
-    user = user_fixture()
-
-    {:ok, %{organization: org}} =
-      Blackboex.Organizations.create_organization(user, %{name: "Test Org"})
-
-    %{user: user, org: org}
-  end
+  setup :create_user_and_org
 
   describe "changeset/2" do
     test "valid with required fields", %{user: user, org: org} do

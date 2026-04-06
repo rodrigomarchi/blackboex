@@ -1,9 +1,6 @@
 defmodule BlackboexWeb.UserLive.RegistrationTest do
   use BlackboexWeb.ConnCase, async: true
 
-  import Phoenix.LiveViewTest
-  import Blackboex.AccountsFixtures
-
   describe "Registration page" do
     test "renders registration page", %{conn: conn} do
       {:ok, _lv, html} = live(conn, ~p"/users/register")

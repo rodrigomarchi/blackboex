@@ -1,9 +1,6 @@
 defmodule BlackboexWeb.UserLive.ConfirmationTest do
   use BlackboexWeb.ConnCase, async: true
 
-  import Phoenix.LiveViewTest
-  import Blackboex.AccountsFixtures
-
   alias Blackboex.Accounts
 
   setup do

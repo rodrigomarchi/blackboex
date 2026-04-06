@@ -6,17 +6,9 @@ defmodule Blackboex.Agent.KickoffWorkerTest do
   alias Blackboex.Agent.KickoffWorker
   alias Blackboex.Apis
   alias Blackboex.Conversations
-  alias Blackboex.Organizations
-
-  import Blackboex.AccountsFixtures
 
   setup do
-    user = user_fixture()
-
-    {:ok, %{organization: org}} =
-      Organizations.create_organization(user, %{
-        name: "KW Org #{System.unique_integer([:positive])}"
-      })
+    {user, org} = user_and_org_fixture()
 
     {:ok, api} =
       Apis.create_api(%{

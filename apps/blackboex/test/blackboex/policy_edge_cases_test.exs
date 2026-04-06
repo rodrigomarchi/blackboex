@@ -5,14 +5,11 @@ defmodule Blackboex.PolicyEdgeCasesTest do
   alias Blackboex.Organizations
   alias Blackboex.Policy
 
-  import Blackboex.AccountsFixtures
-
   @moduletag :unit
 
   describe "nil scope" do
     test "nil scope is not authorized" do
-      user = user_fixture()
-      [org] = Organizations.list_user_organizations(user)
+      {_user, org} = user_and_org_fixture()
 
       refute Policy.authorize?(:organization_read, nil, org)
     end
@@ -20,8 +17,7 @@ defmodule Blackboex.PolicyEdgeCasesTest do
 
   describe "scope without organization" do
     test "scope with user only but no org is not authorized" do
-      user = user_fixture()
-      [org] = Organizations.list_user_organizations(user)
+      {user, org} = user_and_org_fixture()
       scope = Scope.for_user(user)
 
       refute Policy.authorize?(:organization_read, scope, org)
@@ -53,8 +49,7 @@ defmodule Blackboex.PolicyEdgeCasesTest do
   describe "non-existent action" do
     @tag :capture_log
     test "undefined action returns false" do
-      user = user_fixture()
-      [org] = Organizations.list_user_organizations(user)
+      {user, org} = user_and_org_fixture()
       membership = Organizations.get_user_membership(org, user)
 
       scope =

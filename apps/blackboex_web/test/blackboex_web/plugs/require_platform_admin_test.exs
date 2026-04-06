@@ -4,8 +4,6 @@ defmodule BlackboexWeb.Plugs.RequirePlatformAdminTest do
   alias Blackboex.Accounts.Scope
   alias BlackboexWeb.Plugs.RequirePlatformAdmin
 
-  import Blackboex.AccountsFixtures
-
   @moduletag :unit
 
   describe "call/2" do

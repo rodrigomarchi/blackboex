@@ -9,13 +9,8 @@ defmodule Blackboex.Apis.AnalyticsTest do
   alias Blackboex.Apis.InvocationLog
   alias Blackboex.Repo
 
-  import Blackboex.AccountsFixtures
-
   setup do
-    user = user_fixture()
-
-    {:ok, %{organization: org}} =
-      Blackboex.Organizations.create_organization(user, %{name: "Analytics Org"})
+    {user, org} = user_and_org_fixture()
 
     {:ok, api} =
       Apis.create_api(%{
@@ -27,40 +22,22 @@ defmodule Blackboex.Apis.AnalyticsTest do
     %{api: api}
   end
 
-  defp insert_log(api_id, attrs) do
-    %InvocationLog{}
-    |> InvocationLog.changeset(
-      Map.merge(
-        %{api_id: api_id, method: "POST", path: "/", status_code: 200, duration_ms: 100},
-        attrs
-      )
-    )
-    |> Repo.insert!()
-  end
-
   defp insert_log_at(api_id, attrs, seconds_ago) do
     inserted_at =
       NaiveDateTime.utc_now()
       |> NaiveDateTime.add(-seconds_ago, :second)
       |> NaiveDateTime.truncate(:second)
 
-    %InvocationLog{}
-    |> InvocationLog.changeset(
-      Map.merge(
-        %{api_id: api_id, method: "POST", path: "/", status_code: 200, duration_ms: 100},
-        attrs
-      )
-    )
-    |> Repo.insert!()
+    invocation_log_fixture(Map.put(attrs, :api_id, api_id))
     |> Ecto.Changeset.change(%{inserted_at: inserted_at})
     |> Repo.update!()
   end
 
   describe "invocations_count/2" do
     test "counts invocations", %{api: api} do
-      insert_log(api.id, %{})
-      insert_log(api.id, %{})
-      insert_log(api.id, %{})
+      invocation_log_fixture(%{api_id: api.id})
+      invocation_log_fixture(%{api_id: api.id})
+      invocation_log_fixture(%{api_id: api.id})
 
       assert Analytics.invocations_count(api.id) == 3
     end
@@ -82,9 +59,9 @@ defmodule Blackboex.Apis.AnalyticsTest do
           user_id: other_user.id
         })
 
-      insert_log(api.id, %{})
-      insert_log(api.id, %{})
-      insert_log(other_api.id, %{})
+      invocation_log_fixture(%{api_id: api.id})
+      invocation_log_fixture(%{api_id: api.id})
+      invocation_log_fixture(%{api_id: other_api.id})
 
       assert Analytics.invocations_count(api.id) == 2
       assert Analytics.invocations_count(other_api.id) == 1
@@ -113,7 +90,7 @@ defmodule Blackboex.Apis.AnalyticsTest do
 
     test ":all period returns everything", %{api: api} do
       insert_log_at(api.id, %{}, 10_000_000)
-      insert_log(api.id, %{})
+      invocation_log_fixture(%{api_id: api.id})
 
       assert Analytics.invocations_count(api.id, period: :all) == 2
     end
@@ -121,10 +98,10 @@ defmodule Blackboex.Apis.AnalyticsTest do
 
   describe "success_rate/2" do
     test "calculates success rate", %{api: api} do
-      insert_log(api.id, %{status_code: 200})
-      insert_log(api.id, %{status_code: 201})
-      insert_log(api.id, %{status_code: 500})
-      insert_log(api.id, %{status_code: 404})
+      invocation_log_fixture(%{api_id: api.id, status_code: 200})
+      invocation_log_fixture(%{api_id: api.id, status_code: 201})
+      invocation_log_fixture(%{api_id: api.id, status_code: 500})
+      invocation_log_fixture(%{api_id: api.id, status_code: 404})
 
       assert Analytics.success_rate(api.id) == 50.0
     end
@@ -134,16 +111,16 @@ defmodule Blackboex.Apis.AnalyticsTest do
     end
 
     test "returns 100.0 when all requests succeed", %{api: api} do
-      insert_log(api.id, %{status_code: 200})
-      insert_log(api.id, %{status_code: 201})
-      insert_log(api.id, %{status_code: 299})
+      invocation_log_fixture(%{api_id: api.id, status_code: 200})
+      invocation_log_fixture(%{api_id: api.id, status_code: 201})
+      invocation_log_fixture(%{api_id: api.id, status_code: 299})
 
       assert Analytics.success_rate(api.id) == 100.0
     end
 
     test "returns 0.0 when all requests fail", %{api: api} do
-      insert_log(api.id, %{status_code: 400})
-      insert_log(api.id, %{status_code: 500})
+      invocation_log_fixture(%{api_id: api.id, status_code: 400})
+      invocation_log_fixture(%{api_id: api.id, status_code: 500})
 
       assert Analytics.success_rate(api.id) == 0.0
     end
@@ -158,9 +135,9 @@ defmodule Blackboex.Apis.AnalyticsTest do
 
   describe "avg_latency/2" do
     test "calculates average latency", %{api: api} do
-      insert_log(api.id, %{duration_ms: 100})
-      insert_log(api.id, %{duration_ms: 200})
-      insert_log(api.id, %{duration_ms: 300})
+      invocation_log_fixture(%{api_id: api.id, duration_ms: 100})
+      invocation_log_fixture(%{api_id: api.id, duration_ms: 200})
+      invocation_log_fixture(%{api_id: api.id, duration_ms: 300})
 
       assert Analytics.avg_latency(api.id) == 200.0
     end
@@ -170,7 +147,7 @@ defmodule Blackboex.Apis.AnalyticsTest do
     end
 
     test "returns single value when one log exists", %{api: api} do
-      insert_log(api.id, %{duration_ms: 150})
+      invocation_log_fixture(%{api_id: api.id, duration_ms: 150})
 
       assert Analytics.avg_latency(api.id) == 150.0
     end
@@ -185,17 +162,17 @@ defmodule Blackboex.Apis.AnalyticsTest do
 
   describe "error_count/2" do
     test "counts error responses (4xx and 5xx)", %{api: api} do
-      insert_log(api.id, %{status_code: 200})
-      insert_log(api.id, %{status_code: 404})
-      insert_log(api.id, %{status_code: 500})
-      insert_log(api.id, %{status_code: 422})
+      invocation_log_fixture(%{api_id: api.id, status_code: 200})
+      invocation_log_fixture(%{api_id: api.id, status_code: 404})
+      invocation_log_fixture(%{api_id: api.id, status_code: 500})
+      invocation_log_fixture(%{api_id: api.id, status_code: 422})
 
       assert Analytics.error_count(api.id) == 3
     end
 
     test "returns 0 when no errors", %{api: api} do
-      insert_log(api.id, %{status_code: 200})
-      insert_log(api.id, %{status_code: 201})
+      invocation_log_fixture(%{api_id: api.id, status_code: 200})
+      invocation_log_fixture(%{api_id: api.id, status_code: 201})
 
       assert Analytics.error_count(api.id) == 0
     end
@@ -205,8 +182,8 @@ defmodule Blackboex.Apis.AnalyticsTest do
     end
 
     test "counts exactly at 400 boundary", %{api: api} do
-      insert_log(api.id, %{status_code: 399})
-      insert_log(api.id, %{status_code: 400})
+      invocation_log_fixture(%{api_id: api.id, status_code: 399})
+      invocation_log_fixture(%{api_id: api.id, status_code: 400})
 
       assert Analytics.error_count(api.id) == 1
     end
@@ -240,9 +217,9 @@ defmodule Blackboex.Apis.AnalyticsTest do
     end
 
     test "excludes successful responses", %{api: api} do
-      insert_log(api.id, %{status_code: 200})
-      insert_log(api.id, %{status_code: 201})
-      insert_log(api.id, %{status_code: 500})
+      invocation_log_fixture(%{api_id: api.id, status_code: 200})
+      invocation_log_fixture(%{api_id: api.id, status_code: 201})
+      invocation_log_fixture(%{api_id: api.id, status_code: 500})
 
       errors = Analytics.recent_errors(api.id)
 
@@ -251,14 +228,14 @@ defmodule Blackboex.Apis.AnalyticsTest do
     end
 
     test "returns empty list when no errors", %{api: api} do
-      insert_log(api.id, %{status_code: 200})
+      invocation_log_fixture(%{api_id: api.id, status_code: 200})
 
       assert Analytics.recent_errors(api.id) == []
     end
 
     test "respects limit parameter", %{api: api} do
       for _ <- 1..5 do
-        insert_log(api.id, %{status_code: 500})
+        invocation_log_fixture(%{api_id: api.id, status_code: 500})
       end
 
       errors = Analytics.recent_errors(api.id, 3)
@@ -268,7 +245,7 @@ defmodule Blackboex.Apis.AnalyticsTest do
 
     test "defaults to limit 10", %{api: api} do
       for _ <- 1..15 do
-        insert_log(api.id, %{status_code: 500})
+        invocation_log_fixture(%{api_id: api.id, status_code: 500})
       end
 
       errors = Analytics.recent_errors(api.id)
@@ -289,8 +266,8 @@ defmodule Blackboex.Apis.AnalyticsTest do
           user_id: other_user.id
         })
 
-      insert_log(api.id, %{status_code: 500})
-      insert_log(other_api.id, %{status_code: 500})
+      invocation_log_fixture(%{api_id: api.id, status_code: 500})
+      invocation_log_fixture(%{api_id: other_api.id, status_code: 500})
 
       errors = Analytics.recent_errors(api.id)
 

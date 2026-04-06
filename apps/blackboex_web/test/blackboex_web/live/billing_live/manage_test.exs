@@ -1,35 +1,14 @@
 defmodule BlackboexWeb.BillingLive.ManageTest do
   use BlackboexWeb.ConnCase, async: false
 
-  import Phoenix.LiveViewTest
   import Mox
 
-  alias Blackboex.Billing.Subscription
   alias Blackboex.Organizations
 
   @moduletag :liveview
 
   setup :set_mox_global
-  setup :verify_on_exit!
   setup :register_and_log_in_user
-
-  defp insert_subscription(org_id, attrs \\ %{}) do
-    base = %{
-      organization_id: org_id,
-      stripe_customer_id: "cus_test123",
-      plan: "pro",
-      status: "active",
-      current_period_start: ~U[2026-03-01 00:00:00Z],
-      current_period_end: ~U[2026-04-01 00:00:00Z]
-    }
-
-    {:ok, sub} =
-      %Subscription{}
-      |> Subscription.changeset(Map.merge(base, attrs))
-      |> Blackboex.Repo.insert()
-
-    sub
-  end
 
   test "shows no subscription message when none exists", %{conn: conn} do
     {:ok, _lv, html} = live(conn, ~p"/billing/manage")
@@ -40,7 +19,14 @@ defmodule BlackboexWeb.BillingLive.ManageTest do
 
   test "shows subscription status when subscription exists", %{conn: conn, user: user} do
     [org] = Organizations.list_user_organizations(user)
-    insert_subscription(org.id)
+
+    subscription_fixture(%{
+      organization_id: org.id,
+      stripe_customer_id: "cus_test123",
+      plan: "pro",
+      current_period_start: ~U[2026-03-01 00:00:00Z],
+      current_period_end: ~U[2026-04-01 00:00:00Z]
+    })
 
     {:ok, _lv, html} = live(conn, ~p"/billing/manage")
 
@@ -52,7 +38,14 @@ defmodule BlackboexWeb.BillingLive.ManageTest do
 
   test "shows current period dates when present", %{conn: conn, user: user} do
     [org] = Organizations.list_user_organizations(user)
-    insert_subscription(org.id)
+
+    subscription_fixture(%{
+      organization_id: org.id,
+      stripe_customer_id: "cus_test123",
+      plan: "pro",
+      current_period_start: ~U[2026-03-01 00:00:00Z],
+      current_period_end: ~U[2026-04-01 00:00:00Z]
+    })
 
     {:ok, _lv, html} = live(conn, ~p"/billing/manage")
 
@@ -63,7 +56,10 @@ defmodule BlackboexWeb.BillingLive.ManageTest do
   test "shows dash when period dates are nil", %{conn: conn, user: user} do
     [org] = Organizations.list_user_organizations(user)
 
-    insert_subscription(org.id, %{
+    subscription_fixture(%{
+      organization_id: org.id,
+      stripe_customer_id: "cus_test123",
+      plan: "pro",
       current_period_start: nil,
       current_period_end: nil
     })
@@ -75,7 +71,15 @@ defmodule BlackboexWeb.BillingLive.ManageTest do
 
   test "shows 'Active' auto-renew when cancel_at_period_end is false", %{conn: conn, user: user} do
     [org] = Organizations.list_user_organizations(user)
-    insert_subscription(org.id, %{cancel_at_period_end: false})
+
+    subscription_fixture(%{
+      organization_id: org.id,
+      stripe_customer_id: "cus_test123",
+      plan: "pro",
+      current_period_start: ~U[2026-03-01 00:00:00Z],
+      current_period_end: ~U[2026-04-01 00:00:00Z],
+      cancel_at_period_end: false
+    })
 
     {:ok, _lv, html} = live(conn, ~p"/billing/manage")
 
@@ -84,7 +88,15 @@ defmodule BlackboexWeb.BillingLive.ManageTest do
 
   test "shows cancellation notice when cancel_at_period_end is true", %{conn: conn, user: user} do
     [org] = Organizations.list_user_organizations(user)
-    insert_subscription(org.id, %{cancel_at_period_end: true})
+
+    subscription_fixture(%{
+      organization_id: org.id,
+      stripe_customer_id: "cus_test123",
+      plan: "pro",
+      current_period_start: ~U[2026-03-01 00:00:00Z],
+      current_period_end: ~U[2026-04-01 00:00:00Z],
+      cancel_at_period_end: true
+    })
 
     {:ok, _lv, html} = live(conn, ~p"/billing/manage")
 
@@ -93,7 +105,15 @@ defmodule BlackboexWeb.BillingLive.ManageTest do
 
   test "shows past_due subscription status", %{conn: conn, user: user} do
     [org] = Organizations.list_user_organizations(user)
-    insert_subscription(org.id, %{status: "past_due"})
+
+    subscription_fixture(%{
+      organization_id: org.id,
+      stripe_customer_id: "cus_test123",
+      plan: "pro",
+      current_period_start: ~U[2026-03-01 00:00:00Z],
+      current_period_end: ~U[2026-04-01 00:00:00Z],
+      status: "past_due"
+    })
 
     {:ok, _lv, html} = live(conn, ~p"/billing/manage")
 
@@ -102,7 +122,15 @@ defmodule BlackboexWeb.BillingLive.ManageTest do
 
   test "shows canceled subscription status", %{conn: conn, user: user} do
     [org] = Organizations.list_user_organizations(user)
-    insert_subscription(org.id, %{status: "canceled"})
+
+    subscription_fixture(%{
+      organization_id: org.id,
+      stripe_customer_id: "cus_test123",
+      plan: "pro",
+      current_period_start: ~U[2026-03-01 00:00:00Z],
+      current_period_end: ~U[2026-04-01 00:00:00Z],
+      status: "canceled"
+    })
 
     {:ok, _lv, html} = live(conn, ~p"/billing/manage")
 
@@ -111,7 +139,14 @@ defmodule BlackboexWeb.BillingLive.ManageTest do
 
   test "manage event redirects to portal URL on success", %{conn: conn, user: user} do
     [org] = Organizations.list_user_organizations(user)
-    insert_subscription(org.id)
+
+    subscription_fixture(%{
+      organization_id: org.id,
+      stripe_customer_id: "cus_test123",
+      plan: "pro",
+      current_period_start: ~U[2026-03-01 00:00:00Z],
+      current_period_end: ~U[2026-04-01 00:00:00Z]
+    })
 
     expect(Blackboex.Billing.StripeClientMock, :create_portal_session, fn _cid, _return_url ->
       {:ok, %{url: "https://billing.stripe.com/session/test123"}}
@@ -125,7 +160,14 @@ defmodule BlackboexWeb.BillingLive.ManageTest do
 
   test "manage event shows error flash on portal session failure", %{conn: conn, user: user} do
     [org] = Organizations.list_user_organizations(user)
-    insert_subscription(org.id)
+
+    subscription_fixture(%{
+      organization_id: org.id,
+      stripe_customer_id: "cus_test123",
+      plan: "pro",
+      current_period_start: ~U[2026-03-01 00:00:00Z],
+      current_period_end: ~U[2026-04-01 00:00:00Z]
+    })
 
     expect(Blackboex.Billing.StripeClientMock, :create_portal_session, fn _cid, _return_url ->
       {:error, :stripe_error}
@@ -140,7 +182,14 @@ defmodule BlackboexWeb.BillingLive.ManageTest do
 
   test "manage button is present and not disabled on initial render", %{conn: conn, user: user} do
     [org] = Organizations.list_user_organizations(user)
-    insert_subscription(org.id)
+
+    subscription_fixture(%{
+      organization_id: org.id,
+      stripe_customer_id: "cus_test123",
+      plan: "pro",
+      current_period_start: ~U[2026-03-01 00:00:00Z],
+      current_period_end: ~U[2026-04-01 00:00:00Z]
+    })
 
     {:ok, _lv, html} = live(conn, ~p"/billing/manage")
 
@@ -154,7 +203,14 @@ defmodule BlackboexWeb.BillingLive.ManageTest do
     user: user
   } do
     [org] = Organizations.list_user_organizations(user)
-    insert_subscription(org.id)
+
+    subscription_fixture(%{
+      organization_id: org.id,
+      stripe_customer_id: "cus_test123",
+      plan: "pro",
+      current_period_start: ~U[2026-03-01 00:00:00Z],
+      current_period_end: ~U[2026-04-01 00:00:00Z]
+    })
 
     # Stub returns ok so first click proceeds
     stub(Blackboex.Billing.StripeClientMock, :create_portal_session, fn _cid, _return_url ->

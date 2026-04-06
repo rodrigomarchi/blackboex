@@ -89,8 +89,59 @@ Accounts ──→ Organizations (creates personal org on registration)
 
 ## Test Patterns
 
-- **Factories:** ExMachina via `Blackboex.Factory` + fixtures in `test/support/fixtures/`
-- **Mocks:** Mox — `ClientMock` (LLM), `StripeClientMock` (Stripe). Tests with Mox must set `async: false`
+### Fixture-First Policy (mandatory)
+
+**Never create entities inline** with `%Schema{} |> changeset |> Repo.insert`. Always use fixture functions. All fixtures are auto-imported via `DataCase` (domain) and `ConnCase` (web) — no manual imports needed.
+
+```
+test/support/
+├── data_case.ex                          — Auto-imports all fixtures + Mox.verify_on_exit!
+├── mock_defaults.ex                      — stub_llm_client/1, stub_stripe/1 (named setups)
+├── mocks.ex                              — Mox.defmock definitions
+└── fixtures/
+    ├── accounts_fixtures.ex              — user_fixture/1, user_scope_fixture/0,1
+    ├── organizations_fixtures.ex         — org_fixture/1, user_and_org_fixture/1, named setups: create_user_and_org, create_org
+    ├── apis_fixtures.ex                  — api_fixture/1, api_key_fixture/2, invocation_log_fixture/1, metric_rollup_fixture/1, named setups: create_api, create_org_and_api
+    ├── billing_fixtures.ex              — subscription_fixture/1, daily_usage_fixture/1, usage_event_fixture/1
+    ├── conversations_fixtures.ex        — conversation_fixture/2, run_fixture/1
+    └── testing_fixtures.ex              — test_suite_fixture/1
+```
+
+### Composable Named Setups
+
+```elixir
+# Web tests: compose login + data setup in one line
+setup [:register_and_log_in_user, :create_org_and_api]
+
+# Domain tests: user + org
+setup :create_user_and_org
+
+# Add extra with specific attrs
+setup :create_org_and_api
+setup %{api: api} do
+  {:ok, api} = Apis.publish_api(api)
+  %{api: api}
+end
+```
+
+### What NOT to do in tests
+
+- No `import Blackboex.AccountsFixtures` — already auto-imported
+- No `import Phoenix.LiveViewTest` — already auto-imported via ConnCase
+- No `import Mox` + `setup :verify_on_exit!` — already automatic in DataCase
+- No `defp create_org`, `defp build_api`, `defp insert_log` — use shared fixtures
+- No `%Schema{} |> changeset |> Repo.insert` — use `*_fixture()` functions
+
+### Mocks
+
+- Mox — `ClientMock` (LLM), `StripeClientMock` (Stripe)
+- `Mox.verify_on_exit!` is automatic in DataCase — no manual setup needed
+- Only add `import Mox` if tests use `expect/3` or `stub/3` directly
+- Use `setup :stub_llm_client` or `setup :stub_stripe` for default stubs
+
+### Other
+
 - **Sandbox:** `Blackboex.DataCase` for Ecto SQL sandbox
 - **Oban:** Manual mode — use `Oban.Testing.assert_enqueued/2`
 - **Tags:** `@moduletag :unit`, `:integration`, `:liveview`, `@tag :capture_log`
+- **New schema = new fixture:** when adding a schema that will be inserted in tests, create the fixture BEFORE writing tests

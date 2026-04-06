@@ -4,8 +4,6 @@ defmodule Blackboex.OrganizationsTest do
   alias Blackboex.Organizations
   alias Blackboex.Organizations.{Membership, Organization}
 
-  import Blackboex.AccountsFixtures
-
   @moduletag :unit
 
   describe "create_organization/2" do

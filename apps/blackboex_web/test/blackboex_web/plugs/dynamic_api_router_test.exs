@@ -8,8 +8,6 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouterTest do
   alias Blackboex.Apis.Registry
   alias Blackboex.CodeGen.Compiler
 
-  import Blackboex.AccountsFixtures
-
   setup do
     Registry.clear()
 
@@ -637,11 +635,7 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouterTest do
 
       # Exhaust the free plan daily invocation limit (1000) by inserting usage events directly
       Enum.each(1..1000, fn _ ->
-        Blackboex.Repo.insert!(%Blackboex.Billing.UsageEvent{
-          organization_id: org.id,
-          event_type: "api_invocation",
-          metadata: %{}
-        })
+        usage_event_fixture(%{organization_id: org.id, event_type: "api_invocation"})
       end)
 
       conn = get(conn, "/api/testorg/limited-api")

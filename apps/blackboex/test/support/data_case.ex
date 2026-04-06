@@ -24,11 +24,19 @@ defmodule Blackboex.DataCase do
       import Ecto.Changeset
       import Ecto.Query
       import Blackboex.DataCase
+      import Blackboex.AccountsFixtures
+      import Blackboex.OrganizationsFixtures
+      import Blackboex.ApisFixtures
+      import Blackboex.BillingFixtures
+      import Blackboex.ConversationsFixtures
+      import Blackboex.TestingFixtures
+      import Blackboex.MockDefaults
     end
   end
 
   setup tags do
     Blackboex.DataCase.setup_sandbox(tags)
+    Mox.verify_on_exit!(tags)
     :ok
   end
 

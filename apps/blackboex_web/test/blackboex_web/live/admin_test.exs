@@ -3,8 +3,6 @@ defmodule BlackboexWeb.AdminLiveTest do
 
   @moduletag :liveview
 
-  import Phoenix.LiveViewTest
-
   describe "non-admin user authorization" do
     setup :register_and_log_in_user
 

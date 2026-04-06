@@ -3,8 +3,6 @@ defmodule BlackboexWeb.ApiLive.EditTest do
 
   @moduletag :liveview
 
-  import Phoenix.LiveViewTest
-
   alias Blackboex.Apis
   alias Blackboex.Apis.Registry
 

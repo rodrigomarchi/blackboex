@@ -3,37 +3,13 @@ defmodule BlackboexWeb.ApiLive.EditEventsTest do
 
   @moduletag :liveview
 
-  import Phoenix.LiveViewTest
-
-  alias Blackboex.Apis
   alias Blackboex.Apis.Registry
 
-  setup :register_and_log_in_user
+  setup [:register_and_log_in_user, :create_org_and_api]
 
-  setup %{user: user} do
+  setup do
     Registry.clear()
-
-    {:ok, %{organization: org}} =
-      Blackboex.Organizations.create_organization(user, %{
-        name: "Events Org #{System.unique_integer([:positive])}",
-        slug: "eventsorg-#{System.unique_integer([:positive])}"
-      })
-
-    {:ok, api} =
-      Apis.create_api(%{
-        name: "Events Test API",
-        slug: "events-test-#{System.unique_integer([:positive])}",
-        template_type: "computation",
-        organization_id: org.id,
-        user_id: user.id,
-        source_code: """
-        def handle(params) do
-          %{echo: params}
-        end
-        """
-      })
-
-    %{org: org, api: api}
+    :ok
   end
 
   # --- Request Builder Events (Test Tab) ---

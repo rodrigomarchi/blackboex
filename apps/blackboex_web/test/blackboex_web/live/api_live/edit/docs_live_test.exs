@@ -3,42 +3,19 @@ defmodule BlackboexWeb.ApiLive.Edit.DocsLiveTest do
 
   @moduletag :liveview
 
-  import Phoenix.LiveViewTest
-
   alias Blackboex.Apis
-  alias Blackboex.Billing.UsageEvent
-  alias Blackboex.Repo
 
-  setup :register_and_log_in_user
+  setup [:register_and_log_in_user, :create_org_and_api]
 
-  setup %{user: user} do
+  setup do
     Apis.Registry.clear()
-
-    {:ok, %{organization: org}} =
-      Blackboex.Organizations.create_organization(user, %{
-        name: "Docs Org #{System.unique_integer([:positive])}",
-        slug: "docsorg-#{System.unique_integer([:positive])}"
-      })
-
-    {:ok, api} =
-      Apis.create_api(%{
-        name: "Docs Test API",
-        slug: "docs-test-#{System.unique_integer([:positive])}",
-        template_type: "computation",
-        organization_id: org.id,
-        user_id: user.id,
-        source_code: "def handle(_), do: %{ok: true}"
-      })
-
-    %{org: org, api: api}
+    :ok
   end
 
   # Exhaust the free plan LLM generation limit (50/month) by inserting UsageEvents today.
   defp exhaust_llm_limit(org) do
     for _i <- 1..50 do
-      %UsageEvent{}
-      |> UsageEvent.changeset(%{organization_id: org.id, event_type: "llm_generation"})
-      |> Repo.insert!()
+      usage_event_fixture(%{organization_id: org.id, event_type: "llm_generation"})
     end
   end
 

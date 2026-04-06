@@ -8,36 +8,7 @@ defmodule Blackboex.ApisTest do
   alias Blackboex.Apis.ApiVersion
   alias Blackboex.CodeGen.GenerationResult
 
-  import Blackboex.AccountsFixtures
-
-  setup do
-    user = user_fixture()
-
-    {:ok, %{organization: org}} =
-      Blackboex.Organizations.create_organization(user, %{
-        name: "Test Org #{System.unique_integer([:positive])}"
-      })
-
-    %{user: user, org: org}
-  end
-
-  # Helper to build a minimal API in the given org/user
-  defp build_api(user, org, extra \\ %{}) do
-    {:ok, api} =
-      Apis.create_api(
-        Map.merge(
-          %{
-            name: "Test API #{System.unique_integer([:positive])}",
-            template_type: "computation",
-            organization_id: org.id,
-            user_id: user.id
-          },
-          extra
-        )
-      )
-
-    api
-  end
+  setup :create_user_and_org
 
   # ---------------------------------------------------------------------------
   # create_api/1
@@ -119,14 +90,14 @@ defmodule Blackboex.ApisTest do
 
   describe "list_apis/1" do
     test "returns APIs for the given org", %{user: user, org: org} do
-      build_api(user, org)
+      api_fixture(%{user: user, org: org})
       apis = Apis.list_apis(org.id)
       assert length(apis) == 1
     end
 
     test "returns multiple APIs ordered by newest first", %{user: user, org: org} do
-      _a1 = build_api(user, org)
-      _a2 = build_api(user, org)
+      _a1 = api_fixture(%{user: user, org: org})
+      _a2 = api_fixture(%{user: user, org: org})
       apis = Apis.list_apis(org.id)
       assert length(apis) == 2
     end
@@ -139,7 +110,7 @@ defmodule Blackboex.ApisTest do
           name: "Other Org #{System.unique_integer([:positive])}"
         })
 
-      build_api(other_user, other_org)
+      api_fixture(%{user: other_user, org: other_org})
 
       assert Apis.list_apis(org.id) == []
     end
@@ -155,7 +126,7 @@ defmodule Blackboex.ApisTest do
 
   describe "get_api/2" do
     test "returns API by id within org", %{user: user, org: org} do
-      api = build_api(user, org)
+      api = api_fixture(%{user: user, org: org})
       assert %Api{id: id} = Apis.get_api(org.id, api.id)
       assert id == api.id
     end
@@ -172,7 +143,7 @@ defmodule Blackboex.ApisTest do
           name: "Other Org #{System.unique_integer([:positive])}"
         })
 
-      api = build_api(other_user, other_org)
+      api = api_fixture(%{user: other_user, org: other_org})
 
       assert Apis.get_api(org.id, api.id) == nil
     end
@@ -184,24 +155,24 @@ defmodule Blackboex.ApisTest do
 
   describe "update_api/2" do
     test "updates API fields", %{user: user, org: org} do
-      api = build_api(user, org)
+      api = api_fixture(%{user: user, org: org})
       assert {:ok, updated} = Apis.update_api(api, %{name: "Updated API"})
       assert updated.name == "Updated API"
     end
 
     test "returns error for invalid update", %{user: user, org: org} do
-      api = build_api(user, org)
+      api = api_fixture(%{user: user, org: org})
       assert {:error, %Ecto.Changeset{}} = Apis.update_api(api, %{name: ""})
     end
 
     test "updates status to compiled", %{user: user, org: org} do
-      api = build_api(user, org)
+      api = api_fixture(%{user: user, org: org})
       assert {:ok, updated} = Apis.update_api(api, %{status: "compiled"})
       assert updated.status == "compiled"
     end
 
     test "updates source_code and test_code", %{user: user, org: org} do
-      api = build_api(user, org)
+      api = api_fixture(%{user: user, org: org})
 
       assert {:ok, updated} =
                Apis.update_api(api, %{
@@ -220,14 +191,21 @@ defmodule Blackboex.ApisTest do
 
   describe "delete_api/1" do
     test "deletes a draft API", %{user: user, org: org} do
-      api = build_api(user, org)
+      api = api_fixture(%{user: user, org: org})
       assert {:ok, %Api{}} = Apis.delete_api(api)
       assert Apis.get_api(org.id, api.id) == nil
     end
 
     @tag :capture_log
     test "deletes a compiled API", %{user: user, org: org} do
-      api = build_api(user, org, %{status: "compiled", source_code: "def handle(p), do: p"})
+      api =
+        api_fixture(%{
+          user: user,
+          org: org,
+          status: "compiled",
+          source_code: "def handle(p), do: p"
+        })
+
       assert {:ok, %Api{}} = Apis.delete_api(api)
       assert Apis.get_api(org.id, api.id) == nil
     end
@@ -235,7 +213,12 @@ defmodule Blackboex.ApisTest do
     @tag :capture_log
     test "deletes a published API (unregisters from registry)", %{user: user, org: org} do
       api =
-        build_api(user, org, %{status: "published", source_code: "def handle(p), do: p"})
+        api_fixture(%{
+          user: user,
+          org: org,
+          status: "published",
+          source_code: "def handle(p), do: p"
+        })
 
       assert {:ok, %Api{}} = Apis.delete_api(api)
       assert Apis.get_api(org.id, api.id) == nil
@@ -293,21 +276,33 @@ defmodule Blackboex.ApisTest do
   describe "publish/2" do
     @tag :capture_log
     test "publishes a compiled API", %{user: user, org: org} do
-      api = build_api(user, org, %{status: "compiled", source_code: "def handle(p), do: p"})
+      api =
+        api_fixture(%{
+          user: user,
+          org: org,
+          status: "compiled",
+          source_code: "def handle(p), do: p"
+        })
+
       assert {:ok, published} = Apis.publish(api, org)
       assert published.status == "published"
     end
 
     @tag :capture_log
     test "rejects publishing a draft API", %{user: user, org: org} do
-      api = build_api(user, org)
+      api = api_fixture(%{user: user, org: org})
       assert {:error, :not_compiled} = Apis.publish(api, org)
     end
 
     @tag :capture_log
     test "rejects publishing an already published API", %{user: user, org: org} do
       api =
-        build_api(user, org, %{status: "published", source_code: "def handle(p), do: p"})
+        api_fixture(%{
+          user: user,
+          org: org,
+          status: "published",
+          source_code: "def handle(p), do: p"
+        })
 
       assert {:error, :not_compiled} = Apis.publish(api, org)
     end
@@ -321,13 +316,26 @@ defmodule Blackboex.ApisTest do
           name: "Other Org #{System.unique_integer([:positive])}"
         })
 
-      api = build_api(user, org, %{status: "compiled", source_code: "def handle(p), do: p"})
+      api =
+        api_fixture(%{
+          user: user,
+          org: org,
+          status: "compiled",
+          source_code: "def handle(p), do: p"
+        })
+
       assert {:error, :org_mismatch} = Apis.publish(api, other_org)
     end
 
     @tag :capture_log
     test "publish then unpublish cycle works", %{user: user, org: org} do
-      api = build_api(user, org, %{status: "compiled", source_code: "def handle(p), do: p"})
+      api =
+        api_fixture(%{
+          user: user,
+          org: org,
+          status: "compiled",
+          source_code: "def handle(p), do: p"
+        })
 
       assert {:ok, published} = Apis.publish(api, org)
       assert published.status == "published"
@@ -346,20 +354,27 @@ defmodule Blackboex.ApisTest do
   describe "unpublish/1" do
     @tag :capture_log
     test "unpublishes a published API", %{user: user, org: org} do
-      api = build_api(user, org, %{status: "published", source_code: "def handle(p), do: p"})
+      api =
+        api_fixture(%{
+          user: user,
+          org: org,
+          status: "published",
+          source_code: "def handle(p), do: p"
+        })
+
       assert {:ok, unpublished} = Apis.unpublish(api)
       assert unpublished.status == "compiled"
     end
 
     @tag :capture_log
     test "rejects unpublishing a non-published API", %{user: user, org: org} do
-      api = build_api(user, org)
+      api = api_fixture(%{user: user, org: org})
       assert {:error, :not_published} = Apis.unpublish(api)
     end
 
     @tag :capture_log
     test "rejects unpublishing a compiled (non-published) API", %{user: user, org: org} do
-      api = build_api(user, org, %{status: "compiled"})
+      api = api_fixture(%{user: user, org: org, status: "compiled"})
       assert {:error, :not_published} = Apis.unpublish(api)
     end
   end
@@ -370,7 +385,7 @@ defmodule Blackboex.ApisTest do
 
   describe "create_version/2" do
     test "creates first version with version_number 1", %{user: user, org: org} do
-      api = build_api(user, org)
+      api = api_fixture(%{user: user, org: org})
 
       assert {:ok, %ApiVersion{} = v} =
                Apis.create_version(api, %{
@@ -385,7 +400,7 @@ defmodule Blackboex.ApisTest do
     end
 
     test "increments version_number on subsequent saves", %{user: user, org: org} do
-      api = build_api(user, org)
+      api = api_fixture(%{user: user, org: org})
 
       {:ok, v1} =
         Apis.create_version(api, %{code: "def handle(p), do: p", source: "manual_edit"})
@@ -401,7 +416,7 @@ defmodule Blackboex.ApisTest do
     end
 
     test "second version has a diff_summary", %{user: user, org: org} do
-      api = build_api(user, org)
+      api = api_fixture(%{user: user, org: org})
       {:ok, _v1} = Apis.create_version(api, %{code: "old code", source: "manual_edit"})
       api = Apis.get_api(org.id, api.id)
 
@@ -412,7 +427,7 @@ defmodule Blackboex.ApisTest do
     end
 
     test "first version has nil diff_summary (no prior version)", %{user: user, org: org} do
-      api = build_api(user, org)
+      api = api_fixture(%{user: user, org: org})
 
       {:ok, v1} =
         Apis.create_version(api, %{code: "def handle(p), do: p", source: "manual_edit"})
@@ -421,7 +436,7 @@ defmodule Blackboex.ApisTest do
     end
 
     test "stores test_code in version", %{user: user, org: org} do
-      api = build_api(user, org)
+      api = api_fixture(%{user: user, org: org})
 
       {:ok, v} =
         Apis.create_version(api, %{
@@ -434,7 +449,7 @@ defmodule Blackboex.ApisTest do
     end
 
     test "updates api source_code after create_version", %{user: user, org: org} do
-      api = build_api(user, org)
+      api = api_fixture(%{user: user, org: org})
 
       {:ok, _v} =
         Apis.create_version(api, %{
@@ -447,13 +462,13 @@ defmodule Blackboex.ApisTest do
     end
 
     test "returns error for missing required fields", %{user: user, org: org} do
-      api = build_api(user, org)
+      api = api_fixture(%{user: user, org: org})
       # source is required
       assert {:error, _} = Apis.create_version(api, %{code: "def handle(p), do: p"})
     end
 
     test "returns error for invalid source", %{user: user, org: org} do
-      api = build_api(user, org)
+      api = api_fixture(%{user: user, org: org})
 
       assert {:error, _} =
                Apis.create_version(api, %{code: "def handle(p), do: p", source: "invalid_src"})
@@ -466,12 +481,12 @@ defmodule Blackboex.ApisTest do
 
   describe "list_versions/1" do
     test "returns empty list when no versions", %{user: user, org: org} do
-      api = build_api(user, org)
+      api = api_fixture(%{user: user, org: org})
       assert Apis.list_versions(api.id) == []
     end
 
     test "returns versions in descending order", %{user: user, org: org} do
-      api = build_api(user, org)
+      api = api_fixture(%{user: user, org: org})
       {:ok, _v1} = Apis.create_version(api, %{code: "v1", source: "manual_edit"})
       api = Apis.get_api(org.id, api.id)
       {:ok, _v2} = Apis.create_version(api, %{code: "v2", source: "generation"})
@@ -489,7 +504,7 @@ defmodule Blackboex.ApisTest do
 
   describe "get_version/2" do
     test "returns version by api_id and version_number", %{user: user, org: org} do
-      api = build_api(user, org)
+      api = api_fixture(%{user: user, org: org})
       {:ok, v1} = Apis.create_version(api, %{code: "v1 code", source: "manual_edit"})
 
       assert %ApiVersion{version_number: 1} = Apis.get_version(api.id, 1)
@@ -497,7 +512,7 @@ defmodule Blackboex.ApisTest do
     end
 
     test "returns nil for non-existent version", %{user: user, org: org} do
-      api = build_api(user, org)
+      api = api_fixture(%{user: user, org: org})
       assert Apis.get_version(api.id, 99) == nil
     end
   end
@@ -508,12 +523,12 @@ defmodule Blackboex.ApisTest do
 
   describe "get_latest_version/1" do
     test "returns nil when no versions exist", %{user: user, org: org} do
-      api = build_api(user, org)
+      api = api_fixture(%{user: user, org: org})
       assert Apis.get_latest_version(api) == nil
     end
 
     test "returns the version with the highest number", %{user: user, org: org} do
-      api = build_api(user, org)
+      api = api_fixture(%{user: user, org: org})
       {:ok, _v1} = Apis.create_version(api, %{code: "v1", source: "manual_edit"})
       api = Apis.get_api(org.id, api.id)
       {:ok, v2} = Apis.create_version(api, %{code: "v2", source: "generation"})
@@ -530,7 +545,7 @@ defmodule Blackboex.ApisTest do
 
   describe "rollback_to_version/3" do
     test "creates a new version with rolled-back code", %{user: user, org: org} do
-      api = build_api(user, org)
+      api = api_fixture(%{user: user, org: org})
       {:ok, _v1} = Apis.create_version(api, %{code: "original code", source: "manual_edit"})
       api = Apis.get_api(org.id, api.id)
       {:ok, _v2} = Apis.create_version(api, %{code: "changed code", source: "generation"})
@@ -543,12 +558,12 @@ defmodule Blackboex.ApisTest do
     end
 
     test "returns error when target version does not exist", %{user: user, org: org} do
-      api = build_api(user, org)
+      api = api_fixture(%{user: user, org: org})
       assert {:error, :version_not_found} = Apis.rollback_to_version(api, 99)
     end
 
     test "rollback with user id sets created_by_id", %{user: user, org: org} do
-      api = build_api(user, org)
+      api = api_fixture(%{user: user, org: org})
       {:ok, _v1} = Apis.create_version(api, %{code: "original", source: "manual_edit"})
       api = Apis.get_api(org.id, api.id)
 

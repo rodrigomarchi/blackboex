@@ -5,8 +5,6 @@ defmodule Blackboex.PolicyTest do
   alias Blackboex.Organizations
   alias Blackboex.Policy
 
-  import Blackboex.AccountsFixtures
-
   @moduletag :unit
 
   defp scope_with_role(role) do

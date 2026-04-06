@@ -1,8 +1,6 @@
 defmodule BlackboexWeb.ApiLive.IndexTest do
   use BlackboexWeb.ConnCase, async: true
 
-  import Phoenix.LiveViewTest
-
   @moduletag :liveview
 
   describe "unauthenticated" do

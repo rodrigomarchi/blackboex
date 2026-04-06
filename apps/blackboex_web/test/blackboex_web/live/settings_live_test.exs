@@ -1,8 +1,6 @@
 defmodule BlackboexWeb.SettingsLiveTest do
   use BlackboexWeb.ConnCase, async: false
 
-  import Phoenix.LiveViewTest
-
   @moduletag :liveview
 
   setup :register_and_log_in_user

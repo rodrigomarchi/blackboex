@@ -1,8 +1,6 @@
 defmodule BlackboexWeb.ApiLive.NewTest do
   use BlackboexWeb.ConnCase, async: false
 
-  import Phoenix.LiveViewTest
-
   alias BlackboexWeb.ApiLive.New
 
   @moduletag :liveview

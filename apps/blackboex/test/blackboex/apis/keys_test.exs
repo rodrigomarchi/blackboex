@@ -7,11 +7,8 @@ defmodule Blackboex.Apis.KeysTest do
   alias Blackboex.Apis.ApiKey
   alias Blackboex.Apis.Keys
 
-  import Blackboex.AccountsFixtures
-
   setup do
-    user = user_fixture()
-    [org] = Blackboex.Organizations.list_user_organizations(user)
+    {user, org} = user_and_org_fixture()
 
     {:ok, api} =
       Apis.create_api(%{
@@ -208,9 +205,7 @@ defmodule Blackboex.Apis.KeysTest do
     end
 
     test "does not return keys from a different org", %{api: api, org: org} do
-      other_user = user_fixture()
-
-      [other_org] = Blackboex.Organizations.list_user_organizations(other_user)
+      {other_user, other_org} = user_and_org_fixture()
 
       {:ok, other_api} =
         Apis.create_api(%{
@@ -266,7 +261,7 @@ defmodule Blackboex.Apis.KeysTest do
       {:ok, _plain, api_key} =
         Keys.create_key(api, %{label: "With Invocations", organization_id: org.id})
 
-      Blackboex.Repo.insert!(%Blackboex.Apis.InvocationLog{
+      invocation_log_fixture(%{
         api_id: api.id,
         api_key_id: api_key.id,
         method: "GET",
@@ -275,7 +270,7 @@ defmodule Blackboex.Apis.KeysTest do
         duration_ms: 100
       })
 
-      Blackboex.Repo.insert!(%Blackboex.Apis.InvocationLog{
+      invocation_log_fixture(%{
         api_id: api.id,
         api_key_id: api_key.id,
         method: "POST",

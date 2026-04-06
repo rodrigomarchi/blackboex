@@ -8,31 +8,9 @@ defmodule BlackboexWeb.ApiLive.Edit.VersionsLiveTest do
 
   @moduletag :liveview
 
-  import Phoenix.LiveViewTest
-
   alias Blackboex.Apis
 
-  setup :register_and_log_in_user
-
-  setup %{user: user} do
-    {:ok, %{organization: org}} =
-      Blackboex.Organizations.create_organization(user, %{
-        name: "Versions Test Org #{System.unique_integer([:positive])}",
-        slug: "versionsorg-#{System.unique_integer([:positive])}"
-      })
-
-    {:ok, api} =
-      Apis.create_api(%{
-        name: "Versions API",
-        slug: "versions-api-#{System.unique_integer([:positive])}",
-        template_type: "computation",
-        organization_id: org.id,
-        user_id: user.id,
-        source_code: "def handle(_), do: %{v: 0}"
-      })
-
-    %{org: org, api: api, user: user}
-  end
+  setup [:register_and_log_in_user, :create_org_and_api]
 
   # ── Empty state ────────────────────────────────────────────────────────
 

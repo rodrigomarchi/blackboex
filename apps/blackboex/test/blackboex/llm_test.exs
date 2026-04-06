@@ -5,16 +5,7 @@ defmodule Blackboex.LLMTest do
 
   alias Blackboex.LLM
 
-  import Blackboex.AccountsFixtures
-
-  setup do
-    user = user_fixture()
-
-    {:ok, %{organization: org}} =
-      Blackboex.Organizations.create_organization(user, %{name: "Test Org"})
-
-    %{user: user, org: org}
-  end
+  setup :create_user_and_org
 
   describe "record_usage/1" do
     test "records LLM usage", %{user: user, org: org} do

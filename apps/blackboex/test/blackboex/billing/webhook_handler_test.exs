@@ -5,19 +5,11 @@ defmodule Blackboex.Billing.WebhookHandlerTest do
   alias Blackboex.Billing.{Subscription, WebhookHandler}
   alias Blackboex.Organizations
 
-  import Blackboex.AccountsFixtures
-
   @moduletag :unit
   @moduletag :capture_log
 
-  defp create_org(_context) do
-    user = user_fixture()
-    [org] = Organizations.list_user_organizations(user)
-    %{org: org, user: user}
-  end
-
   describe "handle_event/2 checkout.session.completed" do
-    setup [:create_org]
+    setup :create_user_and_org
 
     test "creates subscription and syncs org plan", %{org: org} do
       payload = %{
@@ -85,18 +77,14 @@ defmodule Blackboex.Billing.WebhookHandlerTest do
   end
 
   describe "handle_event/2 customer.subscription.updated" do
-    setup [:create_org]
+    setup :create_user_and_org
 
     test "updates subscription status", %{org: org} do
-      {:ok, _sub} =
-        %Subscription{}
-        |> Subscription.changeset(%{
-          organization_id: org.id,
-          stripe_subscription_id: "sub_existing",
-          plan: "pro",
-          status: "active"
-        })
-        |> Repo.insert()
+      subscription_fixture(%{
+        organization_id: org.id,
+        stripe_subscription_id: "sub_existing",
+        plan: "pro"
+      })
 
       payload = %{
         "id" => "sub_existing",
@@ -115,18 +103,14 @@ defmodule Blackboex.Billing.WebhookHandlerTest do
   end
 
   describe "handle_event/2 customer.subscription.deleted" do
-    setup [:create_org]
+    setup :create_user_and_org
 
     test "marks subscription as canceled and reverts to free", %{org: org} do
-      {:ok, _sub} =
-        %Subscription{}
-        |> Subscription.changeset(%{
-          organization_id: org.id,
-          stripe_subscription_id: "sub_to_delete",
-          plan: "pro",
-          status: "active"
-        })
-        |> Repo.insert()
+      subscription_fixture(%{
+        organization_id: org.id,
+        stripe_subscription_id: "sub_to_delete",
+        plan: "pro"
+      })
 
       payload = %{"id" => "sub_to_delete"}
 
@@ -142,18 +126,14 @@ defmodule Blackboex.Billing.WebhookHandlerTest do
   end
 
   describe "handle_event/2 invoice.payment_failed" do
-    setup [:create_org]
+    setup :create_user_and_org
 
     test "marks subscription as past_due", %{org: org} do
-      {:ok, _sub} =
-        %Subscription{}
-        |> Subscription.changeset(%{
-          organization_id: org.id,
-          stripe_subscription_id: "sub_payment_fail",
-          plan: "pro",
-          status: "active"
-        })
-        |> Repo.insert()
+      subscription_fixture(%{
+        organization_id: org.id,
+        stripe_subscription_id: "sub_payment_fail",
+        plan: "pro"
+      })
 
       payload = %{"subscription" => "sub_payment_fail"}
 
@@ -165,7 +145,7 @@ defmodule Blackboex.Billing.WebhookHandlerTest do
   end
 
   describe "process_event/3 idempotency" do
-    setup [:create_org]
+    setup :create_user_and_org
 
     test "processes event only once", %{org: org} do
       payload = %{
@@ -208,7 +188,7 @@ defmodule Blackboex.Billing.WebhookHandlerTest do
   end
 
   describe "ensure_subscription idempotency" do
-    setup [:create_org]
+    setup :create_user_and_org
 
     test "does not duplicate subscription when it already exists", %{org: org} do
       payload = %{

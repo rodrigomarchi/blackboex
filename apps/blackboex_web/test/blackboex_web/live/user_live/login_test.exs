@@ -1,9 +1,6 @@
 defmodule BlackboexWeb.UserLive.LoginTest do
   use BlackboexWeb.ConnCase, async: true
 
-  import Phoenix.LiveViewTest
-  import Blackboex.AccountsFixtures
-
   describe "login page" do
     test "renders login page", %{conn: conn} do
       {:ok, _lv, html} = live(conn, ~p"/users/log-in")

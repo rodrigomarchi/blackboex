@@ -9,14 +9,8 @@ defmodule BlackboexWeb.Live.BillingEnforcementTest do
 
   @moduletag :liveview
 
-  import Mox
-  import Phoenix.LiveViewTest
-
   alias Blackboex.Apis
-  alias Blackboex.Billing.DailyUsage
-  alias Blackboex.Repo
 
-  setup :verify_on_exit!
   setup :register_and_log_in_user
 
   setup %{user: user} do
@@ -28,13 +22,7 @@ defmodule BlackboexWeb.Live.BillingEnforcementTest do
     # This ensures sum_monthly_usage returns 51 >= 50 -> :limit_exceeded.
     yesterday = Date.add(Date.utc_today(), -1)
 
-    %DailyUsage{}
-    |> DailyUsage.changeset(%{
-      organization_id: org.id,
-      date: yesterday,
-      llm_generations: 51
-    })
-    |> Repo.insert!()
+    daily_usage_fixture(%{organization_id: org.id, date: yesterday, llm_generations: 51})
 
     {:ok, api} =
       Apis.create_api(%{

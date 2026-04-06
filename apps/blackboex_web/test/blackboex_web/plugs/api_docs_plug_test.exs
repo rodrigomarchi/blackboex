@@ -8,8 +8,6 @@ defmodule BlackboexWeb.Plugs.ApiDocsPlugTest do
   alias Blackboex.Apis.Registry
   alias Blackboex.CodeGen.Compiler
 
-  import Blackboex.AccountsFixtures
-
   setup do
     Registry.clear()
 

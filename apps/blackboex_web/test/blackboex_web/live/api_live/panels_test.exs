@@ -3,8 +3,6 @@ defmodule BlackboexWeb.ApiLive.PanelsTest do
 
   @moduletag :liveview
 
-  import Phoenix.LiveViewTest
-
   alias Blackboex.Apis
   alias Blackboex.CodeGen.Compiler
   alias Blackboex.Organizations

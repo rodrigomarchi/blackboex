@@ -8,9 +8,6 @@ defmodule BlackboexWeb.WebhookControllerTest do
   @moduletag :unit
   @moduletag :capture_log
 
-  # Ensure mock expectations are verified after each test
-  setup :verify_on_exit!
-
   # The webhook endpoint accepts raw body — we post plain strings
   @stripe_path "/webhooks/stripe"
 

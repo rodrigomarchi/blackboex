@@ -3,20 +3,11 @@ defmodule Blackboex.Billing.UsageAggregationWorkerTest do
 
   alias Blackboex.Billing
   alias Blackboex.Billing.UsageAggregationWorker
-  alias Blackboex.Organizations
-
-  import Blackboex.AccountsFixtures
 
   @moduletag :unit
 
-  defp create_org(_context) do
-    user = user_fixture()
-    [org] = Organizations.list_user_organizations(user)
-    %{org: org}
-  end
-
   describe "aggregate_for_date/1" do
-    setup [:create_org]
+    setup :create_user_and_org
 
     test "aggregates usage events into daily usage", %{org: org} do
       today = Date.utc_today()

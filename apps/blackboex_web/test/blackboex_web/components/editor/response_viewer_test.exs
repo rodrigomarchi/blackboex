@@ -9,8 +9,6 @@ defmodule BlackboexWeb.Components.Editor.ResponseViewerTest do
 
   @moduletag :unit
 
-  import Phoenix.LiveViewTest
-
   alias BlackboexWeb.Components.Editor.ResponseViewer
 
   # ── Helpers ────────────────────────────────────────────────────────────

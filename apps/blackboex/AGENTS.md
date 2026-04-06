@@ -105,4 +105,11 @@ Each context has its own AGENTS.md — **read it before generating code in that 
 
 ## Test Infrastructure
 
-See root `AGENTS.md § Test Patterns`. Key: `DataCase` for sandbox, `Factory` for data, Mox for LLM/Stripe, Oban manual mode.
+See root `AGENTS.md § Test Patterns` for the full reference.
+
+**Key rules:**
+- `DataCase` auto-imports ALL fixtures + `Mox.verify_on_exit!` — no manual imports needed
+- Every schema insert MUST use a fixture function from `test/support/fixtures/` — never inline `%Schema{} |> changeset |> Repo.insert`
+- New schema = new fixture function (create BEFORE writing tests)
+- Mox for LLM/Stripe — use `setup :stub_llm_client` or `setup :stub_stripe` for defaults
+- Oban manual mode — `Oban.Testing.assert_enqueued/2`

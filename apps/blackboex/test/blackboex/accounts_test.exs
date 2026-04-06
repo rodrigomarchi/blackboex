@@ -3,7 +3,6 @@ defmodule Blackboex.AccountsTest do
 
   alias Blackboex.Accounts
 
-  import Blackboex.AccountsFixtures
   alias Blackboex.Accounts.{User, UserToken}
 
   describe "get_user_by_email/1" do

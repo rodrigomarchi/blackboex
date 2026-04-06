@@ -1,8 +1,6 @@
 defmodule BlackboexWeb.DashboardLiveTest do
   use BlackboexWeb.ConnCase, async: true
 
-  import Phoenix.LiveViewTest
-
   alias Blackboex.Apis
   alias Blackboex.Organizations
 
@@ -239,7 +237,7 @@ defmodule BlackboexWeb.DashboardLiveTest do
         })
 
       # Seed MetricRollup for latency coverage (non-zero avg latency path)
-      Blackboex.Repo.insert!(%Blackboex.Apis.MetricRollup{
+      metric_rollup_fixture(%{
         api_id: api.id,
         date: Date.utc_today(),
         hour: 0,
@@ -250,7 +248,7 @@ defmodule BlackboexWeb.DashboardLiveTest do
       })
 
       # Seed DailyUsage with large token counts to hit format_tokens K/M paths
-      Blackboex.Repo.insert!(%Blackboex.Billing.DailyUsage{
+      daily_usage_fixture(%{
         organization_id: org.id,
         date: Date.utc_today(),
         llm_generations: 10,

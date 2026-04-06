@@ -4,17 +4,14 @@ defmodule Blackboex.Agent.SessionTest do
   @moduletag :integration
   @moduletag :capture_log
 
-  import Blackboex.AccountsFixtures
   import Mox
 
   alias Blackboex.Agent.Session
   alias Blackboex.Apis
   alias Blackboex.Conversations
   alias Blackboex.LLM.CircuitBreaker
-  alias Blackboex.Organizations
 
   setup :set_mox_global
-  setup :verify_on_exit!
 
   # Valid minimal source code so start_chain_execution can fetch the API and
   # reset validation_report without errors.
@@ -28,8 +25,7 @@ defmodule Blackboex.Agent.SessionTest do
     # Always reset circuit breaker so prior tests don't affect this one
     CircuitBreaker.reset(:anthropic)
 
-    user = user_fixture()
-    [org] = Organizations.list_user_organizations(user)
+    {user, org} = user_and_org_fixture()
 
     {:ok, api} =
       Apis.create_api(%{
@@ -39,15 +35,14 @@ defmodule Blackboex.Agent.SessionTest do
         source_code: @minimal_code
       })
 
-    {:ok, conversation} = Conversations.get_or_create_conversation(api.id, org.id)
+    conversation = conversation_fixture(api.id, org.id)
 
-    {:ok, run} =
-      Conversations.create_run(%{
+    run =
+      run_fixture(%{
         conversation_id: conversation.id,
         api_id: api.id,
         user_id: user.id,
         organization_id: org.id,
-        run_type: "generation",
         trigger_message: "test prompt"
       })
 
@@ -724,8 +719,8 @@ defmodule Blackboex.Agent.SessionTest do
       end)
 
       # Create an edit run
-      {:ok, edit_run} =
-        Conversations.create_run(%{
+      edit_run =
+        run_fixture(%{
           conversation_id: context.conversation.id,
           api_id: context.api.id,
           user_id: context.user.id,
@@ -1078,8 +1073,8 @@ defmodule Blackboex.Agent.SessionTest do
         Process.sleep(:infinity)
       end)
 
-      {:ok, edit_run} =
-        Conversations.create_run(%{
+      edit_run =
+        run_fixture(%{
           conversation_id: context.conversation.id,
           api_id: context.api.id,
           user_id: context.user.id,

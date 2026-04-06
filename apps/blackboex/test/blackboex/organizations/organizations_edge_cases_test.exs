@@ -3,8 +3,6 @@ defmodule Blackboex.OrganizationsEdgeCasesTest do
 
   alias Blackboex.Organizations
 
-  import Blackboex.AccountsFixtures
-
   @moduletag :unit
 
   describe "get_organization/1" do

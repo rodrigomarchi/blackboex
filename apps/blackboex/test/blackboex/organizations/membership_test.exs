@@ -3,8 +3,6 @@ defmodule Blackboex.Organizations.MembershipTest do
 
   alias Blackboex.Organizations.{Membership, Organization}
 
-  import Blackboex.AccountsFixtures
-
   @moduletag :unit
   describe "changeset/2" do
     test "valid with user_id, organization_id, and role" do

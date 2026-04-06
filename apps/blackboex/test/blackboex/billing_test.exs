@@ -2,38 +2,21 @@ defmodule Blackboex.BillingTest do
   use Blackboex.DataCase, async: false
 
   alias Blackboex.Billing
-  alias Blackboex.Billing.{DailyUsage, Subscription}
   alias Blackboex.Organizations
 
-  import Blackboex.AccountsFixtures
   import Mox
 
   @moduletag :unit
 
-  setup :verify_on_exit!
-
-  defp create_org(_context) do
-    user = user_fixture()
-    [org] = Organizations.list_user_organizations(user)
-    %{org: org, user: user}
-  end
-
   describe "get_subscription/1" do
-    setup [:create_org]
+    setup :create_user_and_org
 
     test "returns nil when no subscription exists", %{org: org} do
       assert Billing.get_subscription(org.id) == nil
     end
 
     test "returns subscription when it exists", %{org: org} do
-      {:ok, _sub} =
-        %Subscription{}
-        |> Subscription.changeset(%{
-          organization_id: org.id,
-          plan: "pro",
-          status: "active"
-        })
-        |> Repo.insert()
+      subscription_fixture(%{organization_id: org.id, plan: "pro"})
 
       sub = Billing.get_subscription(org.id)
       assert sub.plan == "pro"
@@ -42,7 +25,7 @@ defmodule Blackboex.BillingTest do
   end
 
   describe "create_checkout_session/4" do
-    setup [:create_org]
+    setup :create_user_and_org
 
     test "calls Stripe client and returns URL", %{org: org} do
       Blackboex.Billing.StripeClientMock
@@ -81,18 +64,14 @@ defmodule Blackboex.BillingTest do
   end
 
   describe "create_portal_session/2" do
-    setup [:create_org]
+    setup :create_user_and_org
 
     test "returns portal URL when subscription exists", %{org: org} do
-      {:ok, _sub} =
-        %Subscription{}
-        |> Subscription.changeset(%{
-          organization_id: org.id,
-          stripe_customer_id: "cus_test123",
-          plan: "pro",
-          status: "active"
-        })
-        |> Repo.insert()
+      subscription_fixture(%{
+        organization_id: org.id,
+        stripe_customer_id: "cus_test123",
+        plan: "pro"
+      })
 
       Blackboex.Billing.StripeClientMock
       |> expect(:create_portal_session, fn "cus_test123", return_url ->
@@ -113,7 +92,7 @@ defmodule Blackboex.BillingTest do
   end
 
   describe "create_or_update_subscription/1" do
-    setup [:create_org]
+    setup :create_user_and_org
 
     test "creates new subscription and syncs org plan", %{org: org} do
       attrs = %{
@@ -154,14 +133,7 @@ defmodule Blackboex.BillingTest do
     end
 
     test "updates existing subscription", %{org: org} do
-      {:ok, _sub} =
-        %Subscription{}
-        |> Subscription.changeset(%{
-          organization_id: org.id,
-          plan: "pro",
-          status: "active"
-        })
-        |> Repo.insert()
+      subscription_fixture(%{organization_id: org.id, plan: "pro"})
 
       attrs = %{
         organization_id: org.id,
@@ -179,7 +151,7 @@ defmodule Blackboex.BillingTest do
   end
 
   describe "record_usage_event/1 and count_usage_events_today/2" do
-    setup [:create_org]
+    setup :create_user_and_org
 
     test "count returns 0 when no events recorded", %{org: org} do
       assert Billing.count_usage_events_today(org.id, "api_invocation") == 0
@@ -228,7 +200,7 @@ defmodule Blackboex.BillingTest do
   end
 
   describe "sum_monthly_usage/2" do
-    setup [:create_org]
+    setup :create_user_and_org
 
     test "returns 0 when no events recorded", %{org: org} do
       assert Billing.sum_monthly_usage(org.id, "api_invocation") == 0
@@ -247,13 +219,7 @@ defmodule Blackboex.BillingTest do
       yesterday = Date.add(today, -1)
 
       # Insert a DailyUsage row for yesterday (simulating aggregation worker output)
-      %DailyUsage{}
-      |> DailyUsage.changeset(%{
-        organization_id: org.id,
-        date: yesterday,
-        api_invocations: 10
-      })
-      |> Repo.insert!()
+      daily_usage_fixture(%{organization_id: org.id, date: yesterday, api_invocations: 10})
 
       # Record 3 more events today
       for _ <- 1..3 do
@@ -267,13 +233,7 @@ defmodule Blackboex.BillingTest do
       today = Date.utc_today()
       yesterday = Date.add(today, -1)
 
-      %DailyUsage{}
-      |> DailyUsage.changeset(%{
-        organization_id: org.id,
-        date: yesterday,
-        llm_generations: 7
-      })
-      |> Repo.insert!()
+      daily_usage_fixture(%{organization_id: org.id, date: yesterday, llm_generations: 7})
 
       Billing.record_usage_event(%{organization_id: org.id, event_type: "llm_generation"})
 
@@ -282,7 +242,7 @@ defmodule Blackboex.BillingTest do
   end
 
   describe "get_daily_usage/2" do
-    setup [:create_org]
+    setup :create_user_and_org
 
     test "returns nil when no daily usage row exists", %{org: org} do
       today = Date.utc_today()
@@ -292,14 +252,12 @@ defmodule Blackboex.BillingTest do
     test "returns the daily usage row when it exists", %{org: org} do
       today = Date.utc_today()
 
-      %DailyUsage{}
-      |> DailyUsage.changeset(%{
+      daily_usage_fixture(%{
         organization_id: org.id,
         date: today,
         api_invocations: 42,
         llm_generations: 7
       })
-      |> Repo.insert!()
 
       usage = Billing.get_daily_usage(org.id, today)
       assert usage != nil
@@ -310,7 +268,7 @@ defmodule Blackboex.BillingTest do
   end
 
   describe "get_daily_usage_for_period/3" do
-    setup [:create_org]
+    setup :create_user_and_org
 
     test "returns empty list when no records in period", %{org: org} do
       today = Date.utc_today()
@@ -325,13 +283,7 @@ defmodule Blackboex.BillingTest do
       day3 = Date.add(today, -1)
 
       for {date, invocations} <- [{day2, 20}, {day1, 10}, {day3, 30}] do
-        %DailyUsage{}
-        |> DailyUsage.changeset(%{
-          organization_id: org.id,
-          date: date,
-          api_invocations: invocations
-        })
-        |> Repo.insert!()
+        daily_usage_fixture(%{organization_id: org.id, date: date, api_invocations: invocations})
       end
 
       result = Billing.get_daily_usage_for_period(org.id, day1, day3)
@@ -346,13 +298,7 @@ defmodule Blackboex.BillingTest do
       out_of_range = Date.add(today, -5)
 
       for date <- [in_range, out_of_range] do
-        %DailyUsage{}
-        |> DailyUsage.changeset(%{
-          organization_id: org.id,
-          date: date,
-          api_invocations: 5
-        })
-        |> Repo.insert!()
+        daily_usage_fixture(%{organization_id: org.id, date: date, api_invocations: 5})
       end
 
       result = Billing.get_daily_usage_for_period(org.id, Date.add(today, -3), today)
@@ -362,7 +308,7 @@ defmodule Blackboex.BillingTest do
   end
 
   describe "sync_subscription/1" do
-    setup [:create_org]
+    setup :create_user_and_org
 
     test "returns error when no subscription exists", %{org: org} do
       assert {:error, :no_subscription} = Billing.sync_subscription(org)

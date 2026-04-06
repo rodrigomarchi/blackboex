@@ -5,18 +5,14 @@ defmodule Blackboex.Agent.RecoveryWorkerTest do
   @moduletag :capture_log
 
   import Ecto.Query
-  import Blackboex.AccountsFixtures
-
   alias Blackboex.Agent.RecoveryWorker
   alias Blackboex.Apis
   alias Blackboex.Conversations
   alias Blackboex.Conversations.Run
-  alias Blackboex.Organizations
   alias Blackboex.Repo
 
   defp create_context(_ctx) do
-    user = user_fixture()
-    [org] = Organizations.list_user_organizations(user)
+    {user, org} = user_and_org_fixture()
 
     {:ok, api} =
       Apis.create_api(%{
@@ -28,19 +24,18 @@ defmodule Blackboex.Agent.RecoveryWorkerTest do
         user_id: user.id
       })
 
-    {:ok, conversation} = Conversations.get_or_create_conversation(api.id, org.id)
+    conversation = conversation_fixture(api.id, org.id)
 
     %{user: user, org: org, api: api, conversation: conversation}
   end
 
   defp create_stale_run(%{user: user, org: org, api: api, conversation: conversation}) do
-    {:ok, run} =
-      Conversations.create_run(%{
+    run =
+      run_fixture(%{
         conversation_id: conversation.id,
         api_id: api.id,
         user_id: user.id,
-        organization_id: org.id,
-        run_type: "generation"
+        organization_id: org.id
       })
 
     {:ok, run} = Conversations.update_run_metrics(run, %{started_at: DateTime.utc_now()})
@@ -100,13 +95,12 @@ defmodule Blackboex.Agent.RecoveryWorkerTest do
     end
 
     test "does not affect non-stale runs", ctx do
-      {:ok, run} =
-        Conversations.create_run(%{
+      run =
+        run_fixture(%{
           conversation_id: ctx.conversation.id,
           api_id: ctx.api.id,
           user_id: ctx.user.id,
-          organization_id: ctx.org.id,
-          run_type: "generation"
+          organization_id: ctx.org.id
         })
 
       {:ok, run} = Conversations.update_run_metrics(run, %{started_at: DateTime.utc_now()})

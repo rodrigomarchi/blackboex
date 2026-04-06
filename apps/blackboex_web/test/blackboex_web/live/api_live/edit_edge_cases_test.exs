@@ -4,7 +4,6 @@ defmodule BlackboexWeb.ApiLive.EditEdgeCasesTest do
   @moduletag :liveview
 
   import Mox
-  import Phoenix.LiveViewTest
 
   alias Blackboex.Apis
   alias Blackboex.Apis.Registry
@@ -12,7 +11,6 @@ defmodule BlackboexWeb.ApiLive.EditEdgeCasesTest do
   alias Blackboex.LLM.ClientMock
   alias Blackboex.Organizations
 
-  setup :verify_on_exit!
   setup :register_and_log_in_user
 
   setup %{user: user} do

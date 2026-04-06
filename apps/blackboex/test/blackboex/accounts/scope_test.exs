@@ -4,8 +4,6 @@ defmodule Blackboex.Accounts.ScopeTest do
   alias Blackboex.Accounts.Scope
   alias Blackboex.Organizations
 
-  import Blackboex.AccountsFixtures
-
   @moduletag :unit
 
   describe "for_user/1" do

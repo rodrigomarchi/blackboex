@@ -5,8 +5,6 @@ defmodule BlackboexWeb.ApiLive.Edit.RunLiveTest do
   # Task.async in RunLive + Ecto sandbox = Postgrex disconnect on test exit
   @moduletag :capture_log
 
-  import Phoenix.LiveViewTest
-
   alias Blackboex.Apis
   alias Blackboex.Testing
 

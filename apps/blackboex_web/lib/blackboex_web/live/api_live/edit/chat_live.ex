@@ -4,6 +4,8 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
   use BlackboexWeb, :live_view
 
   import BlackboexWeb.ApiLive.Edit.EditorShell
+  import BlackboexWeb.Components.Editor.FileTree
+  import BlackboexWeb.Components.Editor.FileEditor
 
   require Logger
 
@@ -50,7 +52,8 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
             agent_conversation: agent_conversation,
             code: source_content,
             test_code: test_content,
-            files: files
+            files: files,
+            selected_file: Enum.find(files, &(&1.path == "/src/handler.ex"))
           )
 
         {:ok, socket}
@@ -64,19 +67,35 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
   def render(assigns) do
     ~H"""
     <.editor_shell {shared_shell_assigns(assigns)} active_tab="chat">
-      <.live_component
-        module={BlackboexWeb.Components.Editor.ChatPanel}
-        id="chat-panel"
-        events={@agent_events}
-        input={@chat_input}
-        loading={@chat_loading or @generation_status in ["pending", "generating", "validating"]}
-        api_id={@api.id}
-        pending_edit={@pending_edit}
-        template_type={@api.template_type}
-        streaming_tokens={if(@chat_loading, do: @streaming_tokens, else: "")}
-        run={@current_run}
-        pipeline_status={@pipeline_status}
-      />
+      <div class="flex h-full min-h-0">
+        <%!-- File Tree (left) --%>
+        <div class="w-48 shrink-0">
+          <.file_tree
+            files={@files}
+            selected_path={if(@selected_file, do: @selected_file.path)}
+          />
+        </div>
+        <%!-- Code Editor (center) --%>
+        <div class="flex-1 min-w-0">
+          <.file_editor file={@selected_file} />
+        </div>
+        <%!-- Chat Panel (right) --%>
+        <div class="w-[340px] shrink-0 border-l">
+          <.live_component
+            module={BlackboexWeb.Components.Editor.ChatPanel}
+            id="chat-panel"
+            events={@agent_events}
+            input={@chat_input}
+            loading={@chat_loading or @generation_status in ["pending", "generating", "validating"]}
+            api_id={@api.id}
+            pending_edit={@pending_edit}
+            template_type={@api.template_type}
+            streaming_tokens={if(@chat_loading, do: @streaming_tokens, else: "")}
+            run={@current_run}
+            pipeline_status={@pipeline_status}
+          />
+        </div>
+      </div>
     </.editor_shell>
     """
   end
@@ -89,6 +108,13 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
   @impl true
   def handle_event(event, params, socket) when event in @command_palette_events do
     Shared.handle_command_palette(event, params, socket)
+  end
+
+  # ── File Tree Events ──────────────────────────────────────────────────
+
+  def handle_event("select_file", %{"path" => path}, socket) do
+    file = Enum.find(socket.assigns.files, &(&1.path == path))
+    {:noreply, assign(socket, selected_file: file)}
   end
 
   # ── Tab-Specific Events ───────────────────────────────────────────────

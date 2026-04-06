@@ -22,6 +22,23 @@ defmodule Blackboex.Testing.TestRunner do
           error: String.t() | nil
         }
 
+  @spec run_files(
+          [%{path: String.t(), content: String.t()}],
+          [%{path: String.t(), content: String.t()}],
+          keyword()
+        ) ::
+          {:ok, [test_result()]}
+          | {:error, :compile_error, String.t()}
+          | {:error, :timeout}
+          | {:error, :memory_exceeded}
+  def run_files(test_files, source_files, opts \\ [])
+      when is_list(test_files) and is_list(source_files) do
+    handler_code = Enum.map_join(source_files, "\n\n", &(&1.content || &1[:content] || ""))
+    test_code = Enum.map_join(test_files, "\n\n", &(&1.content || &1[:content] || ""))
+
+    run(test_code, Keyword.put(opts, :handler_code, handler_code))
+  end
+
   @spec run(String.t(), keyword()) ::
           {:ok, [test_result()]}
           | {:error, :compile_error, String.t()}

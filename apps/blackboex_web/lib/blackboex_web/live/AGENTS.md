@@ -346,7 +346,7 @@ end
 | `ApiLive.Show` | app | Redirect shim to `/apis/:id/edit`. Kept for backward compatibility. | — |
 | `ApiLive.New` | app | Redirect shim to `/apis`. Creation now happens via modal on Index. | — |
 | `ApiLive.Analytics` | app | Redirect shim to `/apis/:id/edit`. Kept for backward compatibility. | — |
-| `ApiLive.Edit.ChatLive` | editor | AI agent chat: conversation history, streaming tokens, pipeline status, pending diff review. PubSub: `api:#{id}`, `run:#{run_id}`. | `send_chat`, `accept_edit`, `reject_edit`, `quick_action`, `clear_conversation`, `cancel_pipeline` |
+| `ApiLive.Edit.ChatLive` | editor | AI agent chat with 3-panel workspace layout (file tree left, file editor center, chat right): conversation history, streaming tokens, pipeline status, pending diff review. PubSub: `api:#{id}`, `run:#{run_id}`. | `send_chat`, `accept_edit`, `reject_edit`, `quick_action`, `clear_conversation`, `cancel_pipeline` |
 | `ApiLive.Edit.CodeLive` | editor | Read-only syntax-highlighted view of current API source code. | command palette only |
 | `ApiLive.Edit.TestsLive` | editor | Read-only syntax-highlighted view of generated test code. | command palette only |
 | `ApiLive.Edit.ValidationLive` | editor | `ValidationDashboard` component: compilation, format, credo, test pass/fail from `validation_report`. | command palette only |

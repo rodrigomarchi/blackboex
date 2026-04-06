@@ -140,7 +140,7 @@ defmodule BlackboexWeb.ApiLive.Index do
         user_id: user.id
       }
 
-      case Apis.create_api(attrs) do
+      case Apis.create_api_with_files(attrs) do
         {:ok, api} ->
           maybe_enqueue_generation(api, description, user.id, org.id)
           {:noreply, push_navigate(socket, to: ~p"/apis/#{api.id}/edit")}

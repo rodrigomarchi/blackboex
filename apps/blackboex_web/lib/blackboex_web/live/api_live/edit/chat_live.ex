@@ -273,6 +273,9 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
         run -> run
       end
 
+    files = Apis.list_files(refreshed_api.id)
+    selected_file = Enum.find(files, &(&1.path == "/src/handler.ex"))
+
     socket =
       socket
       |> assign(
@@ -285,7 +288,9 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
         generation_status: refreshed_api.generation_status,
         versions: Apis.list_versions(refreshed_api.id),
         validation_report: restore_validation_report(refreshed_api.validation_report),
-        test_summary: derive_test_summary(refreshed_api.validation_report)
+        test_summary: derive_test_summary(refreshed_api.validation_report),
+        files: files,
+        selected_file: selected_file
       )
 
     effective_code = code || socket.assigns.code
@@ -401,6 +406,9 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
   defp do_accept_edit(socket, proposed_code, proposed_test_code, _instruction) do
     previous_code = socket.assigns.code
     test_code = proposed_test_code || socket.assigns.test_code
+    api_id = socket.assigns.api.id
+    files = Apis.list_files(api_id)
+    selected_file = Enum.find(files, &(&1.path == "/src/handler.ex"))
 
     {:noreply,
      socket
@@ -412,7 +420,9 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
        chat_loading: false,
        pipeline_status: nil,
        current_run_id: nil,
-       streaming_tokens: ""
+       streaming_tokens: "",
+       files: files,
+       selected_file: selected_file
      )
      |> put_flash(:info, "Change applied")}
   end

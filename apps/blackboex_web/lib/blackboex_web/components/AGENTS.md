@@ -37,6 +37,8 @@ Violation of this rule creates inconsistent UI, breaks dark mode, bypasses seman
 | Content sections | `<.card>` | `ui/card.ex` |
 | Dividers | `<.separator>` | `ui/separator.ex` |
 | User avatar | `<.avatar>` | `ui/avatar.ex` |
+| Virtual file tree | `<.file_tree>` | `editor/file_tree.ex` |
+| File editor display | `<.file_editor>` | `editor/file_editor.ex` |
 
 ---
 

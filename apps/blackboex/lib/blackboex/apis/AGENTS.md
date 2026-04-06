@@ -147,6 +147,40 @@ Graceful shutdown: sets `:persistent_term` flag, drains `SandboxTaskSupervisor` 
 
 ---
 
+## 3a. File System
+
+Each API has a virtual filesystem of files:
+
+| Schema | Purpose |
+|--------|---------|
+| `ApiFile` | File in the project (path, content, file_type) |
+| `ApiFileRevision` | Append-only revision history per file |
+
+### Key Functions (Apis context)
+
+- `list_files/1`, `list_source_files/1`, `list_test_files/1` — query files by API
+- `get_file/2` — get single file by path
+- `create_file/2`, `update_file_content/3`, `delete_file/1` — file CRUD
+- `upsert_files/3` — bulk create/update with auto-revisions
+- `build_file_snapshots/1` — snapshot all files for versioning
+- `get_source_for_compilation/1` — source files as `[%{path, content}]`
+- `get_tests_for_running/1` — test files as `[%{path, content}]`
+- `create_api_with_files/1` — creates API + default `/src/handler.ex` and `/test/handler_test.ex`
+
+### Versioning
+
+ApiVersion stores `file_snapshots` (jsonb) — a complete snapshot of all files at that point.
+Rollback restores files from a snapshot and deletes files not in the snapshot.
+Published versions get auto-generated `version_label` like `prod-2026-04-06.01`.
+
+### Compilation
+
+`Compiler.compile_files/2` compiles multiple source files:
+- `/src/handler.ex` → main Plug.Router module
+- Helper files → namespaced modules (e.g. `Api_<id>.Calculator`) with auto-aliases
+
+---
+
 ## 4. Public API (Facade: `Blackboex.Apis`)
 
 ```elixir

@@ -11,7 +11,7 @@ defmodule Blackboex.Apis.ApiFileRevision do
 
   @type t :: %__MODULE__{}
 
-  @valid_sources ~w(generation chat_edit manual_edit rollback)
+  @valid_sources ~w(generation chat_edit manual_edit rollback scaffold)
 
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
@@ -40,7 +40,7 @@ defmodule Blackboex.Apis.ApiFileRevision do
       :revision_number,
       :created_by_id
     ])
-    |> validate_required([:api_file_id, :content, :source, :revision_number])
+    |> validate_required([:api_file_id, :source, :revision_number])
     |> validate_inclusion(:source, @valid_sources)
     |> validate_length(:message, max: 500)
     |> unique_constraint([:api_file_id, :revision_number])

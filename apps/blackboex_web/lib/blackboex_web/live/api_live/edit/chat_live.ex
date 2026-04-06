@@ -596,21 +596,32 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
 
   defp live_editor_content(assigns) do
     selected = assigns.selected_file
+    path = selected && selected.path
 
     cond do
-      # When generating/editing and viewing the handler, show live code from pipeline
-      (assigns.chat_loading and selected) && selected.path == "/src/handler.ex" ->
+      assigns.chat_loading && path == "/src/handler.ex" && assigns.streaming_tokens != "" ->
+        extract_streaming_code(assigns.streaming_tokens) || assigns.code
+
+      assigns.chat_loading && path == "/src/handler.ex" ->
         assigns.code
 
-      # When generating/editing and viewing the test, show live test_code
-      (assigns.chat_loading and selected) && selected.path == "/test/handler_test.ex" ->
+      assigns.chat_loading && path == "/test/handler_test.ex" ->
         assigns.test_code
 
-      # Otherwise, no override — file_editor shows file.content
       true ->
         nil
     end
   end
+
+  defp extract_streaming_code(tokens) when is_binary(tokens) do
+    # Extract code from the last ```elixir block in streaming output
+    case Regex.scan(~r/```(?:elixir)?\s*\n(.*?)(?:```|\z)/s, tokens) do
+      [] -> nil
+      matches -> matches |> List.last() |> Enum.at(1)
+    end
+  end
+
+  defp extract_streaming_code(_), do: nil
 
   defp edit_tab_path(socket, tab) do
     "/apis/#{socket.assigns.api.id}/edit/#{tab}"

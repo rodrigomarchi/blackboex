@@ -597,6 +597,10 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
 
   defp apply_action_to_editor(socket, _tool, _args), do: socket
 
+  defp apply_result_to_editor(socket, "generate_tests", true, content) when is_binary(content) do
+    assign(socket, test_code: content)
+  end
+
   defp apply_result_to_editor(socket, _tool, _success, _content), do: socket
 
   defp live_editor_content(assigns) do

@@ -17,7 +17,10 @@ defmodule Blackboex.Apis.Deployer do
   @spec deploy(Api.t(), Organization.t()) ::
           {:ok, Api.t()} | {:error, :not_published | :compilation_failed | :smoke_test_failed}
   def deploy(%Api{status: "published"} = api, %Organization{} = org) do
-    with {:ok, module} <- Compiler.compile(api, api.source_code),
+    source_files = Apis.get_source_for_compilation(api.id)
+    source_code = Enum.map_join(source_files, "\n\n", & &1.content)
+
+    with {:ok, module} <- Compiler.compile(api, source_code),
          :ok <- smoke_test(module, api) do
       # Update registry with new module
       Registry.register(api.id, module,
@@ -43,7 +46,11 @@ defmodule Blackboex.Apis.Deployer do
   def rollback_deploy(%Api{} = api, target_version, created_by_id \\ nil) do
     case Apis.rollback_to_version(api, target_version, created_by_id) do
       {:ok, version} ->
-        case Compiler.compile(api, version.code) do
+        source_code =
+          version.file_snapshots
+          |> Enum.map_join("\n\n", &(&1["content"] || &1[:content] || ""))
+
+        case Compiler.compile(api, source_code) do
           {:ok, module} ->
             api_preloaded = Blackboex.Repo.preload(api, :organization)
 

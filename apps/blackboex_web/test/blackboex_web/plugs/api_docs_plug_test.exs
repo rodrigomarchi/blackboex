@@ -22,6 +22,12 @@ defmodule BlackboexWeb.Plugs.ApiDocsPlugTest do
   defp create_published_api(org, user, opts \\ []) do
     visibility = Keyword.get(opts, :visibility, "public")
 
+    docs_source = """
+    def handle(params) do
+      %{result: Map.get(params, "value", 0) * 2}
+    end
+    """
+
     {:ok, api} =
       Apis.create_api(%{
         name: "Docs API",
@@ -29,17 +35,16 @@ defmodule BlackboexWeb.Plugs.ApiDocsPlugTest do
         template_type: "computation",
         organization_id: org.id,
         user_id: user.id,
-        source_code: """
-        def handle(params) do
-          %{result: Map.get(params, "value", 0) * 2}
-        end
-        """,
         param_schema: %{"value" => "integer"},
         example_request: %{"value" => 21},
         example_response: %{"result" => 42}
       })
 
-    {:ok, module} = Compiler.compile(api, api.source_code)
+    Apis.upsert_files(api, [
+      %{path: "/src/handler.ex", content: docs_source, file_type: "source"}
+    ])
+
+    {:ok, module} = Compiler.compile(api, docs_source)
     {:ok, api} = Apis.update_api(api, %{status: "published", visibility: visibility})
 
     Registry.register(api.id, module,
@@ -74,17 +79,22 @@ defmodule BlackboexWeb.Plugs.ApiDocsPlugTest do
     end
 
     test "returns 404 for unpublished API", %{conn: conn, org: org, user: user} do
+      draft_source = "def handle(_), do: %{ok: true}"
+
       {:ok, api} =
         Apis.create_api(%{
           name: "Draft API",
           slug: "draft-api",
           template_type: "computation",
           organization_id: org.id,
-          user_id: user.id,
-          source_code: "def handle(_), do: %{ok: true}"
+          user_id: user.id
         })
 
-      {:ok, module} = Compiler.compile(api, api.source_code)
+      Apis.upsert_files(api, [
+        %{path: "/src/handler.ex", content: draft_source, file_type: "source"}
+      ])
+
+      {:ok, module} = Compiler.compile(api, draft_source)
       {:ok, _api} = Apis.update_api(api, %{status: "compiled"})
 
       Registry.register(api.id, module,
@@ -140,17 +150,22 @@ defmodule BlackboexWeb.Plugs.ApiDocsPlugTest do
   describe "XSS prevention in Swagger UI" do
     test "API name is HTML-escaped in Swagger UI page", %{conn: conn, org: org, user: user} do
       # Create API with XSS payload in name
+      xss_source = "def handle(_), do: %{ok: true}"
+
       {:ok, api} =
         Apis.create_api(%{
           name: "<script>alert('xss')</script>",
           slug: "xss-test",
           template_type: "computation",
           organization_id: org.id,
-          user_id: user.id,
-          source_code: "def handle(_), do: %{ok: true}"
+          user_id: user.id
         })
 
-      {:ok, module} = Compiler.compile(api, api.source_code)
+      Apis.upsert_files(api, [
+        %{path: "/src/handler.ex", content: xss_source, file_type: "source"}
+      ])
+
+      {:ok, module} = Compiler.compile(api, xss_source)
       {:ok, _api} = Apis.update_api(api, %{status: "published", visibility: "public"})
 
       Registry.register(api.id, module,

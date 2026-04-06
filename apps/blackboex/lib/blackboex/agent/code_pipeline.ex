@@ -804,13 +804,10 @@ defmodule Blackboex.Agent.CodePipeline do
     broadcast.({:step_started, %{step: :generating_docs}})
     touch_run(run_id)
 
-    # Use the API with the latest code for doc generation
-    api_with_code = %{api | source_code: code}
-
     doc_tc = Process.get(:token_callback)
-    doc_opts = if doc_tc, do: [token_callback: doc_tc], else: []
+    doc_opts = [source_code: code] ++ if(doc_tc, do: [token_callback: doc_tc], else: [])
 
-    case DocGenerator.generate(api_with_code, doc_opts) do
+    case DocGenerator.generate(api, doc_opts) do
       {:ok, %{doc: doc} = result} ->
         accumulate_usage(result[:usage])
         broadcast.({:step_completed, %{step: :generating_docs, content: doc}})

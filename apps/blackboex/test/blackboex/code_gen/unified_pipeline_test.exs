@@ -425,8 +425,7 @@ defmodule Blackboex.CodeGen.UnifiedPipelineTest do
 
       api = %Blackboex.Apis.Api{
         id: Ecto.UUID.generate(),
-        template_type: "computation",
-        source_code: @valid_handler_code
+        template_type: "computation"
       }
 
       result = UnifiedPipeline.run_for_edit(api, @valid_handler_code, "Add edited flag", [])
@@ -450,8 +449,7 @@ defmodule Blackboex.CodeGen.UnifiedPipelineTest do
 
       api = %Blackboex.Apis.Api{
         id: Ecto.UUID.generate(),
-        template_type: "computation",
-        source_code: @valid_handler_code
+        template_type: "computation"
       }
 
       {:ok, result} = UnifiedPipeline.run_for_edit(api, @valid_handler_code, "Update", [])
@@ -473,8 +471,7 @@ defmodule Blackboex.CodeGen.UnifiedPipelineTest do
 
       api = %Blackboex.Apis.Api{
         id: Ecto.UUID.generate(),
-        template_type: "computation",
-        source_code: @valid_handler_code
+        template_type: "computation"
       }
 
       result = UnifiedPipeline.run_for_edit(api, @valid_handler_code, "Simplify", [])
@@ -498,8 +495,7 @@ defmodule Blackboex.CodeGen.UnifiedPipelineTest do
 
       api = %Blackboex.Apis.Api{
         id: Ecto.UUID.generate(),
-        template_type: "computation",
-        source_code: @valid_handler_code
+        template_type: "computation"
       }
 
       result =
@@ -525,8 +521,7 @@ defmodule Blackboex.CodeGen.UnifiedPipelineTest do
 
       api = %Blackboex.Apis.Api{
         id: Ecto.UUID.generate(),
-        template_type: "computation",
-        source_code: @valid_handler_code
+        template_type: "computation"
       }
 
       result = UnifiedPipeline.run_for_edit(api, @valid_handler_code, "Change something", [])
@@ -553,8 +548,7 @@ defmodule Blackboex.CodeGen.UnifiedPipelineTest do
 
       api = %Blackboex.Apis.Api{
         id: Ecto.UUID.generate(),
-        template_type: "computation",
-        source_code: @valid_handler_code
+        template_type: "computation"
       }
 
       result =
@@ -583,8 +577,7 @@ defmodule Blackboex.CodeGen.UnifiedPipelineTest do
 
       api = %Blackboex.Apis.Api{
         id: Ecto.UUID.generate(),
-        template_type: "computation",
-        source_code: @valid_handler_code
+        template_type: "computation"
       }
 
       {:ok, %{explanation: explanation}} =
@@ -607,8 +600,7 @@ defmodule Blackboex.CodeGen.UnifiedPipelineTest do
 
       api = %Blackboex.Apis.Api{
         id: Ecto.UUID.generate(),
-        template_type: "computation",
-        source_code: @valid_handler_code
+        template_type: "computation"
       }
 
       result = UnifiedPipeline.generate_edit_only(api, @valid_handler_code, "Rewrite", [])
@@ -660,8 +652,7 @@ defmodule Blackboex.CodeGen.UnifiedPipelineTest do
 
       api = %Blackboex.Apis.Api{
         id: Ecto.UUID.generate(),
-        template_type: "computation",
-        source_code: @valid_handler_code
+        template_type: "computation"
       }
 
       result =
@@ -708,8 +699,7 @@ defmodule Blackboex.CodeGen.UnifiedPipelineTest do
 
       api = %Blackboex.Apis.Api{
         id: Ecto.UUID.generate(),
-        template_type: "computation",
-        source_code: @valid_handler_code
+        template_type: "computation"
       }
 
       result =
@@ -739,8 +729,7 @@ defmodule Blackboex.CodeGen.UnifiedPipelineTest do
 
       api = %Blackboex.Apis.Api{
         id: Ecto.UUID.generate(),
-        template_type: "computation",
-        source_code: @valid_handler_code
+        template_type: "computation"
       }
 
       result =
@@ -811,8 +800,7 @@ defmodule Blackboex.CodeGen.UnifiedPipelineTest do
 
       api = %Blackboex.Apis.Api{
         id: Ecto.UUID.generate(),
-        template_type: "computation",
-        source_code: @valid_handler_code
+        template_type: "computation"
       }
 
       result = UnifiedPipeline.run_for_edit(api, @valid_handler_code, "Update", [])

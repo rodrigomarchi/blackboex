@@ -63,9 +63,12 @@ defmodule BlackboexWeb.ApiLive.IndexTest do
           slug: "published-api",
           template_type: "computation",
           organization_id: org.id,
-          user_id: user.id,
-          source_code: "def handle(_), do: %{ok: true}"
+          user_id: user.id
         })
+
+      Blackboex.Apis.upsert_files(api, [
+        %{path: "/src/handler.ex", content: "def handle(_), do: %{ok: true}", file_type: "source"}
+      ])
 
       {:ok, _} = Blackboex.Apis.update_api(api, %{status: "published"})
 

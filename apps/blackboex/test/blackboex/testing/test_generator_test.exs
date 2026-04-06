@@ -22,12 +22,7 @@ defmodule Blackboex.Testing.TestGeneratorTest do
     requires_auth: false,
     param_schema: %{"number" => "integer"},
     example_request: %{"number" => 42},
-    example_response: %{"result" => 84},
-    source_code: ~S"""
-    def handle(%{"number" => n}) do
-      %{result: n * 2}
-    end
-    """
+    example_response: %{"result" => 84}
   }
 
   @valid_test_code ~S'''
@@ -149,7 +144,6 @@ defmodule Blackboex.Testing.TestGeneratorTest do
       api = %Api{
         id: Ecto.UUID.generate(),
         template_type: "computation",
-        source_code: "def handle(p), do: %{result: p}",
         name: "SimpleAPI",
         slug: "simple-api",
         description: "Simple computation",

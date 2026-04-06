@@ -65,14 +65,6 @@ defmodule BlackboexWeb.Admin.ApiLive do
         module: Backpex.Fields.Boolean,
         label: "Requires Auth"
       },
-      source_code: %{
-        module: Backpex.Fields.Textarea,
-        label: "Source Code"
-      },
-      test_code: %{
-        module: Backpex.Fields.Textarea,
-        label: "Test Code"
-      },
       documentation_md: %{
         module: Backpex.Fields.Textarea,
         label: "Documentation"

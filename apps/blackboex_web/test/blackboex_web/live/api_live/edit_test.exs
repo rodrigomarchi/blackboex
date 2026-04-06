@@ -20,15 +20,22 @@ defmodule BlackboexWeb.ApiLive.EditTest do
         slug: "calculator",
         template_type: "computation",
         organization_id: org.id,
-        user_id: user.id,
-        source_code: """
+        user_id: user.id
+      })
+
+    Apis.upsert_files(api, [
+      %{
+        path: "/src/handler.ex",
+        content: """
         def handle(params) do
           a = Map.get(params, "a", 0)
           b = Map.get(params, "b", 0)
           %{result: a + b}
         end
-        """
-      })
+        """,
+        file_type: "source"
+      }
+    ])
 
     %{org: org, api: api}
   end
@@ -88,8 +95,7 @@ defmodule BlackboexWeb.ApiLive.EditTest do
           slug: "secret",
           template_type: "computation",
           organization_id: other_org.id,
-          user_id: other_user.id,
-          source_code: "def handle(_), do: :secret"
+          user_id: other_user.id
         })
 
       assert {:error, {:live_redirect, %{to: "/apis", flash: %{"error" => "API not found"}}}} =

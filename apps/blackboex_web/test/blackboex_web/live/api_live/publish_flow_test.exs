@@ -21,9 +21,12 @@ defmodule BlackboexWeb.ApiLive.PublishFlowTest do
         slug: "pub-api",
         template_type: "computation",
         organization_id: org.id,
-        user_id: user.id,
-        source_code: "def handle(_), do: %{ok: true}"
+        user_id: user.id
       })
+
+    Apis.upsert_files(api, [
+      %{path: "/src/handler.ex", content: "def handle(_), do: %{ok: true}", file_type: "source"}
+    ])
 
     %{org: org, api: api}
   end
@@ -31,7 +34,7 @@ defmodule BlackboexWeb.ApiLive.PublishFlowTest do
   defp compile_directly(api) do
     code = "def handle(_), do: %{published: true}"
     {:ok, _module} = Compiler.compile(api, code)
-    {:ok, _api} = Apis.update_api(api, %{status: "compiled", source_code: code})
+    {:ok, _api} = Apis.update_api(api, %{status: "compiled"})
   end
 
   describe "full publish flow" do

@@ -22,8 +22,8 @@ defmodule Blackboex.Docs.DocPrompts do
     """
   end
 
-  @spec build_doc_prompt(Api.t(), map()) :: String.t()
-  def build_doc_prompt(%Api{} = api, openapi_spec) do
+  @spec build_doc_prompt(Api.t(), map(), String.t() | nil) :: String.t()
+  def build_doc_prompt(%Api{} = api, openapi_spec, source_code \\ nil) do
     spec_json = Jason.encode!(openapi_spec, pretty: true)
 
     """
@@ -38,7 +38,7 @@ defmodule Blackboex.Docs.DocPrompts do
 
     ## Source Code
     ```elixir
-    #{sanitize_code_fence(api.source_code || "# No source code available")}
+    #{sanitize_code_fence(source_code || "# No source code available")}
     ```
 
     ## OpenAPI Specification

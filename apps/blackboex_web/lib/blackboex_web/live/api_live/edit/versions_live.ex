@@ -16,11 +16,18 @@ defmodule BlackboexWeb.ApiLive.Edit.VersionsLive do
     case Shared.load_api(socket, params) do
       {:ok, socket} ->
         api = socket.assigns.api
+        files = Apis.list_files(api.id)
+
+        code =
+          files |> Enum.filter(&(&1.file_type == "source")) |> Enum.map_join("\n\n", & &1.content)
+
+        test_code =
+          files |> Enum.filter(&(&1.file_type == "test")) |> Enum.map_join("\n\n", & &1.content)
 
         {:ok,
          assign(socket,
-           code: api.source_code || "",
-           test_code: api.test_code || ""
+           code: code,
+           test_code: test_code
          )}
 
       {:error, socket} ->
@@ -95,9 +102,14 @@ defmodule BlackboexWeb.ApiLive.Edit.VersionsLive do
     version = Apis.get_version(socket.assigns.api.id, number)
 
     if version do
+      code =
+        version.file_snapshots
+        |> Enum.filter(&(infer_type(&1) == "source"))
+        |> Enum.map_join("\n\n", &(&1["content"] || &1[:content]))
+
       {:noreply,
        socket
-       |> assign(code: version.code, selected_version: version)}
+       |> assign(code: code, selected_version: version)}
     else
       {:noreply, put_flash(socket, :error, "Version not found")}
     end
@@ -105,7 +117,10 @@ defmodule BlackboexWeb.ApiLive.Edit.VersionsLive do
 
   def handle_event("clear_version_view", _params, socket) do
     api = Apis.get_api(socket.assigns.org.id, socket.assigns.api.id)
-    code = api.source_code || ""
+    files = Apis.list_files(api.id)
+
+    code =
+      files |> Enum.filter(&(&1.file_type == "source")) |> Enum.map_join("\n\n", & &1.content)
 
     {:noreply,
      socket
@@ -118,10 +133,15 @@ defmodule BlackboexWeb.ApiLive.Edit.VersionsLive do
     scope = socket.assigns.current_scope
 
     case Apis.rollback_to_version(api, number, scope.user.id) do
-      {:ok, new_version} ->
+      {:ok, _new_version} ->
         api = Apis.get_api(socket.assigns.org.id, api.id)
-        code = new_version.code
-        test_code = new_version.test_code || socket.assigns.test_code
+        files = Apis.list_files(api.id)
+
+        code =
+          files |> Enum.filter(&(&1.file_type == "source")) |> Enum.map_join("\n\n", & &1.content)
+
+        test_code =
+          files |> Enum.filter(&(&1.file_type == "test")) |> Enum.map_join("\n\n", & &1.content)
 
         {:noreply,
          socket
@@ -180,6 +200,11 @@ defmodule BlackboexWeb.ApiLive.Edit.VersionsLive do
     else
       nil
     end
+  end
+
+  defp infer_type(snapshot) do
+    path = snapshot["path"] || snapshot[:path]
+    if path && String.starts_with?(path, "/test"), do: "test", else: "source"
   end
 
   @spec shared_shell_assigns(map()) :: map()

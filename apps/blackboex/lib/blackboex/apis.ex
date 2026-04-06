@@ -1,12 +1,17 @@
 defmodule Blackboex.Apis do
   @moduledoc """
   The Apis context. Manages API endpoints created by users.
+
+  Each API has a virtual filesystem of ApiFiles with revision history.
+  ApiVersions represent compiled snapshots referencing specific file revisions.
   """
 
   import Ecto.Query, warn: false
 
   alias Blackboex.Agent.KickoffWorker
   alias Blackboex.Apis.Api
+  alias Blackboex.Apis.ApiFile
+  alias Blackboex.Apis.ApiFileRevision
   alias Blackboex.Apis.ApiVersion
   alias Blackboex.Apis.DiffEngine
   alias Blackboex.Apis.Registry
@@ -19,6 +24,8 @@ defmodule Blackboex.Apis do
   alias Blackboex.Repo
 
   require Logger
+
+  # ── API CRUD ─────────────────────────────────────────────────
 
   @spec create_api(map()) ::
           {:ok, Api.t()}
@@ -108,23 +115,259 @@ defmodule Blackboex.Apis do
     Repo.delete(api)
   end
 
-  # --- Versioning ---
+  # ── File System ──────────────────────────────────────────────
+
+  @spec list_files(Ecto.UUID.t()) :: [ApiFile.t()]
+  def list_files(api_id) do
+    ApiFile
+    |> where([f], f.api_id == ^api_id)
+    |> order_by([f], asc: f.path)
+    |> Repo.all()
+  end
+
+  @spec list_source_files(Ecto.UUID.t()) :: [ApiFile.t()]
+  def list_source_files(api_id) do
+    ApiFile
+    |> where([f], f.api_id == ^api_id and f.file_type == "source")
+    |> order_by([f], asc: f.path)
+    |> Repo.all()
+  end
+
+  @spec list_test_files(Ecto.UUID.t()) :: [ApiFile.t()]
+  def list_test_files(api_id) do
+    ApiFile
+    |> where([f], f.api_id == ^api_id and f.file_type == "test")
+    |> order_by([f], asc: f.path)
+    |> Repo.all()
+  end
+
+  @spec get_file(Ecto.UUID.t(), String.t()) :: ApiFile.t() | nil
+  def get_file(api_id, path) do
+    ApiFile
+    |> where([f], f.api_id == ^api_id and f.path == ^path)
+    |> Repo.one()
+  end
+
+  @spec get_file!(Ecto.UUID.t()) :: ApiFile.t()
+  def get_file!(file_id) do
+    Repo.get!(ApiFile, file_id)
+  end
+
+  @spec create_file(Api.t(), map()) :: {:ok, ApiFile.t()} | {:error, Ecto.Changeset.t()}
+  def create_file(%Api{} = api, attrs) do
+    Repo.transaction(fn ->
+      file =
+        %ApiFile{}
+        |> ApiFile.changeset(Map.put(attrs, :api_id, api.id))
+        |> Repo.insert!()
+
+      create_initial_revision(
+        file,
+        attrs[:content],
+        attrs[:source] || "generation",
+        attrs[:created_by_id]
+      )
+
+      file
+    end)
+  end
+
+  @spec update_file_content(ApiFile.t(), String.t(), map()) ::
+          {:ok, ApiFile.t()} | {:error, Ecto.Changeset.t()}
+  def update_file_content(%ApiFile{} = file, new_content, opts \\ %{}) do
+    old_content = file.content
+
+    Repo.transaction(fn ->
+      updated_file =
+        file
+        |> Ecto.Changeset.change(content: new_content)
+        |> Repo.update!()
+
+      diff = if old_content, do: DiffEngine.compute_diff(old_content, new_content), else: nil
+
+      create_revision(
+        file,
+        new_content,
+        diff && DiffEngine.format_diff_summary(diff),
+        opts[:source] || "manual_edit",
+        opts[:message],
+        opts[:created_by_id]
+      )
+
+      updated_file
+    end)
+  end
+
+  @spec delete_file(ApiFile.t()) :: {:ok, ApiFile.t()} | {:error, Ecto.Changeset.t()}
+  def delete_file(%ApiFile{} = file) do
+    Repo.delete(file)
+  end
+
+  @spec list_file_revisions(Ecto.UUID.t()) :: [ApiFileRevision.t()]
+  def list_file_revisions(file_id) do
+    ApiFileRevision
+    |> where([r], r.api_file_id == ^file_id)
+    |> order_by([r], desc: r.revision_number)
+    |> Repo.all()
+  end
+
+  defp create_initial_revision(file, content, source, created_by_id) do
+    %ApiFileRevision{}
+    |> ApiFileRevision.changeset(%{
+      api_file_id: file.id,
+      content: content || "",
+      source: source,
+      message: "Initial file creation",
+      revision_number: 1,
+      created_by_id: created_by_id
+    })
+    |> Repo.insert!()
+  end
+
+  defp create_revision(file, content, diff, source, message, created_by_id) do
+    next_rev = next_revision_number(file.id)
+
+    %ApiFileRevision{}
+    |> ApiFileRevision.changeset(%{
+      api_file_id: file.id,
+      content: content,
+      diff: diff,
+      source: source,
+      message: message,
+      revision_number: next_rev,
+      created_by_id: created_by_id
+    })
+    |> Repo.insert!()
+  end
+
+  defp next_revision_number(file_id) do
+    result =
+      ApiFileRevision
+      |> where([r], r.api_file_id == ^file_id)
+      |> select([r], max(r.revision_number))
+      |> Repo.one()
+
+    (result || 0) + 1
+  end
+
+  @doc """
+  Upserts files for an API from a list of `%{path, content, file_type}` maps.
+  Creates new files or updates existing ones, creating revisions for each change.
+  Returns the list of upserted ApiFile records.
+  """
+  @spec upsert_files(Api.t(), [map()], map()) :: {:ok, [ApiFile.t()]}
+  def upsert_files(%Api{} = api, file_maps, opts \\ %{}) do
+    Repo.transaction(fn ->
+      Enum.map(file_maps, &upsert_single_file(api, &1, opts))
+    end)
+  end
+
+  defp upsert_single_file(api, file_map, opts) do
+    path = file_map[:path] || file_map["path"]
+    content = file_map[:content] || file_map["content"]
+    file_type = file_map[:file_type] || file_map["file_type"] || infer_file_type(path)
+    source = opts[:source] || "generation"
+
+    case get_file(api.id, path) do
+      nil ->
+        {:ok, file} =
+          create_file(api, %{
+            path: path,
+            content: content,
+            file_type: file_type,
+            source: source,
+            created_by_id: opts[:created_by_id]
+          })
+
+        file
+
+      existing ->
+        {:ok, file} =
+          update_file_content(existing, content, %{
+            source: source,
+            message: opts[:message],
+            created_by_id: opts[:created_by_id]
+          })
+
+        file
+    end
+  end
+
+  defp infer_file_type(path) when is_binary(path) do
+    cond do
+      String.starts_with?(path, "/test") -> "test"
+      String.starts_with?(path, "/src") -> "source"
+      true -> "source"
+    end
+  end
+
+  @doc """
+  Builds file_snapshots for the current state of all files in an API.
+  Used when creating ApiVersions.
+  """
+  @spec build_file_snapshots(Ecto.UUID.t()) :: [map()]
+  def build_file_snapshots(api_id) do
+    files = list_files(api_id)
+
+    Enum.map(files, fn file ->
+      latest_rev =
+        ApiFileRevision
+        |> where([r], r.api_file_id == ^file.id)
+        |> order_by([r], desc: r.revision_number)
+        |> limit(1)
+        |> Repo.one()
+
+      %{
+        path: file.path,
+        content: file.content,
+        file_id: file.id,
+        revision_number: if(latest_rev, do: latest_rev.revision_number, else: 1)
+      }
+    end)
+  end
+
+  @doc """
+  Returns the source code for compilation as a list of `%{path: String.t(), content: String.t()}`.
+  """
+  @spec get_source_for_compilation(Ecto.UUID.t()) :: [%{path: String.t(), content: String.t()}]
+  def get_source_for_compilation(api_id) do
+    api_id
+    |> list_source_files()
+    |> Enum.map(&%{path: &1.path, content: &1.content || ""})
+  end
+
+  @doc """
+  Returns the test code for testing as a list of `%{path: String.t(), content: String.t()}`.
+  """
+  @spec get_tests_for_running(Ecto.UUID.t()) :: [%{path: String.t(), content: String.t()}]
+  def get_tests_for_running(api_id) do
+    api_id
+    |> list_test_files()
+    |> Enum.map(&%{path: &1.path, content: &1.content || ""})
+  end
+
+  # ── Versioning ───────────────────────────────────────────────
 
   @spec create_version(Api.t(), map()) :: {:ok, ApiVersion.t()} | {:error, Ecto.Changeset.t()}
   def create_version(%Api{} = api, attrs) do
-    code = attrs[:code] || attrs["code"] || ""
-    test_code = attrs[:test_code] || attrs["test_code"]
+    file_snapshots = attrs[:file_snapshots] || build_file_snapshots(api.id)
 
     Ecto.Multi.new()
     |> Ecto.Multi.run(:next_number, &next_version_number(&1, &2, api.id))
-    |> Ecto.Multi.run(:diff_summary, &compute_diff_summary(&1, &2, api.id, code))
+    |> Ecto.Multi.run(:diff_summary, fn _repo, _changes ->
+      {:ok, compute_version_diff_summary(api.id, file_snapshots)}
+    end)
     |> Ecto.Multi.insert(:version, fn %{next_number: number, diff_summary: summary} ->
       ApiVersion.changeset(
         %ApiVersion{},
-        Map.merge(attrs, %{api_id: api.id, version_number: number, diff_summary: summary})
+        Map.merge(attrs, %{
+          api_id: api.id,
+          version_number: number,
+          file_snapshots: file_snapshots,
+          diff_summary: summary
+        })
       )
     end)
-    |> Ecto.Multi.update(:api, Api.changeset(api, %{source_code: code, test_code: test_code}))
     |> Repo.transaction()
     |> unwrap_version_transaction()
   end
@@ -139,28 +382,57 @@ defmodule Blackboex.Apis do
     {:ok, (result || 0) + 1}
   end
 
-  defp compute_diff_summary(repo, _changes, api_id, code) do
+  defp compute_version_diff_summary(api_id, current_snapshots) do
     latest =
       ApiVersion
       |> where([v], v.api_id == ^api_id)
       |> order_by([v], desc: v.version_number)
       |> limit(1)
-      |> repo.one()
+      |> Repo.one()
 
-    summary = compute_diff_for_latest(latest, code)
-    {:ok, summary}
+    case latest do
+      nil -> nil
+      prev -> diff_snapshots(prev.file_snapshots, current_snapshots)
+    end
   end
 
-  defp compute_diff_for_latest(nil, _code), do: nil
+  defp diff_snapshots(prev_snapshots, curr_snapshots) do
+    prev_map = snapshots_to_map(prev_snapshots)
+    curr_map = snapshots_to_map(curr_snapshots)
 
-  defp compute_diff_for_latest(latest, code) do
-    diff = DiffEngine.compute_diff(latest.code, code)
-    DiffEngine.format_diff_summary(diff)
+    all_paths = (Map.keys(curr_map) ++ Map.keys(prev_map)) |> Enum.uniq()
+
+    changes = Enum.flat_map(all_paths, &diff_single_path(&1, prev_map, curr_map))
+
+    if changes == [], do: "No changes", else: Enum.join(changes, "\n")
+  end
+
+  defp snapshots_to_map(snapshots) do
+    Map.new(snapshots, &{&1["path"] || &1[:path], &1["content"] || &1[:content]})
+  end
+
+  defp diff_single_path(path, prev_map, curr_map) do
+    prev_content = Map.get(prev_map, path)
+    curr_content = Map.get(curr_map, path)
+
+    cond do
+      is_nil(prev_content) ->
+        ["+ #{path} (new file)"]
+
+      is_nil(curr_content) ->
+        ["- #{path} (deleted)"]
+
+      prev_content != curr_content ->
+        diff = DiffEngine.compute_diff(prev_content, curr_content)
+        ["~ #{path}: #{DiffEngine.format_diff_summary(diff)}"]
+
+      true ->
+        []
+    end
   end
 
   defp unwrap_version_transaction({:ok, %{version: version}}), do: {:ok, version}
   defp unwrap_version_transaction({:error, :version, changeset, _}), do: {:error, changeset}
-  defp unwrap_version_transaction({:error, :api, changeset, _}), do: {:error, changeset}
   defp unwrap_version_transaction({:error, _step, reason, _}), do: {:error, reason}
 
   @spec list_versions(Ecto.UUID.t()) :: [ApiVersion.t()]
@@ -195,14 +467,40 @@ defmodule Blackboex.Apis do
         {:error, :version_not_found}
 
       target ->
+        # Restore files from snapshot
+        restore_files_from_snapshots(api, target.file_snapshots, created_by_id)
+
         create_version(api, %{
-          code: target.code,
-          test_code: target.test_code,
           source: "rollback",
           prompt: "Rollback to version #{target_version_number}",
           created_by_id: created_by_id
         })
     end
+  end
+
+  defp restore_files_from_snapshots(api, snapshots, created_by_id) do
+    Enum.each(snapshots, fn snapshot ->
+      path = snapshot["path"] || snapshot[:path]
+      content = snapshot["content"] || snapshot[:content]
+
+      case get_file(api.id, path) do
+        nil ->
+          create_file(api, %{
+            path: path,
+            content: content,
+            file_type: infer_file_type(path),
+            source: "rollback",
+            created_by_id: created_by_id
+          })
+
+        existing ->
+          update_file_content(existing, content, %{
+            source: "rollback",
+            message: "Restored from version snapshot",
+            created_by_id: created_by_id
+          })
+      end
+    end)
   end
 
   # --- API from generation ---
@@ -213,7 +511,6 @@ defmodule Blackboex.Apis do
     create_api(%{
       name: name,
       description: result.description,
-      source_code: result.code,
       template_type: to_string(result.template),
       method: result.method || "POST",
       organization_id: organization_id,
@@ -293,12 +590,6 @@ defmodule Blackboex.Apis do
 
   # ── Agent Pipeline ───────────────────────────────────────────
 
-  @doc """
-  Starts an agent-based code generation run for an API.
-  Creates a conversation (if needed), a run, and starts the Agent.Session.
-
-  Returns `{:ok, run_id}` for the LiveView to subscribe to.
-  """
   @spec start_agent_generation(Api.t(), String.t(), String.t() | integer()) ::
           {:ok, String.t()} | {:error, term()}
   def start_agent_generation(%Api{} = api, description, user_id) do
@@ -318,22 +609,23 @@ defmodule Blackboex.Apis do
     end
   end
 
-  @doc """
-  Starts an agent-based code edit run for an API.
-
-  Returns `{:ok, run_id}` for the LiveView to subscribe to.
-  """
   @spec start_agent_edit(Api.t(), String.t(), String.t() | integer()) ::
           {:ok, String.t()} | {:error, term()}
   def start_agent_edit(%Api{} = api, instruction, user_id) do
+    files = list_files(api.id)
+
+    current_files =
+      Enum.map(files, fn f ->
+        %{"path" => f.path, "content" => f.content || "", "file_type" => f.file_type}
+      end)
+
     args = %{
       "api_id" => api.id,
       "organization_id" => api.organization_id,
       "user_id" => user_id,
       "run_type" => "edit",
       "trigger_message" => instruction,
-      "current_code" => api.source_code,
-      "current_tests" => api.test_code
+      "current_files" => current_files
     }
 
     case args |> KickoffWorker.new() |> Oban.insert() do

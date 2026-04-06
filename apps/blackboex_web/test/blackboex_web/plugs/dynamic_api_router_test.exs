@@ -20,24 +20,32 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouterTest do
   end
 
   defp create_and_compile_api(org, user, attrs \\ %{}) do
+    default_source = """
+    def handle(params) do
+      a = Map.get(params, "a", 0)
+      b = Map.get(params, "b", 0)
+      %{result: a + b}
+    end
+    """
+
+    source_code = Map.get(attrs, :source_code, default_source)
+
     defaults = %{
       name: "Calculator API",
       slug: "calculator",
       template_type: "computation",
       organization_id: org.id,
-      user_id: user.id,
-      source_code: """
-      def handle(params) do
-        a = Map.get(params, "a", 0)
-        b = Map.get(params, "b", 0)
-        %{result: a + b}
-      end
-      """
+      user_id: user.id
     }
 
-    api_attrs = Map.merge(defaults, attrs)
+    api_attrs = defaults |> Map.merge(Map.drop(attrs, [:source_code]))
     {:ok, api} = Apis.create_api(api_attrs)
-    {:ok, module} = Compiler.compile(api, api.source_code)
+
+    Apis.upsert_files(api, [
+      %{path: "/src/handler.ex", content: source_code, file_type: "source"}
+    ])
+
+    {:ok, module} = Compiler.compile(api, source_code)
     {:ok, api} = Apis.update_api(api, %{status: "compiled"})
 
     Registry.register(api.id, module,
@@ -325,13 +333,18 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouterTest do
           slug: "unregistered-api",
           template_type: "computation",
           organization_id: org.id,
-          user_id: user.id,
-          source_code: """
-          def handle(_params) do
-            %{hello: "world"}
-          end
-          """
+          user_id: user.id
         })
+
+      unregistered_source = """
+      def handle(_params) do
+        %{hello: "world"}
+      end
+      """
+
+      Apis.upsert_files(api, [
+        %{path: "/src/handler.ex", content: unregistered_source, file_type: "source"}
+      ])
 
       {:ok, _api} = Apis.update_api(api, %{status: "compiled"})
 
@@ -399,23 +412,31 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouterTest do
 
   describe "authentication for published APIs" do
     defp create_published_api(org, user, attrs \\ %{}) do
+      default_source = """
+      def handle(_params) do
+        %{result: "published"}
+      end
+      """
+
+      source_code = Map.get(attrs, :source_code, default_source)
+
       defaults = %{
         name: "Published API",
         slug: "published-api",
         template_type: "computation",
         organization_id: org.id,
         user_id: user.id,
-        requires_auth: true,
-        source_code: """
-        def handle(_params) do
-          %{result: "published"}
-        end
-        """
+        requires_auth: true
       }
 
-      api_attrs = Map.merge(defaults, attrs)
+      api_attrs = defaults |> Map.merge(Map.drop(attrs, [:source_code]))
       {:ok, api} = Apis.create_api(api_attrs)
-      {:ok, module} = Compiler.compile(api, api.source_code)
+
+      Apis.upsert_files(api, [
+        %{path: "/src/handler.ex", content: source_code, file_type: "source"}
+      ])
+
+      {:ok, module} = Compiler.compile(api, source_code)
       {:ok, api} = Apis.update_api(api, %{status: "published"})
 
       Registry.register(api.id, module,
@@ -616,13 +637,16 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouterTest do
           template_type: "computation",
           organization_id: org.id,
           user_id: user.id,
-          requires_auth: false,
-          source_code: """
-          def handle(_params), do: %{ok: true}
-          """
+          requires_auth: false
         })
 
-      {:ok, module} = Compiler.compile(api, api.source_code)
+      limited_source = "def handle(_params), do: %{ok: true}"
+
+      Apis.upsert_files(api, [
+        %{path: "/src/handler.ex", content: limited_source, file_type: "source"}
+      ])
+
+      {:ok, module} = Compiler.compile(api, limited_source)
       {:ok, api} = Apis.update_api(api, %{status: "published"})
 
       Registry.register(api.id, module,

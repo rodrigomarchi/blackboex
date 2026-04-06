@@ -30,6 +30,7 @@ defmodule Blackboex.DataCase do
       import Blackboex.BillingFixtures
       import Blackboex.ConversationsFixtures
       import Blackboex.TestingFixtures
+      import Blackboex.ApiFilesFixtures
       import Blackboex.MockDefaults
     end
   end

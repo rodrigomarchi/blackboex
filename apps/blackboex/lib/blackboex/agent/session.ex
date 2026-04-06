@@ -211,11 +211,16 @@ defmodule Blackboex.Agent.Session do
 
       case state.run_type do
         "edit" ->
+          source_files = Apis.get_source_for_compilation(api.id)
+          test_files = Apis.get_tests_for_running(api.id)
+          current_code = state.current_code || Enum.map_join(source_files, "\n\n", & &1.content)
+          current_tests = state.current_tests || Enum.map_join(test_files, "\n\n", & &1.content)
+
           CodePipeline.run_edit(
             api,
             state.trigger_message,
-            state.current_code || api.source_code || "",
-            state.current_tests || api.test_code || "",
+            current_code,
+            current_tests,
             opts
           )
 
@@ -484,13 +489,23 @@ defmodule Blackboex.Agent.Session do
 
   @spec do_register_module(Blackboex.Apis.Api.t() | nil, String.t()) :: :ok
   defp do_register_module(nil, _org_id), do: :ok
-  defp do_register_module(%{source_code: nil}, _org_id), do: :ok
-  defp do_register_module(%{source_code: ""}, _org_id), do: :ok
 
   defp do_register_module(api, org_id) do
     alias Blackboex.CodeGen.Compiler
 
-    case Compiler.compile(api, api.source_code) do
+    source_files = Apis.get_source_for_compilation(api.id)
+
+    if source_files == [] do
+      :ok
+    else
+      compile_and_register(api, source_files, org_id)
+    end
+  end
+
+  defp compile_and_register(api, source_files, org_id) do
+    source_code = Enum.map_join(source_files, "\n\n", & &1.content)
+
+    case Compiler.compile(api, source_code) do
       {:ok, module} ->
         org = Organizations.get_organization(org_id)
         org_slug = if(org, do: org.slug, else: "")
@@ -636,11 +651,22 @@ defmodule Blackboex.Agent.Session do
     gen_status = if status == "completed", do: "completed", else: "partial"
 
     attrs =
-      %{source_code: result[:code], generation_status: gen_status, generation_error: nil}
-      |> maybe_put(:test_code, result[:test_code])
+      %{generation_status: gen_status, generation_error: nil}
       |> maybe_put(:documentation_md, result[:documentation_md])
 
+    Apis.upsert_files(api, files_from_result(result), %{source: "generation"})
     Apis.update_api(api, attrs)
+  end
+
+  @spec files_from_result(map()) :: [map()]
+  defp files_from_result(result) do
+    files = [%{path: "/src/handler.ex", content: result[:code], file_type: "source"}]
+
+    if result[:test_code] do
+      files ++ [%{path: "/test/handler_test.ex", content: result[:test_code], file_type: "test"}]
+    else
+      files
+    end
   end
 
   @spec maybe_create_version(
@@ -654,12 +680,10 @@ defmodule Blackboex.Agent.Session do
   defp maybe_create_version(_api, _run, _state, _result, status) when status != "completed",
     do: :ok
 
-  defp maybe_create_version(api, run, state, result, _status) do
+  defp maybe_create_version(api, run, state, _result, _status) do
     version_source = if state.run_type == "generation", do: "generation", else: "chat_edit"
 
     case Apis.create_version(api, %{
-           code: result[:code],
-           test_code: result[:test_code],
            source: version_source,
            prompt: state.trigger_message,
            compilation_status: "success",

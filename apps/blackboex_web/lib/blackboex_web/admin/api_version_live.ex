@@ -44,21 +44,9 @@ defmodule BlackboexWeb.Admin.ApiVersionLive do
         label: "Compilation",
         options: [Pending: "pending", Success: "success", Error: "error"]
       },
-      code: %{
-        module: Backpex.Fields.Textarea,
-        label: "Code"
-      },
-      test_code: %{
-        module: Backpex.Fields.Textarea,
-        label: "Test Code"
-      },
       prompt: %{
         module: Backpex.Fields.Textarea,
         label: "Prompt"
-      },
-      llm_response: %{
-        module: Backpex.Fields.Textarea,
-        label: "LLM Response"
       },
       compilation_errors: %{
         module: Backpex.Fields.Text,

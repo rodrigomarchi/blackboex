@@ -24,15 +24,22 @@ defmodule BlackboexWeb.ApiLive.AgentChatTest do
         slug: "calculator",
         template_type: "computation",
         organization_id: org.id,
-        user_id: user.id,
-        source_code: """
+        user_id: user.id
+      })
+
+    Apis.upsert_files(api, [
+      %{
+        path: "/src/handler.ex",
+        content: """
         def handle(params) do
           a = Map.get(params, "a", 0)
           b = Map.get(params, "b", 0)
           %{result: a + b}
         end
-        """
-      })
+        """,
+        file_type: "source"
+      }
+    ])
 
     stub_pipeline_mocks()
 
@@ -778,9 +785,12 @@ defmodule BlackboexWeb.ApiLive.AgentChatTest do
           slug: "reportapi#{System.unique_integer([:positive])}",
           template_type: "computation",
           organization_id: org.id,
-          user_id: user.id,
-          source_code: "def handle(p), do: p"
+          user_id: user.id
         })
+
+      Blackboex.Apis.upsert_files(api, [
+        %{path: "/src/handler.ex", content: "def handle(p), do: p", file_type: "source"}
+      ])
 
       # Seed validation_report directly via Repo so agent_completed can read it
       Blackboex.Repo.update!(
@@ -826,9 +836,12 @@ defmodule BlackboexWeb.ApiLive.AgentChatTest do
           slug: "convapi#{System.unique_integer([:positive])}",
           template_type: "computation",
           organization_id: org.id,
-          user_id: user.id,
-          source_code: "def handle(p), do: p"
+          user_id: user.id
         })
+
+      Blackboex.Apis.upsert_files(api, [
+        %{path: "/src/handler.ex", content: "def handle(p), do: p", file_type: "source"}
+      ])
 
       # Create conversation and run with events
       {:ok, conv} =

@@ -209,8 +209,8 @@ defmodule Blackboex.Testing.TestPrompts do
     """
   end
 
-  @spec build_generation_prompt(Api.t(), map()) :: String.t()
-  def build_generation_prompt(%Api{} = api, _openapi_spec) do
+  @spec build_generation_prompt(Api.t(), map(), String.t() | nil) :: String.t()
+  def build_generation_prompt(%Api{} = api, _openapi_spec, source_code \\ nil) do
     """
     Generate ExUnit unit tests for the following API handler.
     The handler functions are available via the `Handler` module — call them directly.
@@ -222,7 +222,7 @@ defmodule Blackboex.Testing.TestPrompts do
 
     ## Handler Source Code (for reference only — DO NOT copy into tests)
     ```elixir
-    #{sanitize_code_fence(api.source_code || "# No source code available")}
+    #{sanitize_code_fence(source_code || "# No source code available")}
     ```
 
     ## Available Functions (call via Handler module)

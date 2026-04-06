@@ -28,13 +28,20 @@ defmodule BlackboexWeb.ApiLive.EditEdgeCasesTest do
         slug: "edge-test-#{System.unique_integer([:positive])}",
         template_type: "computation",
         organization_id: org.id,
-        user_id: user.id,
-        source_code: """
+        user_id: user.id
+      })
+
+    Apis.upsert_files(api, [
+      %{
+        path: "/src/handler.ex",
+        content: """
         def handle(params) do
           %{echo: params}
         end
-        """
-      })
+        """,
+        file_type: "source"
+      }
+    ])
 
     %{org: org, api: api}
   end
@@ -230,7 +237,7 @@ defmodule BlackboexWeb.ApiLive.EditEdgeCasesTest do
       # Compile first so publish tab shows settings
       code = "def handle(_), do: %{ok: true}"
       {:ok, module} = Compiler.compile(api, code)
-      {:ok, _api} = Apis.update_api(api, %{status: "compiled", source_code: code})
+      {:ok, _api} = Apis.update_api(api, %{status: "compiled"})
 
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/publish?org=#{org.id}")
 

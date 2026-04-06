@@ -28,12 +28,20 @@ defmodule Blackboex.CodeGen.HotReloadTest do
           slug: "hot-api",
           template_type: "computation",
           organization_id: org.id,
-          user_id: user.id,
-          source_code: "def handle(_params), do: %{version: 1}"
+          user_id: user.id
         })
 
+      Apis.upsert_files(api, [
+        %{
+          path: "/src/handler.ex",
+          content: "def handle(_params), do: %{version: 1}",
+          file_type: "source"
+        }
+      ])
+
       # Compile v1
-      {:ok, module} = Compiler.compile(api, api.source_code)
+      source_v1 = Apis.get_source_for_compilation(api.id) |> Enum.map_join("\n\n", & &1.content)
+      {:ok, module} = Compiler.compile(api, source_v1)
       Registry.register(api.id, module, org_slug: org.slug, slug: api.slug)
 
       # Verify v1 behavior
@@ -46,7 +54,7 @@ defmodule Blackboex.CodeGen.HotReloadTest do
 
       # Compile v2 (hot reload)
       new_code = "def handle(_params), do: %{version: 2}"
-      {:ok, api} = Apis.update_api(api, %{source_code: new_code})
+      Apis.upsert_files(api, [%{path: "/src/handler.ex", content: new_code, file_type: "source"}])
       {:ok, module2} = Compiler.compile(api, new_code)
 
       # Same module name
@@ -70,11 +78,19 @@ defmodule Blackboex.CodeGen.HotReloadTest do
           slug: "dual-api",
           template_type: "computation",
           organization_id: org.id,
-          user_id: user.id,
-          source_code: "def handle(_params), do: %{v: 1}"
+          user_id: user.id
         })
 
-      {:ok, module} = Compiler.compile(api, api.source_code)
+      Apis.upsert_files(api, [
+        %{
+          path: "/src/handler.ex",
+          content: "def handle(_params), do: %{v: 1}",
+          file_type: "source"
+        }
+      ])
+
+      source_v1 = Apis.get_source_for_compilation(api.id) |> Enum.map_join("\n\n", & &1.content)
+      {:ok, module} = Compiler.compile(api, source_v1)
 
       # Module loaded
       assert function_exported?(module, :call, 2)
@@ -95,11 +111,19 @@ defmodule Blackboex.CodeGen.HotReloadTest do
           slug: "purge-api",
           template_type: "computation",
           organization_id: org.id,
-          user_id: user.id,
-          source_code: "def handle(_params), do: %{v: 1}"
+          user_id: user.id
         })
 
-      {:ok, module} = Compiler.compile(api, api.source_code)
+      Apis.upsert_files(api, [
+        %{
+          path: "/src/handler.ex",
+          content: "def handle(_params), do: %{v: 1}",
+          file_type: "source"
+        }
+      ])
+
+      source_v1 = Apis.get_source_for_compilation(api.id) |> Enum.map_join("\n\n", & &1.content)
+      {:ok, module} = Compiler.compile(api, source_v1)
       {:ok, ^module} = Compiler.compile(api, "def handle(_params), do: %{v: 2}")
 
       # Soft purge succeeds (no processes running old version)

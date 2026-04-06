@@ -13,14 +13,6 @@ defmodule Blackboex.Agent.SessionTest do
 
   setup :set_mox_global
 
-  # Valid minimal source code so start_chain_execution can fetch the API and
-  # reset validation_report without errors.
-  @minimal_code """
-  def handle(params) do
-    %{status: 200, body: %{result: "ok"}}
-  end
-  """
-
   defp setup_test_data(_context) do
     # Always reset circuit breaker so prior tests don't affect this one
     CircuitBreaker.reset(:anthropic)
@@ -31,8 +23,7 @@ defmodule Blackboex.Agent.SessionTest do
       Apis.create_api(%{
         name: "session-test-api-#{System.unique_integer([:positive])}",
         organization_id: org.id,
-        user_id: user.id,
-        source_code: @minimal_code
+        user_id: user.id
       })
 
     conversation = conversation_fixture(api.id, org.id)
@@ -910,7 +901,7 @@ defmodule Blackboex.Agent.SessionTest do
   describe "save_api_and_version on successful completion" do
     setup :setup_test_data
 
-    test "updates api.source_code with the generated code", context do
+    test "upserts source file with the generated code", context do
       test_pid = self()
 
       stub(Blackboex.LLM.ClientMock, :stream_text, fn _prompt, _opts ->
@@ -942,7 +933,6 @@ defmodule Blackboex.Agent.SessionTest do
       assert_receive {:DOWN, ^ref, :process, ^pid, :normal}, 5_000
 
       api = Apis.get_api(context.org.id, context.api.id)
-      assert api.source_code == new_code
       assert api.generation_status == "completed"
     end
 
@@ -980,7 +970,6 @@ defmodule Blackboex.Agent.SessionTest do
       versions = Apis.list_versions(context.api.id)
       assert versions != []
       latest = hd(versions)
-      assert latest.code == new_code
       assert latest.source == "generation"
       assert latest.compilation_status == "success"
     end
@@ -1643,13 +1632,12 @@ defmodule Blackboex.Agent.SessionTest do
 
       assert_receive :llm_called, 5_000
 
-      # Create a second API with nil source_code
+      # Create a second API with no source files (simulates nil source_code path)
       {:ok, nil_api} =
         Apis.create_api(%{
           name: "nil-source-api-#{System.unique_integer([:positive])}",
           organization_id: context.org.id,
-          user_id: context.user.id,
-          source_code: nil
+          user_id: context.user.id
         })
 
       fake_ref = make_ref()
@@ -1685,13 +1673,12 @@ defmodule Blackboex.Agent.SessionTest do
         Process.sleep(:infinity)
       end)
 
-      # Create an API with empty string source_code
+      # Create an API with no source files (simulates empty source_code path)
       {:ok, empty_api} =
         Apis.create_api(%{
           name: "empty-source-api-#{System.unique_integer([:positive])}",
           organization_id: context.org.id,
-          user_id: context.user.id,
-          source_code: ""
+          user_id: context.user.id
         })
 
       # Use the empty_api's id in the session

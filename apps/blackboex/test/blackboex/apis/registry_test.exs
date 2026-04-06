@@ -489,7 +489,7 @@ defmodule Blackboex.Apis.RegistryTest do
 
     @tag :integration
     @tag capture_log: true
-    test "reload_from_db skips compiled API with nil source_code (recompile_api :no_source_code path)" do
+    test "reload_from_db skips compiled API with no source file (recompile_api :no_source_code path)" do
       user = Blackboex.AccountsFixtures.user_fixture()
 
       {:ok, %{organization: org}} =
@@ -505,11 +505,12 @@ defmodule Blackboex.Apis.RegistryTest do
           template_type: "computation",
           organization_id: org.id,
           user_id: user.id,
-          source_code: nil,
           status: "compiled",
           requires_auth: true,
           visibility: "private"
         })
+
+      # No files upserted — source will be nil/empty
 
       with_fresh_registry(fn ->
         # nil source_code -> recompile_api(%{source_code: nil}) -> {:error, :no_source_code}
@@ -520,7 +521,7 @@ defmodule Blackboex.Apis.RegistryTest do
 
     @tag :integration
     @tag capture_log: true
-    test "reload_from_db recompiles and registers compiled API with valid source_code" do
+    test "reload_from_db recompiles and registers compiled API with valid source file" do
       user = Blackboex.AccountsFixtures.user_fixture()
 
       {:ok, %{organization: org}} =
@@ -536,15 +537,22 @@ defmodule Blackboex.Apis.RegistryTest do
           template_type: "computation",
           organization_id: org.id,
           user_id: user.id,
-          source_code: """
-          def handle(params) do
-            %{result: Map.get(params, "x", 0)}
-          end
-          """,
           status: "compiled",
           requires_auth: false,
           visibility: "public"
         })
+
+      Blackboex.Apis.upsert_files(api, [
+        %{
+          path: "/src/handler.ex",
+          content: """
+          def handle(params) do
+            %{result: Map.get(params, "x", 0)}
+          end
+          """,
+          file_type: "source"
+        }
+      ])
 
       with_fresh_registry(fn ->
         # reload_from_db ran in init/1:
@@ -586,15 +594,22 @@ defmodule Blackboex.Apis.RegistryTest do
           template_type: "computation",
           organization_id: org.id,
           user_id: user.id,
-          source_code: """
-          def handle(params) do
-            %{result: Map.get(params, "x", 0)}
-          end
-          """,
           status: "compiled",
           requires_auth: true,
           visibility: "private"
         })
+
+      Blackboex.Apis.upsert_files(api, [
+        %{
+          path: "/src/handler.ex",
+          content: """
+          def handle(params) do
+            %{result: Map.get(params, "x", 0)}
+          end
+          """,
+          file_type: "source"
+        }
+      ])
 
       # Manually pre-load the module that Compiler.module_name_for(api) would generate.
       # This ensures Code.ensure_loaded?(module_name) returns true in reload_from_db,

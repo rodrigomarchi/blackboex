@@ -21,10 +21,13 @@ defmodule Blackboex.Apis.DeployerTest do
       Apis.create_api(%{
         name: "Deploy API",
         status: "published",
-        source_code: @valid_source_code,
         organization_id: org.id,
         user_id: user.id
       })
+
+    Apis.upsert_files(api, [
+      %{path: "/src/handler.ex", content: @valid_source_code, file_type: "source"}
+    ])
 
     Registry.clear()
     on_exit(fn -> Registry.clear() end)
@@ -50,9 +53,16 @@ defmodule Blackboex.Apis.DeployerTest do
     end
 
     test "fails deployment with invalid source code", %{api: api, org: org} do
-      bad_api = %{api | source_code: "def handle(params do end end end"}
+      # Overwrite the file with invalid code
+      Apis.upsert_files(api, [
+        %{
+          path: "/src/handler.ex",
+          content: "def handle(params do end end end",
+          file_type: "source"
+        }
+      ])
 
-      assert {:error, _} = Deployer.deploy(bad_api, org)
+      assert {:error, _} = Deployer.deploy(api, org)
     end
   end
 
@@ -61,14 +71,12 @@ defmodule Blackboex.Apis.DeployerTest do
       # Create initial version
       {:ok, _v1} =
         Apis.create_version(api, %{
-          code: @valid_source_code,
           source: "manual_edit"
         })
 
       # Create v2
       {:ok, _v2} =
         Apis.create_version(api, %{
-          code: @valid_source_code,
           source: "manual_edit"
         })
 

@@ -26,9 +26,12 @@ defmodule BlackboexWeb.ApiLive.Edit.RunLiveTest do
         template_type: "computation",
         organization_id: org.id,
         user_id: user.id,
-        source_code: "def handle(_), do: %{ok: true}",
         example_request: %{"a" => 1, "b" => 2}
       })
+
+    Apis.upsert_files(api, [
+      %{path: "/src/handler.ex", content: "def handle(_), do: %{ok: true}", file_type: "source"}
+    ])
 
     %{org: org, api: api, user: user}
   end
@@ -148,8 +151,7 @@ defmodule BlackboexWeb.ApiLive.Edit.RunLiveTest do
           slug: "other-api-#{System.unique_integer([:positive])}",
           template_type: "computation",
           organization_id: org.id,
-          user_id: user.id,
-          source_code: "def handle(_), do: :ok"
+          user_id: user.id
         })
 
       other_tr = insert_test_request(other_api, user)

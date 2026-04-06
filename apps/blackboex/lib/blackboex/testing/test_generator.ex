@@ -25,7 +25,6 @@ defmodule Blackboex.Testing.TestGenerator do
       name: "GeneratedAPI",
       slug: "generated-api",
       description: "Auto-generated API for test generation",
-      source_code: source_code,
       template_type: template_type,
       method: "POST",
       requires_auth: false,
@@ -33,7 +32,7 @@ defmodule Blackboex.Testing.TestGenerator do
       user_id: 0
     }
 
-    generate_tests(api, opts)
+    generate_tests(api, Keyword.put(opts, :source_code, source_code))
   end
 
   @doc "Generate tests for an API struct using the LLM."
@@ -42,7 +41,8 @@ defmodule Blackboex.Testing.TestGenerator do
           | {:error, :generation_failed | :compile_error | :no_code_found}
   def generate_tests(%Api{} = api, opts \\ []) do
     openapi_spec = OpenApiGenerator.generate(api, opts)
-    prompt = TestPrompts.build_generation_prompt(api, openapi_spec)
+    source_code = Keyword.get(opts, :source_code)
+    prompt = TestPrompts.build_generation_prompt(api, openapi_spec, source_code)
     system = TestPrompts.system_prompt()
 
     case call_llm(prompt, system, opts) do

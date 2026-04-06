@@ -15,8 +15,24 @@ defmodule BlackboexWeb.ApiLive.Edit.InfoLive do
   @impl true
   def mount(params, _session, socket) do
     case Shared.load_api(socket, params) do
-      {:ok, socket} -> {:ok, socket}
-      {:error, socket} -> {:ok, socket}
+      {:ok, socket} ->
+        api = socket.assigns.api
+        files = Apis.list_files(api.id)
+
+        source_content =
+          files |> Enum.filter(&(&1.file_type == "source")) |> Enum.map_join("\n\n", & &1.content)
+
+        test_content =
+          files |> Enum.filter(&(&1.file_type == "test")) |> Enum.map_join("\n\n", & &1.content)
+
+        {:ok,
+         assign(socket,
+           source_lines: count_lines(source_content),
+           test_lines: count_lines(test_content)
+         )}
+
+      {:error, socket} ->
+        {:ok, socket}
     end
   end
 
@@ -82,11 +98,11 @@ defmodule BlackboexWeb.ApiLive.Edit.InfoLive do
           <h3 class="text-xs font-semibold text-muted-foreground uppercase mb-3">Code Stats</h3>
           <div class="grid grid-cols-4 gap-3">
             <div class="rounded-lg border p-3 text-center">
-              <p class="text-xl font-bold">{count_lines(@api.source_code)}</p>
+              <p class="text-xl font-bold">{@source_lines}</p>
               <p class="text-[10px] text-muted-foreground">Source Lines</p>
             </div>
             <div class="rounded-lg border p-3 text-center">
-              <p class="text-xl font-bold">{count_lines(@api.test_code)}</p>
+              <p class="text-xl font-bold">{@test_lines}</p>
               <p class="text-[10px] text-muted-foreground">Test Lines</p>
             </div>
             <div class="rounded-lg border p-3 text-center">

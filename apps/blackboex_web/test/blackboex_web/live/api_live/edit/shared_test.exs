@@ -57,8 +57,7 @@ defmodule BlackboexWeb.ApiLive.Edit.SharedTest do
           slug: "other-api-#{System.unique_integer([:positive])}",
           template_type: "computation",
           organization_id: other_org.id,
-          user_id: other_user.id,
-          source_code: "def handle(_), do: :ok"
+          user_id: other_user.id
         })
 
       assert {:error, {:live_redirect, %{to: "/apis", flash: %{"error" => "API not found"}}}} =

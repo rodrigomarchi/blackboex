@@ -16,11 +16,10 @@ defmodule Blackboex.Apis.ApiVersion do
   @foreign_key_type :binary_id
   schema "api_versions" do
     field :version_number, :integer
-    field :code, :string
-    field :test_code, :string
+    field :file_snapshots, {:array, :map}, default: []
+    field :version_label, :string
     field :source, :string
     field :prompt, :string
-    field :llm_response, :string
     field :compilation_status, :string, default: "pending"
     field :compilation_errors, {:array, :string}, default: []
     field :diff_summary, :string
@@ -37,17 +36,16 @@ defmodule Blackboex.Apis.ApiVersion do
     |> cast(attrs, [
       :api_id,
       :version_number,
-      :code,
-      :test_code,
+      :file_snapshots,
+      :version_label,
       :source,
       :prompt,
-      :llm_response,
       :compilation_status,
       :compilation_errors,
       :diff_summary,
       :created_by_id
     ])
-    |> validate_required([:api_id, :version_number, :code, :source])
+    |> validate_required([:api_id, :version_number, :file_snapshots, :source])
     |> validate_inclusion(:source, @valid_sources)
     |> validate_inclusion(:compilation_status, @valid_compilation_statuses)
     |> unique_constraint([:api_id, :version_number])

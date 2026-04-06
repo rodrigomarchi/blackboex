@@ -19,27 +19,37 @@ defmodule Blackboex.CodeGen.EndToEndTest do
 
   describe "generate -> compile -> register -> query" do
     test "computation API end-to-end", %{org: org, user: user} do
-      # 1. Create API with valid code
+      source_code = """
+      def handle(params) do
+        a = Map.get(params, "a", 0)
+        b = Map.get(params, "b", 0)
+        %{result: a + b}
+      end
+      """
+
+      # 1. Create API and upload source file
       {:ok, api} =
         Apis.create_api(%{
           name: "Calculator",
           slug: "calculator",
           template_type: "computation",
           organization_id: org.id,
-          user_id: user.id,
-          source_code: """
-          def handle(params) do
-            a = Map.get(params, "a", 0)
-            b = Map.get(params, "b", 0)
-            %{result: a + b}
-          end
-          """
+          user_id: user.id
         })
+
+      Apis.upsert_files(api, [
+        %{path: "/src/handler.ex", content: source_code, file_type: "source"}
+      ])
 
       assert api.status == "draft"
 
       # 2. Compile
-      {:ok, module} = Compiler.compile(api, api.source_code)
+      {:ok, module} =
+        Compiler.compile(
+          api,
+          Apis.get_source_for_compilation(api.id) |> Enum.map_join("\n\n", & &1.content)
+        )
+
       assert function_exported?(module, :call, 2)
 
       # 3. Update status
@@ -68,23 +78,32 @@ defmodule Blackboex.CodeGen.EndToEndTest do
     end
 
     test "crud API end-to-end", %{org: org, user: user} do
+      crud_source = """
+      def handle_list(_params), do: %{items: ["item1", "item2"]}
+      def handle_get(id, _params), do: %{id: id, name: "Item"}
+      def handle_create(params), do: %{created: true, data: params}
+      def handle_update(id, params), do: %{id: id, updated: true, data: params}
+      def handle_delete(id), do: %{id: id, deleted: true}
+      """
+
       {:ok, api} =
         Apis.create_api(%{
           name: "Todo API",
           slug: "todos",
           template_type: "crud",
           organization_id: org.id,
-          user_id: user.id,
-          source_code: """
-          def handle_list(_params), do: %{items: ["item1", "item2"]}
-          def handle_get(id, _params), do: %{id: id, name: "Item"}
-          def handle_create(params), do: %{created: true, data: params}
-          def handle_update(id, params), do: %{id: id, updated: true, data: params}
-          def handle_delete(id), do: %{id: id, deleted: true}
-          """
+          user_id: user.id
         })
 
-      {:ok, module} = Compiler.compile(api, api.source_code)
+      Apis.upsert_files(api, [
+        %{path: "/src/handler.ex", content: crud_source, file_type: "source"}
+      ])
+
+      {:ok, module} =
+        Compiler.compile(
+          api,
+          Apis.get_source_for_compilation(api.id) |> Enum.map_join("\n\n", & &1.content)
+        )
 
       # GET /
       conn = Plug.Test.conn(:get, "/")

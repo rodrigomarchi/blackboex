@@ -21,9 +21,12 @@ defmodule BlackboexWeb.Components.QuickActionsTest do
           slug: "quick-action",
           template_type: "computation",
           organization_id: org.id,
-          user_id: user.id,
-          source_code: "def handle(params), do: params"
+          user_id: user.id
         })
+
+      Apis.upsert_files(api, [
+        %{path: "/src/handler.ex", content: "def handle(params), do: params", file_type: "source"}
+      ])
 
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
       open_chat(lv)
@@ -43,9 +46,16 @@ defmodule BlackboexWeb.Components.QuickActionsTest do
           slug: "crud-api",
           template_type: "crud",
           organization_id: org.id,
-          user_id: user.id,
-          source_code: "def handle_list(params), do: []"
+          user_id: user.id
         })
+
+      Apis.upsert_files(api, [
+        %{
+          path: "/src/handler.ex",
+          content: "def handle_list(params), do: []",
+          file_type: "source"
+        }
+      ])
 
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
       open_chat(lv)
@@ -66,9 +76,16 @@ defmodule BlackboexWeb.Components.QuickActionsTest do
           slug: "webhook-api",
           template_type: "webhook",
           organization_id: org.id,
-          user_id: user.id,
-          source_code: "def handle_webhook(payload), do: :ok"
+          user_id: user.id
         })
+
+      Apis.upsert_files(api, [
+        %{
+          path: "/src/handler.ex",
+          content: "def handle_webhook(payload), do: :ok",
+          file_type: "source"
+        }
+      ])
 
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
       open_chat(lv)

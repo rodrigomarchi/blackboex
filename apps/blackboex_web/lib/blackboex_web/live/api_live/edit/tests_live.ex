@@ -16,11 +16,18 @@ defmodule BlackboexWeb.ApiLive.Edit.TestsLive do
     case Shared.load_api(socket, params) do
       {:ok, socket} ->
         api = socket.assigns.api
+        files = Blackboex.Apis.list_files(api.id)
+
+        code =
+          files |> Enum.filter(&(&1.file_type == "source")) |> Enum.map_join("\n\n", & &1.content)
+
+        test_code =
+          files |> Enum.filter(&(&1.file_type == "test")) |> Enum.map_join("\n\n", & &1.content)
 
         socket =
           assign(socket,
-            code: api.source_code || "",
-            test_code: api.test_code || ""
+            code: code,
+            test_code: test_code
           )
 
         {:ok, socket}

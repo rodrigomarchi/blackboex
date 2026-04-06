@@ -23,10 +23,17 @@ defmodule BlackboexWeb.PublicApiControllerTest do
           status: "published",
           visibility: "public",
           requires_auth: false,
-          source_code: "def handle(params), do: %{ok: true}",
           organization_id: org.id,
           user_id: user.id
         })
+
+      Apis.upsert_files(api, [
+        %{
+          path: "/src/handler.ex",
+          content: "def handle(params), do: %{ok: true}",
+          file_type: "source"
+        }
+      ])
 
       conn = get(conn, ~p"/p/#{org.slug}/#{api.slug}")
       assert html_response(conn, 200) =~ "Public API"
@@ -98,10 +105,17 @@ defmodule BlackboexWeb.PublicApiControllerTest do
           status: "published",
           visibility: "public",
           requires_auth: true,
-          source_code: "def handle(params), do: %{ok: true}",
           organization_id: org.id,
           user_id: user.id
         })
+
+      Apis.upsert_files(api, [
+        %{
+          path: "/src/handler.ex",
+          content: "def handle(params), do: %{ok: true}",
+          file_type: "source"
+        }
+      ])
 
       conn = get(conn, ~p"/p/#{org.slug}/#{api.slug}")
       assert html_response(conn, 200) =~ "API Key required"

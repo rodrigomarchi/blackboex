@@ -192,7 +192,7 @@ defmodule Blackboex.Apis.Registry do
     module_name = Compiler.module_name_for(api)
 
     # If module is already loaded, just register it.
-    # Otherwise, recompile from source_code (modules are lost on restart).
+    # Otherwise, recompile from source files (modules are lost on restart).
     loaded = Code.ensure_loaded?(module_name)
 
     result =
@@ -218,11 +218,18 @@ defmodule Blackboex.Apis.Registry do
     end
   end
 
-  defp recompile_api(%{source_code: nil}), do: {:error, :no_source_code}
-
   defp recompile_api(api) do
+    alias Blackboex.Apis
     alias Blackboex.CodeGen.Compiler
-    Compiler.compile(api, api.source_code)
+
+    source_files = Apis.get_source_for_compilation(api.id)
+
+    if source_files == [] do
+      {:error, :no_source_code}
+    else
+      source_code = Enum.map_join(source_files, "\n\n", & &1.content)
+      Compiler.compile(api, source_code)
+    end
   end
 
   defp maybe_register_path(%{organization: %{slug: slug}} = api, _module_name) do

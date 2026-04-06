@@ -201,7 +201,9 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
     with %Organization{id: org_id} <- Repo.get_by(Organization, slug: org_slug),
          %Api{status: status} = api when status in ["compiled", "published"] <-
            Repo.get_by(Api, slug: api_slug, organization_id: org_id),
-         {:ok, module} <- Compiler.compile(api, api.source_code) do
+         source_files = Blackboex.Apis.list_source_files(api.id),
+         source_code = Enum.map_join(source_files, "\n\n", & &1.content),
+         {:ok, module} <- Compiler.compile(api, source_code) do
       metadata = %{
         requires_auth: api.requires_auth,
         visibility: api.visibility,

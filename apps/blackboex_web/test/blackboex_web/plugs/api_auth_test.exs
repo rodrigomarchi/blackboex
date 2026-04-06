@@ -17,11 +17,18 @@ defmodule BlackboexWeb.Plugs.ApiAuthTest do
       Apis.create_api(%{
         name: "Auth Test API",
         status: "published",
-        source_code: "def handle(params), do: %{ok: true}",
         organization_id: org.id,
         user_id: user.id,
         requires_auth: true
       })
+
+    Apis.upsert_files(api, [
+      %{
+        path: "/src/handler.ex",
+        content: "def handle(params), do: %{ok: true}",
+        file_type: "source"
+      }
+    ])
 
     {:ok, plain_key, _api_key} =
       Keys.create_key(api, %{label: "Test Key", organization_id: org.id})

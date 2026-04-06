@@ -20,8 +20,7 @@ defmodule Blackboex.CodeGen.CompilerTest do
       name: "Test API",
       slug: "test-api",
       template_type: "computation",
-      status: "draft",
-      source_code: @valid_handler
+      status: "draft"
     }
 
     struct(Api, Map.merge(defaults, attrs))

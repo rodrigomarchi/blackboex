@@ -22,8 +22,7 @@ defmodule Blackboex.Docs.DocGeneratorTest do
     requires_auth: true,
     param_schema: %{"number" => "integer"},
     example_request: %{"number" => 42},
-    example_response: %{"result" => 84},
-    source_code: "def handle(%{\"number\" => n}), do: %{result: n * 2}"
+    example_response: %{"result" => 84}
   }
 
   @valid_markdown """
@@ -153,8 +152,7 @@ defmodule Blackboex.Docs.DocGeneratorTest do
       api_nil_source = %Api{
         id: Ecto.UUID.generate(),
         name: "Test API",
-        template_type: "computation",
-        source_code: nil
+        template_type: "computation"
       }
 
       Blackboex.LLM.ClientMock
@@ -171,8 +169,7 @@ defmodule Blackboex.Docs.DocGeneratorTest do
       api_empty_source = %Api{
         id: Ecto.UUID.generate(),
         name: "Test API",
-        template_type: "computation",
-        source_code: ""
+        template_type: "computation"
       }
 
       Blackboex.LLM.ClientMock

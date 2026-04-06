@@ -21,8 +21,6 @@ defmodule Blackboex.Apis.Api do
     field :name, :string
     field :slug, :string
     field :description, :string
-    field :source_code, :string
-    field :test_code, :string
     field :template_type, :string, default: "computation"
     field :status, :string, default: "draft"
     field :method, :string, default: "POST"
@@ -39,6 +37,7 @@ defmodule Blackboex.Apis.Api do
     belongs_to :organization, Blackboex.Organizations.Organization
     belongs_to :user, Blackboex.Accounts.User, type: :id
 
+    has_many :files, Blackboex.Apis.ApiFile
     has_one :conversation, Blackboex.Conversations.Conversation
 
     timestamps()
@@ -51,8 +50,6 @@ defmodule Blackboex.Apis.Api do
       :name,
       :slug,
       :description,
-      :source_code,
-      :test_code,
       :template_type,
       :status,
       :method,

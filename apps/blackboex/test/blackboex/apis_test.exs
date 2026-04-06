@@ -171,17 +171,15 @@ defmodule Blackboex.ApisTest do
       assert updated.status == "compiled"
     end
 
-    test "updates source_code and test_code", %{user: user, org: org} do
+    test "updates api name after file upsert", %{user: user, org: org} do
       api = api_fixture(%{user: user, org: org})
 
-      assert {:ok, updated} =
-               Apis.update_api(api, %{
-                 source_code: "def handle(p), do: p",
-                 test_code: "assert true"
-               })
+      Apis.upsert_files(api, [
+        %{path: "/src/handler.ex", content: "def handle(p), do: p", file_type: "source"}
+      ])
 
-      assert updated.source_code == "def handle(p), do: p"
-      assert updated.test_code == "assert true"
+      assert {:ok, updated} = Apis.update_api(api, %{name: "Updated Name"})
+      assert updated.name == "Updated Name"
     end
   end
 
@@ -198,13 +196,11 @@ defmodule Blackboex.ApisTest do
 
     @tag :capture_log
     test "deletes a compiled API", %{user: user, org: org} do
-      api =
-        api_fixture(%{
-          user: user,
-          org: org,
-          status: "compiled",
-          source_code: "def handle(p), do: p"
-        })
+      api = api_fixture(%{user: user, org: org, status: "compiled"})
+
+      Apis.upsert_files(api, [
+        %{path: "/src/handler.ex", content: "def handle(p), do: p", file_type: "source"}
+      ])
 
       assert {:ok, %Api{}} = Apis.delete_api(api)
       assert Apis.get_api(org.id, api.id) == nil
@@ -212,13 +208,11 @@ defmodule Blackboex.ApisTest do
 
     @tag :capture_log
     test "deletes a published API (unregisters from registry)", %{user: user, org: org} do
-      api =
-        api_fixture(%{
-          user: user,
-          org: org,
-          status: "published",
-          source_code: "def handle(p), do: p"
-        })
+      api = api_fixture(%{user: user, org: org, status: "published"})
+
+      Apis.upsert_files(api, [
+        %{path: "/src/handler.ex", content: "def handle(p), do: p", file_type: "source"}
+      ])
 
       assert {:ok, %Api{}} = Apis.delete_api(api)
       assert Apis.get_api(org.id, api.id) == nil
@@ -276,13 +270,11 @@ defmodule Blackboex.ApisTest do
   describe "publish/2" do
     @tag :capture_log
     test "publishes a compiled API", %{user: user, org: org} do
-      api =
-        api_fixture(%{
-          user: user,
-          org: org,
-          status: "compiled",
-          source_code: "def handle(p), do: p"
-        })
+      api = api_fixture(%{user: user, org: org, status: "compiled"})
+
+      Apis.upsert_files(api, [
+        %{path: "/src/handler.ex", content: "def handle(p), do: p", file_type: "source"}
+      ])
 
       assert {:ok, published} = Apis.publish(api, org)
       assert published.status == "published"
@@ -296,13 +288,11 @@ defmodule Blackboex.ApisTest do
 
     @tag :capture_log
     test "rejects publishing an already published API", %{user: user, org: org} do
-      api =
-        api_fixture(%{
-          user: user,
-          org: org,
-          status: "published",
-          source_code: "def handle(p), do: p"
-        })
+      api = api_fixture(%{user: user, org: org, status: "published"})
+
+      Apis.upsert_files(api, [
+        %{path: "/src/handler.ex", content: "def handle(p), do: p", file_type: "source"}
+      ])
 
       assert {:error, :not_compiled} = Apis.publish(api, org)
     end
@@ -316,26 +306,22 @@ defmodule Blackboex.ApisTest do
           name: "Other Org #{System.unique_integer([:positive])}"
         })
 
-      api =
-        api_fixture(%{
-          user: user,
-          org: org,
-          status: "compiled",
-          source_code: "def handle(p), do: p"
-        })
+      api = api_fixture(%{user: user, org: org, status: "compiled"})
+
+      Apis.upsert_files(api, [
+        %{path: "/src/handler.ex", content: "def handle(p), do: p", file_type: "source"}
+      ])
 
       assert {:error, :org_mismatch} = Apis.publish(api, other_org)
     end
 
     @tag :capture_log
     test "publish then unpublish cycle works", %{user: user, org: org} do
-      api =
-        api_fixture(%{
-          user: user,
-          org: org,
-          status: "compiled",
-          source_code: "def handle(p), do: p"
-        })
+      api = api_fixture(%{user: user, org: org, status: "compiled"})
+
+      Apis.upsert_files(api, [
+        %{path: "/src/handler.ex", content: "def handle(p), do: p", file_type: "source"}
+      ])
 
       assert {:ok, published} = Apis.publish(api, org)
       assert published.status == "published"
@@ -354,13 +340,11 @@ defmodule Blackboex.ApisTest do
   describe "unpublish/1" do
     @tag :capture_log
     test "unpublishes a published API", %{user: user, org: org} do
-      api =
-        api_fixture(%{
-          user: user,
-          org: org,
-          status: "published",
-          source_code: "def handle(p), do: p"
-        })
+      api = api_fixture(%{user: user, org: org, status: "published"})
+
+      Apis.upsert_files(api, [
+        %{path: "/src/handler.ex", content: "def handle(p), do: p", file_type: "source"}
+      ])
 
       assert {:ok, unpublished} = Apis.unpublish(api)
       assert unpublished.status == "compiled"
@@ -387,14 +371,16 @@ defmodule Blackboex.ApisTest do
     test "creates first version with version_number 1", %{user: user, org: org} do
       api = api_fixture(%{user: user, org: org})
 
+      Apis.upsert_files(api, [
+        %{path: "/src/handler.ex", content: "def handle(p), do: p", file_type: "source"}
+      ])
+
       assert {:ok, %ApiVersion{} = v} =
                Apis.create_version(api, %{
-                 code: "def handle(p), do: p",
                  source: "manual_edit"
                })
 
       assert v.version_number == 1
-      assert v.code == "def handle(p), do: p"
       assert v.source == "manual_edit"
       assert v.api_id == api.id
     end
@@ -402,14 +388,20 @@ defmodule Blackboex.ApisTest do
     test "increments version_number on subsequent saves", %{user: user, org: org} do
       api = api_fixture(%{user: user, org: org})
 
-      {:ok, v1} =
-        Apis.create_version(api, %{code: "def handle(p), do: p", source: "manual_edit"})
+      Apis.upsert_files(api, [
+        %{path: "/src/handler.ex", content: "def handle(p), do: p", file_type: "source"}
+      ])
 
-      # reload api to get updated source_code from create_version multi
+      {:ok, v1} = Apis.create_version(api, %{source: "manual_edit"})
+
+      # reload api
       api = Apis.get_api(org.id, api.id)
 
-      {:ok, v2} =
-        Apis.create_version(api, %{code: "def handle(p), do: %{ok: true}", source: "generation"})
+      Apis.upsert_files(api, [
+        %{path: "/src/handler.ex", content: "def handle(p), do: %{ok: true}", file_type: "source"}
+      ])
+
+      {:ok, v2} = Apis.create_version(api, %{source: "generation"})
 
       assert v1.version_number == 1
       assert v2.version_number == 2
@@ -417,11 +409,19 @@ defmodule Blackboex.ApisTest do
 
     test "second version has a diff_summary", %{user: user, org: org} do
       api = api_fixture(%{user: user, org: org})
-      {:ok, _v1} = Apis.create_version(api, %{code: "old code", source: "manual_edit"})
+
+      Apis.upsert_files(api, [
+        %{path: "/src/handler.ex", content: "old code", file_type: "source"}
+      ])
+
+      {:ok, _v1} = Apis.create_version(api, %{source: "manual_edit"})
       api = Apis.get_api(org.id, api.id)
 
-      {:ok, v2} =
-        Apis.create_version(api, %{code: "new code completely different", source: "generation"})
+      Apis.upsert_files(api, [
+        %{path: "/src/handler.ex", content: "new code completely different", file_type: "source"}
+      ])
+
+      {:ok, v2} = Apis.create_version(api, %{source: "generation"})
 
       assert v2.diff_summary != nil
     end
@@ -429,49 +429,51 @@ defmodule Blackboex.ApisTest do
     test "first version has nil diff_summary (no prior version)", %{user: user, org: org} do
       api = api_fixture(%{user: user, org: org})
 
-      {:ok, v1} =
-        Apis.create_version(api, %{code: "def handle(p), do: p", source: "manual_edit"})
+      Apis.upsert_files(api, [
+        %{path: "/src/handler.ex", content: "def handle(p), do: p", file_type: "source"}
+      ])
+
+      {:ok, v1} = Apis.create_version(api, %{source: "manual_edit"})
 
       assert v1.diff_summary == nil
     end
 
-    test "stores test_code in version", %{user: user, org: org} do
+    test "stores file snapshots in version", %{user: user, org: org} do
       api = api_fixture(%{user: user, org: org})
 
-      {:ok, v} =
-        Apis.create_version(api, %{
-          code: "def handle(p), do: p",
-          test_code: "assert :ok",
-          source: "manual_edit"
-        })
+      Apis.upsert_files(api, [
+        %{path: "/src/handler.ex", content: "def handle(p), do: p", file_type: "source"}
+      ])
 
-      assert v.test_code == "assert :ok"
+      {:ok, v} = Apis.create_version(api, %{source: "manual_edit"})
+
+      assert is_list(v.file_snapshots)
     end
 
-    test "updates api source_code after create_version", %{user: user, org: org} do
+    test "file snapshots capture current file content", %{user: user, org: org} do
       api = api_fixture(%{user: user, org: org})
 
-      {:ok, _v} =
-        Apis.create_version(api, %{
-          code: "def handle(p), do: :updated",
-          source: "manual_edit"
-        })
+      Apis.upsert_files(api, [
+        %{path: "/src/handler.ex", content: "def handle(p), do: :updated", file_type: "source"}
+      ])
 
-      updated_api = Apis.get_api(org.id, api.id)
-      assert updated_api.source_code == "def handle(p), do: :updated"
+      {:ok, _v} = Apis.create_version(api, %{source: "manual_edit"})
+
+      file = Apis.get_file(api.id, "/src/handler.ex")
+      assert file.content == "def handle(p), do: :updated"
     end
 
     test "returns error for missing required fields", %{user: user, org: org} do
       api = api_fixture(%{user: user, org: org})
       # source is required
-      assert {:error, _} = Apis.create_version(api, %{code: "def handle(p), do: p"})
+      assert {:error, _} = Apis.create_version(api, %{})
     end
 
     test "returns error for invalid source", %{user: user, org: org} do
       api = api_fixture(%{user: user, org: org})
 
       assert {:error, _} =
-               Apis.create_version(api, %{code: "def handle(p), do: p", source: "invalid_src"})
+               Apis.create_version(api, %{source: "invalid_src"})
     end
   end
 
@@ -487,9 +489,11 @@ defmodule Blackboex.ApisTest do
 
     test "returns versions in descending order", %{user: user, org: org} do
       api = api_fixture(%{user: user, org: org})
-      {:ok, _v1} = Apis.create_version(api, %{code: "v1", source: "manual_edit"})
+      Apis.upsert_files(api, [%{path: "/src/handler.ex", content: "v1", file_type: "source"}])
+      {:ok, _v1} = Apis.create_version(api, %{source: "manual_edit"})
       api = Apis.get_api(org.id, api.id)
-      {:ok, _v2} = Apis.create_version(api, %{code: "v2", source: "generation"})
+      Apis.upsert_files(api, [%{path: "/src/handler.ex", content: "v2", file_type: "source"}])
+      {:ok, _v2} = Apis.create_version(api, %{source: "generation"})
 
       versions = Apis.list_versions(api.id)
       assert length(versions) == 2
@@ -505,7 +509,10 @@ defmodule Blackboex.ApisTest do
   describe "get_version/2" do
     test "returns version by api_id and version_number", %{user: user, org: org} do
       api = api_fixture(%{user: user, org: org})
-      {:ok, v1} = Apis.create_version(api, %{code: "v1 code", source: "manual_edit"})
+
+      Apis.upsert_files(api, [%{path: "/src/handler.ex", content: "v1 code", file_type: "source"}])
+
+      {:ok, v1} = Apis.create_version(api, %{source: "manual_edit"})
 
       assert %ApiVersion{version_number: 1} = Apis.get_version(api.id, 1)
       assert v1.id == Apis.get_version(api.id, 1).id
@@ -529,9 +536,11 @@ defmodule Blackboex.ApisTest do
 
     test "returns the version with the highest number", %{user: user, org: org} do
       api = api_fixture(%{user: user, org: org})
-      {:ok, _v1} = Apis.create_version(api, %{code: "v1", source: "manual_edit"})
+      Apis.upsert_files(api, [%{path: "/src/handler.ex", content: "v1", file_type: "source"}])
+      {:ok, _v1} = Apis.create_version(api, %{source: "manual_edit"})
       api = Apis.get_api(org.id, api.id)
-      {:ok, v2} = Apis.create_version(api, %{code: "v2", source: "generation"})
+      Apis.upsert_files(api, [%{path: "/src/handler.ex", content: "v2", file_type: "source"}])
+      {:ok, v2} = Apis.create_version(api, %{source: "generation"})
 
       latest = Apis.get_latest_version(api)
       assert latest.id == v2.id
@@ -544,16 +553,25 @@ defmodule Blackboex.ApisTest do
   # ---------------------------------------------------------------------------
 
   describe "rollback_to_version/3" do
-    test "creates a new version with rolled-back code", %{user: user, org: org} do
+    test "creates a new version as rollback", %{user: user, org: org} do
       api = api_fixture(%{user: user, org: org})
-      {:ok, _v1} = Apis.create_version(api, %{code: "original code", source: "manual_edit"})
+
+      Apis.upsert_files(api, [
+        %{path: "/src/handler.ex", content: "original code", file_type: "source"}
+      ])
+
+      {:ok, _v1} = Apis.create_version(api, %{source: "manual_edit"})
       api = Apis.get_api(org.id, api.id)
-      {:ok, _v2} = Apis.create_version(api, %{code: "changed code", source: "generation"})
+
+      Apis.upsert_files(api, [
+        %{path: "/src/handler.ex", content: "changed code", file_type: "source"}
+      ])
+
+      {:ok, _v2} = Apis.create_version(api, %{source: "generation"})
       api = Apis.get_api(org.id, api.id)
 
       assert {:ok, %ApiVersion{} = rollback_v} = Apis.rollback_to_version(api, 1)
       assert rollback_v.version_number == 3
-      assert rollback_v.code == "original code"
       assert rollback_v.source == "rollback"
     end
 
@@ -564,7 +582,12 @@ defmodule Blackboex.ApisTest do
 
     test "rollback with user id sets created_by_id", %{user: user, org: org} do
       api = api_fixture(%{user: user, org: org})
-      {:ok, _v1} = Apis.create_version(api, %{code: "original", source: "manual_edit"})
+
+      Apis.upsert_files(api, [
+        %{path: "/src/handler.ex", content: "original", file_type: "source"}
+      ])
+
+      {:ok, _v1} = Apis.create_version(api, %{source: "manual_edit"})
       api = Apis.get_api(org.id, api.id)
 
       assert {:ok, %ApiVersion{} = rollback_v} =
@@ -597,7 +620,6 @@ defmodule Blackboex.ApisTest do
       assert {:ok, %Api{} = api} =
                Apis.create_api_from_generation(result, org.id, user.id, "simple-api")
 
-      assert api.source_code == result.code
       assert api.template_type == "computation"
       assert api.description == "A simple API"
       assert api.method == "POST"

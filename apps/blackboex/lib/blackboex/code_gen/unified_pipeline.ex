@@ -459,7 +459,6 @@ defmodule Blackboex.CodeGen.UnifiedPipeline do
       name: "API",
       slug: "api",
       description: "",
-      source_code: code,
       template_type: to_string(ctx.template_type),
       method: "POST",
       requires_auth: true,
@@ -468,9 +467,8 @@ defmodule Blackboex.CodeGen.UnifiedPipeline do
     }
 
     opts =
-      if ctx[:doc_token_callback],
-        do: [token_callback: ctx.doc_token_callback],
-        else: []
+      [source_code: code] ++
+        if(ctx[:doc_token_callback], do: [token_callback: ctx.doc_token_callback], else: [])
 
     case DocGenerator.generate(api, opts) do
       {:ok, %{doc: doc}} -> doc

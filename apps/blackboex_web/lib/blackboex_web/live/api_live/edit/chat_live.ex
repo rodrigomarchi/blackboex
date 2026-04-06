@@ -27,6 +27,15 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
 
         {agent_events, current_run} = load_conversation_events(agent_conversation)
 
+        api = socket.assigns.api
+        files = Apis.list_files(api.id)
+
+        source_content =
+          files |> Enum.filter(&(&1.file_type == "source")) |> Enum.map_join("\n\n", & &1.content)
+
+        test_content =
+          files |> Enum.filter(&(&1.file_type == "test")) |> Enum.map_join("\n\n", & &1.content)
+
         socket =
           assign(socket,
             chat_input: "",
@@ -39,8 +48,9 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
             current_run: current_run,
             agent_events: agent_events,
             agent_conversation: agent_conversation,
-            code: socket.assigns.api.source_code || "",
-            test_code: socket.assigns.api.test_code || ""
+            code: source_content,
+            test_code: test_content,
+            files: files
           )
 
         {:ok, socket}
@@ -484,12 +494,12 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
   defp agent_tool_to_status("submit_code"), do: :submitting
   defp agent_tool_to_status(_), do: :processing
 
-  defp handle_agent_code_completed(socket, code, test_code, summary, api) do
+  defp handle_agent_code_completed(socket, code, test_code, summary, _api) do
     assistant_msg = %{"role" => "assistant", "content" => summary || "Code updated successfully"}
     completion_event = %{type: :message, role: "assistant", content: assistant_msg["content"]}
     socket = assign(socket, agent_events: socket.assigns.agent_events ++ [completion_event])
 
-    has_previous_code = (api.source_code || "") != ""
+    has_previous_code = socket.assigns.code != ""
 
     if has_previous_code do
       code_diff = DiffEngine.compute_diff(socket.assigns.code, code)

@@ -14,7 +14,8 @@ defmodule Blackboex.Docs.DocGenerator do
   @spec generate(Api.t(), keyword()) :: {:ok, %{doc: String.t(), usage: map()}} | {:error, term()}
   def generate(%Api{} = api, opts \\ []) do
     openapi_spec = OpenApiGenerator.generate(api, opts)
-    prompt = DocPrompts.build_doc_prompt(api, openapi_spec)
+    source_code = Keyword.get(opts, :source_code)
+    prompt = DocPrompts.build_doc_prompt(api, openapi_spec, source_code)
     system = DocPrompts.system_prompt()
     client = Keyword.get_lazy(opts, :client, &Config.client/0)
     token_callback = Keyword.get(opts, :token_callback)

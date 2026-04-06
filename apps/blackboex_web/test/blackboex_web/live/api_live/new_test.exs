@@ -3,12 +3,14 @@ defmodule BlackboexWeb.ApiLive.NewTest do
 
   import Phoenix.LiveViewTest
 
+  alias BlackboexWeb.ApiLive.New
+
   @moduletag :liveview
 
   describe "render" do
     test "renders an empty div" do
       assigns = %{__changed__: nil}
-      html = Phoenix.LiveViewTest.render_component(&BlackboexWeb.ApiLive.New.render/1, assigns)
+      html = Phoenix.LiveViewTest.render_component(&New.render/1, assigns)
       assert html =~ "<div"
     end
   end

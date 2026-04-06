@@ -237,14 +237,12 @@ defmodule Blackboex.Apis do
       {:ok, published_api} ->
         register_published_api(published_api, org)
 
-        Task.Supervisor.start_child(Blackboex.LoggingSupervisor, fn ->
-          Audit.log("api.published", %{
-            resource_type: "api",
-            resource_id: published_api.id,
-            user_id: published_api.user_id,
-            organization_id: org.id
-          })
-        end)
+        Audit.log_async("api.published", %{
+          resource_type: "api",
+          resource_id: published_api.id,
+          user_id: published_api.user_id,
+          organization_id: org.id
+        })
 
         {:ok, published_api}
 
@@ -265,14 +263,12 @@ defmodule Blackboex.Apis do
         module_name = Compiler.module_name_for(api)
         Compiler.unload(module_name)
 
-        Task.Supervisor.start_child(Blackboex.LoggingSupervisor, fn ->
-          Audit.log("api.unpublished", %{
-            resource_type: "api",
-            resource_id: api.id,
-            user_id: api.user_id,
-            organization_id: api.organization_id
-          })
-        end)
+        Audit.log_async("api.unpublished", %{
+          resource_type: "api",
+          resource_id: api.id,
+          user_id: api.user_id,
+          organization_id: api.organization_id
+        })
 
         {:ok, updated_api}
 

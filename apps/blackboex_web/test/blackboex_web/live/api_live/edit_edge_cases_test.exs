@@ -8,6 +8,9 @@ defmodule BlackboexWeb.ApiLive.EditEdgeCasesTest do
 
   alias Blackboex.Apis
   alias Blackboex.Apis.Registry
+  alias Blackboex.CodeGen.Compiler
+  alias Blackboex.LLM.ClientMock
+  alias Blackboex.Organizations
 
   setup :verify_on_exit!
   setup :register_and_log_in_user
@@ -16,7 +19,7 @@ defmodule BlackboexWeb.ApiLive.EditEdgeCasesTest do
     Registry.clear()
 
     {:ok, %{organization: org}} =
-      Blackboex.Organizations.create_organization(user, %{
+      Organizations.create_organization(user, %{
         name: "Edge Org #{System.unique_integer([:positive])}",
         slug: "edgeorg-#{System.unique_integer([:positive])}"
       })
@@ -39,7 +42,7 @@ defmodule BlackboexWeb.ApiLive.EditEdgeCasesTest do
   end
 
   defp stub_llm_mocks do
-    Blackboex.LLM.ClientMock
+    ClientMock
     |> stub(:stream_text, fn _prompt, _opts -> {:ok, [{:token, "ok"}]} end)
     |> stub(:generate_text, fn _prompt, _opts ->
       {:ok, %{content: "# Docs", usage: %{input_tokens: 10, output_tokens: 10}}}
@@ -228,7 +231,7 @@ defmodule BlackboexWeb.ApiLive.EditEdgeCasesTest do
     test "save_publish_settings updates API settings", %{conn: conn, org: org, api: api} do
       # Compile first so publish tab shows settings
       code = "def handle(_), do: %{ok: true}"
-      {:ok, module} = Blackboex.CodeGen.Compiler.compile(api, code)
+      {:ok, module} = Compiler.compile(api, code)
       {:ok, _api} = Apis.update_api(api, %{status: "compiled", source_code: code})
 
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/publish?org=#{org.id}")
@@ -245,7 +248,7 @@ defmodule BlackboexWeb.ApiLive.EditEdgeCasesTest do
       updated = Apis.get_api(org.id, api.id)
       assert updated.requires_auth == true
 
-      on_exit(fn -> Blackboex.CodeGen.Compiler.unload(module) end)
+      on_exit(fn -> Compiler.unload(module) end)
     end
   end
 

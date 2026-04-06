@@ -351,7 +351,10 @@ defmodule BlackboexWeb.ApiLive.AgentChatTest do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
 
       render_click(lv, "quick_action", %{"text" => "Optimize performance"})
-      lv |> form("form[phx-submit=send_chat]", %{chat_input: "Optimize performance"}) |> render_submit()
+
+      lv
+      |> form("form[phx-submit=send_chat]", %{chat_input: "Optimize performance"})
+      |> render_submit()
 
       html = render(lv)
       assert html =~ "Thinking..."
@@ -480,7 +483,11 @@ defmodule BlackboexWeb.ApiLive.AgentChatTest do
 
       run_id = start_agent_run(lv)
 
-      send(lv.pid, {:agent_action, %{tool: "compile_code", args: %{"code" => "def foo, do: :bar"}, run_id: run_id}})
+      send(
+        lv.pid,
+        {:agent_action,
+         %{tool: "compile_code", args: %{"code" => "def foo, do: :bar"}, run_id: run_id}}
+      )
 
       html = render(lv)
       assert html =~ "Compile"
@@ -593,7 +600,12 @@ defmodule BlackboexWeb.ApiLive.AgentChatTest do
 
       send(lv.pid, {
         :tool_result,
-        %{tool: "format_code", success: true, content: "def handle(p), do: :formatted", run_id: run_id}
+        %{
+          tool: "format_code",
+          success: true,
+          content: "def handle(p), do: :formatted",
+          run_id: run_id
+        }
       })
 
       assert render(lv) =~ "Calculator"
@@ -607,7 +619,12 @@ defmodule BlackboexWeb.ApiLive.AgentChatTest do
 
       send(lv.pid, {
         :tool_result,
-        %{tool: "generate_tests", success: true, content: "defmodule MyTest do\nend", run_id: run_id}
+        %{
+          tool: "generate_tests",
+          success: true,
+          content: "defmodule MyTest do\nend",
+          run_id: run_id
+        }
       })
 
       assert render(lv) =~ "Calculator"
@@ -735,7 +752,9 @@ defmodule BlackboexWeb.ApiLive.AgentChatTest do
       # by making the api_id reference invalid (delete api from DB)
       Blackboex.Repo.delete!(api)
 
-      lv |> form("form[phx-submit=send_chat]", %{chat_input: "Trigger failure"}) |> render_submit()
+      lv
+      |> form("form[phx-submit=send_chat]", %{chat_input: "Trigger failure"})
+      |> render_submit()
 
       html = render(lv)
       # Either the chat started or it shows a failure flash — either is valid

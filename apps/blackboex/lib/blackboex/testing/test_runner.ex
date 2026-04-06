@@ -68,11 +68,17 @@ defmodule Blackboex.Testing.TestRunner do
   end
 
   defp run_in_process(test_code, handler_code) do
-    # Compile handler code into a Handler module so tests can call Handler.handle/1
-    handler_modules = compile_handler_module(handler_code)
+    # Compile handler code into a uniquely-named module to avoid conflicts
+    # when multiple tests run in parallel. Replace references in test_code.
+    unique_id = System.unique_integer([:positive])
+    handler_modules = compile_handler_module(handler_code, unique_id)
 
     # Prevent auto-registration with ExUnit
-    safe_code = deregister_exunit(test_code)
+    safe_code =
+      test_code
+      |> String.replace("Handler.", "Handler_#{unique_id}.")
+      |> String.replace("defmodule HandlerTest", "defmodule HandlerTest_#{unique_id}")
+      |> deregister_exunit()
 
     compiled_modules = Code.compile_string(safe_code)
     module_names = Enum.map(compiled_modules, fn {mod, _binary} -> mod end)
@@ -100,11 +106,11 @@ defmodule Blackboex.Testing.TestRunner do
       {:error, :compile_error, truncate_message(Exception.message(e))}
   end
 
-  defp compile_handler_module(nil), do: []
+  defp compile_handler_module(nil, _unique_id), do: []
 
-  defp compile_handler_module(handler_code) do
+  defp compile_handler_module(handler_code, unique_id) do
     module_code = """
-    defmodule Handler do
+    defmodule Handler_#{unique_id} do
       #{handler_code}
     end
     """

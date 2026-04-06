@@ -198,7 +198,13 @@ defmodule Blackboex.Apis.DiffEngineTest do
     test "fuzzy matches when trailing whitespace differs" do
       # Code has trailing spaces, search doesn't
       code = "def handle(params) do  \n  params  \nend"
-      blocks = [%{search: "def handle(params) do\n  params\nend", replace: "def handle(params) do\n  :ok\nend"}]
+
+      blocks = [
+        %{
+          search: "def handle(params) do\n  params\nend",
+          replace: "def handle(params) do\n  :ok\nend"
+        }
+      ]
 
       assert {:ok, result} = DiffEngine.apply_search_replace(code, blocks)
       assert result =~ ":ok"
@@ -206,7 +212,10 @@ defmodule Blackboex.Apis.DiffEngineTest do
 
     test "handles search text with special regex characters" do
       code = "result = %{key: value, nested: %{a: 1}}"
-      blocks = [%{search: "%{key: value, nested: %{a: 1}}", replace: "%{key: value, nested: %{a: 2}}"}]
+
+      blocks = [
+        %{search: "%{key: value, nested: %{a: 1}}", replace: "%{key: value, nested: %{a: 2}}"}
+      ]
 
       assert {:ok, result} = DiffEngine.apply_search_replace(code, blocks)
       assert result =~ "%{a: 2}"
@@ -224,7 +233,8 @@ defmodule Blackboex.Apis.DiffEngineTest do
       blocks = [
         %{
           search: "  name = Map.get(params, \"name\")\n  age = Map.get(params, \"age\")",
-          replace: "  name = Map.get(params, \"name\", \"unknown\")\n  age = Map.get(params, \"age\", 0)"
+          replace:
+            "  name = Map.get(params, \"name\", \"unknown\")\n  age = Map.get(params, \"age\", 0)"
         }
       ]
 
@@ -255,7 +265,13 @@ defmodule Blackboex.Apis.DiffEngineTest do
 
     test "fuzzy match handles mixed indentation (tabs vs spaces)" do
       code = "def handle(params) do\n\tparams\nend"
-      blocks = [%{search: "def handle(params) do\n  params\nend", replace: "def handle(params) do\n  :ok\nend"}]
+
+      blocks = [
+        %{
+          search: "def handle(params) do\n  params\nend",
+          replace: "def handle(params) do\n  :ok\nend"
+        }
+      ]
 
       # Tabs vs spaces — normalize_ws only trims trailing, not leading
       # This should NOT match fuzzy either since the difference is leading whitespace

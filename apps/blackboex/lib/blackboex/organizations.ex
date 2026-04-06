@@ -56,14 +56,12 @@ defmodule Blackboex.Organizations do
          })
          |> Repo.insert() do
       {:ok, membership} ->
-        Task.Supervisor.start_child(Blackboex.LoggingSupervisor, fn ->
-          Audit.log("member.added", %{
-            resource_type: "membership",
-            resource_id: membership.id,
-            organization_id: org.id,
-            user_id: user.id
-          })
-        end)
+        Audit.log_async("member.added", %{
+          resource_type: "membership",
+          resource_id: membership.id,
+          organization_id: org.id,
+          user_id: user.id
+        })
 
         {:ok, membership}
 

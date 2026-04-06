@@ -120,7 +120,8 @@ defmodule Blackboex.CodeGen.UnifiedPromptsTest do
     end
 
     test "handles empty test code" do
-      prompt = UnifiedPrompts.build_fix_test_prompt("", ["compile error"], "def handle(_), do: :ok")
+      prompt =
+        UnifiedPrompts.build_fix_test_prompt("", ["compile error"], "def handle(_), do: :ok")
 
       assert prompt =~ "```elixir\n\n```"
     end

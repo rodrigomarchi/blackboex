@@ -3,13 +3,11 @@ defmodule BlackboexWeb.ApiLive.EditTest do
 
   @moduletag :liveview
 
-  import Mox
   import Phoenix.LiveViewTest
 
   alias Blackboex.Apis
   alias Blackboex.Apis.Registry
 
-  setup :verify_on_exit!
   setup :register_and_log_in_user
 
   setup %{user: user} do
@@ -35,27 +33,6 @@ defmodule BlackboexWeb.ApiLive.EditTest do
       })
 
     %{org: org, api: api}
-  end
-
-  defp stub_pipeline_mocks do
-    Blackboex.LLM.ClientMock
-    |> stub(:stream_text, fn _prompt, _opts -> {:ok, [{:token, "no fix needed"}]} end)
-    |> stub(:generate_text, fn _prompt, _opts ->
-      {:ok,
-       %{
-         content:
-           "```elixir\ndefmodule Test do\n  use ExUnit.Case\n  test \"ok\" do\n    assert true\n  end\nend\n```",
-         usage: %{input_tokens: 50, output_tokens: 50}
-       }}
-    end)
-  end
-
-  # Helper to wait for the async validation pipeline to complete
-  defp wait_for_pipeline(lv) do
-    # Give the Task time to complete
-    Process.sleep(800)
-    # Trigger re-render to process pending messages
-    render(lv)
   end
 
   describe "mount" do

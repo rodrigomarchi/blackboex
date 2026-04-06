@@ -58,7 +58,7 @@ defmodule Blackboex.Testing.TestGenerator do
   end
 
   defp validate_with_retry(_code, _system, _opts, attempt, _usage) when attempt >= @max_retries do
-    Logger.warning("Test generation failed after #{@max_retries} retry attempts")
+    Logger.debug("Test generation failed after #{@max_retries} retry attempts")
     {:error, :compile_error}
   end
 

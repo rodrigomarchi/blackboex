@@ -155,9 +155,9 @@ defmodule Blackboex.CodeGen.UnifiedPipelineTest do
       end)
 
       {:ok, %{test_code: result_test_code}} =
-        UnifiedPipeline.validate_on_save(@valid_handler_code, "some test code", :computation)
+        UnifiedPipeline.validate_on_save(@valid_handler_code, @valid_test_code, :computation)
 
-      assert result_test_code == "some test code"
+      assert result_test_code == @valid_test_code
     end
   end
 
@@ -413,7 +413,8 @@ defmodule Blackboex.CodeGen.UnifiedPipelineTest do
 
   describe "run_for_edit/5 happy path" do
     test "returns {:ok, result} when LLM returns valid SEARCH/REPLACE and code compiles" do
-      new_body = "def handle(params) do\n  %{status: 200, body: %{result: params, edited: true}}\nend"
+      new_body =
+        "def handle(params) do\n  %{status: 200, body: %{result: params, edited: true}}\nend"
 
       stub(Blackboex.LLM.ClientMock, :stream_text, fn _prompt, _opts ->
         response = search_replace_response(new_body)
@@ -696,12 +697,10 @@ defmodule Blackboex.CodeGen.UnifiedPipelineTest do
         count = :counters.get(call_count, 1)
         :counters.add(call_count, 1, 1)
 
-        cond do
-          count < 2 ->
-            {:ok, [{:token, mismatched_response}]}
-
-          true ->
-            {:ok, [{:token, fallback_response}]}
+        if count < 2 do
+          {:ok, [{:token, mismatched_response}]}
+        else
+          {:ok, [{:token, fallback_response}]}
         end
       end)
 

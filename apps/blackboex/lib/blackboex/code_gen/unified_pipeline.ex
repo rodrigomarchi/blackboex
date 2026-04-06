@@ -250,7 +250,7 @@ defmodule Blackboex.CodeGen.UnifiedPipeline do
   # ── Validation Loop ─────────────────────────────────────────────────────
 
   defp run_validation_loop(_ctx, attempt) when attempt >= @max_retries do
-    Logger.warning("Unified pipeline: max retries (#{@max_retries}) exceeded")
+    Logger.debug("Unified pipeline: max retries (#{@max_retries}) exceeded")
     {:error, :max_retries_exceeded}
   end
 

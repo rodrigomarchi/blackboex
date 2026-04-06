@@ -10,6 +10,7 @@ defmodule Blackboex.Agent.SessionTest do
   alias Blackboex.Agent.Session
   alias Blackboex.Apis
   alias Blackboex.Conversations
+  alias Blackboex.LLM.CircuitBreaker
   alias Blackboex.Organizations
 
   setup :set_mox_global
@@ -25,7 +26,7 @@ defmodule Blackboex.Agent.SessionTest do
 
   defp setup_test_data(_context) do
     # Always reset circuit breaker so prior tests don't affect this one
-    Blackboex.LLM.CircuitBreaker.reset(:anthropic)
+    CircuitBreaker.reset(:anthropic)
 
     user = user_fixture()
     [org] = Organizations.list_user_organizations(user)
@@ -282,10 +283,10 @@ defmodule Blackboex.Agent.SessionTest do
 
     test "marks run as failed with circuit breaker message", context do
       # Trip the circuit breaker by recording enough failures
-      for _ <- 1..5, do: Blackboex.LLM.CircuitBreaker.record_failure(:anthropic)
+      for _ <- 1..5, do: CircuitBreaker.record_failure(:anthropic)
 
       # Verify the circuit is now open
-      refute Blackboex.LLM.CircuitBreaker.allow?(:anthropic)
+      refute CircuitBreaker.allow?(:anthropic)
 
       Phoenix.PubSub.subscribe(Blackboex.PubSub, "run:#{context.run.id}")
 
@@ -301,7 +302,7 @@ defmodule Blackboex.Agent.SessionTest do
     end
 
     test "broadcasts :agent_failed when circuit is open", context do
-      for _ <- 1..5, do: Blackboex.LLM.CircuitBreaker.record_failure(:anthropic)
+      for _ <- 1..5, do: CircuitBreaker.record_failure(:anthropic)
 
       run_id = context.run.id
       Phoenix.PubSub.subscribe(Blackboex.PubSub, "run:#{run_id}")
@@ -315,7 +316,7 @@ defmodule Blackboex.Agent.SessionTest do
     end
 
     test "persists circuit breaker error event", context do
-      for _ <- 1..5, do: Blackboex.LLM.CircuitBreaker.record_failure(:anthropic)
+      for _ <- 1..5, do: CircuitBreaker.record_failure(:anthropic)
 
       {:ok, pid} = Session.start(build_session_opts(context))
       ref = Process.monitor(pid)
@@ -423,7 +424,12 @@ defmodule Blackboex.Agent.SessionTest do
       end)
 
       # Send result with partial: true
-      send(pid, {fake_ref, {:ok, %{code: "def handle(_), do: :ok", partial: true, summary: "Partial result", usage: %{}}}})
+      send(
+        pid,
+        {fake_ref,
+         {:ok,
+          %{code: "def handle(_), do: :ok", partial: true, summary: "Partial result", usage: %{}}}}
+      )
 
       assert_receive {:DOWN, ^ref, :process, ^pid, :normal}, 5_000
 
@@ -459,7 +465,17 @@ defmodule Blackboex.Agent.SessionTest do
       code = "def handle(params), do: %{status: 200, body: params}"
       test_code = "test \"it works\" do\n  assert true\nend"
 
-      send(pid, {fake_ref, {:ok, %{code: code, test_code: test_code, summary: "Generated calculator", usage: %{input_tokens: 100, output_tokens: 200}}}})
+      send(
+        pid,
+        {fake_ref,
+         {:ok,
+          %{
+            code: code,
+            test_code: test_code,
+            summary: "Generated calculator",
+            usage: %{input_tokens: 100, output_tokens: 200}
+          }}}
+      )
 
       assert_receive {:DOWN, ^ref, :process, ^pid, :normal}, 5_000
 
@@ -502,7 +518,13 @@ defmodule Blackboex.Agent.SessionTest do
 
       assert_receive {:DOWN, ^ref, :process, ^pid, :normal}, 5_000
 
-      assert_receive {:agent_completed, %{code: "def handle(_), do: :ok", summary: "Done", run_id: ^run_id, status: "completed"}}
+      assert_receive {:agent_completed,
+                      %{
+                        code: "def handle(_), do: :ok",
+                        summary: "Done",
+                        run_id: ^run_id,
+                        status: "completed"
+                      }}
     end
 
     test "success with nil usage defaults to zero tokens", context do
@@ -712,7 +734,8 @@ defmodule Blackboex.Agent.SessionTest do
           trigger_message: "Add input validation"
         })
 
-      {:ok, edit_run} = Conversations.update_run_metrics(edit_run, %{started_at: DateTime.utc_now()})
+      {:ok, edit_run} =
+        Conversations.update_run_metrics(edit_run, %{started_at: DateTime.utc_now()})
 
       opts =
         build_session_opts(context)
@@ -750,7 +773,11 @@ defmodule Blackboex.Agent.SessionTest do
           %{s | task_ref: fake_ref, timeout_timer: nil}
         end)
 
-        send(pid, {fake_ref, {:ok, %{code: "def handle(p), do: p", summary: "edited", usage: %{}}}})
+        send(
+          pid,
+          {fake_ref, {:ok, %{code: "def handle(p), do: p", summary: "edited", usage: %{}}}}
+        )
+
         assert_receive {:DOWN, ^ref, :process, ^pid, :normal}, 5_000
       else
         # Process already stopped — still verify the run type is correct
@@ -956,7 +983,7 @@ defmodule Blackboex.Agent.SessionTest do
       assert_receive {:DOWN, ^ref, :process, ^pid, :normal}, 5_000
 
       versions = Apis.list_versions(context.api.id)
-      assert length(versions) >= 1
+      assert versions != []
       latest = hd(versions)
       assert latest.code == new_code
       assert latest.source == "generation"
@@ -990,7 +1017,10 @@ defmodule Blackboex.Agent.SessionTest do
 
       new_code = "def handle(params), do: %{status: 200, body: params}"
 
-      send(pid, {fake_ref, {:ok, %{code: new_code, partial: true, summary: "Partial", usage: %{}}}})
+      send(
+        pid,
+        {fake_ref, {:ok, %{code: new_code, partial: true, summary: "Partial", usage: %{}}}}
+      )
 
       assert_receive {:DOWN, ^ref, :process, ^pid, :normal}, 5_000
 
@@ -1058,7 +1088,8 @@ defmodule Blackboex.Agent.SessionTest do
           trigger_message: "Improve validation"
         })
 
-      {:ok, edit_run} = Conversations.update_run_metrics(edit_run, %{started_at: DateTime.utc_now()})
+      {:ok, edit_run} =
+        Conversations.update_run_metrics(edit_run, %{started_at: DateTime.utc_now()})
 
       opts =
         build_session_opts(context)
@@ -1094,7 +1125,7 @@ defmodule Blackboex.Agent.SessionTest do
       end
 
       versions = Apis.list_versions(context.api.id)
-      assert length(versions) >= 1
+      assert versions != []
       latest = hd(versions)
       assert latest.source == "chat_edit"
     end
@@ -1389,6 +1420,7 @@ defmodule Blackboex.Agent.SessionTest do
       assert_receive {:DOWN, ^ref, :process, ^pid, :normal}, 5_000
 
       api = Apis.get_api(context.org.id, context.api.id)
+
       # When compilation succeeds, do_register_module calls Apis.update_api with status: "compiled"
       assert api.status in ["compiled", "draft"]
     end
@@ -1409,6 +1441,7 @@ defmodule Blackboex.Agent.SessionTest do
         "def handle(params), do: %{status: 200, body: params}",
         "test \"it works\" do\n  assert Handler.handle(%{}) == %{status: 200, body: %{}}\nend"
       ]
+
       agent_ref = :counters.new(1, [:atomics])
 
       stub(Blackboex.LLM.ClientMock, :stream_text, fn _prompt, _opts ->
@@ -1461,12 +1494,14 @@ defmodule Blackboex.Agent.SessionTest do
   describe "full pipeline run covering submitting/running_tests/generating_tests steps" do
     setup :setup_test_data
 
-    test "full pipeline success covers submitting, running_tests, generating_tests steps", context do
+    test "full pipeline success covers submitting, running_tests, generating_tests steps",
+         context do
       valid_code = """
       def handle(params) do
         %{status: 200, body: params}
       end
       """
+
       test_code = @passing_test_code
       doc_md = "# API Docs\nThis API handles requests."
 
@@ -1511,6 +1546,7 @@ defmodule Blackboex.Agent.SessionTest do
         %{status: 200, body: params}
       end
       """
+
       test_code = @passing_test_code
       doc_md = "# API Docs"
 
@@ -1640,7 +1676,8 @@ defmodule Blackboex.Agent.SessionTest do
       assert updated_run.status == "completed"
     end
 
-    test "register_and_extract_schema skips compilation when api has empty source_code", context do
+    test "register_and_extract_schema skips compilation when api has empty source_code",
+         context do
       test_pid = self()
 
       stub(Blackboex.LLM.ClientMock, :stream_text, fn _prompt, _opts ->

@@ -32,7 +32,7 @@ defmodule Blackboex.Docs.DocGenerator do
         {:ok, %{doc: String.trim(content), usage: Map.get(response, :usage, %{})}}
 
       {:error, reason} ->
-        Logger.warning("Doc generation failed: #{inspect(reason)}")
+        Logger.debug("Doc generation failed: #{inspect(reason)}")
         {:error, :generation_failed}
     end
   end
@@ -60,7 +60,7 @@ defmodule Blackboex.Docs.DocGenerator do
         {:ok, %{doc: String.trim(full), usage: %{}}}
 
       {:error, reason} ->
-        Logger.warning("Doc generation streaming failed: #{inspect(reason)}")
+        Logger.debug("Doc generation streaming failed: #{inspect(reason)}")
         {:error, :generation_failed}
     end
   end

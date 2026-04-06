@@ -15,7 +15,9 @@ defmodule Blackboex.Apis.DashboardQueriesTest do
     user = user_fixture()
 
     {:ok, %{organization: org}} =
-      Organizations.create_organization(user, %{name: "Dashboard Org #{System.unique_integer([:positive])}"})
+      Organizations.create_organization(user, %{
+        name: "Dashboard Org #{System.unique_integer([:positive])}"
+      })
 
     {:ok, api} =
       Apis.create_api(%{
@@ -79,7 +81,9 @@ defmodule Blackboex.Apis.DashboardQueriesTest do
     test "does not count invocations from other orgs", %{org: org, api: api} do
       # Create another org with invocations
       other_user = user_fixture()
-      {:ok, %{organization: other_org}} = Organizations.create_organization(other_user, %{name: "Other"})
+
+      {:ok, %{organization: other_org}} =
+        Organizations.create_organization(other_user, %{name: "Other"})
 
       {:ok, other_api} =
         Apis.create_api(%{
@@ -194,7 +198,7 @@ defmodule Blackboex.Apis.DashboardQueriesTest do
     test "handles empty search string", %{org: org} do
       results = DashboardQueries.search_apis(org.id, "")
       # Empty string returns all APIs (maybe_search passes through)
-      assert length(results) >= 1
+      assert results != []
     end
   end
 
@@ -380,17 +384,13 @@ defmodule Blackboex.Apis.DashboardQueriesTest do
 
   defp insert_metric_rollup(api_id, date, hour, attrs) do
     %MetricRollup{}
-    |> MetricRollup.changeset(
-      Map.merge(attrs, %{api_id: api_id, date: date, hour: hour})
-    )
+    |> MetricRollup.changeset(Map.merge(attrs, %{api_id: api_id, date: date, hour: hour}))
     |> Repo.insert!()
   end
 
   defp insert_daily_usage(org_id, date, attrs) do
     %DailyUsage{}
-    |> DailyUsage.changeset(
-      Map.merge(attrs, %{organization_id: org_id, date: date})
-    )
+    |> DailyUsage.changeset(Map.merge(attrs, %{organization_id: org_id, date: date}))
     |> Repo.insert!()
   end
 end

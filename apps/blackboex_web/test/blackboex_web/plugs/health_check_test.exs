@@ -2,6 +2,7 @@ defmodule BlackboexWeb.Plugs.HealthCheckTest do
   use BlackboexWeb.ConnCase, async: true
 
   @moduletag :unit
+  @moduletag :capture_log
 
   alias BlackboexWeb.Plugs.HealthCheck
 

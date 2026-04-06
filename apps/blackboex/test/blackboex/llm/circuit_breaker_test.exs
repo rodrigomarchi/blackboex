@@ -2,6 +2,7 @@ defmodule Blackboex.LLM.CircuitBreakerTest do
   use ExUnit.Case, async: false
 
   @moduletag :unit
+  @moduletag :capture_log
 
   alias Blackboex.LLM.CircuitBreaker
 

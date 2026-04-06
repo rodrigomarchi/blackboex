@@ -85,13 +85,11 @@ defmodule Blackboex.Billing do
     |> Repo.transaction()
     |> case do
       {:ok, %{subscription: sub}} ->
-        Task.Supervisor.start_child(Blackboex.LoggingSupervisor, fn ->
-          Audit.log("subscription.updated", %{
-            resource_type: "subscription",
-            resource_id: sub.id,
-            organization_id: org_id
-          })
-        end)
+        Audit.log_async("subscription.updated", %{
+          resource_type: "subscription",
+          resource_id: sub.id,
+          organization_id: org_id
+        })
 
         {:ok, sub}
 
@@ -123,7 +121,7 @@ defmodule Blackboex.Billing do
             })
 
           {:error, reason} ->
-            Logger.warning("Failed to sync subscription: #{inspect(reason)}")
+            Logger.debug("Failed to sync subscription: #{inspect(reason)}")
             {:error, reason}
         end
 

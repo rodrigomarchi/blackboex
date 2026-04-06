@@ -6,11 +6,15 @@ defmodule BlackboexWeb.ApiLive.AnalyticsTest do
   import Phoenix.LiveViewTest
 
   alias Blackboex.Apis
+  alias BlackboexWeb.ApiLive.Analytics
 
   describe "render" do
     test "renders an empty div" do
       assigns = %{__changed__: nil}
-      html = Phoenix.LiveViewTest.render_component(&BlackboexWeb.ApiLive.Analytics.render/1, assigns)
+
+      html =
+        Phoenix.LiveViewTest.render_component(&Analytics.render/1, assigns)
+
       assert html =~ "<div"
     end
   end

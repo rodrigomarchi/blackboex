@@ -37,7 +37,9 @@ defmodule Blackboex.LLM.ReqLLMClientTest do
   describe "default model" do
     test "uses configured default model" do
       # The default model should be configurable via application env
-      configured = Application.get_env(:blackboex, :llm_default_model, "anthropic:claude-sonnet-4-20250514")
+      configured =
+        Application.get_env(:blackboex, :llm_default_model, "anthropic:claude-sonnet-4-20250514")
+
       assert is_binary(configured)
       assert configured =~ "anthropic:"
     end

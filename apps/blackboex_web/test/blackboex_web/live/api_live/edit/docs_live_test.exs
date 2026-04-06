@@ -127,7 +127,13 @@ defmodule BlackboexWeb.ApiLive.Edit.DocsLiveTest do
         %{state | socket: %{state.socket | assigns: new_assigns}}
       end)
 
-      send(lv.pid, {ref, {:ok, %{doc: "# Generated\n\nDocs content.", usage: %{input_tokens: 10, output_tokens: 20}}}})
+      send(
+        lv.pid,
+        {ref,
+         {:ok,
+          %{doc: "# Generated\n\nDocs content.", usage: %{input_tokens: 10, output_tokens: 20}}}}
+      )
+
       Process.sleep(100)
       assert is_binary(render(lv))
     end

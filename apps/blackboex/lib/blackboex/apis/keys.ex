@@ -31,13 +31,11 @@ defmodule Blackboex.Apis.Keys do
          |> ApiKey.changeset(changeset_attrs)
          |> Repo.insert() do
       {:ok, api_key} ->
-        Task.Supervisor.start_child(Blackboex.LoggingSupervisor, fn ->
-          Audit.log("api_key.created", %{
-            resource_type: "api_key",
-            resource_id: api_key.id,
-            organization_id: api_key.organization_id
-          })
-        end)
+        Audit.log_async("api_key.created", %{
+          resource_type: "api_key",
+          resource_id: api_key.id,
+          organization_id: api_key.organization_id
+        })
 
         {:ok, plain_key, api_key}
 
@@ -112,13 +110,11 @@ defmodule Blackboex.Apis.Keys do
          |> ApiKey.changeset(%{revoked_at: DateTime.utc_now()})
          |> Repo.update() do
       {:ok, revoked_key} ->
-        Task.Supervisor.start_child(Blackboex.LoggingSupervisor, fn ->
-          Audit.log("api_key.revoked", %{
-            resource_type: "api_key",
-            resource_id: revoked_key.id,
-            organization_id: revoked_key.organization_id
-          })
-        end)
+        Audit.log_async("api_key.revoked", %{
+          resource_type: "api_key",
+          resource_id: revoked_key.id,
+          organization_id: revoked_key.organization_id
+        })
 
         {:ok, revoked_key}
 

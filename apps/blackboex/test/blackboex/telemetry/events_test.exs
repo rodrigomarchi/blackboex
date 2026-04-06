@@ -2,6 +2,7 @@ defmodule Blackboex.Telemetry.EventsTest do
   use ExUnit.Case, async: true
 
   @moduletag :unit
+  @moduletag :capture_log
 
   alias Blackboex.Telemetry.Events
 
@@ -253,7 +254,9 @@ defmodule Blackboex.Telemetry.EventsTest do
 
       Events.emit_circuit_breaker(%{provider: "openai", from_state: :closed, to_state: :open})
 
-      assert_receive {:telemetry, [:blackboex, :circuit_breaker, :state_change], measurements, metadata}
+      assert_receive {:telemetry, [:blackboex, :circuit_breaker, :state_change], measurements,
+                      metadata}
+
       assert measurements == %{}
       assert metadata.provider == "openai"
       assert metadata.from_state == :closed

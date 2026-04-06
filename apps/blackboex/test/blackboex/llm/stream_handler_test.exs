@@ -6,18 +6,21 @@ defmodule Blackboex.LLM.StreamHandlerTest do
   @moduletag :unit
 
   alias Blackboex.LLM.StreamHandler
+  alias ReqLLM.StreamChunk
+  alias ReqLLM.StreamResponse
+  alias ReqLLM.StreamResponse.MetadataHandle
 
   setup :verify_on_exit!
 
-  # Build a ReqLLM.StreamResponse with the given list of text tokens
+  # Build a StreamResponse with the given list of text tokens
   defp make_stream_response(tokens) do
-    chunks = Enum.map(tokens, &ReqLLM.StreamChunk.text/1)
+    chunks = Enum.map(tokens, &StreamChunk.text/1)
     stream = Stream.map(chunks, & &1)
 
     {:ok, metadata_handle} =
-      ReqLLM.StreamResponse.MetadataHandle.start_link(fn -> %{finish_reason: :stop} end)
+      MetadataHandle.start_link(fn -> %{finish_reason: :stop} end)
 
-    %ReqLLM.StreamResponse{
+    %StreamResponse{
       stream: stream,
       metadata_handle: metadata_handle,
       cancel: fn -> :ok end,
@@ -119,10 +122,10 @@ defmodule Blackboex.LLM.StreamHandlerTest do
   end
 
   # ---------------------------------------------------------------------------
-  # start/3 — ReqLLM.StreamResponse path
+  # start/3 — StreamResponse path
   # ---------------------------------------------------------------------------
 
-  describe "start/3 — ReqLLM.StreamResponse path" do
+  describe "start/3 — StreamResponse path" do
     test "sends token events from StreamResponse" do
       tokens = ["Foo", " ", "Bar"]
       stream_response = make_stream_response(tokens)
@@ -159,13 +162,13 @@ defmodule Blackboex.LLM.StreamHandlerTest do
 
     test "sends done with empty string for StreamResponse with no content chunks" do
       # Build a StreamResponse with only a meta chunk (no :content chunks)
-      chunks = [ReqLLM.StreamChunk.meta(%{finish_reason: "stop"})]
+      chunks = [StreamChunk.meta(%{finish_reason: "stop"})]
       stream = Stream.map(chunks, & &1)
 
       {:ok, metadata_handle} =
-        ReqLLM.StreamResponse.MetadataHandle.start_link(fn -> %{} end)
+        MetadataHandle.start_link(fn -> %{} end)
 
-      stream_response = %ReqLLM.StreamResponse{
+      stream_response = %StreamResponse{
         stream: stream,
         metadata_handle: metadata_handle,
         cancel: fn -> :ok end,
@@ -185,16 +188,16 @@ defmodule Blackboex.LLM.StreamHandlerTest do
 
     test "StreamResponse with thinking chunks — thinking tokens are not forwarded" do
       chunks = [
-        ReqLLM.StreamChunk.thinking("internal reasoning"),
-        ReqLLM.StreamChunk.text("actual answer")
+        StreamChunk.thinking("internal reasoning"),
+        StreamChunk.text("actual answer")
       ]
 
       stream = Stream.map(chunks, & &1)
 
       {:ok, metadata_handle} =
-        ReqLLM.StreamResponse.MetadataHandle.start_link(fn -> %{} end)
+        MetadataHandle.start_link(fn -> %{} end)
 
-      stream_response = %ReqLLM.StreamResponse{
+      stream_response = %StreamResponse{
         stream: stream,
         metadata_handle: metadata_handle,
         cancel: fn -> :ok end,

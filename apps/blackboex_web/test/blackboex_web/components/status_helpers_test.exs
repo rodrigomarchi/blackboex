@@ -27,7 +27,9 @@ defmodule BlackboexWeb.Components.StatusHelpersTest do
     end
 
     test "returns fallback classes for unknown status" do
-      assert StatusHelpers.api_status_classes("unknown") == "border bg-muted text-muted-foreground"
+      assert StatusHelpers.api_status_classes("unknown") ==
+               "border bg-muted text-muted-foreground"
+
       assert StatusHelpers.api_status_classes("") == "border bg-muted text-muted-foreground"
       assert StatusHelpers.api_status_classes("DRAFT") == "border bg-muted text-muted-foreground"
     end

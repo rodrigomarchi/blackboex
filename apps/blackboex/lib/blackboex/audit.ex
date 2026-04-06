@@ -24,6 +24,25 @@ defmodule Blackboex.Audit do
     |> Repo.insert()
   end
 
+  @doc """
+  Fire-and-forget audit log. When the Ecto sandbox is active (test env),
+  runs synchronously to avoid connection ownership issues from detached tasks.
+  In other envs spawns a detached task via LoggingSupervisor.
+  """
+  @spec log_async(String.t(), map()) :: :ok
+  def log_async(action, attrs) do
+    if Repo.config()[:pool] == Ecto.Adapters.SQL.Sandbox do
+      log(action, attrs)
+      :ok
+    else
+      Task.Supervisor.start_child(Blackboex.LoggingSupervisor, fn ->
+        log(action, attrs)
+      end)
+
+      :ok
+    end
+  end
+
   @spec list_logs(binary(), keyword()) :: [AuditLog.t()]
   def list_logs(organization_id, opts \\ []) do
     limit = Keyword.get(opts, :limit, 50)

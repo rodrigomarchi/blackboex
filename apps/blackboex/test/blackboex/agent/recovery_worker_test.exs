@@ -2,6 +2,7 @@ defmodule Blackboex.Agent.RecoveryWorkerTest do
   use Blackboex.DataCase, async: false
 
   @moduletag :unit
+  @moduletag :capture_log
 
   import Ecto.Query
   import Blackboex.AccountsFixtures

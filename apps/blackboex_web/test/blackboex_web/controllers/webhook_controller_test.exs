@@ -6,6 +6,7 @@ defmodule BlackboexWeb.WebhookControllerTest do
   alias Blackboex.Billing.StripeClientMock
 
   @moduletag :unit
+  @moduletag :capture_log
 
   # Ensure mock expectations are verified after each test
   setup :verify_on_exit!

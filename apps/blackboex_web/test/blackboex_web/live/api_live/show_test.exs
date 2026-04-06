@@ -6,6 +6,7 @@ defmodule BlackboexWeb.ApiLive.ShowTest do
   import Phoenix.LiveViewTest
 
   alias Blackboex.Apis
+  alias BlackboexWeb.ApiLive.Show
 
   describe "unauthenticated" do
     test "redirects to login", %{conn: conn} do
@@ -17,7 +18,7 @@ defmodule BlackboexWeb.ApiLive.ShowTest do
   describe "render" do
     test "renders an empty div" do
       assigns = %{__changed__: nil}
-      html = Phoenix.LiveViewTest.render_component(&BlackboexWeb.ApiLive.Show.render/1, assigns)
+      html = Phoenix.LiveViewTest.render_component(&Show.render/1, assigns)
       assert html =~ "<div"
     end
   end

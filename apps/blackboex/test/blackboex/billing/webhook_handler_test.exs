@@ -8,6 +8,7 @@ defmodule Blackboex.Billing.WebhookHandlerTest do
   import Blackboex.AccountsFixtures
 
   @moduletag :unit
+  @moduletag :capture_log
 
   defp create_org(_context) do
     user = user_fixture()

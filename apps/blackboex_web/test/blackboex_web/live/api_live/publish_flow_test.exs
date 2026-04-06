@@ -6,7 +6,6 @@ defmodule BlackboexWeb.ApiLive.PublishFlowTest do
   import Phoenix.LiveViewTest
 
   alias Blackboex.Apis
-  alias Blackboex.Apis.Keys
   alias Blackboex.Apis.Registry
   alias Blackboex.CodeGen.Compiler
 

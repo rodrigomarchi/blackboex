@@ -163,7 +163,7 @@ defmodule Blackboex.CodeGen.Compiler do
 
       {:error, error} ->
         errors = format_compile_errors(diagnostics, error)
-        Logger.error("Compilation failed: #{errors}")
+        Logger.debug("Compilation failed: #{errors}")
         {:error, {:compilation, errors}}
     end
   end

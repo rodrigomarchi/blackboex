@@ -92,7 +92,7 @@ defmodule Blackboex.Apis.MetricRollupWorker do
           acc
         rescue
           error ->
-            Logger.error(
+            Logger.debug(
               "MetricRollupWorker: failed to upsert api_id=#{agg.api_id}: #{Exception.message(error)}"
             )
 

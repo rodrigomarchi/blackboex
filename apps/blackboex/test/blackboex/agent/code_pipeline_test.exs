@@ -269,7 +269,7 @@ defmodule Blackboex.Agent.CodePipelineTest do
     Blackboex.LLM.ClientMock
     |> stub(:stream_text, fn _prompt, _opts -> {:error, "no streaming in happy path"} end)
     |> stub(:generate_text, fn prompt, _opts ->
-      if is_test_gen_prompt?(prompt) do
+      if test_gen_prompt?(prompt) do
         {:ok, %{content: @valid_test_response, usage: %{input_tokens: 5, output_tokens: 10}}}
       else
         {:ok, %{content: @lint_clean_fenced, usage: %{input_tokens: 10, output_tokens: 20}}}
@@ -277,7 +277,7 @@ defmodule Blackboex.Agent.CodePipelineTest do
     end)
   end
 
-  defp is_test_gen_prompt?(prompt) do
+  defp test_gen_prompt?(prompt) do
     String.contains?(prompt, "ExUnit") or
       String.contains?(prompt, "test \"") or
       String.contains?(prompt, "generate test") or
@@ -372,7 +372,7 @@ defmodule Blackboex.Agent.CodePipelineTest do
         :counters.add(call_count, 1, 1)
 
         cond do
-          is_test_gen_prompt?(prompt) ->
+          test_gen_prompt?(prompt) ->
             {:ok, %{content: @valid_test_response, usage: %{input_tokens: 5, output_tokens: 10}}}
 
           # First call: bad code; fix attempts: lint-clean good code
@@ -441,7 +441,7 @@ defmodule Blackboex.Agent.CodePipelineTest do
         {:ok, tokens}
       end)
       |> stub(:generate_text, fn prompt, _opts ->
-        if is_test_gen_prompt?(prompt) do
+        if test_gen_prompt?(prompt) do
           {:ok, %{content: @valid_test_response, usage: %{input_tokens: 5, output_tokens: 10}}}
         else
           {:ok, %{content: @lint_clean_fenced, usage: %{input_tokens: 10, output_tokens: 20}}}
@@ -483,7 +483,7 @@ defmodule Blackboex.Agent.CodePipelineTest do
       Blackboex.LLM.ClientMock
       |> stub(:stream_text, fn _prompt, _opts -> {:error, "no streaming"} end)
       |> stub(:generate_text, fn prompt, _opts ->
-        if is_test_gen_prompt?(prompt) do
+        if test_gen_prompt?(prompt) do
           {:ok, %{content: @valid_test_response, usage: %{input_tokens: 5, output_tokens: 10}}}
         else
           {:ok,
@@ -514,7 +514,7 @@ defmodule Blackboex.Agent.CodePipelineTest do
       Blackboex.LLM.ClientMock
       |> stub(:stream_text, fn _prompt, _opts -> {:error, "no streaming"} end)
       |> stub(:generate_text, fn prompt, _opts ->
-        if is_test_gen_prompt?(prompt) do
+        if test_gen_prompt?(prompt) do
           {:ok, %{content: @valid_test_response, usage: %{input_tokens: 5, output_tokens: 10}}}
         else
           {:ok, %{content: @lint_clean_fenced, usage: %{input_tokens: 10, output_tokens: 20}}}
@@ -552,7 +552,7 @@ defmodule Blackboex.Agent.CodePipelineTest do
       Blackboex.LLM.ClientMock
       |> stub(:stream_text, fn _prompt, _opts -> {:error, "no streaming"} end)
       |> stub(:generate_text, fn prompt, _opts ->
-        if is_test_gen_prompt?(prompt) do
+        if test_gen_prompt?(prompt) do
           {:ok, %{content: @valid_test_response, usage: %{input_tokens: 5, output_tokens: 10}}}
         else
           {:ok, %{content: @lint_clean_fenced, usage: %{input_tokens: 10, output_tokens: 20}}}
@@ -721,7 +721,7 @@ defmodule Blackboex.Agent.CodePipelineTest do
       Blackboex.LLM.ClientMock
       |> stub(:stream_text, fn _prompt, _opts -> {:error, "no streaming"} end)
       |> stub(:generate_text, fn prompt, _opts ->
-        if is_test_gen_prompt?(prompt) do
+        if test_gen_prompt?(prompt) do
           # This is the test-edit call — return a diff
           {:ok, %{content: test_edit_response, usage: %{input_tokens: 5, output_tokens: 10}}}
         else
@@ -766,10 +766,9 @@ defmodule Blackboex.Agent.CodePipelineTest do
       Blackboex.LLM.ClientMock
       |> stub(:stream_text, fn _prompt, _opts -> {:error, "no streaming"} end)
       |> stub(:generate_text, fn prompt, _opts ->
-        if is_test_gen_prompt?(prompt) do
+        if test_gen_prompt?(prompt) do
           # Return "NO CHANGES NEEDED" to exercise that branch
-          {:ok,
-           %{content: "NO CHANGES NEEDED", usage: %{input_tokens: 5, output_tokens: 10}}}
+          {:ok, %{content: "NO CHANGES NEEDED", usage: %{input_tokens: 5, output_tokens: 10}}}
         else
           {:ok, %{content: @lint_clean_fenced, usage: %{input_tokens: 10, output_tokens: 20}}}
         end
@@ -813,7 +812,7 @@ defmodule Blackboex.Agent.CodePipelineTest do
         :counters.add(call_count, 1, 1)
 
         cond do
-          is_test_gen_prompt?(prompt) ->
+          test_gen_prompt?(prompt) ->
             {:ok, %{content: @valid_test_response, usage: %{input_tokens: 5, output_tokens: 10}}}
 
           # Last call (doc generation) fails
@@ -954,7 +953,7 @@ defmodule Blackboex.Agent.CodePipelineTest do
       Blackboex.LLM.ClientMock
       |> stub(:stream_text, fn _prompt, _opts -> {:error, "no streaming"} end)
       |> stub(:generate_text, fn prompt, _opts ->
-        if is_test_gen_prompt?(prompt) do
+        if test_gen_prompt?(prompt) do
           {:ok, %{content: failing_test_response, usage: %{input_tokens: 5, output_tokens: 10}}}
         else
           {:ok, %{content: @lint_clean_fenced, usage: %{input_tokens: 10, output_tokens: 20}}}
@@ -971,10 +970,12 @@ defmodule Blackboex.Agent.CodePipelineTest do
 
       # Pipeline must have attempted running tests and detected failures
       events = collect_broadcasts([])
-      running_tests_events = for {:broadcast, {:step_completed, %{step: :running_tests} = data}} <- events, do: data
+
+      running_tests_events =
+        for {:broadcast, {:step_completed, %{step: :running_tests} = data}} <- events, do: data
 
       # Should have at least one running_tests completed event
-      assert length(running_tests_events) > 0
+      assert running_tests_events != []
 
       # The result should be an error (tests never pass)
       assert {:error, reason} = result

@@ -522,7 +522,7 @@ defmodule Blackboex.Agent.FixPromptsTest do
       # If TESTS comes first, the CODE regex should still find the CODE section
       case result do
         {code_edits, test_edits} ->
-          assert length(test_edits) >= 1
+          assert test_edits != []
           # CODE section might or might not be found depending on regex behavior
           assert is_list(code_edits)
 

@@ -177,7 +177,7 @@ defmodule Blackboex.Agent.CodePipeline do
     end
   rescue
     e ->
-      Logger.warning("Stream failed, falling back to sync: #{Exception.message(e)}")
+      Logger.debug("Stream failed, falling back to sync: #{Exception.message(e)}")
       run_id = Process.get(:pipeline_run_id)
 
       if run_id do
@@ -817,7 +817,7 @@ defmodule Blackboex.Agent.CodePipeline do
         {:ok, doc}
 
       {:error, reason} ->
-        Logger.warning("Doc generation failed: #{inspect(reason)}")
+        Logger.debug("Doc generation failed: #{inspect(reason)}")
 
         broadcast.(
           {:step_completed,

@@ -207,7 +207,11 @@ defmodule BlackboexWeb.Components.Editor.ResponseViewerTest do
 
   describe "violations" do
     test "shows violation count badge when violations present" do
-      html = render_viewer(%{response: api_response(200, ~s({"result": 42})), violations: ["missing field x"]})
+      html =
+        render_viewer(%{
+          response: api_response(200, ~s({"result": 42})),
+          violations: ["missing field x"]
+        })
 
       assert html =~ "1 violation(s)"
     end
@@ -223,7 +227,8 @@ defmodule BlackboexWeb.Components.Editor.ResponseViewerTest do
     end
 
     test "does not show Valid badge when violations present" do
-      html = render_viewer(%{response: api_response(200, ~s({"result": 42})), violations: ["err"]})
+      html =
+        render_viewer(%{response: api_response(200, ~s({"result": 42})), violations: ["err"]})
 
       refute html =~ "Valid"
     end

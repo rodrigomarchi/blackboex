@@ -26,7 +26,8 @@ defmodule Blackboex.CodeGen.LinterTest do
     end
 
     test "all checks pass for clean code" do
-      code = ~s|@doc "Handles request."\n@spec handle(map()) :: map()\ndef handle(params), do: params\n|
+      code =
+        ~s|@doc "Handles request."\n@spec handle(map()) :: map()\ndef handle(params), do: params\n|
 
       {:ok, code} = Linter.auto_format(code)
       results = Linter.run_all(code)
@@ -62,7 +63,7 @@ defmodule Blackboex.CodeGen.LinterTest do
       result = Linter.check_format(code)
 
       assert result.status == :warn
-      assert length(result.issues) > 0
+      assert result.issues != []
       assert hd(result.issues) =~ "not formatted"
     end
 
@@ -354,7 +355,7 @@ defmodule Blackboex.CodeGen.LinterTest do
 
       # This tests whether the 10-line lookback window is sufficient
       # If @doc is >10 lines above, it won't be found
-      assert length(doc_issues) >= 0
+      assert is_list(doc_issues)
     end
   end
 
@@ -588,7 +589,7 @@ defmodule Blackboex.CodeGen.LinterTest do
       result = Linter.check_credo(code)
 
       assert result.status == :warn
-      assert length(result.issues) > 0
+      assert result.issues != []
     end
 
     test "handles empty string" do
@@ -619,7 +620,9 @@ defmodule Blackboex.CodeGen.LinterTest do
       result = Linter.check_credo(code)
 
       # defmodule should not trigger "Missing @doc" since public_function_def? excludes it
-      doc_issues = Enum.filter(result.issues, &(&1 =~ "Missing @doc for public function defmodule"))
+      doc_issues =
+        Enum.filter(result.issues, &(&1 =~ "Missing @doc for public function defmodule"))
+
       assert doc_issues == []
     end
   end

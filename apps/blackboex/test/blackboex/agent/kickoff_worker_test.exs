@@ -79,7 +79,7 @@ defmodule Blackboex.Agent.KickoffWorkerTest do
 
       # Verify run was created
       runs = Conversations.list_runs(conversation.id)
-      assert length(runs) >= 1
+      assert runs != []
 
       run = hd(runs)
       assert run.api_id == api.id
@@ -108,7 +108,7 @@ defmodule Blackboex.Agent.KickoffWorkerTest do
       run = hd(runs)
 
       events = Conversations.list_events(run.id)
-      assert length(events) >= 1
+      assert events != []
 
       user_msg = Enum.find(events, &(&1.event_type == "user_message"))
       assert user_msg != nil

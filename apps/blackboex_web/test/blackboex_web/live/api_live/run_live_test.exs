@@ -2,6 +2,8 @@ defmodule BlackboexWeb.ApiLive.Edit.RunLiveTest do
   use BlackboexWeb.ConnCase, async: false
 
   @moduletag :liveview
+  # Task.async in RunLive + Ecto sandbox = Postgrex disconnect on test exit
+  @moduletag :capture_log
 
   import Phoenix.LiveViewTest
 

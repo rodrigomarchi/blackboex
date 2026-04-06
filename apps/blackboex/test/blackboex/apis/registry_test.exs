@@ -4,6 +4,7 @@ defmodule Blackboex.Apis.RegistryTest do
   @moduletag :unit
 
   alias Blackboex.Apis.Registry
+  alias Blackboex.CodeGen.Compiler
 
   # Use a unique ETS table name per test to avoid conflicts
   # Registry is started in Application supervision tree, so we test against the running instance
@@ -382,7 +383,9 @@ defmodule Blackboex.Apis.RegistryTest do
     test "shutdown unloads dynamically compiled modules from the code server" do
       # Define a real module dynamically so it is known to the code server
       module_name = :"Elixir.Blackboex.Test.DynUnloadMod#{System.unique_integer([:positive])}"
-      {:module, ^module_name, _, _} = Module.create(module_name, quote(do: def(answer, do: 42)), __ENV__)
+
+      {:module, ^module_name, _, _} =
+        Module.create(module_name, quote(do: def(answer, do: 42)), __ENV__)
 
       assert Code.ensure_loaded?(module_name)
 
@@ -397,7 +400,9 @@ defmodule Blackboex.Apis.RegistryTest do
 
     test "shutdown with legacy ETS format (module-only) unloads the module" do
       module_name = :"Elixir.Blackboex.Test.DynLegacyUnload#{System.unique_integer([:positive])}"
-      {:module, ^module_name, _, _} = Module.create(module_name, quote(do: def(answer, do: 99)), __ENV__)
+
+      {:module, ^module_name, _, _} =
+        Module.create(module_name, quote(do: def(answer, do: 99)), __ENV__)
 
       assert Code.ensure_loaded?(module_name)
 
@@ -424,6 +429,7 @@ defmodule Blackboex.Apis.RegistryTest do
     test "shutdown drains in-flight sandbox tasks before clearing" do
       # Start a task under SandboxTaskSupervisor that keeps running briefly
       parent = self()
+
       {:ok, task_pid} =
         Task.Supervisor.start_child(Blackboex.SandboxTaskSupervisor, fn ->
           send(parent, :task_started)
@@ -437,7 +443,10 @@ defmodule Blackboex.Apis.RegistryTest do
       # Register a module so unload path is exercised too
       api_id = Ecto.UUID.generate()
       module_name = :"Elixir.Blackboex.Test.DrainMod#{System.unique_integer([:positive])}"
-      {:module, ^module_name, _, _} = Module.create(module_name, quote(do: def(x, do: :ok)), __ENV__)
+
+      {:module, ^module_name, _, _} =
+        Module.create(module_name, quote(do: def(x, do: :ok)), __ENV__)
+
       Registry.register(api_id, module_name)
 
       # shutdown will poll drain_sandbox_tasks at least once while task is active
@@ -590,7 +599,7 @@ defmodule Blackboex.Apis.RegistryTest do
       # Manually pre-load the module that Compiler.module_name_for(api) would generate.
       # This ensures Code.ensure_loaded?(module_name) returns true in reload_from_db,
       # exercising the `if loaded -> {:ok, module_name}` branch (L199-200).
-      module_name = Blackboex.CodeGen.Compiler.module_name_for(api)
+      module_name = Compiler.module_name_for(api)
 
       unless Code.ensure_loaded?(module_name) do
         {:module, ^module_name, _, _} =
@@ -613,5 +622,4 @@ defmodule Blackboex.Apis.RegistryTest do
       end)
     end
   end
-
 end

@@ -10,14 +10,10 @@ defmodule BlackboexWeb.SettingsLiveTest do
   # Helper: delete all orgs for a user so scope has organization: nil
   defp delete_user_orgs(user) do
     import Ecto.Query
+
     Blackboex.Repo.delete_all(
       from(m in Blackboex.Organizations.Membership,
         where: m.user_id == ^user.id
-      )
-    )
-    Blackboex.Repo.delete_all(
-      from(o in Blackboex.Organizations.Organization,
-        where: o.creator_id == ^user.id
       )
     )
   end
@@ -76,7 +72,6 @@ defmodule BlackboexWeb.SettingsLiveTest do
 
   describe "nil organization paths" do
     test "organization tab shows 'No organization selected' when user has no org", %{
-      conn: conn,
       user: user
     } do
       delete_user_orgs(user)
@@ -91,7 +86,6 @@ defmodule BlackboexWeb.SettingsLiveTest do
     end
 
     test "billing tab shows 'No organization selected' when user has no org", %{
-      conn: conn,
       user: user
     } do
       delete_user_orgs(user)

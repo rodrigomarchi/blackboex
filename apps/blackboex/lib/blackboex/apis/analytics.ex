@@ -12,14 +12,22 @@ defmodule Blackboex.Apis.Analytics do
 
   @spec log_invocation(map()) :: :ok
   def log_invocation(attrs) do
+    if Repo.config()[:pool] == Ecto.Adapters.SQL.Sandbox do
+      persist_log(attrs)
+    else
+      log_invocation_async(attrs)
+    end
+
+    :ok
+  end
+
+  defp log_invocation_async(attrs) do
     case Task.Supervisor.start_child(Blackboex.LoggingSupervisor, fn ->
            persist_log(attrs)
          end) do
       {:ok, _pid} -> :ok
       {:error, reason} -> Logger.warning("Failed to spawn logging task: #{inspect(reason)}")
     end
-
-    :ok
   end
 
   defp persist_log(attrs) do

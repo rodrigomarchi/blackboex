@@ -213,7 +213,11 @@ defmodule Blackboex.Apis.KeysTest do
       [other_org] = Blackboex.Organizations.list_user_organizations(other_user)
 
       {:ok, other_api} =
-        Apis.create_api(%{name: "Other Org API", organization_id: other_org.id, user_id: other_user.id})
+        Apis.create_api(%{
+          name: "Other Org API",
+          organization_id: other_org.id,
+          user_id: other_user.id
+        })
 
       {:ok, _plain, _k1} =
         Keys.create_key(api, %{label: "My Key", organization_id: org.id})

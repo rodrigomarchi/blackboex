@@ -360,11 +360,19 @@ defmodule Blackboex.CodeGen.SchemaExtractorTest do
       }
 
       json = SchemaExtractor.to_json_schema(schema)
-      assert json["properties"]["things"] == %{"type" => "array", "items" => %{"type" => "object"}}
+
+      assert json["properties"]["things"] == %{
+               "type" => "array",
+               "items" => %{"type" => "object"}
+             }
     end
 
     test "handles unknown atom type with fallback to string" do
-      schema = %{fields: %{x: :utc_datetime, y: :date, z: :time, w: :naive_datetime}, required: []}
+      schema = %{
+        fields: %{x: :utc_datetime, y: :date, z: :time, w: :naive_datetime},
+        required: []
+      }
+
       json = SchemaExtractor.to_json_schema(schema)
 
       assert json["properties"]["x"] == %{"type" => "string"}

@@ -222,10 +222,10 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
 
   def handle_info({:agent_streaming, %{delta: delta}}, socket) do
     if socket.assigns.current_run_id do
-      {:noreply,
-       socket
-       |> assign(streaming_tokens: socket.assigns.streaming_tokens <> delta)
-       |> recompute_editor_content()}
+      new_tokens = socket.assigns.streaming_tokens <> delta
+      stripped = strip_code_fences(new_tokens)
+
+      {:noreply, assign(socket, streaming_tokens: new_tokens, editor_live_content: stripped)}
     else
       {:noreply, socket}
     end

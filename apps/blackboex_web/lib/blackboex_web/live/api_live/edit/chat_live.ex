@@ -201,9 +201,22 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
     Phoenix.PubSub.subscribe(Blackboex.PubSub, "run:#{run_id}")
     run = AgentConversations.get_run(run_id)
 
+    # Pre-set generating status and select handler file immediately.
+    # The first pipeline step (:generating_code) often fires before this
+    # subscription is active, causing a race condition where the event is lost.
+    handler_file = Enum.find(socket.assigns.files, &(&1.path == "/src/handler.ex"))
+
     {:noreply,
      socket
-     |> assign(current_run_id: run_id, current_run: run, chat_loading: true)
+     |> assign(
+       current_run_id: run_id,
+       current_run: run,
+       chat_loading: true,
+       pipeline_status: :generating,
+       streaming_tokens: "",
+       selected_file: handler_file || socket.assigns.selected_file
+     )
+     |> recompute_editor_content()
      |> push_patch(to: edit_tab_path(socket, "chat"))}
   end
 

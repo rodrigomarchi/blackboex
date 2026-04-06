@@ -258,6 +258,31 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
      |> auto_select_file_for_step(status)}
   end
 
+  # CodePipeline step events (different from LangChain tool events)
+  def handle_info({:step_started, %{step: step}}, socket) do
+    status = pipeline_step_to_status(step)
+
+    {:noreply,
+     socket
+     |> assign(pipeline_status: status, streaming_tokens: "")
+     |> auto_select_file_for_step(status)
+     |> recompute_editor_content()}
+  end
+
+  def handle_info({:step_completed, %{step: _step} = payload}, socket) do
+    socket =
+      socket
+      |> assign(streaming_tokens: "")
+      |> maybe_update_code_from_step(payload)
+      |> recompute_editor_content()
+
+    {:noreply, socket}
+  end
+
+  def handle_info({:step_failed, _payload}, socket) do
+    {:noreply, assign(socket, streaming_tokens: "")}
+  end
+
   def handle_info({:tool_result, %{tool: tool_name, success: success} = payload}, socket) do
     content = Map.get(payload, :content, "")
     now = DateTime.utc_now()
@@ -545,6 +570,26 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
     do: Map.new(args, fn {k, v} -> {to_string(k), v} end)
 
   defp normalize_tool_input(_), do: %{}
+
+  defp pipeline_step_to_status(:generating_code), do: :generating
+  defp pipeline_step_to_status(:generating_tests), do: :generating_tests
+  defp pipeline_step_to_status(:compiling), do: :compiling
+  defp pipeline_step_to_status(:formatting), do: :formatting
+  defp pipeline_step_to_status(:linting), do: :linting
+  defp pipeline_step_to_status(:fixing_compilation), do: :compiling
+  defp pipeline_step_to_status(:fixing_lint), do: :linting
+  defp pipeline_step_to_status(:submitting), do: :submitting
+  defp pipeline_step_to_status(_), do: :processing
+
+  defp maybe_update_code_from_step(socket, %{code: code}) when is_binary(code) do
+    assign(socket, code: code)
+  end
+
+  defp maybe_update_code_from_step(socket, %{test_code: test_code}) when is_binary(test_code) do
+    assign(socket, test_code: test_code)
+  end
+
+  defp maybe_update_code_from_step(socket, _payload), do: socket
 
   defp agent_tool_to_status("generate_code"), do: :generating
   defp agent_tool_to_status("compile_code"), do: :compiling

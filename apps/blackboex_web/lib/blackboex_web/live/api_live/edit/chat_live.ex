@@ -217,24 +217,37 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
     normalized_args = normalize_tool_input(args)
     event = %{type: :tool_call, tool: tool_name, args: normalized_args, timestamp: now, id: seq}
 
+    status = agent_tool_to_status(tool_name)
+
     socket =
       socket
       |> assign(
-        pipeline_status: agent_tool_to_status(tool_name),
+        pipeline_status: status,
         agent_events: socket.assigns.agent_events ++ [event],
         streaming_tokens: ""
       )
+      |> auto_select_file_for_step(status)
       |> apply_action_to_editor(tool_name, args)
 
     {:noreply, socket}
   end
 
   def handle_info({:agent_action, %{tool: tool_name}}, socket) do
-    {:noreply, assign(socket, pipeline_status: agent_tool_to_status(tool_name))}
+    status = agent_tool_to_status(tool_name)
+
+    {:noreply,
+     socket
+     |> assign(pipeline_status: status)
+     |> auto_select_file_for_step(status)}
   end
 
   def handle_info({:tool_started, %{tool: tool_name}}, socket) do
-    {:noreply, assign(socket, pipeline_status: agent_tool_to_status(tool_name))}
+    status = agent_tool_to_status(tool_name)
+
+    {:noreply,
+     socket
+     |> assign(pipeline_status: status)
+     |> auto_select_file_for_step(status)}
   end
 
   def handle_info({:tool_result, %{tool: tool_name, success: success} = payload}, socket) do
@@ -595,17 +608,25 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
   defp apply_result_to_editor(socket, _tool, _success, _content), do: socket
 
   defp live_editor_content(assigns) do
-    selected = assigns.selected_file
-    path = selected && selected.path
+    path = assigns.selected_file && assigns.selected_file.path
+    status = assigns.pipeline_status
+    tokens = assigns.streaming_tokens
 
     cond do
-      assigns.chat_loading && path == "/src/handler.ex" && assigns.streaming_tokens != "" ->
-        extract_streaming_code(assigns.streaming_tokens) || assigns.code
+      # During streaming, extract code from tokens and show in the active file
+      assigns.chat_loading && tokens != "" && is_source_step?(status) && is_source_file?(path) ->
+        extract_streaming_code(tokens) || assigns.code
 
-      assigns.chat_loading && path == "/src/handler.ex" ->
+      # During test streaming, show in the test file
+      assigns.chat_loading && tokens != "" && is_test_step?(status) && is_test_file?(path) ->
+        extract_streaming_code(tokens) || assigns.test_code
+
+      # After step completes, show pipeline code in handler
+      assigns.chat_loading && is_source_file?(path) ->
         assigns.code
 
-      assigns.chat_loading && path == "/test/handler_test.ex" ->
+      # After step completes, show pipeline test_code in test file
+      assigns.chat_loading && is_test_file?(path) ->
         assigns.test_code
 
       true ->
@@ -613,8 +634,26 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
     end
   end
 
+  defp auto_select_file_for_step(socket, status)
+       when status in [:generating, :compiling, :formatting, :linting] do
+    file = Enum.find(socket.assigns.files, &(&1.path == "/src/handler.ex"))
+    if file, do: assign(socket, selected_file: file), else: socket
+  end
+
+  defp auto_select_file_for_step(socket, status)
+       when status in [:generating_tests, :running_tests] do
+    file = Enum.find(socket.assigns.files, &(&1.path == "/test/handler_test.ex"))
+    if file, do: assign(socket, selected_file: file), else: socket
+  end
+
+  defp auto_select_file_for_step(socket, _status), do: socket
+
+  defp is_source_step?(status), do: status in [:generating, :compiling, :formatting, :linting]
+  defp is_test_step?(status), do: status in [:generating_tests, :running_tests]
+  defp is_source_file?(path), do: path != nil and String.starts_with?(path, "/src")
+  defp is_test_file?(path), do: path != nil and String.starts_with?(path, "/test")
+
   defp extract_streaming_code(tokens) when is_binary(tokens) do
-    # Extract code from the last ```elixir block in streaming output
     case Regex.scan(~r/```(?:elixir)?\s*\n(.*?)(?:```|\z)/s, tokens) do
       [] -> nil
       matches -> matches |> List.last() |> Enum.at(1)

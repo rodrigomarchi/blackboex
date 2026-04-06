@@ -13,6 +13,7 @@ defmodule BlackboexWeb.Components.Editor.FileTree do
   """
   attr :files, :list, required: true
   attr :selected_path, :string, default: nil
+  attr :generating, :boolean, default: false
 
   def file_tree(assigns) do
     tree = build_tree(assigns.files)
@@ -24,7 +25,13 @@ defmodule BlackboexWeb.Components.Editor.FileTree do
         Explorer
       </div>
       <nav class="flex-1 overflow-y-auto py-1 text-xs" role="tree">
-        <.tree_node :for={node <- @tree} node={node} selected_path={@selected_path} depth={0} />
+        <.tree_node
+          :for={node <- @tree}
+          node={node}
+          selected_path={@selected_path}
+          depth={0}
+          generating={@generating}
+        />
       </nav>
     </div>
     """
@@ -33,6 +40,7 @@ defmodule BlackboexWeb.Components.Editor.FileTree do
   attr :node, :map, required: true
   attr :selected_path, :string, default: nil
   attr :depth, :integer, default: 0
+  attr :generating, :boolean, default: false
 
   defp tree_node(%{node: %{type: :directory}} = assigns) do
     ~H"""
@@ -50,6 +58,7 @@ defmodule BlackboexWeb.Components.Editor.FileTree do
           node={child}
           selected_path={@selected_path}
           depth={@depth + 1}
+          generating={@generating}
         />
       </div>
     </div>
@@ -71,11 +80,12 @@ defmodule BlackboexWeb.Components.Editor.FileTree do
       ]}
       style={"padding-left: #{@depth * 12 + 8}px"}
     >
-      <span class={[
-        "size-3.5 shrink-0",
-        file_icon_class(@node.name)
-      ]}>
-      </span>
+      <%= if @generating and @node.file_type == "source" do %>
+        <span class="inline-block w-3.5 h-3.5 shrink-0 rounded-full border-2 border-amber-400 border-t-transparent animate-spin">
+        </span>
+      <% else %>
+        <span class={["size-3.5 shrink-0", file_icon_class(@node.name)]}></span>
+      <% end %>
       <span class="truncate">{@node.name}</span>
     </div>
     """

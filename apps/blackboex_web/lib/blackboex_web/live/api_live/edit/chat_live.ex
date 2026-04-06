@@ -73,14 +73,19 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
           <.file_tree
             files={@files}
             selected_path={if(@selected_file, do: @selected_file.path)}
+            generating={@chat_loading}
           />
         </div>
         <%!-- Code Editor (center) --%>
         <div class="flex-1 min-w-0">
-          <.file_editor file={@selected_file} />
+          <.file_editor
+            file={@selected_file}
+            live_content={live_editor_content(assigns)}
+            streaming={@chat_loading}
+          />
         </div>
         <%!-- Chat Panel (right) --%>
-        <div class="w-[340px] shrink-0 border-l">
+        <div class="w-[420px] shrink-0 border-l">
           <.live_component
             module={BlackboexWeb.Components.Editor.ChatPanel}
             id="chat-panel"
@@ -588,6 +593,24 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
   end
 
   defp apply_result_to_editor(socket, _tool, _success, _content), do: socket
+
+  defp live_editor_content(assigns) do
+    selected = assigns.selected_file
+
+    cond do
+      # When generating/editing and viewing the handler, show live code from pipeline
+      (assigns.chat_loading and selected) && selected.path == "/src/handler.ex" ->
+        assigns.code
+
+      # When generating/editing and viewing the test, show live test_code
+      (assigns.chat_loading and selected) && selected.path == "/test/handler_test.ex" ->
+        assigns.test_code
+
+      # Otherwise, no override — file_editor shows file.content
+      true ->
+        nil
+    end
+  end
 
   defp edit_tab_path(socket, tab) do
     "/apis/#{socket.assigns.api.id}/edit/#{tab}"

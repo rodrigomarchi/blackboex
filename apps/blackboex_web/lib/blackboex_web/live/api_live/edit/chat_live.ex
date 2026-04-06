@@ -597,14 +597,6 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
 
   defp apply_action_to_editor(socket, _tool, _args), do: socket
 
-  defp apply_result_to_editor(socket, "format_code", true, content) when is_binary(content) do
-    assign(socket, code: content)
-  end
-
-  defp apply_result_to_editor(socket, "generate_tests", true, content) when is_binary(content) do
-    assign(socket, test_code: content)
-  end
-
   defp apply_result_to_editor(socket, _tool, _success, _content), do: socket
 
   defp live_editor_content(assigns) do
@@ -613,19 +605,18 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
     tokens = assigns.streaming_tokens
 
     cond do
-      # During streaming, extract code from tokens and show in the active file
+      # During streaming on source steps, show tokens in source file
       assigns.chat_loading && tokens != "" && is_source_step?(status) && is_source_file?(path) ->
-        extract_streaming_code(tokens) || assigns.code
+        strip_code_fences(tokens)
 
-      # During test streaming, show in the test file
+      # During streaming on test steps, show tokens in test file
       assigns.chat_loading && tokens != "" && is_test_step?(status) && is_test_file?(path) ->
-        extract_streaming_code(tokens) || assigns.test_code
+        strip_code_fences(tokens)
 
-      # After step completes, show pipeline code in handler
+      # Between steps, show last known pipeline code
       assigns.chat_loading && is_source_file?(path) ->
         assigns.code
 
-      # After step completes, show pipeline test_code in test file
       assigns.chat_loading && is_test_file?(path) ->
         assigns.test_code
 
@@ -653,14 +644,14 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
   defp is_source_file?(path), do: path != nil and String.starts_with?(path, "/src")
   defp is_test_file?(path), do: path != nil and String.starts_with?(path, "/test")
 
-  defp extract_streaming_code(tokens) when is_binary(tokens) do
-    case Regex.scan(~r/```(?:elixir)?\s*\n(.*?)(?:```|\z)/s, tokens) do
-      [] -> nil
-      matches -> matches |> List.last() |> Enum.at(1)
-    end
+  defp strip_code_fences(tokens) when is_binary(tokens) do
+    tokens
+    |> String.replace(~r/^.*?```(?:elixir)?\s*\n/s, "")
+    |> String.replace(~r/```\s*$/s, "")
+    |> String.trim_leading("\n")
   end
 
-  defp extract_streaming_code(_), do: nil
+  defp strip_code_fences(_), do: ""
 
   defp edit_tab_path(socket, tab) do
     "/apis/#{socket.assigns.api.id}/edit/#{tab}"

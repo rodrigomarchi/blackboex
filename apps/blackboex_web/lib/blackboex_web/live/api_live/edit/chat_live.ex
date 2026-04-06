@@ -671,29 +671,41 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
 
   defp recompute_editor_content(socket) do
     a = socket.assigns
-    path = a.selected_file && a.selected_file.path
-    status = a.pipeline_status
-    tokens = a.streaming_tokens
-
-    content =
-      cond do
-        a.chat_loading && tokens != "" && is_source_step?(status) && is_source_file?(path) ->
-          strip_code_fences(tokens)
-
-        a.chat_loading && tokens != "" && is_test_step?(status) && is_test_file?(path) ->
-          strip_code_fences(tokens)
-
-        a.chat_loading && is_source_file?(path) ->
-          a.code
-
-        a.chat_loading && is_test_file?(path) ->
-          a.test_code
-
-        true ->
-          nil
-      end
-
+    content = resolve_editor_content(a)
     assign(socket, editor_live_content: content)
+  end
+
+  defp resolve_editor_content(%{chat_loading: false}), do: nil
+
+  defp resolve_editor_content(assigns) do
+    path = assigns.selected_file && assigns.selected_file.path
+
+    case streaming_target(assigns.pipeline_status, path) do
+      :streaming_source when assigns.streaming_tokens != "" ->
+        strip_code_fences(assigns.streaming_tokens)
+
+      :streaming_test when assigns.streaming_tokens != "" ->
+        strip_code_fences(assigns.streaming_tokens)
+
+      :source ->
+        assigns.code
+
+      :test ->
+        assigns.test_code
+
+      _ ->
+        nil
+    end
+  end
+
+  defp streaming_target(status, path) do
+    cond do
+      source_step?(status) and source_file?(path) -> :streaming_source
+      test_step?(status) and test_file?(path) -> :streaming_test
+      source_file?(path) -> :source
+      test_file?(path) -> :test
+      true -> :none
+    end
   end
 
   defp auto_select_file_for_step(socket, status)
@@ -710,10 +722,12 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
 
   defp auto_select_file_for_step(socket, _status), do: socket
 
-  defp is_source_step?(status), do: status in [:generating, :compiling, :formatting, :linting]
-  defp is_test_step?(status), do: status in [:generating_tests, :running_tests]
-  defp is_source_file?(path), do: path != nil and String.starts_with?(path, "/src")
-  defp is_test_file?(path), do: path != nil and String.starts_with?(path, "/test")
+  defp source_step?(status), do: status in [:generating, :compiling, :formatting, :linting]
+  defp test_step?(status), do: status in [:generating_tests, :running_tests]
+  defp source_file?(nil), do: false
+  defp source_file?(path), do: String.starts_with?(path, "/src")
+  defp test_file?(nil), do: false
+  defp test_file?(path), do: String.starts_with?(path, "/test")
 
   defp strip_code_fences(tokens) when is_binary(tokens) do
     tokens

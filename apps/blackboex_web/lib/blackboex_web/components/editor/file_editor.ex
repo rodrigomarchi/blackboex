@@ -2,8 +2,7 @@ defmodule BlackboexWeb.Components.Editor.FileEditor do
   @moduledoc """
   Displays the content of a selected file with syntax highlighting.
 
-  During streaming, shows raw code in a plain pre tag for performance.
-  After streaming completes, shows full Makeup-highlighted code.
+  Supports live content override for streaming during code generation.
   """
 
   use Phoenix.Component
@@ -16,6 +15,9 @@ defmodule BlackboexWeb.Components.Editor.FileEditor do
   attr :class, :string, default: nil
 
   def file_editor(assigns) do
+    content = assigns.live_content || (assigns.file && assigns.file.content) || ""
+    assigns = assign(assigns, :display_content, content)
+
     ~H"""
     <div class={["flex flex-col h-full bg-[#1e1e2e]", @class]}>
       <%= if @file do %>
@@ -28,14 +30,8 @@ defmodule BlackboexWeb.Components.Editor.FileEditor do
             </span>
           <% end %>
         </div>
-        <div class="flex-1 min-h-0 relative overflow-hidden">
-          <%= if @live_content do %>
-            <div class="absolute inset-0 overflow-auto p-4 font-mono text-sm text-[#cdd6f4] leading-relaxed whitespace-pre-wrap break-words">
-              {@live_content}
-            </div>
-          <% else %>
-            <.code_viewer code={@file.content || ""} class="absolute inset-0" />
-          <% end %>
+        <div class="flex-1 min-h-0 relative">
+          <.code_viewer code={@display_content} class="absolute inset-0" />
         </div>
       <% else %>
         <div class="flex items-center justify-center h-full text-sm text-white/30">

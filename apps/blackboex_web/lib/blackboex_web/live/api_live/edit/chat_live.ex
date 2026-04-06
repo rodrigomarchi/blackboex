@@ -53,7 +53,8 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
             code: source_content,
             test_code: test_content,
             files: files,
-            selected_file: Enum.find(files, &(&1.path == "/src/handler.ex"))
+            selected_file: Enum.find(files, &(&1.path == "/src/handler.ex")),
+            editor_live_content: nil
           )
 
         {:ok, socket}
@@ -80,7 +81,7 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
         <div class="flex-1 min-w-0">
           <.file_editor
             file={@selected_file}
-            live_content={live_editor_content(assigns)}
+            live_content={@editor_live_content}
             streaming={@chat_loading}
           />
         </div>
@@ -119,7 +120,11 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
 
   def handle_event("select_file", %{"path" => path}, socket) do
     file = Enum.find(socket.assigns.files, &(&1.path == path))
-    {:noreply, assign(socket, selected_file: file)}
+
+    {:noreply,
+     socket
+     |> assign(selected_file: file)
+     |> recompute_editor_content()}
   end
 
   # ── Tab-Specific Events ───────────────────────────────────────────────
@@ -204,8 +209,10 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
 
   def handle_info({:agent_streaming, %{delta: delta}}, socket) do
     if socket.assigns.current_run_id do
-      new_tokens = socket.assigns.streaming_tokens <> delta
-      {:noreply, assign(socket, streaming_tokens: new_tokens)}
+      {:noreply,
+       socket
+       |> assign(streaming_tokens: socket.assigns.streaming_tokens <> delta)
+       |> recompute_editor_content()}
     else
       {:noreply, socket}
     end
@@ -228,6 +235,7 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
       )
       |> auto_select_file_for_step(status)
       |> apply_action_to_editor(tool_name, args)
+      |> recompute_editor_content()
 
     {:noreply, socket}
   end
@@ -603,30 +611,31 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
 
   defp apply_result_to_editor(socket, _tool, _success, _content), do: socket
 
-  defp live_editor_content(assigns) do
-    path = assigns.selected_file && assigns.selected_file.path
-    status = assigns.pipeline_status
-    tokens = assigns.streaming_tokens
+  defp recompute_editor_content(socket) do
+    a = socket.assigns
+    path = a.selected_file && a.selected_file.path
+    status = a.pipeline_status
+    tokens = a.streaming_tokens
 
-    cond do
-      # During streaming on source steps, show tokens in source file
-      assigns.chat_loading && tokens != "" && is_source_step?(status) && is_source_file?(path) ->
-        strip_code_fences(tokens)
+    content =
+      cond do
+        a.chat_loading && tokens != "" && is_source_step?(status) && is_source_file?(path) ->
+          strip_code_fences(tokens)
 
-      # During streaming on test steps, show tokens in test file
-      assigns.chat_loading && tokens != "" && is_test_step?(status) && is_test_file?(path) ->
-        strip_code_fences(tokens)
+        a.chat_loading && tokens != "" && is_test_step?(status) && is_test_file?(path) ->
+          strip_code_fences(tokens)
 
-      # Between steps, show last known pipeline code
-      assigns.chat_loading && is_source_file?(path) ->
-        assigns.code
+        a.chat_loading && is_source_file?(path) ->
+          a.code
 
-      assigns.chat_loading && is_test_file?(path) ->
-        assigns.test_code
+        a.chat_loading && is_test_file?(path) ->
+          a.test_code
 
-      true ->
-        nil
-    end
+        true ->
+          nil
+      end
+
+    assign(socket, editor_live_content: content)
   end
 
   defp auto_select_file_for_step(socket, status)

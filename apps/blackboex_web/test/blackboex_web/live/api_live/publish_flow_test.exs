@@ -91,14 +91,12 @@ defmodule BlackboexWeb.ApiLive.PublishFlowTest do
   end
 
   describe "save_publish_settings" do
-    test "saves method and visibility settings", %{conn: conn, org: org, api: api} do
+    test "saves requires_auth setting via form", %{conn: conn, org: org, api: api} do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/publish?org=#{org.id}")
 
       html =
         lv
         |> form("form[phx-submit='save_publish_settings']",
-          method: "POST",
-          visibility: "public",
           requires_auth: "true"
         )
         |> render_submit()
@@ -111,8 +109,6 @@ defmodule BlackboexWeb.ApiLive.PublishFlowTest do
 
       html =
         render_click(lv, "save_publish_settings", %{
-          "method" => "GET",
-          "visibility" => "private",
           "requires_auth" => "true"
         })
 
@@ -122,11 +118,7 @@ defmodule BlackboexWeb.ApiLive.PublishFlowTest do
     test "save_publish_settings with requires_auth false", %{conn: conn, org: org, api: api} do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/publish?org=#{org.id}")
 
-      html =
-        render_click(lv, "save_publish_settings", %{
-          "method" => "POST",
-          "visibility" => "public"
-        })
+      html = render_click(lv, "save_publish_settings", %{})
 
       assert is_binary(html)
     end

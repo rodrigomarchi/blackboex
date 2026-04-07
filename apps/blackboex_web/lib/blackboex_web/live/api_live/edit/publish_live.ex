@@ -140,19 +140,6 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLive do
                   Open
                 </a>
               </div>
-              <div class="flex items-center justify-between rounded border p-3">
-                <div class="flex items-center gap-2">
-                  <.icon name="hero-document-check" class="size-4 text-muted-foreground" />
-                  <span class="text-sm">Markdown Docs</span>
-                  <%= if @api.documentation_md do %>
-                    <span class="text-[10px] text-success-foreground font-medium">
-                      Auto-generated
-                    </span>
-                  <% else %>
-                    <span class="text-[10px] text-muted-foreground">Generated on save</span>
-                  <% end %>
-                </div>
-              </div>
             </div>
           </div>
         <% end %>
@@ -161,33 +148,6 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLive do
         <div>
           <h3 class="text-xs font-semibold text-muted-foreground uppercase mb-3">Settings</h3>
           <form phx-submit="save_publish_settings" class="space-y-3">
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <label class="text-xs font-medium">HTTP Method</label>
-                <select
-                  name="method"
-                  class="mt-1 w-full rounded-md border bg-background px-3 py-1.5 text-sm"
-                >
-                  <option
-                    :for={m <- ~w(GET POST PUT PATCH DELETE)}
-                    value={m}
-                    selected={m == @api.method}
-                  >
-                    {m}
-                  </option>
-                </select>
-              </div>
-              <div>
-                <label class="text-xs font-medium">Visibility</label>
-                <select
-                  name="visibility"
-                  class="mt-1 w-full rounded-md border bg-background px-3 py-1.5 text-sm"
-                >
-                  <option value="private" selected={@api.visibility == "private"}>Private</option>
-                  <option value="public" selected={@api.visibility == "public"}>Public</option>
-                </select>
-              </div>
-            </div>
             <div class="flex items-center gap-2">
               <input
                 type="checkbox"
@@ -256,8 +216,6 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLive do
 
   def handle_event("save_publish_settings", params, socket) do
     attrs = %{
-      method: params["method"],
-      visibility: params["visibility"],
       requires_auth: params["requires_auth"] == "true"
     }
 

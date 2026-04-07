@@ -132,6 +132,49 @@ const ChatAutoScroll = {
   }
 }
 
+// Auto-scroll code editor to bottom during streaming
+const EditorAutoScroll = {
+  mounted() {
+    this._userScrolledUp = false
+    this._lastHeight = 0
+
+    this._poll = setInterval(() => {
+      const scroller = this.getScroller()
+      if (scroller && scroller.scrollHeight !== this._lastHeight) {
+        this._lastHeight = scroller.scrollHeight
+        if (!this._userScrolledUp) this.scrollToBottom()
+      }
+    }, 150)
+
+    this.el.addEventListener("scroll", this.handleScroll.bind(this), true)
+  },
+  updated() {
+    if (!this._userScrolledUp) this.scrollToBottom()
+  },
+  destroyed() {
+    if (this._poll) clearInterval(this._poll)
+  },
+  handleScroll(e) {
+    const scroller = e.target
+    if (scroller && scroller.classList.contains("overflow-y-auto")) {
+      const threshold = 80
+      const atBottom = scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight < threshold
+      this._userScrolledUp = !atBottom
+    }
+  },
+  getScroller() {
+    return this.el.querySelector(".overflow-y-auto")
+  },
+  scrollToBottom() {
+    const scroller = this.getScroller()
+    if (scroller) {
+      requestAnimationFrame(() => {
+        scroller.scrollTop = scroller.scrollHeight
+      })
+    }
+  }
+}
+
 // Command palette keyboard navigation (arrows + Enter + Escape)
 const CommandPaletteNav = {
   mounted() {
@@ -168,7 +211,7 @@ const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks, KeyboardShortcuts, AutoFocus, ChatAutoScroll, CommandPaletteNav, ...BackpexHooks},
+  hooks: {...colocatedHooks, KeyboardShortcuts, AutoFocus, ChatAutoScroll, EditorAutoScroll, CommandPaletteNav, ...BackpexHooks},
 })
 
 // Show progress bar on live navigation and form submits

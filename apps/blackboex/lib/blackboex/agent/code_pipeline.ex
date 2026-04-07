@@ -213,7 +213,7 @@ defmodule Blackboex.Agent.CodePipeline do
 
   @spec log_step(String.t(), :pass | :fail, String.t()) :: :ok
   defp log_step(step, status, detail) do
-    entry = "[#{step}] #{status}: #{String.slice(detail, 0, 200)}"
+    entry = "[#{step}] #{status}: #{String.slice(detail, 0, 1000)}"
     log = Process.get(:pipeline_log, [])
     Process.put(:pipeline_log, log ++ [entry])
     :ok
@@ -493,7 +493,7 @@ defmodule Blackboex.Agent.CodePipeline do
         )
 
         with {:ok, formatted} <- step_format(fixed_code, broadcast),
-             {:ok, compiled} <- step_compile_with_fix(api, formatted, broadcast, run_id, 0) do
+             {:ok, compiled} <- step_compile_with_fix(api, formatted, broadcast, run_id, attempt) do
           step_lint_with_fix(api, compiled, broadcast, run_id, attempt + 1)
         end
 
@@ -845,7 +845,10 @@ defmodule Blackboex.Agent.CodePipeline do
     end
   end
 
-  # Tries to apply SEARCH/REPLACE edits from LLM response. Falls back to full code extraction.
+  # Tries to apply SEARCH/REPLACE edits from LLM response.
+  # On failure, tries full code extraction from ```elixir blocks.
+  # As last resort, keeps the original code unchanged so downstream fixes
+  # operate on valid code instead of corrupted text.
   @spec apply_edits_or_extract(String.t(), String.t()) :: String.t()
   defp apply_edits_or_extract(original_code, response) do
     blocks = FixPrompts.parse_search_replace_blocks(response)
@@ -853,7 +856,7 @@ defmodule Blackboex.Agent.CodePipeline do
     if blocks != [] do
       apply_parsed_edits(original_code, blocks, response)
     else
-      extract_code(response)
+      safe_extract_or_keep(original_code, response)
     end
   end
 
@@ -861,27 +864,64 @@ defmodule Blackboex.Agent.CodePipeline do
   defp apply_parsed_edits(original_code, blocks, response) do
     case DiffEngine.apply_search_replace(original_code, blocks) do
       {:ok, patched} ->
-        validate_patched_code(patched, blocks, response)
+        validate_patched_code(original_code, patched, blocks)
 
       {:error, :search_not_found, search_snippet} ->
         Logger.warning(
-          "Search/replace failed (match not found: #{String.slice(search_snippet, 0, 80)}), falling back to full extraction"
+          "Search/replace failed (match not found: #{String.slice(search_snippet, 0, 80)}), trying full extraction"
         )
 
-        extract_code(response)
+        safe_extract_or_keep(original_code, response)
     end
   end
 
-  @spec validate_patched_code(String.t(), list(), String.t()) :: String.t()
-  defp validate_patched_code(patched, blocks, response) do
-    if String.contains?(patched, "<<<<<<< SEARCH") or
-         String.contains?(patched, "=======") or
-         String.contains?(patched, ">>>>>>> REPLACE") do
-      Logger.warning("Search/replace markers leaked into patched code, falling back")
-      extract_code(response)
+  @spec validate_patched_code(String.t(), String.t(), list()) :: String.t()
+  defp validate_patched_code(original_code, patched, blocks) do
+    cond do
+      String.contains?(patched, "<<<<<<< SEARCH") or
+          String.contains?(patched, ">>>>>>> REPLACE") ->
+        Logger.warning("Search/replace markers leaked into patched code, keeping original")
+        original_code
+
+      code_looks_corrupted?(original_code, patched) ->
+        Logger.warning("Patched code looks corrupted (size ratio off), keeping original")
+        original_code
+
+      true ->
+        Logger.debug("Applied #{length(blocks)} search/replace edit(s)")
+        patched
+    end
+  end
+
+  # Extracts code from ```elixir blocks, but validates it looks like real code.
+  # Falls back to original code if extraction yields garbage.
+  @spec safe_extract_or_keep(String.t(), String.t()) :: String.t()
+  defp safe_extract_or_keep(original_code, response) do
+    extracted = extract_code(response)
+
+    if extracted != "" and not code_looks_corrupted?(original_code, extracted) do
+      extracted
     else
-      Logger.debug("Applied #{length(blocks)} search/replace edit(s)")
-      patched
+      Logger.warning("Extracted code looks invalid, keeping original code unchanged")
+      original_code
+    end
+  end
+
+  # Detects if patched/extracted code is likely corrupted by checking
+  # it still looks like valid Elixir and hasn't wildly changed in size.
+  @spec code_looks_corrupted?(String.t(), String.t()) :: boolean()
+  defp code_looks_corrupted?(original, candidate) do
+    orig_len = String.length(original)
+    cand_len = String.length(candidate)
+    has_code = String.contains?(candidate, "def ") or String.contains?(candidate, "defmodule")
+
+    cond do
+      # Candidate doesn't look like code at all
+      not has_code -> true
+      # Candidate shrank to less than 30% of original (likely lost code)
+      orig_len > 100 and cand_len < orig_len * 0.3 -> true
+      # Everything looks reasonable
+      true -> false
     end
   end
 

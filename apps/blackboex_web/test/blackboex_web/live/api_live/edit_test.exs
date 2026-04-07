@@ -42,16 +42,15 @@ defmodule BlackboexWeb.ApiLive.EditTest do
 
   describe "mount" do
     test "renders editor with API name", %{conn: conn, org: org, api: api} do
-      {:ok, _lv, html} = live(conn, ~p"/apis/#{api.id}/edit/code?org=#{org.id}")
+      {:ok, _lv, html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
 
       assert html =~ "Calculator"
     end
 
     test "shows all tabs in tab bar", %{conn: conn, org: org, api: api} do
-      {:ok, _lv, html} = live(conn, ~p"/apis/#{api.id}/edit/code?org=#{org.id}")
+      {:ok, _lv, html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
 
-      assert html =~ "Code"
-      assert html =~ "Tests"
+      assert html =~ "Chat"
       assert html =~ "Validation"
       assert html =~ "API Keys"
       assert html =~ "Publish"
@@ -99,7 +98,7 @@ defmodule BlackboexWeb.ApiLive.EditTest do
         })
 
       assert {:error, {:live_redirect, %{to: "/apis", flash: %{"error" => "API not found"}}}} =
-               live(conn, ~p"/apis/#{other_api.id}/edit/code?org=#{other_org.id}")
+               live(conn, ~p"/apis/#{other_api.id}/edit/chat?org=#{other_org.id}")
     end
   end
 

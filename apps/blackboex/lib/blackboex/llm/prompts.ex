@@ -43,13 +43,12 @@ defmodule Blackboex.LLM.Prompts do
     5. Return plain Elixir maps like `%{result: value}`. The framework handles JSON.
     6. For validation errors, return detailed changeset errors:
        ```elixir
-       errors = Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
-         Regex.replace(~r"%{(\\w+)}", msg, fn _, key ->
-           opts |> Keyword.get(String.to_existing_atom(key), key) |> to_string()
-         end)
-       end)
+       errors = Ecto.Changeset.traverse_errors(changeset, fn {msg, _opts} -> msg end)
        %{error: "Validation failed", details: errors}
        ```
+       IMPORTANT: Do NOT use `String.to_existing_atom`, `String.to_atom`, or `List.to_atom` anywhere.
+       These functions are blocked by the security validator and will cause compilation failure.
+       The simple `fn {msg, _opts} -> msg end` form is correct and sufficient.
        For other errors, return `%{error: "human-readable message"}`.
     7. NEVER use modules from the prohibited list.
     8. NEVER access filesystem, network, or system commands.

@@ -659,8 +659,16 @@ defmodule Blackboex.Agent.Session do
   defp files_from_result(result) do
     files = [%{path: "/src/handler.ex", content: result[:code], file_type: "source"}]
 
-    if result[:test_code] do
-      files ++ [%{path: "/test/handler_test.ex", content: result[:test_code], file_type: "test"}]
+    files =
+      if result[:test_code] do
+        files ++
+          [%{path: "/test/handler_test.ex", content: result[:test_code], file_type: "test"}]
+      else
+        files
+      end
+
+    if result[:documentation_md] do
+      files ++ [%{path: "/README.md", content: result[:documentation_md], file_type: "doc"}]
     else
       files
     end

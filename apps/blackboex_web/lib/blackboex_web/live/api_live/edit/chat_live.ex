@@ -223,9 +223,16 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
   def handle_info({:agent_streaming, %{delta: delta}}, socket) do
     if socket.assigns.current_run_id do
       new_tokens = socket.assigns.streaming_tokens <> delta
-      stripped = strip_code_fences(new_tokens)
+      socket = assign(socket, streaming_tokens: new_tokens)
 
-      {:noreply, assign(socket, streaming_tokens: new_tokens, editor_live_content: stripped)}
+      socket =
+        if socket.assigns.pipeline_status == :fixing do
+          socket
+        else
+          assign(socket, editor_live_content: strip_code_fences(new_tokens))
+        end
+
+      {:noreply, socket}
     else
       {:noreply, socket}
     end
@@ -589,8 +596,10 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
   defp pipeline_step_to_status(:compiling), do: :compiling
   defp pipeline_step_to_status(:formatting), do: :formatting
   defp pipeline_step_to_status(:linting), do: :linting
-  defp pipeline_step_to_status(:fixing_compilation), do: :compiling
-  defp pipeline_step_to_status(:fixing_lint), do: :linting
+  defp pipeline_step_to_status(:fixing_compilation), do: :fixing
+  defp pipeline_step_to_status(:fixing_lint), do: :fixing
+  defp pipeline_step_to_status(:fixing_tests), do: :fixing
+  defp pipeline_step_to_status(:generating_docs), do: :generating_docs
   defp pipeline_step_to_status(:submitting), do: :submitting
   defp pipeline_step_to_status(_), do: :processing
 
@@ -600,6 +609,17 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
 
   defp maybe_update_code_from_step(socket, %{test_code: test_code}) when is_binary(test_code) do
     assign(socket, test_code: test_code)
+  end
+
+  defp maybe_update_code_from_step(socket, %{step: :generating_docs, content: doc})
+       when is_binary(doc) do
+    files =
+      Enum.map(socket.assigns.files, fn
+        %{path: "/README.md"} = f -> %{f | content: doc}
+        f -> f
+      end)
+
+    assign(socket, files: files)
   end
 
   defp maybe_update_code_from_step(socket, _payload), do: socket
@@ -679,40 +699,56 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
 
   defp resolve_editor_content(assigns) do
     path = assigns.selected_file && assigns.selected_file.path
+    target = streaming_target(assigns.pipeline_status, path)
+    resolve_for_target(target, assigns)
+  end
 
-    case streaming_target(assigns.pipeline_status, path) do
-      :streaming_source when assigns.streaming_tokens != "" ->
-        strip_code_fences(assigns.streaming_tokens)
-
-      :streaming_source ->
-        assigns.code
-
-      :streaming_test when assigns.streaming_tokens != "" ->
-        strip_code_fences(assigns.streaming_tokens)
-
-      :streaming_test ->
-        assigns.test_code
-
-      :source ->
-        assigns.code
-
-      :test ->
-        assigns.test_code
-
-      _ ->
-        nil
+  defp resolve_for_target(target, assigns)
+       when target in [:streaming_source, :streaming_test, :streaming_doc] do
+    if assigns.streaming_tokens != "" do
+      strip_code_fences(assigns.streaming_tokens)
+    else
+      static_content_for(target, assigns)
     end
   end
+
+  defp resolve_for_target(:source, assigns), do: assigns.code
+  defp resolve_for_target(:test, assigns), do: assigns.test_code
+  defp resolve_for_target(:doc, assigns), do: selected_file_content(assigns)
+  defp resolve_for_target(_, _assigns), do: nil
+
+  defp static_content_for(:streaming_source, assigns), do: assigns.code
+  defp static_content_for(:streaming_test, assigns), do: assigns.test_code
+  defp static_content_for(:streaming_doc, assigns), do: selected_file_content(assigns)
+
+  defp selected_file_content(assigns),
+    do: (assigns.selected_file && assigns.selected_file.content) || ""
 
   defp streaming_target(status, path) do
+    file_type = classify_file(path)
+    streaming_target_for(status, file_type)
+  end
+
+  defp classify_file(nil), do: :unknown
+
+  defp classify_file(path) when is_binary(path) do
     cond do
-      source_step?(status) and source_file?(path) -> :streaming_source
-      test_step?(status) and test_file?(path) -> :streaming_test
-      source_file?(path) -> :source
-      test_file?(path) -> :test
-      true -> :none
+      String.starts_with?(path, "/src") -> :source
+      String.starts_with?(path, "/test") -> :test
+      String.ends_with?(path, ".md") -> :doc
+      true -> :unknown
     end
   end
+
+  defp streaming_target_for(status, :source)
+       when status in [:generating, :compiling, :formatting, :linting],
+       do: :streaming_source
+
+  defp streaming_target_for(status, :test) when status in [:generating_tests, :running_tests],
+    do: :streaming_test
+
+  defp streaming_target_for(:generating_docs, :doc), do: :streaming_doc
+  defp streaming_target_for(_status, file_type), do: file_type
 
   defp auto_select_file_for_step(socket, status)
        when status in [:generating, :compiling, :formatting, :linting] do
@@ -726,14 +762,12 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
     if file, do: assign(socket, selected_file: file), else: socket
   end
 
-  defp auto_select_file_for_step(socket, _status), do: socket
+  defp auto_select_file_for_step(socket, :generating_docs) do
+    file = Enum.find(socket.assigns.files, &(&1.path == "/README.md"))
+    if file, do: assign(socket, selected_file: file), else: socket
+  end
 
-  defp source_step?(status), do: status in [:generating, :compiling, :formatting, :linting]
-  defp test_step?(status), do: status in [:generating_tests, :running_tests]
-  defp source_file?(nil), do: false
-  defp source_file?(path), do: String.starts_with?(path, "/src")
-  defp test_file?(nil), do: false
-  defp test_file?(path), do: String.starts_with?(path, "/test")
+  defp auto_select_file_for_step(socket, _status), do: socket
 
   defp strip_code_fences(tokens) when is_binary(tokens) do
     tokens

@@ -3,12 +3,9 @@ defmodule BlackboexWeb.ApiLive.EditEdgeCasesTest do
 
   @moduletag :liveview
 
-  import Mox
-
   alias Blackboex.Apis
   alias Blackboex.Apis.Registry
   alias Blackboex.CodeGen.Compiler
-  alias Blackboex.LLM.ClientMock
   alias Blackboex.Organizations
 
   setup :register_and_log_in_user
@@ -44,14 +41,6 @@ defmodule BlackboexWeb.ApiLive.EditEdgeCasesTest do
     ])
 
     %{org: org, api: api}
-  end
-
-  defp stub_llm_mocks do
-    ClientMock
-    |> stub(:stream_text, fn _prompt, _opts -> {:ok, [{:token, "ok"}]} end)
-    |> stub(:generate_text, fn _prompt, _opts ->
-      {:ok, %{content: "# Docs", usage: %{input_tokens: 10, output_tokens: 10}}}
-    end)
   end
 
   # ── Info tab edge cases ──────────────────────────────────────
@@ -147,42 +136,6 @@ defmodule BlackboexWeb.ApiLive.EditEdgeCasesTest do
     end
   end
 
-  # ── Docs tab edge cases ──────────────────────────────────────
-
-  describe "docs tab" do
-    test "renders docs tab for API without documentation", %{
-      conn: conn,
-      org: org,
-      api: api
-    } do
-      {:ok, _lv, html} = live(conn, ~p"/apis/#{api.id}/edit/docs?org=#{org.id}")
-      # Should render without crash even with no docs
-      assert is_binary(html)
-    end
-
-    test "generate_docs button starts generation", %{conn: conn, org: org, api: api} do
-      stub_llm_mocks()
-
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/docs?org=#{org.id}")
-
-      html = render_click(lv, "generate_docs")
-      # Should show generating state or the result
-      assert is_binary(html)
-    end
-
-    test "double-clicking generate_docs is guarded", %{conn: conn, org: org, api: api} do
-      stub_llm_mocks()
-
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/docs?org=#{org.id}")
-
-      # First click starts generation
-      render_click(lv, "generate_docs")
-      # Second click should be a no-op (guard: doc_generating: true)
-      html = render_click(lv, "generate_docs")
-      assert is_binary(html)
-    end
-  end
-
   # ── Run tab edge cases ───────────────────────────────────────
 
   describe "run tab edge cases" do
@@ -269,15 +222,6 @@ defmodule BlackboexWeb.ApiLive.EditEdgeCasesTest do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/metrics?org=#{org.id}")
 
       html = render_click(lv, "change_metrics_period", %{"period" => "7d"})
-      assert is_binary(html)
-    end
-  end
-
-  # ── Tests tab ────────────────────────────────────────────────
-
-  describe "tests tab" do
-    test "renders tests tab for API without tests", %{conn: conn, org: org, api: api} do
-      {:ok, _lv, html} = live(conn, ~p"/apis/#{api.id}/edit/tests?org=#{org.id}")
       assert is_binary(html)
     end
   end

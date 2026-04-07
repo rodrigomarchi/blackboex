@@ -134,6 +134,7 @@ defmodule BlackboexWeb.Components.Editor.FileTree do
 
   defp file_icon_class(name) do
     cond do
+      String.ends_with?(name, ".md") -> "hero-document-text text-blue-500/80"
       String.ends_with?(name, "_test.ex") -> "hero-beaker text-green-500/80"
       String.ends_with?(name, ".ex") -> "hero-code-bracket text-purple-500/80"
       true -> "hero-document text-muted-foreground"

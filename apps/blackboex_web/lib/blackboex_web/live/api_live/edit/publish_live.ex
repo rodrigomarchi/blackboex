@@ -152,13 +152,6 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLive do
                     <span class="text-[10px] text-muted-foreground">Generated on save</span>
                   <% end %>
                 </div>
-                <.link
-                  :if={@api.documentation_md}
-                  patch={~p"/apis/#{@api.id}/edit/docs"}
-                  class="text-xs text-primary hover:underline"
-                >
-                  View
-                </.link>
               </div>
             </div>
           </div>

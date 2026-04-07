@@ -253,9 +253,9 @@ defmodule BlackboexWeb.ApiLive.Edit.SharedTest do
       render_click(lv, "toggle_command_palette", %{})
 
       assert {:error, {:live_redirect, %{to: path}}} =
-               render_click(lv, "command_palette_exec", %{"event" => "switch_tab_code"})
+               render_click(lv, "command_palette_exec", %{"event" => "switch_tab_chat"})
 
-      assert path =~ "/edit/code"
+      assert path =~ "/edit/chat"
     end
 
     test "routes toggle_chat to chat tab", %{conn: conn, org: org, api: api} do
@@ -277,7 +277,7 @@ defmodule BlackboexWeb.ApiLive.Edit.SharedTest do
       assert {:error, {:live_redirect, %{to: path}}} =
                render_click(lv, "command_palette_exec", %{"event" => "something_unknown"})
 
-      assert path =~ "/edit/code"
+      assert path =~ "/edit/chat"
     end
   end
 

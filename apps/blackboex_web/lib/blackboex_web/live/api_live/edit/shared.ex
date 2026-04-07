@@ -114,7 +114,7 @@ defmodule BlackboexWeb.ApiLive.Edit.Shared do
   defp command_to_path(socket, "toggle_config"), do: edit_tab_path(socket, "publish")
   defp command_to_path(socket, "toggle_bottom_panel"), do: edit_tab_path(socket, "run")
   defp command_to_path(socket, "switch_tab_" <> tab), do: edit_tab_path(socket, tab)
-  defp command_to_path(socket, _), do: edit_tab_path(socket, "code")
+  defp command_to_path(socket, _), do: edit_tab_path(socket, "chat")
 
   defp resolve_organization(socket, params) do
     scope = socket.assigns.current_scope

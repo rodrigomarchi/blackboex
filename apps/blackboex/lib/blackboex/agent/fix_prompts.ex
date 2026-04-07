@@ -6,6 +6,27 @@ defmodule Blackboex.Agent.FixPrompts do
   code regeneration when edits can't be applied.
   """
 
+  @handler_rules """
+  ## Handler Code Rules (violations cause compilation failure)
+  - Return ONLY `def`/`defp` functions and `defmodule Request`/`defmodule Response` — NOT a full module.
+  - Functions receive params as a plain map and return a plain map.
+  - Do NOT use `conn`, `json/2`, `put_status/2`, `send_resp/3`, or any Plug/Phoenix functions.
+  - Allowed defmodule names: Request, Response, Params, and nested schema modules for embeds.
+  - Every public `def` MUST have @doc and @spec directly above it.
+  - Use `use Blackboex.Schema` for Request/Response schemas (provides Ecto embedded_schema + Changeset).
+  - Nested schemas (embeds_one/embeds_many) MUST define `changeset/2` (struct + params), NOT `changeset/1`.
+  - `elsif` DOES NOT EXIST in Elixir. Use `cond do` or pattern matching with function clauses.
+  - NEVER use `String.to_existing_atom`, `String.to_atom`, or `List.to_atom` — all are blocked.
+    Use `fn {msg, _opts} -> msg end` for traverse_errors. Use Map lookup for string-to-atom needs.
+  - Max 40 lines per function, max 120 chars per line, max 4 nesting levels.
+
+  ## Allowed Modules
+  #{Enum.join(Blackboex.LLM.Prompts.allowed_modules(), ", ")}
+
+  ## Prohibited Modules (NEVER use these)
+  #{Enum.join(Blackboex.LLM.Prompts.prohibited_modules(), ", ")}
+  """
+
   @edit_format_instructions """
   ## Response Format: SEARCH/REPLACE Edits
 
@@ -32,12 +53,7 @@ defmodule Blackboex.Agent.FixPrompts do
     system = """
     You are an expert Elixir developer. Fix compilation errors using targeted edits.
 
-    CRITICAL CONSTRAINTS (handler code rules):
-    - Return ONLY `def`/`defp` functions and `defmodule Request`/`defmodule Response` — NOT a full module.
-    - Functions receive params as a plain map and return a plain map.
-    - Do NOT use `conn`, `json/2`, `put_status/2`, `send_resp/3`, or any Plug/Phoenix functions.
-    - Allowed defmodule names: Request, Response, Params, and nested schema modules for embeds.
-    - Every public `def` MUST have @doc and @spec directly above it.
+    #{@handler_rules}
 
     Common fixes:
     - "uses json()" → remove json(), return plain map instead: `%{result: value}`
@@ -58,6 +74,13 @@ defmodule Blackboex.Agent.FixPrompts do
       `def changeset(struct \\\\ %__MODULE__{}, params)` instead of `def changeset(params)`.
     - "too many unique atoms" → reduce code size: extract repeated map keys, merge
       similar functions, remove redundant default clauses. Keep total atoms well under 800.
+    - "blocked function: String.to_existing_atom" or "String.to_atom" or "List.to_atom" →
+      These functions are BLOCKED by the security validator. NEVER replace one with another.
+      For `traverse_errors`, use the simple form: `fn {msg, _opts} -> msg end`.
+      For any other atom conversion need, use a Map lookup or pattern matching instead.
+      WRONG: `String.to_existing_atom(key)`, `String.to_atom(key)`, `List.to_atom(chars)`
+      RIGHT: `fn {msg, _opts} -> msg end` (for traverse_errors)
+      RIGHT: Use a map like `%{"key" => :key}` for known string-to-atom mappings
 
     #{@edit_format_instructions}
     """
@@ -79,6 +102,8 @@ defmodule Blackboex.Agent.FixPrompts do
   def fix_lint(code, issues, context_log \\ "") do
     system = """
     You are an expert Elixir developer. Fix linter issues using targeted edits.
+
+    #{@handler_rules}
 
     LINTER RULES (all enforced automatically):
     - Max 120 characters per line — break long lines
@@ -131,6 +156,8 @@ defmodule Blackboex.Agent.FixPrompts do
     You are an expert Elixir developer. Tests failed against the handler code.
     Analyze whether the bug is in the handler or in the test.
     Fix the appropriate code using targeted edits.
+
+    #{@handler_rules}
 
     IMPORTANT:
     - The `Handler` module wraps the handler code and is compiled separately.

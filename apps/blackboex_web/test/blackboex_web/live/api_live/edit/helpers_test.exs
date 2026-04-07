@@ -301,7 +301,7 @@ defmodule BlackboexWeb.ApiLive.Edit.HelpersTest do
       assert Helpers.edit_tab_path(socket, "run") == "/apis/#{api_id}/edit/run"
       assert Helpers.edit_tab_path(socket, "metrics") == "/apis/#{api_id}/edit/metrics"
       assert Helpers.edit_tab_path(socket, "info") == "/apis/#{api_id}/edit/info"
-      assert Helpers.edit_tab_path(socket, "docs") == "/apis/#{api_id}/edit/docs"
+      assert Helpers.edit_tab_path(socket, "chat") == "/apis/#{api_id}/edit/chat"
     end
   end
 

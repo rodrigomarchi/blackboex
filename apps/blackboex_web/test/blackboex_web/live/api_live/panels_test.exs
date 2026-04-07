@@ -64,7 +64,7 @@ defmodule BlackboexWeb.ApiLive.PanelsTest do
       {:ok, _lv, html} = live(conn, ~p"/apis/#{api.id}/edit/run?org=#{org.id}")
       assert html =~ "History"
 
-      {:ok, _lv, html} = live(conn, ~p"/apis/#{api.id}/edit/code?org=#{org.id}")
+      {:ok, _lv, html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
       assert html =~ "Code"
     end
 
@@ -78,7 +78,7 @@ defmodule BlackboexWeb.ApiLive.PanelsTest do
 
   describe "command palette" do
     test "opens and closes via toggle event", %{conn: conn, org: org, api: api} do
-      {:ok, lv, html} = live(conn, ~p"/apis/#{api.id}/edit/code?org=#{org.id}")
+      {:ok, lv, html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
 
       refute html =~ "Search commands"
 
@@ -90,7 +90,7 @@ defmodule BlackboexWeb.ApiLive.PanelsTest do
     end
 
     test "search filters commands", %{conn: conn, org: org, api: api} do
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/code?org=#{org.id}")
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
 
       lv |> element(~s(button[phx-click="toggle_command_palette"])) |> render_click()
 
@@ -101,7 +101,7 @@ defmodule BlackboexWeb.ApiLive.PanelsTest do
 
     test "executing a command closes palette and runs action", %{conn: conn, org: org, api: api} do
       conn_with_org = Plug.Conn.put_session(conn, :organization_id, org.id)
-      {:ok, lv, _html} = live(conn_with_org, ~p"/apis/#{api.id}/edit/code?org=#{org.id}")
+      {:ok, lv, _html} = live(conn_with_org, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
 
       lv |> element(~s(button[phx-click="toggle_command_palette"])) |> render_click()
 
@@ -116,7 +116,7 @@ defmodule BlackboexWeb.ApiLive.PanelsTest do
 
     test "exec_first executes first match", %{conn: conn, org: org, api: api} do
       conn_with_org = Plug.Conn.put_session(conn, :organization_id, org.id)
-      {:ok, lv, _html} = live(conn_with_org, ~p"/apis/#{api.id}/edit/code?org=#{org.id}")
+      {:ok, lv, _html} = live(conn_with_org, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
 
       lv |> element(~s(button[phx-click="toggle_command_palette"])) |> render_click()
       lv |> render_hook("command_palette_search", %{"command_query" => "chat"})
@@ -131,7 +131,7 @@ defmodule BlackboexWeb.ApiLive.PanelsTest do
     end
 
     test "exec_first with no matches keeps palette open", %{conn: conn, org: org, api: api} do
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/code?org=#{org.id}")
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
 
       lv |> element(~s(button[phx-click="toggle_command_palette"])) |> render_click()
       lv |> render_hook("command_palette_search", %{"command_query" => "zzzzz_nonexistent"})
@@ -151,7 +151,7 @@ defmodule BlackboexWeb.ApiLive.PanelsTest do
     end
 
     test "shows publish command only when compiled", %{conn: conn, org: org, api: api} do
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/code?org=#{org.id}")
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
 
       html = lv |> element(~s(button[phx-click="toggle_command_palette"])) |> render_click()
       refute html =~ "Publish API"
@@ -162,7 +162,7 @@ defmodule BlackboexWeb.ApiLive.PanelsTest do
       {:ok, _module} = Compiler.compile(api, code)
       {:ok, _api} = Apis.update_api(api, %{status: "compiled"})
 
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/code?org=#{org.id}")
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
 
       html = lv |> element(~s(button[phx-click="toggle_command_palette"])) |> render_click()
       assert html =~ "Publish API"
@@ -193,14 +193,14 @@ defmodule BlackboexWeb.ApiLive.PanelsTest do
 
   describe "compile state after save" do
     test "status badge updates after successful compile", %{conn: conn, org: org, api: api} do
-      {:ok, _lv, html} = live(conn, ~p"/apis/#{api.id}/edit/code?org=#{org.id}")
+      {:ok, _lv, html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
       assert html =~ "draft"
 
       code = "def handle(_), do: %{ok: true}"
       {:ok, _module} = Compiler.compile(api, code)
       {:ok, _api} = Apis.update_api(api, %{status: "compiled"})
 
-      {:ok, _lv, html} = live(conn, ~p"/apis/#{api.id}/edit/code?org=#{org.id}")
+      {:ok, _lv, html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
 
       assert html =~ "compiled"
 

@@ -11,7 +11,7 @@ defmodule Blackboex.Apis.ApiFile do
 
   @type t :: %__MODULE__{}
 
-  @valid_file_types ~w(source test config)
+  @valid_file_types ~w(source test config doc)
 
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
@@ -32,8 +32,8 @@ defmodule Blackboex.Apis.ApiFile do
     |> cast(attrs, [:api_id, :path, :content, :file_type])
     |> validate_required([:api_id, :path, :file_type])
     |> validate_inclusion(:file_type, @valid_file_types)
-    |> validate_format(:path, ~r|^/[a-z0-9_/.-]+\.ex$|,
-      message: "must start with / and end with .ex (e.g. /src/handler.ex)"
+    |> validate_format(:path, ~r{^/[a-zA-Z0-9_/.-]+\.(ex|md)$},
+      message: "must start with / and end with .ex or .md (e.g. /src/handler.ex, /README.md)"
     )
     |> unique_constraint([:api_id, :path])
   end

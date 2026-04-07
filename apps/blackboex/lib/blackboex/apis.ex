@@ -542,6 +542,14 @@ defmodule Blackboex.Apis do
           source: "scaffold"
         })
 
+        create_file(api, %{
+          path: "/README.md",
+          content:
+            "# #{api.name}\n\nDocumentation will be generated after code generation completes.",
+          file_type: "doc",
+          source: "scaffold"
+        })
+
         {:ok, api}
 
       error ->

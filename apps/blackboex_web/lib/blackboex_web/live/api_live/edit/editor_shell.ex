@@ -9,15 +9,12 @@ defmodule BlackboexWeb.ApiLive.Edit.EditorShell do
   import BlackboexWeb.Components.Editor.Toolbar
   import BlackboexWeb.Components.Editor.StatusBar
   import BlackboexWeb.Components.Editor.CommandPalette
-  import BlackboexWeb.ApiLive.Edit.Helpers, only: [test_summary_class: 1]
-
   attr :api, :map, required: true
   attr :active_tab, :string, required: true
   attr :versions, :list, default: []
   attr :selected_version, :map, default: nil
   attr :generation_status, :string, default: nil
   attr :validation_report, :map, default: nil
-  attr :test_summary, :string, default: nil
   attr :command_palette_open, :boolean, default: false
   attr :command_palette_query, :string, default: ""
   attr :command_palette_selected, :integer, default: 0
@@ -25,10 +22,7 @@ defmodule BlackboexWeb.ApiLive.Edit.EditorShell do
 
   @tabs [
     %{id: "chat", label: "Chat"},
-    %{id: "code", label: "Code"},
-    %{id: "tests", label: "Tests"},
     %{id: "validation", label: "Validation"},
-    %{id: "docs", label: "Docs"},
     %{id: "versions", label: "Versions"},
     %{id: "run", label: "Run"},
     %{id: "metrics", label: "Metrics"},
@@ -65,15 +59,6 @@ defmodule BlackboexWeb.ApiLive.Edit.EditorShell do
               ]}
             >
               {tab.label}
-              <span
-                :if={tab.id == "tests" && @test_summary}
-                class={[
-                  "ml-1 inline-flex rounded-full px-1.5 text-[10px] font-semibold",
-                  test_summary_class(@test_summary)
-                ]}
-              >
-                {@test_summary}
-              </span>
               <span
                 :if={tab.id == "validation" && @validation_report}
                 class={[

@@ -78,7 +78,6 @@ defmodule BlackboexWeb.Components.Editor.CommandPalette do
     %{label: "Toggle Chat", shortcut: "⌘L", event: "toggle_chat", group: :panel},
     %{label: "Toggle Testing", shortcut: "⌘J", event: "toggle_bottom_panel", group: :panel},
     %{label: "Toggle Config", shortcut: "⌘I", event: "toggle_config", group: :panel},
-    %{label: "Generate Documentation", shortcut: nil, event: "generate_docs", group: :doc},
     %{label: "Quick Test GET /", shortcut: nil, event: "quick_test_get", group: :test},
     %{
       label: "Quick Test POST / with example",

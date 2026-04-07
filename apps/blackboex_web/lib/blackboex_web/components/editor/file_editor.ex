@@ -7,7 +7,9 @@ defmodule BlackboexWeb.Components.Editor.FileEditor do
 
   use Phoenix.Component
 
+  import Phoenix.HTML, only: [raw: 1]
   import BlackboexWeb.Components.Editor.CodeViewer, only: [code_viewer: 1]
+  import BlackboexWeb.ApiLive.Edit.Helpers, only: [render_markdown: 1]
 
   attr :file, :map, default: nil
   attr :live_content, :string, default: nil
@@ -16,7 +18,13 @@ defmodule BlackboexWeb.Components.Editor.FileEditor do
 
   def file_editor(assigns) do
     content = assigns.live_content || (assigns.file && assigns.file.content) || ""
-    assigns = assign(assigns, :display_content, content)
+    is_markdown = assigns.file && String.ends_with?(assigns.file.path, ".md")
+
+    assigns =
+      assign(assigns,
+        display_content: content,
+        is_markdown: is_markdown
+      )
 
     ~H"""
     <div class={["flex flex-col h-full bg-[#1e1e2e]", @class]}>
@@ -30,8 +38,16 @@ defmodule BlackboexWeb.Components.Editor.FileEditor do
             </span>
           <% end %>
         </div>
-        <div class="flex-1 min-h-0 relative">
-          <.code_viewer code={@display_content} class="absolute inset-0" />
+        <div class="flex-1 min-h-0 relative" id="editor-scroll-region" phx-hook="EditorAutoScroll">
+          <%= if @is_markdown do %>
+            <div class="absolute inset-0 overflow-y-auto p-6">
+              <div class="prose prose-sm dark:prose-invert max-w-none">
+                {raw(render_markdown(@display_content))}
+              </div>
+            </div>
+          <% else %>
+            <.code_viewer code={@display_content} class="absolute inset-0" />
+          <% end %>
         </div>
       <% else %>
         <div class="flex items-center justify-center h-full text-sm text-white/30">

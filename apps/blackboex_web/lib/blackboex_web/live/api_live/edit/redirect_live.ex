@@ -1,6 +1,6 @@
 defmodule BlackboexWeb.ApiLive.Edit.RedirectLive do
   @moduledoc """
-  Redirects bare /apis/:id/edit to /apis/:id/edit/code.
+  Redirects bare /apis/:id/edit to /apis/:id/edit/chat.
   """
 
   use BlackboexWeb, :live_view
@@ -8,7 +8,7 @@ defmodule BlackboexWeb.ApiLive.Edit.RedirectLive do
   @impl true
   def mount(%{"id" => id} = params, _session, socket) do
     org_param = if params["org"], do: "?org=#{params["org"]}", else: ""
-    {:ok, push_navigate(socket, to: "/apis/#{id}/edit/code#{org_param}")}
+    {:ok, push_navigate(socket, to: "/apis/#{id}/edit/chat#{org_param}")}
   end
 
   @impl true

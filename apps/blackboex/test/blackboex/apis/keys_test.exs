@@ -299,6 +299,41 @@ defmodule Blackboex.Apis.KeysTest do
     end
   end
 
+  describe "keys_summary/1" do
+    test "returns zero counts when no keys exist", %{api: api} do
+      summary = Keys.keys_summary(api.id)
+
+      assert summary.active_keys == []
+      assert summary.active_count == 0
+      assert summary.revoked_count == 0
+    end
+
+    test "counts active and revoked keys separately", %{api: api, org: org} do
+      {:ok, _plain1, _key1} = Keys.create_key(api, %{label: "Key 1", organization_id: org.id})
+      {:ok, _plain2, key2} = Keys.create_key(api, %{label: "Key 2", organization_id: org.id})
+      {:ok, _plain3, _key3} = Keys.create_key(api, %{label: "Key 3", organization_id: org.id})
+
+      {:ok, _} = Keys.revoke_key(key2)
+
+      summary = Keys.keys_summary(api.id)
+
+      assert summary.active_count == 2
+      assert summary.revoked_count == 1
+      assert length(summary.active_keys) == 2
+      refute Enum.any?(summary.active_keys, &(&1.id == key2.id))
+    end
+
+    test "active_keys contain key_prefix for display", %{api: api, org: org} do
+      {:ok, _plain, _key} = Keys.create_key(api, %{label: "Display", organization_id: org.id})
+
+      summary = Keys.keys_summary(api.id)
+      [active_key] = summary.active_keys
+
+      assert active_key.key_prefix != nil
+      assert String.starts_with?(active_key.key_prefix, "bb_live_")
+    end
+  end
+
   describe "full lifecycle" do
     test "create -> verify -> touch -> rotate -> old fails -> new works -> revoke -> new fails",
          %{api: api, org: org} do

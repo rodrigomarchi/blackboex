@@ -450,6 +450,15 @@ defmodule Blackboex.Apis do
     |> Repo.one()
   end
 
+  @spec published_version(Ecto.UUID.t()) :: ApiVersion.t() | nil
+  def published_version(api_id) do
+    ApiVersion
+    |> where([v], v.api_id == ^api_id and v.source == "publish")
+    |> order_by([v], desc: v.version_number)
+    |> limit(1)
+    |> Repo.one()
+  end
+
   @spec get_latest_version(Api.t()) :: ApiVersion.t() | nil
   def get_latest_version(%Api{id: api_id}) do
     ApiVersion

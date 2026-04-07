@@ -39,8 +39,8 @@ defmodule BlackboexWeb.ApiLive.PanelsTest do
 
     test "publish tab shows publication section", %{conn: conn, org: org, api: api} do
       {:ok, _lv, html} = live(conn, ~p"/apis/#{api.id}/edit/publish?org=#{org.id}")
-      assert html =~ "Publication"
-      assert html =~ "Settings"
+      assert html =~ "Versions"
+      assert html =~ "Authentication"
     end
 
     test "info tab shows API information", %{conn: conn, org: org, api: api} do
@@ -58,7 +58,7 @@ defmodule BlackboexWeb.ApiLive.PanelsTest do
       {:ok, _lv, html} = live(conn, ~p"/apis/#{api.id}/edit/validation?org=#{org.id}")
       assert html =~ "Validation"
 
-      {:ok, _lv, html} = live(conn, ~p"/apis/#{api.id}/edit/versions?org=#{org.id}")
+      {:ok, _lv, html} = live(conn, ~p"/apis/#{api.id}/edit/publish?org=#{org.id}")
       assert html =~ "No versions yet"
 
       {:ok, _lv, html} = live(conn, ~p"/apis/#{api.id}/edit/run?org=#{org.id}")
@@ -72,7 +72,7 @@ defmodule BlackboexWeb.ApiLive.PanelsTest do
       {:ok, _lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
 
       {:ok, _lv, html} = live(conn, ~p"/apis/#{api.id}/edit/publish?org=#{org.id}")
-      assert html =~ "Publication"
+      assert html =~ "Versions"
     end
   end
 

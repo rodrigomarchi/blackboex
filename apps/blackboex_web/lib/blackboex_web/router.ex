@@ -166,10 +166,8 @@ defmodule BlackboexWeb.Router do
       live "/apis/:id/edit", ApiLive.Edit.RedirectLive
       live "/apis/:id/edit/chat", ApiLive.Edit.ChatLive
       live "/apis/:id/edit/validation", ApiLive.Edit.ValidationLive
-      live "/apis/:id/edit/versions", ApiLive.Edit.VersionsLive
       live "/apis/:id/edit/run", ApiLive.Edit.RunLive
       live "/apis/:id/edit/metrics", ApiLive.Edit.MetricsLive
-      live "/apis/:id/edit/keys", ApiLive.Edit.KeysLive
       live "/apis/:id/edit/publish", ApiLive.Edit.PublishLive
       live "/apis/:id/edit/info", ApiLive.Edit.InfoLive
     end

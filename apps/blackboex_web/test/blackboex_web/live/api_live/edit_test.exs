@@ -52,9 +52,12 @@ defmodule BlackboexWeb.ApiLive.EditTest do
 
       assert html =~ "Chat"
       assert html =~ "Validation"
-      assert html =~ "API Keys"
+      assert html =~ "Run"
+      assert html =~ "Metrics"
       assert html =~ "Publish"
       assert html =~ "Info"
+      refute html =~ "API Keys"
+      refute html =~ "Versions"
     end
 
     test "shows API info in info tab", %{conn: conn, org: org, api: api} do
@@ -66,7 +69,7 @@ defmodule BlackboexWeb.ApiLive.EditTest do
   end
 
   describe "versions" do
-    test "shows version history in bottom panel", %{conn: conn, org: org, api: api, user: user} do
+    test "shows version history in publish tab", %{conn: conn, org: org, api: api, user: user} do
       # Create a version first
       Apis.create_version(api, %{
         code: "def handle(_), do: %{v: 1}",
@@ -74,7 +77,7 @@ defmodule BlackboexWeb.ApiLive.EditTest do
         created_by_id: user.id
       })
 
-      {:ok, _lv, html} = live(conn, ~p"/apis/#{api.id}/edit/versions?org=#{org.id}")
+      {:ok, _lv, html} = live(conn, ~p"/apis/#{api.id}/edit/publish?org=#{org.id}")
 
       assert html =~ "v1"
       assert html =~ "generation"
@@ -102,8 +105,8 @@ defmodule BlackboexWeb.ApiLive.EditTest do
     end
   end
 
-  describe "rollback" do
-    test "creates new version with old code", %{conn: conn, org: org, api: api, user: user} do
+  describe "view_version" do
+    test "view_version shows selected version", %{conn: conn, org: org, api: api, user: user} do
       {:ok, _v1} =
         Apis.create_version(api, %{
           code: "def handle(_), do: %{v: 1}",
@@ -111,23 +114,14 @@ defmodule BlackboexWeb.ApiLive.EditTest do
           created_by_id: user.id
         })
 
-      api = Apis.get_api(org.id, api.id)
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/publish?org=#{org.id}")
 
-      {:ok, _v2} =
-        Apis.create_version(api, %{
-          code: "def handle(_), do: %{v: 2}",
-          source: "manual_edit",
-          created_by_id: user.id
-        })
+      html =
+        lv
+        |> element(~s(button[phx-click="view_version"][phx-value-number="1"]))
+        |> render_click()
 
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/versions?org=#{org.id}")
-
-      lv
-      |> element(~s(button[phx-click="rollback"][phx-value-number="1"]))
-      |> render_click()
-
-      # Flash "Rolled back to v1" is in layout; verify the side-effect
-      assert length(Apis.list_versions(api.id)) == 3
+      assert html =~ "v1"
     end
   end
 end

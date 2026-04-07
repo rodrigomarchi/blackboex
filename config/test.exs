@@ -53,5 +53,13 @@ config :blackboex, :stripe_client, Blackboex.Billing.StripeClientMock
 # FunWithFlags: disable ETS cache in tests for determinism
 config :fun_with_flags, :cache, enabled: false
 
+# PromEx: drop Oban metrics in tests to avoid queue polling on closed DB pools
+config :blackboex_web, BlackboexWeb.PromEx,
+  drop_metrics_groups: [
+    :oban_init_event_metrics,
+    :oban_job_event_metrics,
+    :oban_queue_polling_event_metrics
+  ]
+
 # OpenTelemetry: disable export in tests
 config :opentelemetry, traces_exporter: :none

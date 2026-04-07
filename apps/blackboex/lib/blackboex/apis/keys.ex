@@ -96,6 +96,26 @@ defmodule Blackboex.Apis.Keys do
     end
   end
 
+  @spec keys_summary(Ecto.UUID.t()) :: %{
+          active_keys: [ApiKey.t()],
+          active_count: non_neg_integer(),
+          revoked_count: non_neg_integer()
+        }
+  def keys_summary(api_id) do
+    active =
+      ApiKey
+      |> where([k], k.api_id == ^api_id and is_nil(k.revoked_at))
+      |> order_by([k], desc: k.inserted_at)
+      |> Repo.all()
+
+    revoked_count =
+      ApiKey
+      |> where([k], k.api_id == ^api_id and not is_nil(k.revoked_at))
+      |> Repo.aggregate(:count)
+
+    %{active_keys: active, active_count: length(active), revoked_count: revoked_count}
+  end
+
   @spec list_keys(Ecto.UUID.t()) :: [ApiKey.t()]
   def list_keys(api_id) do
     ApiKey

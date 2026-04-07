@@ -85,7 +85,7 @@ defmodule BlackboexWeb.ApiLive.EditEdgeCasesTest do
       org: org,
       api: api
     } do
-      {:ok, _lv, html} = live(conn, ~p"/apis/#{api.id}/edit/versions?org=#{org.id}")
+      {:ok, _lv, html} = live(conn, ~p"/apis/#{api.id}/edit/publish?org=#{org.id}")
       assert html =~ "No versions yet"
     end
 
@@ -102,7 +102,7 @@ defmodule BlackboexWeb.ApiLive.EditEdgeCasesTest do
           created_by_id: user.id
         })
 
-      {:ok, lv, html} = live(conn, ~p"/apis/#{api.id}/edit/versions?org=#{org.id}")
+      {:ok, lv, html} = live(conn, ~p"/apis/#{api.id}/edit/publish?org=#{org.id}")
       assert html =~ "v1"
 
       # Click view
@@ -114,7 +114,7 @@ defmodule BlackboexWeb.ApiLive.EditEdgeCasesTest do
       assert html =~ "def handle(_), do: %{v: 1}" or html =~ "v1"
     end
 
-    test "rollback with non-existent version number doesn't crash", %{
+    test "publish_version with non-existent version number doesn't crash", %{
       conn: conn,
       org: org,
       api: api,
@@ -127,10 +127,10 @@ defmodule BlackboexWeb.ApiLive.EditEdgeCasesTest do
           created_by_id: user.id
         })
 
-      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/versions?org=#{org.id}")
+      {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/publish?org=#{org.id}")
 
-      # Try rolling back to version 999 which doesn't exist
-      html = render_click(lv, "rollback", %{"number" => "999"})
+      # Try publishing version 999 which doesn't exist
+      html = render_click(lv, "publish_version", %{"number" => "999"})
       # Should not crash — gracefully handle
       assert is_binary(html)
     end

@@ -23,10 +23,8 @@ defmodule BlackboexWeb.ApiLive.Edit.EditorShell do
   @tabs [
     %{id: "chat", label: "Chat"},
     %{id: "validation", label: "Validation"},
-    %{id: "versions", label: "Versions"},
     %{id: "run", label: "Run"},
     %{id: "metrics", label: "Metrics"},
-    %{id: "keys", label: "API Keys"},
     %{id: "publish", label: "Publish"},
     %{id: "info", label: "Info"}
   ]

@@ -648,4 +648,65 @@ defmodule Blackboex.ApisTest do
       assert api.method == "POST"
     end
   end
+
+  # ---------------------------------------------------------------------------
+  # published_version/1
+  # ---------------------------------------------------------------------------
+
+  describe "published_version/1" do
+    test "returns nil when api has no published version", %{user: user, org: org} do
+      api = api_fixture(%{user: user, org: org})
+      assert Apis.published_version(api.id) == nil
+    end
+
+    test "returns nil when api has versions but none with source publish", %{user: user, org: org} do
+      api = api_fixture(%{user: user, org: org})
+      Apis.upsert_files(api, [%{path: "/src/handler.ex", content: "code", file_type: "source"}])
+      {:ok, _v1} = Apis.create_version(api, %{source: "manual_edit"})
+
+      assert Apis.published_version(api.id) == nil
+    end
+
+    test "returns the latest publish version", %{user: user, org: org} do
+      api = api_fixture(%{user: user, org: org, status: "compiled"})
+      Apis.upsert_files(api, [%{path: "/src/handler.ex", content: "code", file_type: "source"}])
+
+      {:ok, published_api} = Apis.publish(api, org)
+
+      version = Apis.published_version(published_api.id)
+      assert %ApiVersion{} = version
+      assert version.source == "publish"
+      assert version.version_label != nil
+    end
+
+    test "returns latest publish version when multiple publishes exist", %{user: user, org: org} do
+      api = api_fixture(%{user: user, org: org, status: "compiled"})
+      Apis.upsert_files(api, [%{path: "/src/handler.ex", content: "v1", file_type: "source"}])
+
+      {:ok, published_api} = Apis.publish(api, org)
+
+      # Unpublish, edit, republish
+      {:ok, unpublished} = Apis.unpublish(published_api)
+      recompiled = %{unpublished | status: "compiled"}
+      {:ok, _} = Apis.update_api(recompiled, %{status: "compiled"})
+      api_reloaded = Apis.get_api(org.id, api.id)
+      {:ok, _} = Apis.update_api(api_reloaded, %{status: "compiled"})
+      api_compiled = Apis.get_api(org.id, api.id)
+      {:ok, republished} = Apis.publish(api_compiled, org)
+
+      version = Apis.published_version(republished.id)
+      assert %ApiVersion{} = version
+      assert version.source == "publish"
+
+      # Should be the second publish version (higher version_number)
+      all_publish_versions =
+        Apis.list_versions(api.id)
+        |> Enum.filter(&(&1.source == "publish"))
+
+      assert length(all_publish_versions) == 2
+
+      assert version.version_number ==
+               Enum.max_by(all_publish_versions, & &1.version_number).version_number
+    end
+  end
 end

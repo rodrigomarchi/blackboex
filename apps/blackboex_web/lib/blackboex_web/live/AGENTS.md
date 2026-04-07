@@ -351,11 +351,9 @@ end
 | `ApiLive.Edit.TestsLive` | editor | Read-only syntax-highlighted view of generated test code. | command palette only |
 | `ApiLive.Edit.ValidationLive` | editor | `ValidationDashboard` component: compilation, format, credo, test pass/fail from `validation_report`. | command palette only |
 | `ApiLive.Edit.DocsLive` | editor | Renders API markdown docs. Regenerate via `Task.async` -> `DocGenerator.generate/1`. | `generate_docs` |
-| `ApiLive.Edit.VersionsLive` | editor | Lists all API versions. View historical code, rollback (creates new version). | `view_version`, `clear_version_view`, `rollback` |
 | `ApiLive.Edit.RunLive` | editor | HTTP request builder + response viewer. Request history, code snippets. `Task.async` -> `RequestExecutor.execute/2`. | `send_request`, `quick_test`, `generate_sample`, `copy_snippet`, `update_test_*`, `add/remove_param`, `add/remove_header`, `switch_*_tab`, `load_history_item`, `clear_history` |
 | `ApiLive.Edit.MetricsLive` | editor | Time-series charts (invocations, latency, errors) from rollup table with period switching. Shows recent error log. | `change_metrics_period` |
-| `ApiLive.Edit.KeysLive` | editor | Manages API keys: create, rotate, revoke. Shows key metrics. | `create_key`, `revoke_key`, `rotate_key`, `dismiss_key_flash`, `copy_key` |
-| `ApiLive.Edit.PublishLive` | editor | API publication lifecycle (publish/unpublish). 24h metrics, HTTP method, visibility, auth settings. | `publish`, `unpublish`, `save_publish_settings`, `copy_url` |
+| `ApiLive.Edit.PublishLive` | editor | Unified deployment tab: publish/unpublish, version timeline with LIVE badge, publish-specific-version, keys summary with link to /api-keys, 24h metrics, auth settings, docs links. | `publish`, `unpublish`, `publish_version`, `view_version`, `clear_version_view`, `save_publish_settings`, `copy_url` |
 | `ApiLive.Edit.InfoLive` | editor | Edit API name/description, code stats, param schema, examples, archive. | `update_info`, `archive_api`, `copy_url` |
 | `ApiKeyLive.Index` | app | Lists all org API keys. Create modal with API selector. Shows plain key once after creation. | `toggle_create_modal`, `create_key`, `dismiss_flash` |
 | `ApiKeyLive.Show` | app | Detailed key view with usage metrics, period switching. Rotate and revoke actions. | `set_period`, `revoke`, `rotate`, `dismiss_flash` |
@@ -401,10 +399,8 @@ live/
       tests_live.ex              # /apis/:id/edit/tests
       validation_live.ex         # /apis/:id/edit/validation
       docs_live.ex               # /apis/:id/edit/docs
-      versions_live.ex           # /apis/:id/edit/versions
       run_live.ex                # /apis/:id/edit/run
       metrics_live.ex            # /apis/:id/edit/metrics
-      keys_live.ex               # /apis/:id/edit/keys
       publish_live.ex            # /apis/:id/edit/publish
       info_live.ex               # /apis/:id/edit/info
   api_key_live/

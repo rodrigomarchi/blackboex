@@ -76,7 +76,7 @@ defmodule BlackboexWeb.Live.BillingEnforcementTest do
   end
 
   describe "docs auto-generation" do
-    test "publish tab shows docs are auto-generated on save", %{
+    test "publish tab shows documentation links when compiled", %{
       conn: conn,
       org: org,
       api: api
@@ -86,7 +86,8 @@ defmodule BlackboexWeb.Live.BillingEnforcementTest do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/publish?org=#{org.id}")
 
       html = render(lv)
-      assert html =~ "Generated on save"
+      assert html =~ "Swagger UI"
+      assert html =~ "OpenAPI JSON"
     end
   end
 end

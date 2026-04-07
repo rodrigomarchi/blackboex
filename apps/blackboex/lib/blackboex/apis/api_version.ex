@@ -9,7 +9,7 @@ defmodule Blackboex.Apis.ApiVersion do
 
   @type t :: %__MODULE__{}
 
-  @valid_sources ~w(generation manual_edit chat_edit rollback)
+  @valid_sources ~w(generation manual_edit chat_edit rollback publish)
   @valid_compilation_statuses ~w(pending success error)
 
   @primary_key {:id, :binary_id, autogenerate: true}

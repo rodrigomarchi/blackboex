@@ -35,6 +35,8 @@ defmodule Blackboex.Conversations.Event do
     run_tests
     generate_docs
     submit_code
+    plan_files
+    generate_helpers
   )
 
   @primary_key {:id, :binary_id, autogenerate: true}

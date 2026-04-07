@@ -307,8 +307,10 @@ defmodule Blackboex.LLM.Prompts do
     - NEVER use `field :name, :map` when the map has a known structure — use `embeds_one` instead
 
     ## Output Format
-    Return ONLY Elixir code in a single ```elixir code block.
+    Return ONLY Elixir code in a ```elixir code block.
     The code must contain: Request module, Response module, handler functions (def/defp).
+    When generating a single file, return one code block.
+    When generating as part of a multi-file project, follow the specific instructions for that file.
     """
   end
 
@@ -323,6 +325,196 @@ defmodule Blackboex.LLM.Prompts do
     #{description}
 
     Generate the handler function body for this API endpoint.
+    """
+  end
+
+  @spec planning_prompt(atom()) :: String.t()
+  def planning_prompt(template_type) do
+    """
+    You are an expert Elixir architect planning the file structure for an API handler project.
+
+    Given a user's API description, decide how to organize the code into files.
+    The project uses template type: #{template_type}.
+
+    ## Rules
+    - Every project MUST have AT LEAST 4 files:
+      1. `/src/handler.ex` — main entry point with handle/1 (or CRUD handlers)
+      2. `/src/request_schema.ex` — Request module with validation changeset
+      3. `/src/response_schema.ex` — Response module documenting output structure
+      4. `/src/helpers.ex` — helper functions, constants, and utilities
+    - For complex APIs, add MORE files as needed (e.g., `/src/calculator.ex`, `/src/constants.ex`)
+    - Each file should have a clear, single responsibility
+    - Keep files under 80 lines when possible
+    - The handler MUST NOT define Request or Response modules inline — they live in their own files
+
+    ## Response Format
+    Return a JSON object with this exact structure (no markdown, no explanation, ONLY JSON):
+    ```json
+    {
+      "files": [
+        {"path": "/src/handler.ex", "description": "Main handler with handle/1 entry point", "role": "handler"},
+        {"path": "/src/request_schema.ex", "description": "Request schema with input validation", "role": "helper"},
+        {"path": "/src/response_schema.ex", "description": "Response schema documenting output", "role": "helper"},
+        {"path": "/src/helpers.ex", "description": "Helper functions and utilities", "role": "helper"}
+      ]
+    }
+    ```
+
+    Rules for the manifest:
+    - MINIMUM 4 files: handler.ex, request_schema.ex, response_schema.ex, helpers.ex
+    - Exactly ONE file must have `"role": "handler"` — this is the entry point
+    - All other source files have `"role": "helper"`
+    - Paths must start with `/src/` for source or `/test/` for tests
+    - Do NOT include test files in the manifest — they are generated separately
+    - File names must be valid Elixir module names (snake_case.ex)
+    - Description should explain what the file contains (1 sentence)
+    """
+  end
+
+  @spec handler_generation_prompt(String.t(), [map()]) :: String.t()
+  def handler_generation_prompt(description, manifest_files) do
+    file_list =
+      manifest_files
+      |> Enum.map(fn f -> "- #{f["path"]}: #{f["description"]}" end)
+      |> Enum.join("\n")
+
+    """
+    ## Project Structure
+    This API is organized into multiple files:
+    #{file_list}
+
+    You are generating the MAIN HANDLER file (`/src/handler.ex`).
+
+    ## CRITICAL: Multi-File Rules for handler.ex
+    - Do NOT define `defmodule Request` or `defmodule Response` in this file.
+      They live in `/src/request_schema.ex` and `/src/response_schema.ex` respectively.
+    - Reference them directly: `Request.changeset(params)`, `Response` — they will be
+      available as modules under the API namespace.
+    - The handler contains ONLY: `@doc`, `@spec`, `def handle(params)` and `defp` helpers.
+    - Helper modules (e.g., `Helpers.some_function/1`) are in `/src/helpers.ex`.
+    - Ignore any earlier instructions about defining Request/Response modules inline.
+      In multi-file mode, schemas are ALWAYS in separate files.
+
+    ## User Description
+    #{description}
+
+    Generate the handler code. Return ONLY the code in a ```elixir block.
+    """
+  end
+
+  @spec helpers_generation_prompt([map()], String.t(), String.t()) :: String.t()
+  def helpers_generation_prompt(helper_files, handler_code, description) do
+    file_list =
+      helper_files
+      |> Enum.map(fn f -> "- #{f["path"]}: #{f["description"]}" end)
+      |> Enum.join("\n")
+
+    """
+    You are generating HELPER FILES for an Elixir API handler project.
+
+    ## API Description
+    #{description}
+
+    ## Handler Code (already generated, reference only)
+    ```elixir
+    #{handler_code}
+    ```
+
+    ## Files to Generate
+    #{file_list}
+
+    Generate ALL helper files in a single response. Separate each file with a delimiter line:
+
+    ===== /src/filename.ex =====
+    ```elixir
+    (file content here)
+    ```
+
+    ## CRITICAL: Every file MUST start with `defmodule`
+    Every helper file MUST wrap ALL code inside a `defmodule`. Code with `@doc`, `@spec`,
+    or `@moduledoc` outside of a `defmodule` WILL NOT COMPILE and will be rejected.
+
+    WRONG (will fail):
+    ```elixir
+    @moduledoc "Helpers"
+    def my_function, do: :ok
+    ```
+
+    RIGHT (will compile):
+    ```elixir
+    defmodule Helpers do
+      @moduledoc "Helpers"
+      def my_function, do: :ok
+    end
+    ```
+
+    ## Rules
+    - Generate code for EACH file listed above
+    - `/src/request_schema.ex` MUST define `defmodule Request` with `use Blackboex.Schema`,
+      `embedded_schema`, and `def changeset(params)` with validations
+    - `/src/response_schema.ex` MUST define `defmodule Response` with `use Blackboex.Schema`
+      and `embedded_schema` documenting the output fields
+    - `/src/helpers.ex` MUST define `defmodule Helpers do ... end` wrapping ALL code
+    - EVERY file MUST have exactly ONE top-level `defmodule` wrapping all code
+    - Use `use Blackboex.Schema` for schema modules (Request, Response, nested embeds)
+    - Helper modules can define public functions referenced by the handler
+    - Keep each file focused and under 80 lines
+    - Every `defmodule` must have `@moduledoc`
+    - Every public `def` must have `@doc` and `@spec`
+    - Follow the same allowed/prohibited module rules as the handler
+
+    ## Allowed Modules
+    #{Enum.join(allowed_modules(), ", ")}
+
+    ## Prohibited Modules
+    #{Enum.join(prohibited_modules(), ", ")}
+    """
+  end
+
+  @spec multi_file_edit_prompt([map()], String.t()) :: String.t()
+  def multi_file_edit_prompt(current_files, instruction) do
+    files_section =
+      current_files
+      |> Enum.map(fn file ->
+        """
+        ### #{file.path}
+        ```elixir
+        #{file.content}
+        ```
+        """
+      end)
+      |> Enum.join("\n")
+
+    """
+    ## Current Project Files
+    #{files_section}
+
+    ## Edit Instruction
+    #{instruction}
+
+    Return SEARCH/REPLACE blocks for the files that need to change.
+    Prefix each group of changes with the file path:
+
+    <<<< /src/handler.ex
+    <<<<<<< SEARCH
+    (exact lines to find)
+    =======
+    (replacement lines)
+    >>>>>>> REPLACE
+
+    <<<< /src/helpers.ex
+    <<<<<<< SEARCH
+    (exact lines to find)
+    =======
+    (replacement lines)
+    >>>>>>> REPLACE
+
+    Rules:
+    - Only modify files that need to change
+    - The `<<<<` prefix line indicates which file the following SEARCH/REPLACE block applies to
+    - SEARCH blocks must match exactly (whitespace matters)
+    - You can have multiple SEARCH/REPLACE blocks per file
+    - Before the blocks, write a brief explanation of what you changed
     """
   end
 

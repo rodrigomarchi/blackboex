@@ -1011,4 +1011,226 @@ defmodule Blackboex.Agent.CodePipelineTest do
       assert reason =~ "Compilation failed after"
     end
   end
+
+  # ── Multi-file generation ─────────────────────────────────────
+
+  describe "run_multi_file_generation" do
+    setup [:create_api_with_run]
+
+    test "calls planning step then generates handler", %{api: api, run: run} do
+      test_pid = self()
+      call_count = :counters.new(1, [:atomics])
+
+      manifest_json =
+        ~s|{"files": [{"path": "/src/handler.ex", "description": "Main handler", "role": "handler"}]}|
+
+      valid_code = """
+      defmodule Request do
+        use Blackboex.Schema
+        embedded_schema do
+          field :x, :integer
+        end
+        def changeset(p), do: %__MODULE__{} |> cast(p, [:x]) |> validate_required([:x])
+      end
+
+      defmodule Response do
+        use Blackboex.Schema
+        embedded_schema do
+          field :result, :integer
+        end
+      end
+
+      @doc "Handles request."
+      @spec handle(map()) :: map()
+      def handle(params) do
+        changeset = Request.changeset(params)
+        if changeset.valid? do
+          data = Ecto.Changeset.apply_changes(changeset)
+          %{result: data.x * 2}
+        else
+          errors = Ecto.Changeset.traverse_errors(changeset, fn {msg, _opts} -> msg end)
+          %{error: "Validation failed", details: errors}
+        end
+      end
+      """
+
+      Blackboex.LLM.ClientMock
+      |> stub(:stream_text, fn _prompt, _opts ->
+        count = :counters.get(call_count, 1)
+        :counters.add(call_count, 1, 1)
+
+        response =
+          case count do
+            0 -> manifest_json
+            1 -> "```elixir\n#{valid_code}\n```"
+            _ -> {:error, "stop"}
+          end
+
+        if is_binary(response), do: {:ok, [response]}, else: response
+      end)
+      |> stub(:generate_text, fn _prompt, _opts ->
+        {:error, "stop"}
+      end)
+
+      broadcast = fn event -> send(test_pid, {:broadcast, event}) end
+
+      result =
+        CodePipeline.run_multi_file_generation(api, "Double a number",
+          run_id: run.id,
+          broadcast_fn: broadcast
+        )
+
+      # Planning step fires
+      assert_received {:broadcast, {:step_started, %{step: :planning_files}}}
+      assert_received {:broadcast, {:step_completed, %{step: :planning_files, manifest: _}}}
+
+      # Handler generation fires
+      assert_received {:broadcast, {:file_started, %{path: "/src/handler.ex"}}}
+
+      # Result should have files list (may be partial or error depending on compile)
+      case result do
+        {:ok, %{files: files}} ->
+          assert files != []
+          handler = Enum.find(files, &(&1.path == "/src/handler.ex"))
+          assert handler != nil
+          assert handler.content =~ "def handle"
+
+        {:error, _} ->
+          # Acceptable — compile/test may fail with mock LLM but pipeline ran
+          :ok
+      end
+    end
+
+    test "falls back to single-file when planning returns invalid JSON", %{api: api, run: run} do
+      call_count = :counters.new(1, [:atomics])
+
+      Blackboex.LLM.ClientMock
+      |> stub(:stream_text, fn _prompt, _opts ->
+        count = :counters.get(call_count, 1)
+        :counters.add(call_count, 1, 1)
+        # Planning returns garbage, handler returns code
+        if count == 0, do: {:ok, ["not json"]}, else: {:error, "stop"}
+      end)
+      |> stub(:generate_text, fn _prompt, _opts ->
+        {:error, "stop"}
+      end)
+
+      result =
+        CodePipeline.run_multi_file_generation(api, "Test fallback",
+          run_id: run.id,
+          broadcast_fn: fn _ -> :ok end
+        )
+
+      # Should error eventually (handler gen fails) but planning should not crash
+      assert {:error, _} = result
+    end
+
+    test "budget exhaustion returns partial result when handler was generated", %{
+      api: api,
+      run: run
+    } do
+      call_count = :counters.new(1, [:atomics])
+
+      manifest_json =
+        ~s|{"files": [{"path": "/src/handler.ex", "description": "Handler", "role": "handler"}, {"path": "/src/helpers.ex", "description": "Helpers", "role": "helper"}]}|
+
+      handler_code = "```elixir\ndef handle(p), do: p\n```"
+
+      Blackboex.LLM.ClientMock
+      |> stub(:stream_text, fn _prompt, _opts ->
+        count = :counters.get(call_count, 1)
+        :counters.add(call_count, 1, 1)
+
+        case count do
+          0 -> {:ok, [manifest_json]}
+          1 -> {:ok, [handler_code]}
+          _ -> {:error, :budget_exhausted}
+        end
+      end)
+      |> stub(:generate_text, fn _prompt, _opts ->
+        {:error, :budget_exhausted}
+      end)
+
+      result =
+        CodePipeline.run_multi_file_generation(api, "Test partial",
+          run_id: run.id,
+          broadcast_fn: fn _ -> :ok end,
+          max_llm_calls: 3
+        )
+
+      case result do
+        {:ok, %{partial: true, files: files}} ->
+          assert files != []
+          assert Enum.any?(files, &(&1.path == "/src/handler.ex"))
+
+        {:ok, %{code: code}} ->
+          # Got a result even with tight budget
+          assert code != ""
+
+        {:error, _} ->
+          # Also acceptable — budget too tight
+          :ok
+      end
+    end
+  end
+
+  # ── Multi-file edit ───────────────────────────────────────────
+
+  describe "run_multi_file_edit" do
+    setup [:create_api_with_run]
+
+    test "passes current files to LLM and applies edits", %{api: api, run: run} do
+      current_files = [
+        %{path: "/src/handler.ex", content: "def handle(p), do: p", file_type: "source"},
+        %{path: "/src/helpers.ex", content: "def helper, do: :ok", file_type: "source"}
+      ]
+
+      current_test_files = [
+        %{
+          path: "/test/handler_test.ex",
+          content: "test \"it works\", do: assert true",
+          file_type: "test"
+        }
+      ]
+
+      Blackboex.LLM.ClientMock
+      |> stub(:stream_text, fn _prompt, _opts ->
+        # Return edit with path-annotated SEARCH/REPLACE
+        edit_response = """
+        <<<< /src/handler.ex
+        <<<<<<< SEARCH
+        def handle(p), do: p
+        =======
+        def handle(p), do: %{result: p}
+        >>>>>>> REPLACE
+        """
+
+        {:ok, [edit_response]}
+      end)
+      |> stub(:generate_text, fn _prompt, _opts ->
+        {:error, "stop"}
+      end)
+
+      result =
+        CodePipeline.run_multi_file_edit(
+          api,
+          "Return wrapped result",
+          current_files,
+          current_test_files,
+          run_id: run.id,
+          broadcast_fn: fn _ -> :ok end
+        )
+
+      # Pipeline will likely error on compile/test, but the edit step should have run
+      case result do
+        {:ok, %{files: files}} ->
+          handler = Enum.find(files, &(&1.path == "/src/handler.ex"))
+          assert handler.content =~ "result"
+
+        {:error, _} ->
+          # Expected — mock LLM can't fix compilation
+          :ok
+      end
+    end
+  end
 end

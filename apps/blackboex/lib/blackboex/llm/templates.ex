@@ -217,4 +217,102 @@ defmodule Blackboex.LLM.Templates do
     ```
     """
   end
+
+  @doc "Guide for multi-file project structure — shown to LLM during planning and generation."
+  @spec get_multi_file_guide() :: String.t()
+  def get_multi_file_guide do
+    """
+    ## Multi-File Project Structure
+
+    When an API is complex enough, code can be organized into multiple files:
+
+    ### Example: Currency Converter API
+
+    **File: /src/handler.ex** (entry point)
+    ```elixir
+    @moduledoc "Main handler for currency conversion API."
+
+    defmodule Response do
+      @moduledoc "Response schema for conversion results."
+      use Blackboex.Schema
+
+      embedded_schema do
+        field :from, :string
+        field :to, :string
+        field :amount, :float
+        field :result, :float
+        field :rate, :float
+      end
+    end
+
+    @doc "Converts an amount between currencies."
+    @spec handle(map()) :: map()
+    def handle(params) do
+      changeset = Request.changeset(params)
+
+      if changeset.valid? do
+        data = Ecto.Changeset.apply_changes(changeset)
+        rate = Rates.get_rate(data.from, data.to)
+        result = data.amount * rate
+        %{from: data.from, to: data.to, amount: data.amount, result: Float.round(result, 2), rate: rate}
+      else
+        errors = Ecto.Changeset.traverse_errors(changeset, fn {msg, _opts} -> msg end)
+        %{error: "Validation failed", details: errors}
+      end
+    end
+    ```
+
+    **File: /src/request.ex** (input validation)
+    ```elixir
+    defmodule Request do
+      @moduledoc "Input schema for currency conversion. Validates from/to currency codes and amount."
+      use Blackboex.Schema
+
+      @supported_currencies ~w(USD EUR GBP BRL JPY CAD AUD CHF)
+
+      embedded_schema do
+        field :from, :string
+        field :to, :string
+        field :amount, :float
+      end
+
+      @doc "Validates conversion parameters."
+      @spec changeset(map()) :: Ecto.Changeset.t()
+      def changeset(params) do
+        %__MODULE__{}
+        |> cast(params, [:from, :to, :amount])
+        |> validate_required([:from, :to, :amount])
+        |> validate_inclusion(:from, @supported_currencies)
+        |> validate_inclusion(:to, @supported_currencies)
+        |> validate_number(:amount, greater_than: 0)
+      end
+    end
+    ```
+
+    **File: /src/rates.ex** (helper module)
+    ```elixir
+    defmodule Rates do
+      @moduledoc "Exchange rate lookup. Provides hardcoded rates for supported currency pairs."
+
+      @rates %{
+        {"USD", "EUR"} => 0.92, {"EUR", "USD"} => 1.09,
+        {"USD", "GBP"} => 0.79, {"GBP", "USD"} => 1.27,
+        {"USD", "BRL"} => 4.97, {"BRL", "USD"} => 0.20
+      }
+
+      @doc "Returns the exchange rate for a currency pair."
+      @spec get_rate(String.t(), String.t()) :: float()
+      def get_rate(from, to) when from == to, do: 1.0
+      def get_rate(from, to), do: Map.get(@rates, {from, to}, 1.0)
+    end
+    ```
+
+    ### Guidelines for Multi-File
+    - `/src/handler.ex` is ALWAYS the entry point — it contains `handle/1` (or CRUD handlers)
+    - Helper modules are referenced by their module name directly (e.g., `Rates.get_rate/2`)
+    - Each file should have a single responsibility
+    - Keep files under 80 lines
+    - `Request` and `Response` schemas can live in handler.ex or in separate files
+    """
+  end
 end

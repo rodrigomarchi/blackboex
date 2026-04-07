@@ -211,24 +211,31 @@ defmodule Blackboex.Agent.Session do
       ]
 
       case state.run_type do
-        "edit" ->
-          source_files = Apis.get_source_for_compilation(api.id)
-          test_files = Apis.get_tests_for_running(api.id)
-          current_code = state.current_code || Enum.map_join(source_files, "\n\n", & &1.content)
-          current_tests = state.current_tests || Enum.map_join(test_files, "\n\n", & &1.content)
-
-          CodePipeline.run_edit(
-            api,
-            state.trigger_message,
-            current_code,
-            current_tests,
-            opts
-          )
-
-        _generation ->
-          CodePipeline.run_generation(api, state.trigger_message, opts)
+        "edit" -> run_edit_pipeline(api, state, opts)
+        _generation -> CodePipeline.run_multi_file_generation(api, state.trigger_message, opts)
       end
     end
+  end
+
+  @spec run_edit_pipeline(Blackboex.Apis.Api.t(), t(), keyword()) ::
+          {:ok, map()} | {:error, term()}
+  defp run_edit_pipeline(api, state, opts) do
+    source_files = Apis.get_source_for_compilation(api.id)
+    test_files = Apis.get_tests_for_running(api.id)
+
+    current_files =
+      Enum.map(source_files, &%{path: &1.path, content: &1.content, file_type: "source"})
+
+    current_test_files =
+      Enum.map(test_files, &%{path: &1.path, content: &1.content, file_type: "test"})
+
+    CodePipeline.run_multi_file_edit(
+      api,
+      state.trigger_message,
+      current_files,
+      current_test_files,
+      opts
+    )
   end
 
   @spec build_token_callback(String.t()) :: (String.t() -> :ok)
@@ -237,13 +244,18 @@ defmodule Blackboex.Agent.Session do
       buffer = Process.get(:stream_buffer, "")
       new_buffer = buffer <> token
 
+      # Accumulate content for current file (used to save to DB on file_completed)
+      accumulated = Process.get(:current_streaming_content, "")
+      Process.put(:current_streaming_content, accumulated <> token)
+
       if String.length(new_buffer) >= 20 or String.contains?(token, "\n") do
         Process.put(:stream_buffer, "")
+        current_path = Process.get(:current_streaming_file)
 
         Phoenix.PubSub.broadcast(
           Blackboex.PubSub,
           "run:#{run_id}",
-          {:agent_streaming, %{delta: new_buffer}}
+          {:agent_streaming, %{delta: new_buffer, path: current_path}}
         )
       else
         Process.put(:stream_buffer, new_buffer)
@@ -259,11 +271,12 @@ defmodule Blackboex.Agent.Session do
 
     if buffer != "" do
       Process.put(:stream_buffer, "")
+      current_path = Process.get(:current_streaming_file)
 
       Phoenix.PubSub.broadcast(
         Blackboex.PubSub,
         "run:#{run_id}",
-        {:agent_streaming, %{delta: buffer}}
+        {:agent_streaming, %{delta: buffer, path: current_path}}
       )
     end
 
@@ -343,6 +356,18 @@ defmodule Blackboex.Agent.Session do
 
     # Persist validation result incrementally on the API
     persist_validation_result(step, success, payload, api_id, org_id)
+
+    # When planning step completes, create placeholder files in DB and notify LiveView
+    if step == :planning_files do
+      case Map.get(payload, :manifest) do
+        files when is_list(files) ->
+          create_manifest_placeholders(api_id, org_id, files)
+          broadcast(run_id, {:manifest_ready, %{manifest: files}})
+
+        _ ->
+          :ok
+      end
+    end
   end
 
   defp translate_pipeline_event(
@@ -379,9 +404,46 @@ defmodule Blackboex.Agent.Session do
     persist_validation_result(step, false, %{content: error}, api_id, org_id)
   end
 
+  # Multi-file pipeline events: track current file and forward to LiveView
+  defp translate_pipeline_event({:file_started, payload}, run_id, _, api_id, org_id) do
+    # Flush any remaining stream from previous file
+    flush_remaining_stream(run_id)
+
+    # Save accumulated content of PREVIOUS file before switching
+    save_accumulated_file_content(api_id, org_id)
+
+    # Now switch to the new file
+    path = Map.get(payload, :path)
+    Process.put(:current_streaming_file, path)
+    Process.put(:current_streaming_content, "")
+
+    broadcast(run_id, {:file_started, payload})
+  end
+
+  defp translate_pipeline_event({:file_completed, payload}, run_id, _, api_id, org_id) do
+    flush_remaining_stream(run_id)
+
+    # Save the completed file content to DB
+    path = Map.get(payload, :path) || Process.get(:current_streaming_file)
+    accumulated = Process.get(:current_streaming_content, "")
+
+    if path && accumulated != "" do
+      save_file_content_to_db(api_id, org_id, path, accumulated)
+    end
+
+    Process.put(:current_streaming_file, nil)
+    Process.put(:current_streaming_content, "")
+
+    broadcast(run_id, {:file_completed, payload})
+  end
+
   defp translate_pipeline_event(_event, _run_id, _conversation_id, _api_id, _org_id), do: :ok
 
   @spec extract_step_content(map()) :: String.t()
+  defp extract_step_content(%{manifest: files}) when is_list(files) and files != [] do
+    Enum.map_join(files, ", ", &(&1["path"] || ""))
+  end
+
   defp extract_step_content(payload) do
     [:content, :code, :test_code]
     |> Enum.find_value("", fn key ->
@@ -550,6 +612,8 @@ defmodule Blackboex.Agent.Session do
   defp step_to_tool_name(:running_tests), do: "run_tests"
   defp step_to_tool_name(:fixing_tests), do: "run_tests"
   defp step_to_tool_name(:submitting), do: "submit_code"
+  defp step_to_tool_name(:planning_files), do: "plan_files"
+  defp step_to_tool_name(:generating_helpers), do: "generate_helpers"
   defp step_to_tool_name(_), do: "unknown"
 
   @spec persist_event(map()) :: :ok
@@ -657,20 +721,14 @@ defmodule Blackboex.Agent.Session do
 
   @spec files_from_result(map()) :: [map()]
   defp files_from_result(result) do
-    files = [%{path: "/src/handler.ex", content: result[:code], file_type: "source"}]
-
-    files =
-      if result[:test_code] do
-        files ++
-          [%{path: "/test/handler_test.ex", content: result[:test_code], file_type: "test"}]
-      else
-        files
-      end
+    source_files = result[:files] || []
+    test_files = result[:test_files] || []
+    all_files = source_files ++ test_files
 
     if result[:documentation_md] do
-      files ++ [%{path: "/README.md", content: result[:documentation_md], file_type: "doc"}]
+      all_files ++ [%{path: "/README.md", content: result[:documentation_md], file_type: "doc"}]
     else
-      files
+      all_files
     end
   end
 
@@ -797,6 +855,70 @@ defmodule Blackboex.Agent.Session do
   end
 
   @spec emit_run_telemetry(t(), Blackboex.Conversations.Run.t(), String.t()) :: :ok
+  @spec save_accumulated_file_content(String.t(), String.t()) :: :ok
+  defp save_accumulated_file_content(api_id, org_id) do
+    prev_path = Process.get(:current_streaming_file)
+    prev_content = Process.get(:current_streaming_content, "")
+
+    Logger.debug(
+      "SAVE_ACCUMULATED path=#{inspect(prev_path)} content_len=#{String.length(prev_content)}"
+    )
+
+    if prev_path && prev_content != "" do
+      save_file_content_to_db(api_id, org_id, prev_path, prev_content)
+    end
+
+    :ok
+  end
+
+  @spec save_file_content_to_db(String.t(), String.t(), String.t(), String.t()) :: :ok
+  defp save_file_content_to_db(api_id, org_id, path, content) do
+    api = Apis.get_api(org_id, api_id)
+
+    if api do
+      clean_content =
+        case Regex.run(~r/```(?:elixir)?\s*\n(.*?)```/s, content) do
+          [_, code] -> String.trim(code)
+          nil -> String.trim(content)
+        end
+
+      case Apis.get_file(api.id, path) do
+        nil ->
+          Apis.create_file(api, %{path: path, content: clean_content, file_type: "source"})
+
+        file ->
+          Apis.update_file_content(file, clean_content, %{source: "generation"})
+      end
+    end
+
+    :ok
+  end
+
+  @spec create_manifest_placeholders(String.t(), String.t(), [map()]) :: :ok
+  defp create_manifest_placeholders(api_id, org_id, manifest_files) do
+    api = Apis.get_api(org_id, api_id)
+
+    if api do
+      existing_paths =
+        api.id
+        |> Apis.list_files()
+        |> MapSet.new(& &1.path)
+
+      for file <- manifest_files,
+          path = file["path"],
+          is_binary(path),
+          not MapSet.member?(existing_paths, path) do
+        Apis.create_file(api, %{
+          path: path,
+          content: "# Generating...\n",
+          file_type: "source"
+        })
+      end
+    end
+
+    :ok
+  end
+
   defp emit_run_telemetry(state, run, status) do
     Events.emit_agent_run(%{
       run_id: state.run_id,

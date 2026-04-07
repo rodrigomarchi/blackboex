@@ -1179,7 +1179,8 @@ defmodule Blackboex.Agent.SessionTest do
       events = Conversations.list_events(context.run.id)
       tool_call_event = Enum.find(events, &(&1.event_type == "tool_call"))
       assert tool_call_event != nil
-      assert tool_call_event.tool_name == "generate_code"
+      # Multi-file pipeline starts with planning step
+      assert tool_call_event.tool_name in ["plan_files", "generate_code"]
     end
 
     test "step_failed event is persisted as tool_result with success false", context do
@@ -1302,10 +1303,25 @@ defmodule Blackboex.Agent.SessionTest do
       call_count = :counters.new(1, [:atomics])
       valid_code = "def handle(params), do: %{status: 200, body: params}"
 
+      manifest_json =
+        ~s|{"files": [{"path": "/src/handler.ex", "description": "Main handler", "role": "handler"}]}|
+
+      helper_code = ~s|defmodule Helper do\n  @moduledoc "Helper."\nend|
+
       stub(Blackboex.LLM.ClientMock, :stream_text, fn _prompt, _opts ->
         count = :counters.get(call_count, 1)
         :counters.add(call_count, 1, 1)
-        if count == 0, do: {:ok, [valid_code]}, else: {:error, "stop"}
+
+        case count do
+          # Call 0: planning step — return manifest JSON
+          0 -> {:ok, [manifest_json]}
+          # Call 1: generate handler
+          1 -> {:ok, [valid_code]}
+          # Calls 2-4: generate each helper file individually (request_schema, response_schema, helpers)
+          n when n in [2, 3, 4] -> {:ok, [helper_code]}
+          # Call 5+: stop
+          _ -> {:error, "stop"}
+        end
       end)
 
       stub(Blackboex.LLM.ClientMock, :generate_text, fn _prompt, _opts ->

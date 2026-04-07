@@ -92,7 +92,8 @@ defmodule Blackboex.CodeGen.Compiler do
       module_name = module_name_for(api)
       template_type = Map.fetch!(@valid_template_types, api.template_type)
 
-      {handler_content, helper_files} = split_handler_and_helpers(source_files)
+      {raw_handler, helper_files} = split_handler_and_helpers(source_files)
+      handler_content = unwrap_handler_module(raw_handler)
 
       result =
         with :ok <- check_handler_style(handler_content),
@@ -201,6 +202,20 @@ defmodule Blackboex.CodeGen.Compiler do
 
   # These module names are always allowed; additional modules are allowed
   # if they use Blackboex.Schema (nested embedded schemas for embeds_one/embeds_many)
+  # If the LLM wraps handler code in `defmodule Handler do ... end`,
+  # strip the wrapper — the ModuleBuilder creates its own module.
+  @spec unwrap_handler_module(String.t()) :: String.t()
+  defp unwrap_handler_module(source_code) do
+    # Match defmodule <Name> do ... end wrapping the entire file
+    case Regex.run(
+           ~r/\A\s*defmodule\s+\w+\s+do\n(.*)\nend\s*\z/s,
+           String.trim(source_code)
+         ) do
+      [_, inner] -> String.trim(inner)
+      nil -> source_code
+    end
+  end
+
   @allowed_dto_modules ~w(Request Response Params)
 
   defp check_handler_style(source_code) do

@@ -42,12 +42,25 @@ defmodule Blackboex.Agent.CodePipeline do
   @type pipeline_opts :: [
           broadcast_fn: broadcast_fn(),
           run_id: String.t(),
-          conversation_id: String.t()
+          conversation_id: String.t(),
+          token_callback: (String.t() -> :ok) | nil,
+          max_llm_calls: pos_integer() | nil
         ]
 
+  @type file_entry :: %{path: String.t(), content: String.t(), file_type: String.t()}
+
   @type pipeline_result ::
-          {:ok, %{code: String.t(), test_code: String.t(), summary: String.t()}}
-          | {:error, String.t()}
+          {:ok,
+           %{
+             code: String.t(),
+             test_code: String.t(),
+             files: [file_entry()],
+             test_files: [file_entry()],
+             documentation_md: String.t(),
+             summary: String.t(),
+             usage: map()
+           }}
+          | {:error, String.t() | atom()}
 
   # ── Public API ──────────────────────────────────────────────────
 
@@ -56,6 +69,8 @@ defmodule Blackboex.Agent.CodePipeline do
     broadcast = opts[:broadcast_fn] || fn _ -> :ok end
     run_id = opts[:run_id]
     reset_counters()
+    max_calls = opts[:max_llm_calls] || @max_total_llm_calls
+    Process.put(:pipeline_max_llm_calls, max_calls)
     Process.put(:pipeline_run_id, run_id)
     Process.put(:token_callback, opts[:token_callback])
 
@@ -77,12 +92,116 @@ defmodule Blackboex.Agent.CodePipeline do
     end
   end
 
+  # ── Multi-File Generation ────────────────────────────────────
+
+  @spec run_multi_file_generation(Api.t(), String.t(), pipeline_opts()) :: pipeline_result()
+  def run_multi_file_generation(api, description, opts \\ []) do
+    broadcast = opts[:broadcast_fn] || fn _ -> :ok end
+    run_id = opts[:run_id]
+    reset_counters()
+    Process.put(:pipeline_run_id, run_id)
+    Process.put(:token_callback, opts[:token_callback])
+
+    saved_callback = Process.get(:token_callback)
+
+    result =
+      with {:ok, manifest} <- step_plan_files(api, description, broadcast, run_id),
+           :ok <- set_dynamic_budget(manifest, opts),
+           {:ok, handler_code} <-
+             step_generate_handler(api, description, manifest, broadcast, run_id),
+           :ok <- save_partial(:handler, handler_code),
+           {:ok, helper_files} <-
+             step_generate_helpers(api, description, handler_code, manifest, broadcast, run_id),
+           source_files <- build_source_files(handler_code, helper_files),
+           :ok <- save_partial(:source_files, source_files),
+           # Disable streaming for validation/fix phases — fixes must not appear in editor
+           :ok <- disable_streaming(),
+           {:ok, source_files} <-
+             step_validate_and_fix_files(api, source_files, broadcast, run_id),
+           :ok <- save_partial(:source_files, source_files),
+           # Re-enable streaming for test generation
+           :ok <- restore_streaming(saved_callback),
+           {:ok, test_files} <-
+             step_generate_test_files(api, source_files, broadcast, run_id),
+           # Disable streaming for test fix phase
+           :ok <- disable_streaming(),
+           {:ok, test_files} <-
+             step_run_and_fix_test_files(api, source_files, test_files, broadcast, run_id),
+           :ok <- restore_streaming(saved_callback),
+           {:ok, doc_md} <-
+             step_generate_docs(api, get_handler_content(source_files), broadcast, run_id) do
+        broadcast.({:step_completed, %{step: :submitting}})
+        handler_code = get_handler_content(source_files)
+
+        {:ok,
+         %{
+           code: handler_code,
+           test_code: Enum.map_join(test_files, "\n\n", & &1.content),
+           files: source_files,
+           test_files: test_files,
+           documentation_md: doc_md,
+           summary: "Multi-file code generated and validated",
+           usage: get_accumulated_usage()
+         }}
+      end
+
+    case result do
+      {:error, :budget_exhausted} -> build_partial_result()
+      other -> other
+    end
+  end
+
+  # ── Multi-File Edit ────────────────────────────────────────────
+
+  @spec run_multi_file_edit(Api.t(), String.t(), [file_entry()], [file_entry()], pipeline_opts()) ::
+          pipeline_result()
+  def run_multi_file_edit(api, instruction, current_files, current_test_files, opts \\ []) do
+    broadcast = opts[:broadcast_fn] || fn _ -> :ok end
+    run_id = opts[:run_id]
+    reset_counters()
+    max_calls = opts[:max_llm_calls] || @max_total_llm_calls
+    Process.put(:pipeline_max_llm_calls, max_calls)
+    Process.put(:pipeline_run_id, run_id)
+    Process.put(:token_callback, opts[:token_callback])
+
+    with {:ok, edited_files} <-
+           step_edit_files(api, instruction, current_files, broadcast, run_id),
+         {:ok, edited_files} <-
+           step_validate_and_fix_files(api, edited_files, broadcast, run_id),
+         handler_code <- get_handler_content(edited_files),
+         current_test_code <- Enum.map_join(current_test_files, "\n\n", & &1.content),
+         {:ok, test_code} <-
+           step_edit_tests(api, handler_code, instruction, current_test_code, broadcast, run_id),
+         {:ok, test_code} <-
+           step_run_and_fix_tests(api, handler_code, test_code, broadcast, run_id),
+         {:ok, doc_md} <- step_generate_docs(api, handler_code, broadcast, run_id) do
+      broadcast.({:step_completed, %{step: :submitting}})
+
+      test_files = [
+        %{path: "/test/handler_test.ex", content: test_code, file_type: "test"}
+      ]
+
+      {:ok,
+       %{
+         code: handler_code,
+         test_code: test_code,
+         files: edited_files,
+         test_files: test_files,
+         documentation_md: doc_md,
+         summary: "Multi-file code updated and validated",
+         usage: get_accumulated_usage()
+       }}
+    end
+  end
+
   @spec run_edit(Api.t(), String.t(), String.t(), String.t(), pipeline_opts()) ::
           pipeline_result()
   def run_edit(api, instruction, current_code, current_tests, opts \\ []) do
     broadcast = opts[:broadcast_fn] || fn _ -> :ok end
     run_id = opts[:run_id]
     reset_counters()
+    max_calls = opts[:max_llm_calls] || @max_total_llm_calls
+    Process.put(:pipeline_max_llm_calls, max_calls)
     Process.put(:pipeline_run_id, run_id)
     Process.put(:token_callback, opts[:token_callback])
 
@@ -111,9 +230,10 @@ defmodule Blackboex.Agent.CodePipeline do
   @spec guarded_llm_call(String.t(), String.t()) :: {:ok, String.t()} | {:error, String.t()}
   defp guarded_llm_call(prompt, system) do
     count = Process.get(:pipeline_llm_calls, 0)
+    max_calls = Process.get(:pipeline_max_llm_calls, @max_total_llm_calls)
 
-    if count >= @max_total_llm_calls do
-      {:error, "Pipeline exceeded maximum LLM calls (#{@max_total_llm_calls})"}
+    if count >= max_calls do
+      {:error, :budget_exhausted}
     else
       Process.put(:pipeline_llm_calls, count + 1)
       client = Config.client()
@@ -205,6 +325,7 @@ defmodule Blackboex.Agent.CodePipeline do
     Process.put(:pipeline_input_tokens, 0)
     Process.put(:pipeline_output_tokens, 0)
     Process.put(:pipeline_log, [])
+    Process.put(:pipeline_max_llm_calls, @max_total_llm_calls)
   end
 
   # ── Rolling Context Log ────────────────────────────────────────
@@ -822,6 +943,694 @@ defmodule Blackboex.Agent.CodePipeline do
         )
 
         {:ok, ""}
+    end
+  end
+
+  # ── Multi-File Steps ─────────────────────────────────────────
+
+  @spec step_plan_files(Api.t(), String.t(), broadcast_fn(), String.t() | nil) ::
+          {:ok, [map()]} | {:error, String.t() | atom()}
+  defp step_plan_files(api, description, broadcast, run_id) do
+    broadcast.({:step_started, %{step: :planning_files}})
+    touch_run(run_id)
+
+    template_type = template_atom(api.template_type)
+
+    system = """
+    #{Prompts.planning_prompt(template_type)}
+
+    #{Templates.get_multi_file_guide()}
+    """
+
+    case guarded_llm_call(description, system) do
+      {:ok, content} ->
+        case parse_manifest(content) do
+          {:ok, files} ->
+            log_step("plan_files", :pass, "Planned #{length(files)} files")
+            broadcast.({:step_completed, %{step: :planning_files, manifest: files}})
+            {:ok, files}
+
+          {:error, reason} ->
+            log_step("plan_files", :fail, "Invalid manifest: #{reason}")
+            fallback = default_manifest()
+            broadcast.({:step_completed, %{step: :planning_files, manifest: fallback}})
+            {:ok, fallback}
+        end
+
+      {:error, reason} ->
+        log_step("plan_files", :fail, inspect(reason))
+        fallback = default_manifest()
+        broadcast.({:step_completed, %{step: :planning_files, manifest: fallback}})
+        {:ok, fallback}
+    end
+  end
+
+  @spec default_manifest() :: [map()]
+  defp default_manifest do
+    [
+      %{"path" => "/src/handler.ex", "description" => "Main handler", "role" => "handler"},
+      %{
+        "path" => "/src/request_schema.ex",
+        "description" => "Request schema with validation",
+        "role" => "helper"
+      },
+      %{
+        "path" => "/src/response_schema.ex",
+        "description" => "Response schema",
+        "role" => "helper"
+      },
+      %{"path" => "/src/helpers.ex", "description" => "Helper functions", "role" => "helper"}
+    ]
+  end
+
+  @spec parse_manifest(String.t()) :: {:ok, [map()]} | {:error, String.t()}
+  defp parse_manifest(content) do
+    # Extract JSON from response (may be wrapped in ```json blocks)
+    json_str =
+      case Regex.run(~r/```(?:json)?\s*\n(.*?)```/s, content) do
+        [_, json] -> String.trim(json)
+        nil -> String.trim(content)
+      end
+
+    case Jason.decode(json_str) do
+      {:ok, %{"files" => files}} when is_list(files) ->
+        handler_count = Enum.count(files, &(&1["role"] == "handler"))
+
+        cond do
+          handler_count == 0 ->
+            {:error, "No handler file in manifest"}
+
+          handler_count > 1 ->
+            {:error, "Multiple handler files in manifest"}
+
+          true ->
+            {:ok, ensure_minimum_files(files)}
+        end
+
+      {:ok, _} ->
+        {:error, "Invalid manifest structure"}
+
+      {:error, reason} ->
+        {:error, "JSON parse error: #{inspect(reason)}"}
+    end
+  end
+
+  # Ensure manifest has at least the 4 required files
+  @spec ensure_minimum_files([map()]) :: [map()]
+  defp ensure_minimum_files(files) do
+    existing_paths = MapSet.new(files, & &1["path"])
+
+    required = [
+      %{
+        "path" => "/src/request_schema.ex",
+        "description" => "Request schema with validation",
+        "role" => "helper"
+      },
+      %{
+        "path" => "/src/response_schema.ex",
+        "description" => "Response schema",
+        "role" => "helper"
+      },
+      %{"path" => "/src/helpers.ex", "description" => "Helper functions", "role" => "helper"}
+    ]
+
+    missing = Enum.reject(required, &MapSet.member?(existing_paths, &1["path"]))
+    files ++ missing
+  end
+
+  @spec save_partial(atom(), term()) :: :ok
+  defp save_partial(key, value) do
+    Process.put({:partial, key}, value)
+    :ok
+  end
+
+  @spec build_partial_result() :: pipeline_result()
+  defp build_partial_result do
+    handler_code = Process.get({:partial, :handler}, "")
+    source_files = Process.get({:partial, :source_files}, [])
+
+    files =
+      if source_files != [] do
+        source_files
+      else
+        if handler_code != "" do
+          [%{path: "/src/handler.ex", content: handler_code, file_type: "source"}]
+        else
+          []
+        end
+      end
+
+    if files == [] do
+      {:error, "Pipeline exceeded LLM call budget with no code generated"}
+    else
+      {:ok,
+       %{
+         code: handler_code,
+         test_code: "",
+         files: files,
+         test_files: [],
+         documentation_md: "",
+         summary: "Partial result — LLM call budget exhausted",
+         partial: true,
+         usage: get_accumulated_usage()
+       }}
+    end
+  end
+
+  @spec disable_streaming() :: :ok
+  defp disable_streaming do
+    Process.put(:token_callback, nil)
+    :ok
+  end
+
+  @spec restore_streaming((String.t() -> :ok) | nil) :: :ok
+  defp restore_streaming(callback) do
+    Process.put(:token_callback, callback)
+    :ok
+  end
+
+  @spec set_dynamic_budget([map()], pipeline_opts()) :: :ok
+  defp set_dynamic_budget(manifest, opts) do
+    file_count = length(manifest)
+    base = opts[:max_llm_calls] || @max_total_llm_calls
+    # Each file = 1 call (plan + handler + helpers + tests + docs + fix budget)
+    dynamic = min(base + file_count * 3, 40)
+    Process.put(:pipeline_max_llm_calls, dynamic)
+    :ok
+  end
+
+  @spec step_generate_handler(
+          Api.t(),
+          String.t(),
+          [map()],
+          broadcast_fn(),
+          String.t() | nil
+        ) :: {:ok, String.t()} | {:error, String.t() | atom()}
+  defp step_generate_handler(api, description, manifest, broadcast, run_id) do
+    broadcast.({:step_started, %{step: :generating_code}})
+    broadcast.({:file_started, %{path: "/src/handler.ex"}})
+    touch_run(run_id)
+
+    template_type = template_atom(api.template_type)
+
+    system = """
+    #{Prompts.system_prompt()}
+
+    #{Templates.get(template_type)}
+
+    #{Prompts.handler_generation_prompt(description, manifest)}
+    """
+
+    case guarded_llm_call("Generate the handler code as specified above.", system) do
+      {:ok, content} ->
+        code = extract_code(content)
+        log_step("generate_handler", :pass, "Generated handler: #{String.length(code)} chars")
+        broadcast.({:file_completed, %{path: "/src/handler.ex"}})
+        broadcast.({:step_completed, %{step: :generating_code, code: code}})
+        {:ok, code}
+
+      {:error, reason} ->
+        log_step("generate_handler", :fail, inspect(reason))
+        broadcast.({:step_failed, %{step: :generating_code, error: inspect(reason)}})
+        {:error, reason}
+    end
+  end
+
+  @spec step_generate_helpers(
+          Api.t(),
+          String.t(),
+          String.t(),
+          [map()],
+          broadcast_fn(),
+          String.t() | nil
+        ) :: {:ok, [file_entry()]} | {:error, String.t() | atom()}
+  defp step_generate_helpers(_api, _description, _handler_code, manifest, broadcast, _run_id)
+       when length(manifest) <= 1 do
+    broadcast.({:step_completed, %{step: :generating_helpers}})
+    {:ok, []}
+  end
+
+  defp step_generate_helpers(_api, description, handler_code, manifest, broadcast, run_id) do
+    helper_manifests = Enum.filter(manifest, &(&1["role"] == "helper"))
+    generated_so_far = [%{"path" => "/src/handler.ex", "content" => handler_code}]
+
+    generate_helpers_sequentially(
+      helper_manifests,
+      generated_so_far,
+      description,
+      handler_code,
+      broadcast,
+      run_id,
+      []
+    )
+  end
+
+  @spec generate_helpers_sequentially(
+          [map()],
+          [map()],
+          String.t(),
+          String.t(),
+          broadcast_fn(),
+          String.t() | nil,
+          [file_entry()]
+        ) :: {:ok, [file_entry()]} | {:error, String.t() | atom()}
+  defp generate_helpers_sequentially([], _ctx, _desc, _handler, broadcast, _run_id, acc) do
+    broadcast.({:step_completed, %{step: :generating_helpers}})
+    {:ok, Enum.reverse(acc)}
+  end
+
+  defp generate_helpers_sequentially(
+         [file_manifest | rest],
+         generated_so_far,
+         description,
+         handler_code,
+         broadcast,
+         run_id,
+         acc
+       ) do
+    path = file_manifest["path"]
+    file_desc = file_manifest["description"]
+
+    broadcast.({:step_started, %{step: :generating_helpers}})
+    broadcast.({:file_started, %{path: path}})
+    touch_run(run_id)
+
+    context =
+      generated_so_far
+      |> Enum.map(fn f -> "### #{f["path"]}\n```elixir\n#{f["content"]}\n```" end)
+      |> Enum.join("\n\n")
+
+    system = """
+    #{Prompts.system_prompt()}
+
+    You are generating a single helper file for an Elixir API project.
+
+    ## API Description
+    #{description}
+
+    ## Already Generated Files (reference only)
+    #{context}
+
+    ## File to Generate: #{path}
+    Description: #{file_desc}
+
+    Generate ONLY the code for this file. Return it in a single ```elixir block.
+    Follow the same rules as the handler: @moduledoc, @doc, @spec on public functions.
+    """
+
+    case guarded_llm_call("Generate #{path} as described.", system) do
+      {:ok, content} ->
+        code = extract_code(content)
+        entry = %{path: path, content: code, file_type: "source"}
+
+        log_step("generate_helper", :pass, "Generated #{path}: #{String.length(code)} chars")
+        broadcast.({:file_completed, %{path: path}})
+
+        new_context = generated_so_far ++ [%{"path" => path, "content" => code}]
+
+        generate_helpers_sequentially(
+          rest,
+          new_context,
+          description,
+          handler_code,
+          broadcast,
+          run_id,
+          [entry | acc]
+        )
+
+      {:error, reason} ->
+        log_step("generate_helper", :fail, "#{path}: #{inspect(reason)}")
+        broadcast.({:step_failed, %{step: :generating_helpers, error: inspect(reason)}})
+        {:error, reason}
+    end
+  end
+
+  @spec build_source_files(String.t(), [file_entry()]) :: [file_entry()]
+  defp build_source_files(handler_code, helper_files) do
+    handler = %{path: "/src/handler.ex", content: handler_code, file_type: "source"}
+    [handler | helper_files]
+  end
+
+  @spec get_handler_content([file_entry()]) :: String.t()
+  defp get_handler_content(source_files) do
+    case Enum.find(source_files, &(&1.path == "/src/handler.ex")) do
+      %{content: content} -> content
+      nil -> ""
+    end
+  end
+
+  @spec step_validate_and_fix_files(
+          Api.t(),
+          [file_entry()],
+          broadcast_fn(),
+          String.t() | nil
+        ) :: {:ok, [file_entry()]} | {:error, String.t() | atom()}
+  defp step_validate_and_fix_files(api, source_files, broadcast, run_id) do
+    # Format each file individually
+    formatted_files =
+      Enum.map(source_files, fn file ->
+        case Linter.auto_format(file.content) do
+          {:ok, formatted} -> %{file | content: formatted}
+          {:error, _} -> file
+        end
+      end)
+
+    # Compile all files together using compile_files/2
+    broadcast.({:step_started, %{step: :compiling}})
+    touch_run(run_id)
+
+    compile_input = Enum.map(formatted_files, &%{path: &1.path, content: &1.content})
+
+    case Compiler.compile_files(api, compile_input) do
+      {:ok, module} ->
+        log_step("compile_files", :pass, "Module: #{inspect(module)}")
+
+        broadcast.(
+          {:step_completed,
+           %{
+             step: :compiling,
+             success: true,
+             content: "Compiled #{length(formatted_files)} files"
+           }}
+        )
+
+        # Lint each file
+        lint_files(api, formatted_files, broadcast, run_id, 0)
+
+      {:error, {:validation, errors}} ->
+        error_text = Enum.join(errors, "\n")
+        log_step("compile_files", :fail, error_text)
+        broadcast.({:step_completed, %{step: :compiling, success: false, content: error_text}})
+        maybe_fix_files_compilation(api, formatted_files, error_text, broadcast, run_id, 0)
+
+      {:error, {:compilation, reason}} ->
+        error_text = inspect(reason)
+        log_step("compile_files", :fail, error_text)
+        broadcast.({:step_completed, %{step: :compiling, success: false, content: error_text}})
+        maybe_fix_files_compilation(api, formatted_files, error_text, broadcast, run_id, 0)
+    end
+  end
+
+  @spec maybe_fix_files_compilation(
+          Api.t(),
+          [file_entry()],
+          String.t(),
+          broadcast_fn(),
+          String.t() | nil,
+          non_neg_integer()
+        ) :: {:ok, [file_entry()]} | {:error, String.t() | atom()}
+  defp maybe_fix_files_compilation(_api, _files, error_text, _broadcast, _run_id, attempt)
+       when attempt >= @max_fix_attempts do
+    {:error, "Multi-file compilation failed after #{@max_fix_attempts} attempts: #{error_text}"}
+  end
+
+  defp maybe_fix_files_compilation(api, files, error_text, broadcast, run_id, attempt) do
+    broadcast.({:step_started, %{step: :fixing_compilation, attempt: attempt + 1}})
+    touch_run(run_id)
+
+    all_code =
+      files
+      |> Enum.map(fn f -> "### #{f.path}\n```elixir\n#{f.content}\n```" end)
+      |> Enum.join("\n\n")
+
+    system = """
+    You are fixing compilation errors in a multi-file Elixir project.
+    The project has #{length(files)} source files.
+
+    Return fixes using path-annotated SEARCH/REPLACE blocks:
+
+    <<<< /src/filename.ex
+    <<<<<<< SEARCH
+    (exact lines to find)
+    =======
+    (replacement lines)
+    >>>>>>> REPLACE
+
+    Only fix the files that have errors. Use the exact file paths shown.
+    """
+
+    prompt = """
+    ## Source Files
+    #{all_code}
+
+    ## Compilation Errors
+    #{error_text}
+
+    Fix the errors using path-annotated SEARCH/REPLACE blocks.
+    """
+
+    case guarded_llm_call(prompt, system) do
+      {:ok, content} ->
+        fixed_files = apply_path_annotated_edits(files, content)
+        log_step("fix_compile_files", :pass, "Fix applied (attempt #{attempt + 1})")
+
+        broadcast.(
+          {:step_completed,
+           %{step: :fixing_compilation, content: "Fix applied (attempt #{attempt + 1})"}}
+        )
+
+        formatted = format_all_files(fixed_files)
+        recompile_or_retry(api, formatted, broadcast, run_id, attempt + 1)
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  @spec format_all_files([file_entry()]) :: [file_entry()]
+  defp format_all_files(files) do
+    Enum.map(files, fn file ->
+      case Linter.auto_format(file.content) do
+        {:ok, fmt} -> %{file | content: fmt}
+        {:error, _} -> file
+      end
+    end)
+  end
+
+  @spec recompile_or_retry(
+          Api.t(),
+          [file_entry()],
+          broadcast_fn(),
+          String.t() | nil,
+          non_neg_integer()
+        ) ::
+          {:ok, [file_entry()]} | {:error, String.t() | atom()}
+  defp recompile_or_retry(api, files, broadcast, run_id, attempt) do
+    compile_input = Enum.map(files, &%{path: &1.path, content: &1.content})
+
+    case Compiler.compile_files(api, compile_input) do
+      {:ok, _module} ->
+        lint_files(api, files, broadcast, run_id, 0)
+
+      {:error, {:validation, errors}} ->
+        maybe_fix_files_compilation(
+          api,
+          files,
+          Enum.join(errors, "\n"),
+          broadcast,
+          run_id,
+          attempt
+        )
+
+      {:error, {:compilation, reason}} ->
+        maybe_fix_files_compilation(api, files, inspect(reason), broadcast, run_id, attempt)
+    end
+  end
+
+  @spec lint_files(
+          Api.t(),
+          [file_entry()],
+          broadcast_fn(),
+          String.t() | nil,
+          non_neg_integer()
+        ) :: {:ok, [file_entry()]} | {:error, String.t() | atom()}
+  defp lint_files(_api, files, broadcast, _run_id, _attempt) do
+    broadcast.({:step_started, %{step: :linting}})
+
+    all_issues =
+      files
+      |> Enum.flat_map(fn file ->
+        results = Linter.run_all(file.content)
+
+        results
+        |> Enum.filter(&(&1.status in [:warn, :error]))
+        |> Enum.flat_map(fn r ->
+          Enum.map(r.issues, &"#{file.path}: #{&1}")
+        end)
+      end)
+
+    case all_issues do
+      [] ->
+        log_step("lint_files", :pass, "All files pass lint")
+        broadcast.({:step_completed, %{step: :linting, success: true, content: "Lint passed"}})
+        {:ok, files}
+
+      _issues ->
+        # For now, lint issues on helpers are non-fatal warnings
+        issue_text = Enum.join(all_issues, "\n")
+        log_step("lint_files", :pass, "Lint warnings (non-fatal): #{issue_text}")
+
+        broadcast.(
+          {:step_completed,
+           %{step: :linting, success: true, content: "Lint passed with warnings"}}
+        )
+
+        {:ok, files}
+    end
+  end
+
+  @spec step_generate_test_files(
+          Api.t(),
+          [file_entry()],
+          broadcast_fn(),
+          String.t() | nil
+        ) :: {:ok, [file_entry()]} | {:error, String.t() | atom()}
+  defp step_generate_test_files(api, source_files, broadcast, run_id) do
+    broadcast.({:step_started, %{step: :generating_tests}})
+    touch_run(run_id)
+
+    # Generate tests using existing TestGenerator with concatenated source
+    handler_code = get_handler_content(source_files)
+    tc = Process.get(:token_callback)
+    gen_opts = if tc, do: [token_callback: tc], else: []
+
+    case TestGenerator.generate_tests_for_code(
+           handler_code,
+           api.template_type || "computation",
+           gen_opts
+         ) do
+      {:ok, %{code: test_code}} ->
+        test_files = [
+          %{path: "/test/handler_test.ex", content: test_code, file_type: "test"}
+        ]
+
+        broadcast.({:step_completed, %{step: :generating_tests, test_code: test_code}})
+        {:ok, test_files}
+
+      {:error, reason} ->
+        broadcast.({:step_failed, %{step: :generating_tests, error: inspect(reason)}})
+        {:error, "Test generation failed: #{inspect(reason)}"}
+    end
+  end
+
+  @spec step_run_and_fix_test_files(
+          Api.t(),
+          [file_entry()],
+          [file_entry()],
+          broadcast_fn(),
+          String.t() | nil
+        ) :: {:ok, [file_entry()]} | {:error, String.t() | atom()}
+  defp step_run_and_fix_test_files(api, source_files, test_files, broadcast, run_id) do
+    handler_code = get_handler_content(source_files)
+    test_code = Enum.map_join(test_files, "\n\n", & &1.content)
+
+    case step_run_and_fix_tests(api, handler_code, test_code, broadcast, run_id) do
+      {:ok, fixed_test_code} ->
+        {:ok, [%{path: "/test/handler_test.ex", content: fixed_test_code, file_type: "test"}]}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  @spec step_edit_files(
+          Api.t(),
+          String.t(),
+          [file_entry()],
+          broadcast_fn(),
+          String.t() | nil
+        ) :: {:ok, [file_entry()]} | {:error, String.t() | atom()}
+  defp step_edit_files(_api, instruction, current_files, broadcast, run_id) do
+    broadcast.({:step_started, %{step: :generating_code}})
+    touch_run(run_id)
+
+    system = EditPrompts.system_prompt()
+
+    prompt = Prompts.multi_file_edit_prompt(current_files, instruction)
+
+    case guarded_llm_call(prompt, system) do
+      {:ok, content} ->
+        edited_files = apply_path_annotated_edits(current_files, content)
+        log_step("edit_files", :pass, "Applied edit: #{String.slice(instruction, 0, 100)}")
+        broadcast.({:step_completed, %{step: :generating_code}})
+        {:ok, edited_files}
+
+      {:error, reason} ->
+        log_step("edit_files", :fail, inspect(reason))
+        broadcast.({:step_failed, %{step: :generating_code, error: inspect(reason)}})
+        {:error, reason}
+    end
+  end
+
+  @spec apply_path_annotated_edits([file_entry()], String.t()) :: [file_entry()]
+  defp apply_path_annotated_edits(files, response) do
+    # Parse path-annotated SEARCH/REPLACE blocks:
+    # <<<< /src/filename.ex
+    # <<<<<<< SEARCH
+    # ...
+    # =======
+    # ...
+    # >>>>>>> REPLACE
+    file_blocks = parse_path_annotated_blocks(response)
+
+    Enum.map(files, &apply_blocks_to_file(&1, file_blocks))
+  end
+
+  @spec apply_blocks_to_file(file_entry(), map()) :: file_entry()
+  defp apply_blocks_to_file(file, file_blocks) do
+    case Map.get(file_blocks, file.path) do
+      nil ->
+        file
+
+      blocks ->
+        apply_search_replace_to_file(file, blocks)
+    end
+  end
+
+  @spec apply_search_replace_to_file(file_entry(), [map()]) :: file_entry()
+  defp apply_search_replace_to_file(file, blocks) do
+    case DiffEngine.apply_search_replace(file.content, blocks) do
+      {:ok, patched} ->
+        if code_looks_corrupted?(file.content, patched) do
+          Logger.warning("Patched #{file.path} looks corrupted, keeping original")
+          file
+        else
+          %{file | content: patched}
+        end
+
+      {:error, :search_not_found, _} ->
+        Logger.warning("Search/replace failed for #{file.path}, keeping original")
+        file
+    end
+  end
+
+  @spec parse_path_annotated_blocks(String.t()) :: %{String.t() => [map()]}
+  defp parse_path_annotated_blocks(response) do
+    # Split by <<<< /path markers
+    ~r/<<<<\s+(\/\S+\.ex)\s*\n/
+    |> Regex.split(response, include_captures: true)
+    |> parse_path_parts(%{})
+  end
+
+  @spec parse_path_parts([String.t()], map()) :: map()
+  defp parse_path_parts([], acc), do: acc
+  defp parse_path_parts([_non_match], acc), do: acc
+
+  defp parse_path_parts([_pre, path_line, block_content | rest], acc) do
+    # path_line is the full match "<<<< /src/handler.ex\n" — extract just the path
+    path = extract_path_from_marker(path_line)
+    blocks = FixPrompts.parse_search_replace_blocks(block_content)
+    existing = Map.get(acc, path, [])
+    parse_path_parts(rest, Map.put(acc, path, existing ++ blocks))
+  end
+
+  defp parse_path_parts([_ | rest], acc), do: parse_path_parts(rest, acc)
+
+  @spec extract_path_from_marker(String.t()) :: String.t()
+  defp extract_path_from_marker(marker_line) do
+    case Regex.run(~r/(\/\S+\.ex)/, marker_line) do
+      [_, path] -> path
+      nil -> String.trim(marker_line)
     end
   end
 

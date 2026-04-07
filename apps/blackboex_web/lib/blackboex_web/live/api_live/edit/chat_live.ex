@@ -151,6 +151,12 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
     end
   end
 
+  # Note: pending_edit is created by handle_agent_code_completed with fields:
+  # %{code, test_code, diff, test_diff, explanation, instruction, validation}
+  # The multi-file data is already saved to DB by Session.save_api_and_version
+  # before the completion event arrives, so do_accept_edit just needs to refresh
+  # from DB which it already does via Apis.list_files.
+
   def handle_event("reject_edit", _params, socket) do
     {:noreply, assign(socket, pending_edit: nil)}
   end
@@ -220,19 +226,10 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
      |> push_patch(to: edit_tab_path(socket, "chat"))}
   end
 
-  def handle_info({:agent_streaming, %{delta: delta}}, socket) do
+  def handle_info({:agent_streaming, %{delta: delta} = payload}, socket) do
     if socket.assigns.current_run_id do
-      new_tokens = socket.assigns.streaming_tokens <> delta
-      socket = assign(socket, streaming_tokens: new_tokens)
-
-      socket =
-        if socket.assigns.pipeline_status == :fixing do
-          socket
-        else
-          assign(socket, editor_live_content: strip_code_fences(new_tokens))
-        end
-
-      {:noreply, socket}
+      socket = maybe_switch_file_for_streaming(socket, payload)
+      {:noreply, apply_streaming_delta(socket, delta)}
     else
       {:noreply, socket}
     end
@@ -282,6 +279,15 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
   def handle_info({:step_started, %{step: step}}, socket) do
     status = pipeline_step_to_status(step)
 
+    # Refresh files from DB when entering validation/fix phases
+    # so the editor shows generated code, not placeholders
+    socket =
+      if status in [:compiling, :formatting, :linting, :fixing] do
+        refresh_files_from_db(socket)
+      else
+        socket
+      end
+
     {:noreply,
      socket
      |> assign(pipeline_status: status, streaming_tokens: "")
@@ -289,7 +295,15 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
      |> recompute_editor_content()}
   end
 
-  def handle_info({:step_completed, %{step: _step} = payload}, socket) do
+  def handle_info({:step_completed, %{step: step} = payload}, socket) do
+    # Refresh files from DB after validation/fix steps complete
+    socket =
+      if step in [:compiling, :formatting, :linting, :fixing_compilation, :fixing_lint] do
+        refresh_files_from_db(socket)
+      else
+        socket
+      end
+
     socket =
       socket
       |> assign(streaming_tokens: "")
@@ -378,6 +392,70 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
     else
       {:noreply, put_flash(socket, :info, summary || "Agent completed")}
     end
+  end
+
+  # Multi-file pipeline events: manifest ready, file focus changes
+  def handle_info({:manifest_ready, %{manifest: manifest_files}}, socket)
+      when is_list(manifest_files) do
+    # Placeholders already created in DB by Session — just reload
+    files = Apis.list_files(socket.assigns.api.id)
+
+    {:noreply,
+     assign(socket,
+       files: files,
+       pipeline_status: "Planning complete: #{length(manifest_files)} files"
+     )}
+  end
+
+  def handle_info({:file_started, %{path: path}}, socket) do
+    # Reset streaming state and switch editor focus to the file being generated
+    api = socket.assigns.api
+    files = Apis.list_files(api.id)
+    file = Enum.find(files, &(&1.path == path))
+
+    # If file doesn't exist yet (placeholder wasn't created), create it now
+    {files, file} =
+      if is_nil(file) do
+        case Apis.create_file(api, %{
+               path: path,
+               content: "# Generating...\n",
+               file_type: "source"
+             }) do
+          {:ok, new_file} ->
+            updated_files = Apis.list_files(api.id)
+            {updated_files, new_file}
+
+          _ ->
+            # Build a virtual struct for focus even if DB write fails
+            virtual = %{path: path, content: "# Generating...\n", file_type: "source"}
+            {files, virtual}
+        end
+      else
+        {files, file}
+      end
+
+    {:noreply,
+     assign(socket,
+       files: files,
+       selected_file: file,
+       streaming_tokens: "",
+       editor_live_content: nil,
+       pipeline_status: "Generating #{path}..."
+     )}
+  end
+
+  def handle_info({:file_completed, %{path: path}}, socket) do
+    # Reload files from DB — content was saved by the pipeline
+    socket = refresh_files_from_db(socket)
+    file = Enum.find(socket.assigns.files, &(&1.path == path))
+
+    {:noreply,
+     assign(socket,
+       selected_file: file || socket.assigns.selected_file,
+       streaming_tokens: "",
+       editor_live_content: nil,
+       pipeline_status: "Completed #{path}"
+     )}
   end
 
   def handle_info({:agent_failed, %{error: error, run_id: run_id}}, socket) do
@@ -642,6 +720,8 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
     has_previous_code = socket.assigns.code != ""
 
     if has_previous_code do
+      # Build per-file diffs by comparing previous files with new files from DB
+      files_changed = build_files_changed(socket.assigns.files, socket.assigns.api.id)
       code_diff = DiffEngine.compute_diff(socket.assigns.code, code)
 
       {:noreply,
@@ -652,6 +732,7 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
            test_code: test_code,
            diff: code_diff,
            test_diff: [],
+           files_changed: files_changed,
            explanation: summary || "Agent completed",
            instruction: summary,
            validation: nil
@@ -666,6 +747,25 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
        |> assign(code: code, test_code: test_code)
        |> put_flash(:info, summary || "Code generated successfully")}
     end
+  end
+
+  defp build_files_changed(old_files, api_id) do
+    new_files = Apis.list_files(api_id)
+
+    new_files
+    |> Enum.map(fn new_file ->
+      old_file = Enum.find(old_files, &(&1.path == new_file.path))
+      old_content = if old_file, do: old_file.content || "", else: ""
+      new_content = new_file.content || ""
+
+      %{
+        path: new_file.path,
+        content: new_content,
+        diff: DiffEngine.compute_diff(old_content, new_content),
+        changed: old_content != new_content
+      }
+    end)
+    |> Enum.filter(& &1.changed)
   end
 
   defp apply_action_to_editor(socket, "compile_code", %{"code" => code}) do
@@ -750,6 +850,21 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
   defp streaming_target_for(:generating_docs, :doc), do: :streaming_doc
   defp streaming_target_for(_status, file_type), do: file_type
 
+  defp refresh_files_from_db(socket) do
+    files = Apis.list_files(socket.assigns.api.id)
+    current_path = socket.assigns.selected_file && socket.assigns.selected_file.path
+    selected = Enum.find(files, &(&1.path == current_path))
+    handler = Enum.find(files, &(&1.path == "/src/handler.ex"))
+    test_file = Enum.find(files, &(&1.path == "/test/handler_test.ex"))
+
+    assign(socket,
+      files: files,
+      selected_file: selected || socket.assigns.selected_file,
+      code: (handler && handler.content) || socket.assigns.code,
+      test_code: (test_file && test_file.content) || socket.assigns.test_code
+    )
+  end
+
   defp auto_select_file_for_step(socket, status)
        when status in [:generating, :compiling, :formatting, :linting] do
     file = Enum.find(socket.assigns.files, &(&1.path == "/src/handler.ex"))
@@ -768,6 +883,40 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
   end
 
   defp auto_select_file_for_step(socket, _status), do: socket
+
+  defp maybe_switch_file_for_streaming(socket, payload) do
+    streaming_path = Map.get(payload, :path)
+    selected_path = socket.assigns.selected_file && socket.assigns.selected_file.path
+
+    if is_nil(streaming_path) or streaming_path == selected_path do
+      socket
+    else
+      # Streaming is for a different file — switch focus and reset tokens
+      files = socket.assigns.files
+      file = Enum.find(files, &(&1.path == streaming_path))
+
+      if file do
+        assign(socket,
+          selected_file: file,
+          streaming_tokens: "",
+          editor_live_content: nil
+        )
+      else
+        socket
+      end
+    end
+  end
+
+  defp apply_streaming_delta(socket, delta) do
+    new_tokens = socket.assigns.streaming_tokens <> delta
+    socket = assign(socket, streaming_tokens: new_tokens)
+
+    if socket.assigns.pipeline_status == :fixing do
+      socket
+    else
+      assign(socket, editor_live_content: strip_code_fences(new_tokens))
+    end
+  end
 
   defp strip_code_fences(tokens) when is_binary(tokens) do
     tokens

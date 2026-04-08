@@ -86,7 +86,12 @@ defmodule BlackboexWeb.Components.Editor.FileTree do
       <% else %>
         <span class={["size-3.5 shrink-0", file_icon_class(@node.name)]}></span>
       <% end %>
-      <span class="truncate">{@node.name}</span>
+      <span class={["truncate", if(@node.read_only, do: "text-muted-foreground/70 italic")]}>
+        {@node.name}
+      </span>
+      <%= if @node.read_only do %>
+        <span class="hero-lock-closed size-2.5 shrink-0 text-muted-foreground/50"></span>
+      <% end %>
     </div>
     """
   end
@@ -96,7 +101,8 @@ defmodule BlackboexWeb.Components.Editor.FileTree do
     |> Enum.map(fn file ->
       path = if is_binary(file.path), do: file.path, else: to_string(file.path)
       parts = path |> String.trim_leading("/") |> String.split("/")
-      {parts, path, file.file_type}
+      read_only = Map.get(file, :read_only, false)
+      {parts, path, file.file_type, read_only}
     end)
     |> build_tree_nodes()
     |> Enum.sort_by(fn node -> {if(node.type == :directory, do: 0, else: 1), node.name} end)
@@ -104,25 +110,33 @@ defmodule BlackboexWeb.Components.Editor.FileTree do
 
   defp build_tree_nodes(entries) do
     {files, dirs} =
-      Enum.split_with(entries, fn {parts, _path, _type} -> length(parts) == 1 end)
+      Enum.split_with(entries, fn {parts, _path, _type, _ro} -> length(parts) == 1 end)
 
     file_nodes =
-      Enum.map(files, fn {[name], path, file_type} ->
-        %{type: :file, name: name, path: path, file_type: file_type, children: []}
+      Enum.map(files, fn {[name], path, file_type, read_only} ->
+        %{
+          type: :file,
+          name: name,
+          path: path,
+          file_type: file_type,
+          read_only: read_only,
+          children: []
+        }
       end)
 
     dir_groups =
       dirs
-      |> Enum.group_by(fn {[first | _rest], _path, _type} -> first end)
+      |> Enum.group_by(fn {[first | _rest], _path, _type, _ro} -> first end)
       |> Enum.map(fn {dir_name, children} ->
         sub_entries =
-          Enum.map(children, fn {[_first | rest], path, type} -> {rest, path, type} end)
+          Enum.map(children, fn {[_first | rest], path, type, ro} -> {rest, path, type, ro} end)
 
         %{
           type: :directory,
           name: dir_name,
           path: nil,
           file_type: nil,
+          read_only: false,
           children:
             build_tree_nodes(sub_entries)
             |> Enum.sort_by(fn n -> {if(n.type == :directory, do: 0, else: 1), n.name} end)
@@ -137,6 +151,8 @@ defmodule BlackboexWeb.Components.Editor.FileTree do
       String.ends_with?(name, ".md") -> "hero-document-text text-blue-500/80"
       String.ends_with?(name, "_test.ex") -> "hero-beaker text-green-500/80"
       String.ends_with?(name, ".ex") -> "hero-code-bracket text-purple-500/80"
+      String.ends_with?(name, ".json") -> "hero-document-text text-amber-500/80"
+      String.ends_with?(name, ".yaml") -> "hero-document-text text-sky-500/80"
       true -> "hero-document text-muted-foreground"
     end
   end

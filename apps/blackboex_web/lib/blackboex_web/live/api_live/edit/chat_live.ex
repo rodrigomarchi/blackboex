@@ -30,7 +30,7 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
         {agent_events, current_run} = load_conversation_events(agent_conversation)
 
         api = socket.assigns.api
-        files = Apis.list_files(api.id)
+        files = Apis.list_files_with_virtual(api)
 
         source_content =
           files |> Enum.filter(&(&1.file_type == "source")) |> Enum.map_join("\n\n", & &1.content)
@@ -83,6 +83,7 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
             file={@selected_file}
             live_content={@editor_live_content}
             streaming={@chat_loading}
+            read_only={@selected_file && Map.get(@selected_file, :read_only, false)}
           />
         </div>
         <%!-- Chat Panel (right) --%>
@@ -851,13 +852,15 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
   defp streaming_target_for(_status, file_type), do: file_type
 
   defp refresh_files_from_db(socket) do
-    files = Apis.list_files(socket.assigns.api.id)
+    api = Blackboex.Repo.reload!(socket.assigns.api)
+    files = Apis.list_files_with_virtual(api)
     current_path = socket.assigns.selected_file && socket.assigns.selected_file.path
     selected = Enum.find(files, &(&1.path == current_path))
     handler = Enum.find(files, &(&1.path == "/src/handler.ex"))
     test_file = Enum.find(files, &(&1.path == "/test/handler_test.ex"))
 
     assign(socket,
+      api: api,
       files: files,
       selected_file: selected || socket.assigns.selected_file,
       code: (handler && handler.content) || socket.assigns.code,

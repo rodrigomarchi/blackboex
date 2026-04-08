@@ -14,6 +14,7 @@ defmodule BlackboexWeb.Components.Editor.FileEditor do
   attr :file, :map, default: nil
   attr :live_content, :string, default: nil
   attr :streaming, :boolean, default: false
+  attr :read_only, :boolean, default: false
   attr :class, :string, default: nil
 
   def file_editor(assigns) do
@@ -35,6 +36,11 @@ defmodule BlackboexWeb.Components.Editor.FileEditor do
             <span class="ml-2 flex items-center gap-1 text-[10px] text-amber-400/80">
               <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
               generating
+            </span>
+          <% end %>
+          <%= if @read_only do %>
+            <span class="ml-2 flex items-center gap-1 text-[10px] text-muted-foreground">
+              <span class="hero-lock-closed size-2.5"></span> generated
             </span>
           <% end %>
         </div>

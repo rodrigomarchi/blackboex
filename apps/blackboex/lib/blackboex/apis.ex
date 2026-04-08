@@ -15,6 +15,7 @@ defmodule Blackboex.Apis do
   alias Blackboex.Apis.ApiVersion
   alias Blackboex.Apis.DiffEngine
   alias Blackboex.Apis.Registry
+  alias Blackboex.Apis.VirtualFile
   alias Blackboex.Audit
   alias Blackboex.Billing.Enforcement
   alias Blackboex.CodeGen.Compiler
@@ -123,6 +124,13 @@ defmodule Blackboex.Apis do
     |> where([f], f.api_id == ^api_id)
     |> order_by([f], asc: f.path)
     |> Repo.all()
+  end
+
+  @spec list_files_with_virtual(Api.t()) :: [map()]
+  def list_files_with_virtual(%Api{} = api) do
+    db_files = list_files(api.id) |> Enum.map(&Map.put(&1, :read_only, false))
+    virtual_files = VirtualFile.build(api)
+    db_files ++ virtual_files
   end
 
   @spec list_source_files(Ecto.UUID.t()) :: [ApiFile.t()]

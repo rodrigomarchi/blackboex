@@ -229,6 +229,22 @@ window.addEventListener("phx:copy_to_clipboard", (event) => {
   }
 })
 
+// Download file handler
+window.addEventListener("phx:download_file", (event) => {
+  const { content, filename } = event.detail
+  if (content && filename) {
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+})
+
 // expose liveSocket on window for web console debug logs and latency simulation:
 // >> liveSocket.enableDebug()
 // >> liveSocket.enableLatencySim(1000)  // enabled for duration of browser session

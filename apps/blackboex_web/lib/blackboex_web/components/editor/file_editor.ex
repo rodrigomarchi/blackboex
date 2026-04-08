@@ -43,6 +43,24 @@ defmodule BlackboexWeb.Components.Editor.FileEditor do
               <span class="hero-lock-closed size-2.5"></span> generated
             </span>
           <% end %>
+          <div class="ml-auto flex items-center gap-1">
+            <button
+              type="button"
+              phx-click="copy_file"
+              title="Copy to clipboard"
+              class="p-1 rounded hover:bg-white/10 text-white/40 hover:text-white/70 transition-colors"
+            >
+              <span class="hero-clipboard-document size-3.5"></span>
+            </button>
+            <button
+              type="button"
+              phx-click="download_file"
+              title="Download file"
+              class="p-1 rounded hover:bg-white/10 text-white/40 hover:text-white/70 transition-colors"
+            >
+              <span class="hero-arrow-down-tray size-3.5"></span>
+            </button>
+          </div>
         </div>
         <div class="flex-1 min-h-0 relative" id="editor-scroll-region" phx-hook="EditorAutoScroll">
           <%= if @is_markdown do %>

@@ -128,6 +128,17 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
      |> recompute_editor_content()}
   end
 
+  def handle_event("copy_file", _params, socket) do
+    content = socket.assigns.editor_live_content || get_selected_content(socket)
+    {:noreply, push_event(socket, "copy_to_clipboard", %{text: content})}
+  end
+
+  def handle_event("download_file", _params, socket) do
+    content = socket.assigns.editor_live_content || get_selected_content(socket)
+    filename = filename_from_path(socket.assigns.selected_file)
+    {:noreply, push_event(socket, "download_file", %{content: content, filename: filename})}
+  end
+
   # ── Tab-Specific Events ───────────────────────────────────────────────
 
   def handle_event("send_chat", %{"chat_input" => ""}, socket) do
@@ -970,4 +981,17 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
       nil
     end
   end
+
+  defp get_selected_content(socket) do
+    case socket.assigns.selected_file do
+      %{content: content} when is_binary(content) -> content
+      _ -> ""
+    end
+  end
+
+  defp filename_from_path(%{path: path}) when is_binary(path) do
+    Path.basename(path)
+  end
+
+  defp filename_from_path(_), do: "file.txt"
 end

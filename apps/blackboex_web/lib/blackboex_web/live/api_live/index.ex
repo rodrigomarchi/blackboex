@@ -256,7 +256,7 @@ defmodule BlackboexWeb.ApiLive.Index do
   defp maybe_enqueue_generation(_api, "", _user_id, _org_id), do: :ok
 
   defp maybe_enqueue_generation(api, description, user_id, _org_id) do
-    Apis.start_agent_generation(api, description, user_id)
+    Blackboex.Agent.start_generation(api, description, user_id)
   end
 
   # ── Render ───────────────────────────────────────────────────────────────

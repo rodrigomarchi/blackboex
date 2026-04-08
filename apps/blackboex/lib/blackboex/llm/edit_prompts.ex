@@ -4,7 +4,7 @@ defmodule Blackboex.LLM.EditPrompts do
   Uses SEARCH/REPLACE block format for efficient diff-based edits.
   """
 
-  alias Blackboex.LLM.Prompts
+  alias Blackboex.LLM.SecurityConfig
 
   @max_history_messages 10
 
@@ -65,10 +65,10 @@ defmodule Blackboex.LLM.EditPrompts do
     6. NEVER use prohibited modules or dynamic code execution.
 
     ## Allowed Modules
-    #{Enum.join(Prompts.allowed_modules(), ", ")}
+    #{Enum.join(SecurityConfig.allowed_modules(), ", ")}
 
     ## Prohibited Modules (NEVER use these)
-    #{Enum.join(Prompts.prohibited_modules(), ", ")}
+    #{Enum.join(SecurityConfig.prohibited_modules(), ", ")}
 
     ## Code Quality
     - Every `defmodule` MUST have `@moduledoc`

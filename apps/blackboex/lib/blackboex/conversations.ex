@@ -7,9 +7,7 @@ defmodule Blackboex.Conversations do
   Events are atomic actions persisted for full observability and analysis.
   """
 
-  import Ecto.Query
-
-  alias Blackboex.Conversations.{Conversation, Event, Run}
+  alias Blackboex.Conversations.{Conversation, ConversationQueries, Event, Run}
   alias Blackboex.Repo
 
   # ── Conversations ──────────────────────────────────────────────
@@ -45,7 +43,8 @@ defmodule Blackboex.Conversations do
   @spec increment_conversation_stats(Conversation.t(), keyword()) ::
           {non_neg_integer(), nil}
   def increment_conversation_stats(%Conversation{id: id}, increments) do
-    from(c in Conversation, where: c.id == ^id)
+    id
+    |> ConversationQueries.increment_stats()
     |> Repo.update_all(inc: increments)
   end
 
@@ -83,7 +82,8 @@ defmodule Blackboex.Conversations do
 
   @spec touch_run(String.t()) :: :ok
   def touch_run(run_id) do
-    from(r in Run, where: r.id == ^run_id)
+    run_id
+    |> ConversationQueries.touch_run()
     |> Repo.update_all(set: [updated_at: DateTime.utc_now()])
 
     :ok
@@ -93,11 +93,8 @@ defmodule Blackboex.Conversations do
   def list_runs(conversation_id, opts \\ []) do
     limit = Keyword.get(opts, :limit, 50)
 
-    from(r in Run,
-      where: r.conversation_id == ^conversation_id,
-      order_by: [desc: r.inserted_at],
-      limit: ^limit
-    )
+    conversation_id
+    |> ConversationQueries.runs_for_conversation(limit)
     |> Repo.all()
   end
 
@@ -105,10 +102,8 @@ defmodule Blackboex.Conversations do
   def list_stale_runs(stale_after_ms \\ 120_000) do
     cutoff = DateTime.add(DateTime.utc_now(), -stale_after_ms, :millisecond)
 
-    from(r in Run,
-      where: r.status == "running",
-      where: r.updated_at < ^cutoff
-    )
+    cutoff
+    |> ConversationQueries.stale_runs()
     |> Repo.all()
   end
 
@@ -125,20 +120,15 @@ defmodule Blackboex.Conversations do
   def list_events(run_id, opts \\ []) do
     limit = Keyword.get(opts, :limit, 1000)
 
-    from(e in Event,
-      where: e.run_id == ^run_id,
-      order_by: [asc: e.sequence],
-      limit: ^limit
-    )
+    run_id
+    |> ConversationQueries.events_for_run(limit)
     |> Repo.all()
   end
 
   @spec next_sequence(String.t()) :: non_neg_integer()
   def next_sequence(run_id) do
-    from(e in Event,
-      where: e.run_id == ^run_id,
-      select: count(e.id)
-    )
+    run_id
+    |> ConversationQueries.event_count()
     |> Repo.one()
   end
 end

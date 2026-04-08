@@ -3,9 +3,7 @@ defmodule Blackboex.Accounts do
   The Accounts context.
   """
 
-  import Ecto.Query, warn: false
-
-  alias Blackboex.Accounts.{User, UserNotifier, UserToken}
+  alias Blackboex.Accounts.{User, UserNotifier, UserQueries, UserToken}
   alias Blackboex.Organizations.{Membership, Organization}
   alias Blackboex.Repo
 
@@ -152,7 +150,7 @@ defmodule Blackboex.Accounts do
            %UserToken{sent_to: email} <- Repo.one(query),
            {:ok, user} <- Repo.update(User.email_changeset(user, %{email: email})),
            {_count, _result} <-
-             Repo.delete_all(from(UserToken, where: [user_id: ^user.id, context: ^context])) do
+             Repo.delete_all(UserQueries.user_tokens_by_context(user.id, context)) do
         {:ok, user}
       else
         _ -> {:error, :transaction_aborted}
@@ -305,7 +303,7 @@ defmodule Blackboex.Accounts do
   Deletes the signed token with the given context.
   """
   def delete_user_session_token(token) do
-    Repo.delete_all(from(UserToken, where: [token: ^token, context: "session"]))
+    token |> UserQueries.session_token() |> Repo.delete_all()
     :ok
   end
 
@@ -316,7 +314,7 @@ defmodule Blackboex.Accounts do
       with {:ok, user} <- Repo.update(changeset) do
         tokens_to_expire = Repo.all_by(UserToken, user_id: user.id)
 
-        Repo.delete_all(from(t in UserToken, where: t.id in ^Enum.map(tokens_to_expire, & &1.id)))
+        Repo.delete_all(UserQueries.user_tokens_by_ids(Enum.map(tokens_to_expire, & &1.id)))
 
         {:ok, {user, tokens_to_expire}}
       end

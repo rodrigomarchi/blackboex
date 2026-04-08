@@ -5,7 +5,7 @@ defmodule Blackboex.CodeGen.UnifiedPrompts do
   ask the LLM to fix the issues while maintaining code quality.
   """
 
-  alias Blackboex.LLM.Prompts
+  alias Blackboex.LLM.SecurityConfig
 
   @spec build_fix_code_prompt(String.t(), [String.t()]) :: String.t()
   def build_fix_code_prompt(code, errors) do
@@ -30,7 +30,7 @@ defmodule Blackboex.CodeGen.UnifiedPrompts do
     2. Every public `def` MUST have @doc directly above it, then @spec, then def.
     3. The code MUST compile without warnings.
     4. The code MUST be compatible with `mix format` and `mix credo --strict`.
-    5. Do NOT use prohibited modules: #{Enum.join(Prompts.prohibited_modules(), ", ")}
+    5. Do NOT use prohibited modules: #{Enum.join(SecurityConfig.prohibited_modules(), ", ")}
     6. Functions receive params as a plain map and return a plain map.
     7. Do NOT use `conn`, `json/2`, `put_status/2`, `send_resp/3`, or any Plug/Phoenix functions.
     8. Max 120 characters per line — break long lines.

@@ -6,22 +6,33 @@ Each context has its own AGENTS.md — **read it before generating code in that 
 
 ## Context Map
 
-| Context | Purpose | Key Schemas |
-|---------|---------|-------------|
-| **Accounts** | Users, auth tokens, scopes | User, UserToken, Scope |
-| **Organizations** | Multi-tenancy, memberships | Organization, Membership |
-| **Apis** | Core entity — API definitions + lifecycle | Api, ApiKey, ApiVersion, InvocationLog, MetricRollup |
-| **Conversations** | Agent interaction history (event-sourced) | Conversation, Run, Event |
-| **Agent** | AI orchestration via LangChain | Session (GenServer), KickoffWorker, CodePipeline |
-| **CodeGen** | Compilation/validation pipeline | Compiler, UnifiedPipeline, Linter, AstValidator |
-| **Billing** | Stripe integration, usage tracking | Subscription, UsageEvent, DailyUsage |
-| **LLM** | Model interface, circuit breaker | CircuitBreaker (GenServer), RateLimiter, Config |
-| **Testing** | API test framework | TestRunner, TestGenerator, TestSuite, TestRequest |
-| **Docs** | Documentation generation | DocGenerator, OpenApiGenerator |
-| **Audit** | Change tracking | AuditLog |
-| **Policy** | Authorization (LetMe DSL) | — |
-| **Telemetry** | OpenTelemetry instrumentation, safe event emission | Events |
-| **Features** | FunWithFlags integration (user/plan-based flag targeting) | ActorImpl, GroupImpl |
+| Context | Facade | Key Schemas | Query Module |
+|---------|--------|-------------|--------------|
+| **Accounts** | `Blackboex.Accounts` | User, UserToken, Scope | `UserQueries` |
+| **Organizations** | `Blackboex.Organizations` | Organization, Membership | `OrganizationQueries` |
+| **Apis** | `Blackboex.Apis` | Api, ApiKey, ApiVersion, ApiFile | `ApiQueries`, `FileQueries`, `VersionQueries` |
+| **Conversations** | `Blackboex.Conversations` | Conversation, Run, Event | `ConversationQueries` |
+| **Agent** | `Blackboex.Agent` | — | — |
+| **CodeGen** | `Blackboex.CodeGen` | — | — |
+| **Billing** | `Blackboex.Billing` | Subscription, UsageEvent, DailyUsage | `BillingQueries` |
+| **LLM** | `Blackboex.LLM` | Usage | — |
+| **Testing** | `Blackboex.Testing` | TestSuite, TestRequest | `TestingQueries` |
+| **Docs** | `Blackboex.Docs` | — | — |
+| **Audit** | `Blackboex.Audit` | AuditLog | `AuditQueries` |
+| **Policy** | `Blackboex.Policy` | — | — |
+| **Telemetry** | `Blackboex.Telemetry` | — | — |
+| **Features** | `Blackboex.Features` | — | — |
+
+## Facade Pattern (defdelegate)
+
+All contexts use `defdelegate` in the facade to delegate to sub-modules. External callers NEVER call sub-modules directly.
+
+```elixir
+# In Blackboex.Apis (facade):
+defdelegate list_files(api), to: Blackboex.Apis.Files
+defdelegate create_file(api, attrs), to: Blackboex.Apis.Files
+defdelegate create_version(api, attrs), to: Blackboex.Apis.Versions
+```
 
 ## Public APIs (Key Functions)
 
@@ -30,32 +41,27 @@ Each context has its own AGENTS.md — **read it before generating code in that 
 - `get_user_by_email/1`, `get_user_by_email_and_password/2`, `get_user_by_session_token/1`
 - `generate_user_session_token/1`, `delete_user_session_token/1`
 - `login_user_by_magic_link/1`, `get_user_by_magic_link_token/1`
-- `change_user_password/3`, `update_user_password/2`
-- `change_user_email/3`, `update_user_email/2`
-- `deliver_login_instructions/2`, `deliver_user_update_email_instructions/3`
 - `sudo_mode?/2` — checks if authentication is recent enough
 
 ### Organizations
 - `create_organization/2` :: `(User.t(), map()) -> {:ok, %{organization, membership}} | {:error, ...}`
-- `list_user_organizations/1`, `get_organization!/1`
+- `list_user_organizations/1`, `get_organization!/1`, `get_organization/1`
 - `add_member/3`, `get_user_membership/2`, `get_user_primary_plan/1`
 
 ### Apis
-- `create_api/1` — checks `Billing.Enforcement`, uses advisory lock
-- `list_apis/1`, `get_api/2` — scoped by organization_id
-- `update_api/2`, `delete_api/1`
+- `create_api/1`, `list_apis/1`, `get_api/2`, `update_api/2`, `delete_api/1`
 - `publish/2`, `unpublish/1` — lifecycle transitions
-- `create_version/2`, `rollback_to_version/3`
-- `start_agent_generation/3`, `start_agent_edit/3` — triggers AI pipeline
+- `create_version/2`, `rollback_to_version/3`, `list_versions/1`
+- `list_files/1`, `create_file/2`, `update_file_content/3`, `upsert_files/3`
+- **Removed from Apis:** `start_agent_generation/3`, `start_agent_edit/3` → now in `Agent` facade
+
+### Agent
+- `Agent.start_generation/3` — entry point for AI code generation
+- `Agent.start_edit/3` — entry point for AI code editing
 
 ### Conversations
-- `get_or_create_conversation/2` — 1:1 with API
-- `create_run/1`, `complete_run/2`, `update_run_metrics/2`
-- `touch_run/1` — heartbeat timestamp for recovery detection
-- `list_stale_runs/1` — finds runs >120s without heartbeat (used by RecoveryWorker)
-- `append_event/1`, `next_sequence/1` — event sourcing
-- `list_runs/2`, `list_events/2`
-- `get_conversation/1`, `get_conversation_by_api/1`
+- `get_or_create_conversation/2`, `create_run/1`, `complete_run/2`
+- `touch_run/1`, `list_stale_runs/1`, `append_event/1`, `next_sequence/1`
 
 ### Billing
 - `get_subscription/1`, `create_or_update_subscription/1`
@@ -68,31 +74,26 @@ Each context has its own AGENTS.md — **read it before generating code in that 
 - `track/1` — ExAudit row-level tracking
 
 ### CodeGen
-- `Compiler.compile/2` :: `(Api.t(), String.t()) -> {:ok, module()} | {:error, ...}`
-- `Compiler.unload/1`, `Compiler.module_name_for/1`
-- `UnifiedPipeline.validate_and_test/3`, `validate_on_save/4`
-
-### Agent
-- `Session.start/1` — starts GenServer for a run
-- `CodePipeline.run_generation/3`, `run_edit/5` — deterministic pipeline (2-4 LLM calls)
-- `KickoffWorker` — Oban entry point, queue: `:generation`
+- `compile/2` :: `(Api.t(), String.t()) -> {:ok, module()} | {:error, ...}`
+- `unload/1`, `module_name_for/1`
+- `validate_and_test/3`, `validate_on_save/4`
 
 ## GenServers & Supervision
 
 | GenServer | Purpose | Registry |
 |-----------|---------|----------|
-| `Agent.Session` | One per active run, manages LLM chain lifecycle | Dynamic, named by run_id |
-| `LLM.CircuitBreaker` | Per-provider health tracking (closed/open/half_open) | Named by provider atom |
+| `Agent.Session` | One per active run — thin shell, delegates to Session.* | Dynamic, named by run_id |
+| `LLM.CircuitBreaker` | Per-provider health tracking | Named by provider atom |
 | `Apis.Registry` | Tracks deployed compiled modules | Singleton |
 
 ## Oban Workers
 
 | Worker | Queue | Schedule | Purpose |
 |--------|-------|----------|---------|
-| `KickoffWorker` | generation (3) | On-demand | Start agent run |
-| `RecoveryWorker` | generation (3) | Every 2 min | Recover stale runs |
-| `UsageAggregationWorker` | billing (10) | Daily | Aggregate usage events |
-| `MetricRollupWorker` | analytics (5) | Hourly | Rollup API metrics |
+| `Agent.KickoffWorker` | generation (3) | On-demand | Start agent run |
+| `Agent.RecoveryWorker` | generation (3) | Every 2 min | Recover stale runs |
+| `Billing.UsageAggregationWorker` | billing (10) | Daily | Aggregate usage events |
+| `Apis.MetricRollupWorker` | analytics (5) | Hourly | Rollup API metrics |
 
 ## Invariants
 
@@ -101,7 +102,7 @@ Each context has its own AGENTS.md — **read it before generating code in that 
 3. **Conversations are event-sourced** — append-only Events with sequence numbers
 4. **Billing gates expensive operations** — `Enforcement.check/2` before create_api, llm_generation
 5. **CircuitBreaker protects LLM calls** — 5 failures in 60s opens circuit, 30s recovery
-6. **Version numbers inside transaction** — `SELECT MAX(version_number)` inside `Ecto.Multi`
+6. **SecurityConfig is single source** — `LLM.SecurityConfig` owns allowed/prohibited module lists
 
 ## Test Infrastructure
 
@@ -109,7 +110,7 @@ See root `AGENTS.md § Test Patterns` for the full reference.
 
 **Key rules:**
 - `DataCase` auto-imports ALL fixtures + `Mox.verify_on_exit!` — no manual imports needed
-- Every schema insert MUST use a fixture function from `test/support/fixtures/` — never inline `%Schema{} |> changeset |> Repo.insert`
+- Every schema insert MUST use a fixture function — never inline `%Schema{} |> changeset |> Repo.insert`
 - New schema = new fixture function (create BEFORE writing tests)
 - Mox for LLM/Stripe — use `setup :stub_llm_client` or `setup :stub_stripe` for defaults
 - Oban manual mode — `Oban.Testing.assert_enqueued/2`

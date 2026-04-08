@@ -3,11 +3,9 @@ defmodule Blackboex.Organizations do
   The Organizations context. Manages organizations, memberships, and multi-tenancy.
   """
 
-  import Ecto.Query, warn: false
-
   alias Blackboex.Accounts.User
   alias Blackboex.Audit
-  alias Blackboex.Organizations.{Membership, Organization}
+  alias Blackboex.Organizations.{Membership, Organization, OrganizationQueries}
   alias Blackboex.Repo
   alias Ecto.Multi
 
@@ -29,9 +27,8 @@ defmodule Blackboex.Organizations do
 
   @spec list_user_organizations(User.t()) :: [Organization.t()]
   def list_user_organizations(%User{} = user) do
-    Organization
-    |> join(:inner, [o], m in Membership, on: m.organization_id == o.id)
-    |> where([_o, m], m.user_id == ^user.id)
+    user.id
+    |> OrganizationQueries.for_user()
     |> Repo.all()
   end
 
@@ -81,12 +78,8 @@ defmodule Blackboex.Organizations do
   """
   @spec get_user_primary_plan(User.t()) :: atom()
   def get_user_primary_plan(%User{} = user) do
-    Organization
-    |> join(:inner, [o], m in Membership, on: m.organization_id == o.id)
-    |> where([_o, m], m.user_id == ^user.id)
-    |> order_by([_o, m], asc: m.inserted_at)
-    |> limit(1)
-    |> select([o], o.plan)
+    user.id
+    |> OrganizationQueries.user_primary_plan()
     |> Repo.one()
     |> case do
       nil -> :free

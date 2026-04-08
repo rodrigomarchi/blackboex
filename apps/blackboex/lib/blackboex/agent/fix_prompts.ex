@@ -21,10 +21,10 @@ defmodule Blackboex.Agent.FixPrompts do
   - Max 40 lines per function, max 120 chars per line, max 4 nesting levels.
 
   ## Allowed Modules
-  #{Enum.join(Blackboex.LLM.Prompts.allowed_modules(), ", ")}
+  #{Enum.join(Blackboex.LLM.SecurityConfig.allowed_modules(), ", ")}
 
   ## Prohibited Modules (NEVER use these)
-  #{Enum.join(Blackboex.LLM.Prompts.prohibited_modules(), ", ")}
+  #{Enum.join(Blackboex.LLM.SecurityConfig.prohibited_modules(), ", ")}
   """
 
   @edit_format_instructions """

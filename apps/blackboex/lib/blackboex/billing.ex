@@ -4,10 +4,8 @@ defmodule Blackboex.Billing do
   and usage tracking for plan-based billing.
   """
 
-  import Ecto.Query, warn: false
-
   alias Blackboex.Audit
-  alias Blackboex.Billing.{DailyUsage, StripeClient, Subscription, UsageEvent}
+  alias Blackboex.Billing.{BillingQueries, DailyUsage, StripeClient, Subscription, UsageEvent}
   alias Blackboex.Organizations.Organization
   alias Blackboex.Repo
   alias Ecto.Multi
@@ -177,10 +175,8 @@ defmodule Blackboex.Billing do
 
   @spec get_daily_usage_for_period(binary(), Date.t(), Date.t()) :: [DailyUsage.t()]
   def get_daily_usage_for_period(organization_id, start_date, end_date) do
-    DailyUsage
-    |> where([d], d.organization_id == ^organization_id)
-    |> where([d], d.date >= ^start_date and d.date <= ^end_date)
-    |> order_by([d], asc: d.date)
+    organization_id
+    |> BillingQueries.daily_usage_for_period(start_date, end_date)
     |> Repo.all()
   end
 
@@ -188,10 +184,8 @@ defmodule Blackboex.Billing do
   def count_usage_events_today(organization_id, event_type) do
     today_start = NaiveDateTime.new!(Date.utc_today(), ~T[00:00:00])
 
-    UsageEvent
-    |> where([e], e.organization_id == ^organization_id)
-    |> where([e], e.event_type == ^event_type)
-    |> where([e], e.inserted_at >= ^today_start)
+    organization_id
+    |> BillingQueries.usage_events_today(event_type, today_start)
     |> Repo.aggregate(:count)
   end
 
@@ -209,9 +203,8 @@ defmodule Blackboex.Billing do
       end
 
     aggregated =
-      DailyUsage
-      |> where([d], d.organization_id == ^organization_id)
-      |> where([d], d.date >= ^month_start and d.date <= ^yesterday)
+      organization_id
+      |> BillingQueries.monthly_daily_usage(month_start, yesterday)
       |> Repo.aggregate(:sum, field_name) || 0
 
     # Add today's live count

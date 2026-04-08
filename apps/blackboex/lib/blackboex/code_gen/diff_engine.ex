@@ -1,4 +1,4 @@
-defmodule Blackboex.Apis.DiffEngine do
+defmodule Blackboex.CodeGen.DiffEngine do
   @moduledoc """
   Computes line-level diffs and applies search/replace edits.
   """

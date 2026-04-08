@@ -65,6 +65,32 @@ Umbrella app with strict domain/web separation. See `AGENTS.md` for full context
 - Dialyzer from day one
 - Two esbuild/tailwind targets: `blackboex_web` and `blackboex_admin`
 
+## Structural Patterns — Mandatory
+
+### Context Decomposition
+- Every context with data has: **facade** (`defdelegate`) + **\*Queries module** + sub-contexts if >300 lines
+- Facade is the public API. External callers (web, workers) **NEVER** import sub-modules directly
+- `*Queries` modules contain ONLY query builders (`import Ecto.Query`). No side effects, no `Repo` calls inside queries
+- Sub-contexts contain business logic. They call `*Queries` for data access
+- Schemas stay in their own files with changesets. Schemas NEVER move paths
+
+### When to Decompose
+- Context facade > 300 lines → extract sub-contexts with `defdelegate`
+- 3+ inline `Ecto.Query` calls → extract to `*Queries` module
+- GenServer > 200 lines → extract logic into sub-modules, keep GenServer as thin shell
+- Pipeline/workflow > 400 lines → split by phase/responsibility
+
+### Naming Conventions
+- Context facade: `Blackboex.Apis` (singular namespace)
+- Sub-context: `Blackboex.Apis.Files`, `Blackboex.Apis.Versions`
+- Query module: `Blackboex.Apis.FileQueries`, `Blackboex.Apis.VersionQueries`
+- Schema: `Blackboex.Apis.Api`, `Blackboex.Apis.ApiFile` (singular)
+- Worker: stays at current path, never rename (Oban jobs reference module name)
+
+### Security
+- `Blackboex.LLM.SecurityConfig` is the SINGLE source for allowed/prohibited modules
+- Never duplicate these lists. Always reference `SecurityConfig`
+
 ## Test Standards — Mandatory Rules
 
 ### Fixture-First Policy
@@ -152,7 +178,7 @@ AGENTS.md                                          — Root: stack, structure, c
 │   ├── lib/blackboex/organizations/AGENTS.md      — Multi-tenancy, memberships
 │   ├── lib/blackboex/policy/AGENTS.md             — LetMe DSL, authorization
 │   ├── lib/blackboex/telemetry/AGENTS.md          — OpenTelemetry, events
-│   ├── lib/blackboex/testing/AGENTS.md            — TestRunner, TestGenerator, validation
+│   ├── lib/blackboex/testing/AGENTS.md            — TestRunner, validation
 │   └── lib/blackboex/audit/AGENTS.md              — ExAudit, AuditLog
 ├── apps/blackboex_web/AGENTS.md                   — Web: routing, auth flow, plugs
 │   ├── lib/blackboex_web/components/AGENTS.md     — FULL component catalog (SaladUI + shared + editor)

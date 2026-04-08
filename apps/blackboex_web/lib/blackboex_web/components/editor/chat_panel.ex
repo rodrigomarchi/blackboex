@@ -7,7 +7,7 @@ defmodule BlackboexWeb.Components.Editor.ChatPanel do
 
   use BlackboexWeb, :live_component
 
-  alias Blackboex.Apis.DiffEngine
+  alias Blackboex.CodeGen.DiffEngine
   alias Phoenix.LiveView.JS
 
   import BlackboexWeb.Components.Editor.ValidationDashboard, only: [validation_badge: 1]

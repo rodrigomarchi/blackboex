@@ -4,22 +4,8 @@ defmodule Blackboex.LLM.Prompts do
   Contains security constraints, allowed/prohibited modules, and template integration.
   """
 
+  alias Blackboex.LLM.SecurityConfig
   alias Blackboex.LLM.Templates
-
-  @allowed_modules ~w(
-    Enum Map List String Integer Float Tuple Keyword
-    MapSet Date Time DateTime NaiveDateTime Calendar
-    Regex URI Base Jason
-    Access Stream Range
-    Blackboex.Schema Ecto.Schema Ecto.Changeset Ecto.Type Ecto.UUID Ecto.Enum
-  )
-
-  @prohibited_modules ~w(
-    File System IO Code Port Process Node
-    Application :erlang :os Module Kernel.SpecialForms
-    GenServer Agent Task Supervisor
-    ETS :ets DETS :dets
-  )
 
   @spec system_prompt() :: String.t()
   def system_prompt do
@@ -55,10 +41,10 @@ defmodule Blackboex.LLM.Prompts do
     9. NEVER use dynamic code execution, spawn, send, receive, or atom creation.
 
     ## Allowed Modules
-    #{Enum.join(@allowed_modules, ", ")}
+    #{Enum.join(SecurityConfig.allowed_modules(), ", ")}
 
     ## Prohibited Modules (NEVER use these)
-    #{Enum.join(@prohibited_modules, ", ")}
+    #{Enum.join(SecurityConfig.prohibited_modules(), ", ")}
 
     ## Documentation Standards (MANDATORY)
     - Every `defmodule` MUST have `@moduledoc` explaining its purpose and what it represents
@@ -464,10 +450,10 @@ defmodule Blackboex.LLM.Prompts do
     - Follow the same allowed/prohibited module rules as the handler
 
     ## Allowed Modules
-    #{Enum.join(allowed_modules(), ", ")}
+    #{Enum.join(SecurityConfig.allowed_modules(), ", ")}
 
     ## Prohibited Modules
-    #{Enum.join(prohibited_modules(), ", ")}
+    #{Enum.join(SecurityConfig.prohibited_modules(), ", ")}
     """
   end
 
@@ -517,10 +503,4 @@ defmodule Blackboex.LLM.Prompts do
     - Before the blocks, write a brief explanation of what you changed
     """
   end
-
-  @spec allowed_modules() :: [String.t()]
-  def allowed_modules, do: @allowed_modules
-
-  @spec prohibited_modules() :: [String.t()]
-  def prohibited_modules, do: @prohibited_modules
 end

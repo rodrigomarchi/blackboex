@@ -1,80 +1,79 @@
-# AGENTS.md — Agent Pipeline
+# AGENTS.md — Agent Context
 
-AI code generation orchestration. Two execution modes: agentic (Session) and deterministic (CodePipeline).
+AI code generation orchestration. Entry point: `Blackboex.Agent` facade.
 
-## Architecture Overview
+## Architecture
 
 ```
-User message
-  │
-  ├─→ Apis.start_agent_generation/3 or start_agent_edit/3
-  │     │
-  │     └─→ Oban KickoffWorker (queue: generation, max_attempts: 2)
-  │           │
-  │           ├─→ Creates Conversation + Run in DB (Ecto.Multi)
-  │           ├─→ Persists initial user_message Event
-  │           └─→ Starts Agent.Session GenServer
-  │
-  └─→ Session GenServer
-        │
-        ├─→ Builds LangChain LLMChain with tools + callbacks
-        ├─→ Runs chain via Task.async_nolink (non-blocking)
-        ├─→ LangChain callbacks persist Events + broadcast PubSub
-        ├─→ Guardrails checked after each tool execution
-        └─→ On submit_code: saves results, creates ApiVersion, updates Api
+Agent.start_generation/3 or Agent.start_edit/3   ← public facade
+  └─→ Oban KickoffWorker (queue: generation, max_attempts: 2)
+        ├─→ Creates Conversation + Run (Ecto.Multi)
+        ├─→ Persists initial user_message Event
+        └─→ Starts Agent.Session GenServer
+              └─→ Session delegates to Session.* sub-modules
+                    └─→ Pipeline.* for code generation phases
 ```
+
+## Agent Facade (`agent.ex`)
+
+```elixir
+Agent.start_generation(Api.t(), trigger_message, user_id) :: {:ok, run_id} | {:error, term()}
+Agent.start_edit(Api.t(), instruction, user_id) :: {:ok, run_id} | {:error, term()}
+```
+
+Previously on `Blackboex.Apis` — now lives here. All callers must use `Agent`, not `Apis`.
+
+## Pipeline Sub-Modules (`Agent.Pipeline.*`)
+
+`Agent.CodePipeline` is the thin orchestrator. Logic is split by phase:
+
+| Module | Responsibility |
+|--------|---------------|
+| `Pipeline.Budget` | Token/cost/time guardrail checks |
+| `Pipeline.Generation` | LLM calls for code generation and editing |
+| `Pipeline.Validation` | compile → lint → test loop, retry logic |
+| `Pipeline.CodeParser` | Parse LLM output (SEARCH/REPLACE or full code) |
+
+**Rule:** New pipeline logic goes into the appropriate `Pipeline.*` module, not into `CodePipeline` directly.
+
+## Session Sub-Modules (`Agent.Session.*`)
+
+`Agent.Session` is a thin GenServer shell. Logic is split:
+
+| Module | Responsibility |
+|--------|---------------|
+| `Session.ChainRunner` | LangChain loop execution, tool dispatch |
+| `Session.EventTranslator` | LangChain callbacks → `Conversations.Event` persistence |
+| `Session.StreamManager` | Token streaming to PubSub |
+| `Session.SchemaRegistration` | Schema extraction and API update after submission |
+
+**Rule:** Keep `Agent.Session` GenServer under 200 lines. Extract new logic to `Session.*`.
 
 ## Two Execution Modes
 
-### 1. Agent.Session (Agentic Loop)
-- LangChain-based with 6 tools, LLM decides next action
-- 8-10 LLM calls per run
-- Full autonomy: LLM chooses when to compile, test, fix
-- Used for complex generation requiring iterative refinement
+| Mode | Module | LLM Calls | Use When |
+|------|--------|-----------|---------|
+| Agentic loop | `Agent.Session` | 8-10 | Complex iterative generation |
+| Deterministic | `Agent.CodePipeline` | 2-4 | Predictable flow sufficient |
 
-### 2. Agent.CodePipeline (Deterministic)
-- Fixed pipeline: generate → format → compile → lint → test → docs
-- 2-4 LLM calls (LLM only for generation + fixes)
-- Retry loops: max 2 retries per stage on failure
-- Max 8 total LLM calls per pipeline run
-- Used when predictable flow is sufficient
+## Tools (Agentic Mode)
 
-## Tools (Session Mode)
-
-| Tool | Purpose | Event Type |
-|------|---------|------------|
-| `compile_code` | Compile via CodeGen.Compiler | tool_call/tool_result |
-| `format_code` | Auto-format via Linter | tool_call/tool_result |
-| `lint_code` | Credo analysis via Linter | tool_call/tool_result |
-| `generate_tests` | LLM-based test generation | tool_call/tool_result |
-| `run_tests` | Isolated test execution via TestRunner | tool_call/tool_result |
-| `submit_code` | Final submission (saves + creates version) | tool_call/tool_result |
+`compile_code`, `format_code`, `lint_code`, `generate_tests`, `run_tests`, `submit_code`
 
 ## Guardrails
 
-- **Max iterations:** Configurable per run (prevents infinite loops)
-- **Max cost:** Token cost ceiling in cents
-- **Max time:** Wall-clock timeout (KickoffWorker: 7 min)
-- **Loop detection:** Detects repeated identical tool calls
-- Violation → run marked as `:partial` with error_summary
-
-## Event Sourcing
-
-Every action persists as a `Conversations.Event`:
-- Types: `user_message`, `system_message`, `assistant_message`, `tool_call`, `tool_result`, `code_snapshot`, `guardrail_trigger`, `error`, `status_change`
-- Events have sequence numbers for ordering
-- Token usage tracked per event (input_tokens, output_tokens, cost_cents)
+- Max iterations, max cost (cents), max time (wall-clock)
+- Loop detection: repeated identical tool calls
+- Violation → run marked `:partial` with `error_summary`
 
 ## PubSub Topics
 
 - `run:#{run_id}` — real-time event stream for LiveView
-- `api:#{api_id}` — API-level updates (status changes, new versions)
+- `api:#{api_id}` — API-level status changes
 
 ## Key Dependencies
 
-- `CodeGen.Compiler` — compilation
-- `CodeGen.Linter` — formatting/linting
-- `Testing.TestGenerator` — test generation
+- `CodeGen` — compilation, linting
 - `Testing.TestRunner` — test execution (30s timeout, 20MB heap)
 - `Docs.DocGenerator` — documentation generation
 - `LLM.CircuitBreaker` — health check before LLM calls
@@ -82,9 +81,8 @@ Every action persists as a `Conversations.Event`:
 
 ## Gotchas
 
-1. **Task.async_nolink for LLM calls** — Session uses non-linked tasks so GenServer survives LLM failures. Must handle `{:DOWN, ref, ...}` for crash resilience.
-2. **Circuit breaker check first** — Always call `CircuitBreaker.allow?/1` before LLM request. Record success/failure after.
-3. **Token accumulation** — Track cumulative tokens across all events in a run. Pipeline accumulates via `LLM.Usage` struct.
-4. **Recovery worker** — `RecoveryWorker` runs every 2 min, finds runs stale >120s, marks as `:failed`. Don't rely on Session cleanup alone.
-5. **Concurrent runs** — KickoffWorker has `unique: [period: 30]` to prevent duplicate runs for same API.
-6. **Module registration after submit** — On `submit_code`, Session calls `Compiler.compile/2` then `Registry` update. Both must succeed or the version is saved but not deployed.
+1. **Task.async_nolink for LLM calls** — Session survives LLM failures. Handle `{:DOWN, ref, ...}`.
+2. **Circuit breaker caller responsibility** — call `CircuitBreaker.allow?/1` before, `record_success/failure` after every LLM call.
+3. **Recovery worker** — `RecoveryWorker` runs every 2 min, marks runs stale >120s as `:failed`.
+4. **Concurrent runs** — `KickoffWorker` has `unique: [period: 30]` to prevent duplicate runs for same API.
+5. **`touch_run/1` is liveness signal** — any long-running step must call it or RecoveryWorker fires.

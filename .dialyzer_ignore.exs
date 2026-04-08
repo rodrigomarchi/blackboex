@@ -4,7 +4,7 @@
   {"lib/blackboex/accounts.ex", :call_without_opaque},
   {"lib/blackboex/organizations.ex", :call_without_opaque},
   # Ecto.Multi opaque type false positive in versioning
-  {"lib/blackboex/apis.ex", :call_without_opaque},
+  {"lib/blackboex/apis/versions.ex", :call_without_opaque},
   # Ecto.Multi opaque type false positive in key rotation
   {"lib/blackboex/apis/keys.ex", :call_without_opaque},
   # Ecto.Multi opaque type false positive in Billing context

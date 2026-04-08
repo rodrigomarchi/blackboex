@@ -3,9 +3,7 @@ defmodule Blackboex.Audit do
   The Audit context. Records and queries operation-level audit logs.
   """
 
-  import Ecto.Query, warn: false
-
-  alias Blackboex.Audit.AuditLog
+  alias Blackboex.Audit.{AuditLog, AuditQueries}
   alias Blackboex.Repo
 
   @doc """
@@ -47,10 +45,8 @@ defmodule Blackboex.Audit do
   def list_logs(organization_id, opts \\ []) do
     limit = Keyword.get(opts, :limit, 50)
 
-    AuditLog
-    |> where([a], a.organization_id == ^organization_id)
-    |> order_by([a], desc: a.inserted_at)
-    |> limit(^limit)
+    organization_id
+    |> AuditQueries.for_organization(limit)
     |> Repo.all()
   end
 
@@ -58,19 +54,15 @@ defmodule Blackboex.Audit do
   def list_user_logs(user_id, opts \\ []) do
     limit = Keyword.get(opts, :limit, 50)
 
-    AuditLog
-    |> where([a], a.user_id == ^user_id)
-    |> order_by([a], desc: a.inserted_at)
-    |> limit(^limit)
+    user_id
+    |> AuditQueries.for_user(limit)
     |> Repo.all()
   end
 
   @spec list_recent_activity(Ecto.UUID.t(), pos_integer()) :: [map()]
   def list_recent_activity(org_id, limit \\ 10) do
-    AuditLog
-    |> where([a], a.organization_id == ^org_id)
-    |> order_by([a], desc: a.inserted_at)
-    |> limit(^limit)
+    org_id
+    |> AuditQueries.for_organization(limit)
     |> Repo.all()
     |> Enum.map(&format_activity/1)
   end

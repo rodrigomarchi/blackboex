@@ -21,22 +21,49 @@ docs/                 — Architecture, plans, discovery docs
 infra/                — Docker, deployment
 ```
 
-See sub-AGENTS.md for deeper context:
+## Structural Patterns — Mandatory
+
+### Context Decomposition
+- Every context with data has: **facade** (`defdelegate`) + **\*Queries module** + sub-contexts if >300 lines
+- Facade is the public API. External callers (web, workers) **NEVER** import sub-modules directly
+- `*Queries` modules contain ONLY query builders (`import Ecto.Query`). No side effects, no `Repo` calls inside queries
+- Sub-contexts contain business logic. They call `*Queries` for data access
+- Schemas stay in their own files with changesets. Schemas NEVER move paths
+
+### When to Decompose
+- Context facade > 300 lines → extract sub-contexts with `defdelegate`
+- 3+ inline `Ecto.Query` calls → extract to `*Queries` module
+- GenServer > 200 lines → extract logic into sub-modules, keep GenServer as thin shell
+- Pipeline/workflow > 400 lines → split by phase/responsibility
+
+### Naming Conventions
+- Context facade: `Blackboex.Apis` (singular namespace, plural for collections)
+- Sub-context: `Blackboex.Apis.Files`, `Blackboex.Apis.Versions`
+- Query module: `Blackboex.Apis.FileQueries`, `Blackboex.Apis.VersionQueries`
+- Schema: `Blackboex.Apis.Api`, `Blackboex.Apis.ApiFile` (singular)
+- Worker: stays at current path, never rename (Oban jobs reference module name)
+
+### Security
+- `Blackboex.LLM.SecurityConfig` is the SINGLE source for allowed/prohibited modules
+- Never duplicate these lists. Always reference `SecurityConfig`
+
+## Sub-AGENTS.md Index
+
 - `apps/blackboex/AGENTS.md` — Domain contexts, public APIs, invariants
-- `apps/blackboex/lib/blackboex/accounts/AGENTS.md` — Auth, Scope, UserToken
-- `apps/blackboex/lib/blackboex/apis/AGENTS.md` — Core entity, lifecycle, Registry
-- `apps/blackboex/lib/blackboex/agent/AGENTS.md` — AI agent pipeline
-- `apps/blackboex/lib/blackboex/billing/AGENTS.md` — Stripe/billing
-- `apps/blackboex/lib/blackboex/code_gen/AGENTS.md` — Compilation/validation pipeline
-- `apps/blackboex/lib/blackboex/conversations/AGENTS.md` — Event-sourced runs/events
-- `apps/blackboex/lib/blackboex/docs/AGENTS.md` — DocGenerator, OpenAPI
+- `apps/blackboex/lib/blackboex/accounts/AGENTS.md` — Auth, Scope, UserToken, UserQueries
+- `apps/blackboex/lib/blackboex/apis/AGENTS.md` — Core entity, sub-contexts, lifecycle, Registry
+- `apps/blackboex/lib/blackboex/agent/AGENTS.md` — AI agent facade, Pipeline.*, Session.*
+- `apps/blackboex/lib/blackboex/billing/AGENTS.md` — Stripe/billing, BillingQueries
+- `apps/blackboex/lib/blackboex/code_gen/AGENTS.md` — Compiler, sandbox, DiffEngine
+- `apps/blackboex/lib/blackboex/conversations/AGENTS.md` — Event-sourced runs/events, ConversationQueries
+- `apps/blackboex/lib/blackboex/docs/AGENTS.md` — Docs facade, DocGenerator, OpenAPI
 - `apps/blackboex/lib/blackboex/features/AGENTS.md` — Feature flags
-- `apps/blackboex/lib/blackboex/llm/AGENTS.md` — CircuitBreaker, prompts
-- `apps/blackboex/lib/blackboex/organizations/AGENTS.md` — Multi-tenancy
+- `apps/blackboex/lib/blackboex/llm/AGENTS.md` — LLM facade, SecurityConfig, CircuitBreaker
+- `apps/blackboex/lib/blackboex/organizations/AGENTS.md` — Multi-tenancy, OrganizationQueries
 - `apps/blackboex/lib/blackboex/policy/AGENTS.md` — LetMe authorization
 - `apps/blackboex/lib/blackboex/telemetry/AGENTS.md` — OpenTelemetry, events
-- `apps/blackboex/lib/blackboex/testing/AGENTS.md` — TestRunner, validation
-- `apps/blackboex/lib/blackboex/audit/AGENTS.md` — ExAudit, AuditLog
+- `apps/blackboex/lib/blackboex/testing/AGENTS.md` — TestRunner, TestingQueries
+- `apps/blackboex/lib/blackboex/audit/AGENTS.md` — ExAudit, AuditQueries
 - `apps/blackboex_web/AGENTS.md` — Web layer, routing, auth flow
 - `apps/blackboex_web/lib/blackboex_web/components/AGENTS.md` — **FULL component catalog** (read before ANY UI work)
 - `apps/blackboex_web/lib/blackboex_web/live/AGENTS.md` — LiveView patterns + catalog
@@ -67,7 +94,7 @@ make test.web     # Web app only
 7. **Oban for background jobs** — never spawn unsupervised processes for business logic
 8. **TDD mandatory** — write tests FIRST, see them fail, then implement. No exceptions.
 9. **Always run `make test` + `make lint` after changes** — fix ALL issues including pre-existing ones
-10. **Keep AGENTS.md in sync** — update documentation when adding/changing modules, functions, components, or patterns
+10. **Keep AGENTS.md in sync** — update when adding/changing modules, functions, components, or patterns
 
 ## Inter-Context Dependencies
 
@@ -81,7 +108,7 @@ Accounts ──→ Organizations (creates personal org on registration)
 
 ## Key Data Flows
 
-**1. Agent Generation:** User message → `Apis.start_agent_generation/3` → Oban `KickoffWorker` → `Agent.Session` GenServer → LangChain LLM loop with 6 tools (compile_code, format_code, lint_code, generate_tests, run_tests, submit_code) OR deterministic `CodePipeline` (2-4 LLM calls) → `Conversations` event persistence → PubSub broadcast → LiveView update
+**1. Agent Generation:** User message → `Agent.start_generation/3` → Oban `KickoffWorker` → `Agent.Session` GenServer → `Agent.Pipeline.*` (2-4 LLM calls) → `Conversations` event persistence → PubSub broadcast → LiveView update
 
 **2. API Invocation:** HTTP `POST /api/*` → `DynamicApiRouter` → `ApiAuth` (key verification) → `RateLimiter` (4 layers) → `Billing.Enforcement` → Sandbox execution → JSON response
 
@@ -115,13 +142,6 @@ setup [:register_and_log_in_user, :create_org_and_api]
 
 # Domain tests: user + org
 setup :create_user_and_org
-
-# Add extra with specific attrs
-setup :create_org_and_api
-setup %{api: api} do
-  {:ok, api} = Apis.publish_api(api)
-  %{api: api}
-end
 ```
 
 ### What NOT to do in tests

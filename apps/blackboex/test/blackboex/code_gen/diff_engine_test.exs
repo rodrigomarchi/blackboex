@@ -1,9 +1,9 @@
-defmodule Blackboex.Apis.DiffEngineTest do
+defmodule Blackboex.CodeGen.DiffEngineTest do
   use ExUnit.Case, async: true
 
   @moduletag :unit
 
-  alias Blackboex.Apis.DiffEngine
+  alias Blackboex.CodeGen.DiffEngine
 
   describe "compute_diff/2" do
     test "returns diff for different code" do

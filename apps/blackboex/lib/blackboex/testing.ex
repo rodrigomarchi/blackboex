@@ -3,11 +3,8 @@ defmodule Blackboex.Testing do
   Context for API testing: persists test requests, redacts headers, truncates bodies.
   """
 
-  import Ecto.Query
-
   alias Blackboex.Repo
-  alias Blackboex.Testing.TestRequest
-  alias Blackboex.Testing.TestSuite
+  alias Blackboex.Testing.{TestingQueries, TestRequest, TestSuite}
 
   @sensitive_headers ~w(
     authorization cookie x-api-key
@@ -35,10 +32,8 @@ defmodule Blackboex.Testing do
 
   @spec list_test_suites(binary(), non_neg_integer()) :: [TestSuite.t()]
   def list_test_suites(api_id, limit \\ 10) do
-    TestSuite
-    |> where([ts], ts.api_id == ^api_id)
-    |> order_by([ts], desc: ts.inserted_at, desc: ts.id)
-    |> limit(^limit)
+    api_id
+    |> TestingQueries.suites_for_api(limit)
     |> Repo.all()
   end
 
@@ -52,10 +47,8 @@ defmodule Blackboex.Testing do
 
   @spec get_latest_test_suite(binary()) :: TestSuite.t() | nil
   def get_latest_test_suite(api_id) do
-    TestSuite
-    |> where([ts], ts.api_id == ^api_id)
-    |> order_by([ts], desc: ts.inserted_at, desc: ts.id)
-    |> limit(1)
+    api_id
+    |> TestingQueries.latest_suite()
     |> Repo.one()
   end
 
@@ -75,10 +68,8 @@ defmodule Blackboex.Testing do
 
   @spec list_test_requests(binary(), non_neg_integer()) :: [TestRequest.t()]
   def list_test_requests(api_id, limit \\ 50) do
-    TestRequest
-    |> where([tr], tr.api_id == ^api_id)
-    |> order_by([tr], desc: tr.inserted_at, desc: tr.id)
-    |> limit(^limit)
+    api_id
+    |> TestingQueries.requests_for_api(limit)
     |> Repo.all()
   end
 
@@ -93,8 +84,8 @@ defmodule Blackboex.Testing do
   @spec clear_history(binary()) :: {:ok, non_neg_integer()}
   def clear_history(api_id) do
     {count, _} =
-      TestRequest
-      |> where([tr], tr.api_id == ^api_id)
+      api_id
+      |> TestingQueries.delete_requests_for_api()
       |> Repo.delete_all()
 
     {:ok, count}

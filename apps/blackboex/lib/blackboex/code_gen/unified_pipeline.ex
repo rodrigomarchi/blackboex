@@ -16,8 +16,8 @@ defmodule Blackboex.CodeGen.UnifiedPipeline do
   require Logger
 
   alias Blackboex.Apis.Api
-  alias Blackboex.Apis.DiffEngine
   alias Blackboex.CodeGen.Compiler
+  alias Blackboex.CodeGen.DiffEngine
   alias Blackboex.CodeGen.Linter
   alias Blackboex.CodeGen.UnifiedPrompts
   alias Blackboex.Docs.DocGenerator

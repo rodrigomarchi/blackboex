@@ -10,8 +10,8 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
   require Logger
 
   alias Blackboex.Apis
-  alias Blackboex.Apis.DiffEngine
   alias Blackboex.Billing.Enforcement
+  alias Blackboex.CodeGen.DiffEngine
   alias Blackboex.Conversations, as: AgentConversations
   alias BlackboexWeb.ApiLive.Edit.Shared
 
@@ -596,7 +596,7 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
         api = socket.assigns.api
         scope = socket.assigns.current_scope
 
-        case Apis.start_agent_edit(api, message, scope.user.id) do
+        case Blackboex.Agent.start_edit(api, message, scope.user.id) do
           {:ok, _api_id} ->
             user_msg = %{"role" => "user", "content" => message}
 

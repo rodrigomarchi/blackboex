@@ -596,6 +596,7 @@ defmodule Blackboex.Apis do
         attrs =
           Map.merge(attrs, %{
             template_id: template_id,
+            template_type: "computation",
             status: "compiled",
             method: template.method,
             param_schema: template.param_schema,

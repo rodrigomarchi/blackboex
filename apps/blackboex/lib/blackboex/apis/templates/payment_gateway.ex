@@ -13,6 +13,7 @@ defmodule Blackboex.Apis.Templates.PaymentGateway do
       name: "Payment Gateway Mock",
       description: "Simula criação de cobrança e consulta de status para testes de pagamento",
       category: "Mocks",
+      template_type: "computation",
       icon: "dollar-sign",
       method: "POST",
       files: %{

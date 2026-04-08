@@ -12,6 +12,7 @@ defmodule Blackboex.Apis.Templates.ProductCatalog do
       name: "Product Catalog",
       description: "Catálogo de produtos com busca, filtro por categoria e paginação",
       category: "Protótipos",
+      template_type: "computation",
       icon: "shopping-bag",
       method: "POST",
       files: %{

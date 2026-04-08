@@ -14,6 +14,7 @@ defmodule Blackboex.Apis.Templates.GithubWebhook do
       description:
         "Recebe eventos push/PR do GitHub com verificação de assinatura X-Hub-Signature",
       category: "Webhooks",
+      template_type: "webhook",
       icon: "git-branch",
       method: "POST",
       files: %{

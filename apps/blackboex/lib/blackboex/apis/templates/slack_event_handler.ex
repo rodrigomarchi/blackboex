@@ -13,6 +13,7 @@ defmodule Blackboex.Apis.Templates.SlackEventHandler do
       name: "Slack Event Handler",
       description: "Recebe slash commands e eventos do Slack com suporte a URL verification",
       category: "Webhooks",
+      template_type: "webhook",
       icon: "message-square",
       method: "POST",
       files: %{

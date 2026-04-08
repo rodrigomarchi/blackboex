@@ -13,6 +13,7 @@ defmodule Blackboex.Apis.Templates.VerificadorElegibilidade do
       name: "Verificador de Elegibilidade",
       description: "Checa elegibilidade para serviço baseado em regras de negócio",
       category: "AI Agent Tools",
+      template_type: "computation",
       icon: "check-circle",
       method: "POST",
       files: %{

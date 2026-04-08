@@ -12,6 +12,7 @@ defmodule Blackboex.Apis.Templates.JurosCompostos do
       name: "Calculadora de Juros Compostos",
       description: "Calcula juros compostos, parcelas e tabela de amortização",
       category: "AI Agent Tools",
+      template_type: "computation",
       icon: "chart-line",
       method: "POST",
       files: %{

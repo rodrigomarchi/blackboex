@@ -13,6 +13,7 @@ defmodule Blackboex.Apis.Templates.ScoringCredito do
       name: "Scoring de Crédito",
       description: "Retorna score de crédito simulado baseado em renda, idade e histórico",
       category: "AI Agent Tools",
+      template_type: "computation",
       icon: "chart-bar",
       method: "POST",
       files: %{

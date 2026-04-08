@@ -13,6 +13,7 @@ defmodule Blackboex.Apis.Templates.ErrorSimulation do
       name: "Error Simulation API",
       description: "Retorna erros configuráveis (400, 401, 403, 404, 429, 500) para testes",
       category: "Mocks",
+      template_type: "computation",
       icon: "exclamation-triangle",
       method: "POST",
       files: %{

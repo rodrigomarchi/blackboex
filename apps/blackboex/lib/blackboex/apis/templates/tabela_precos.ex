@@ -12,6 +12,7 @@ defmodule Blackboex.Apis.Templates.TabelaPrecos do
       name: "Tabela de Preços",
       description: "Lookup de preços com regras de desconto por quantidade",
       category: "AI Agent Tools",
+      template_type: "computation",
       icon: "tag",
       method: "POST",
       files: %{

@@ -12,6 +12,7 @@ defmodule Blackboex.Apis.Templates.HealthCheck do
       name: "Health Check API",
       description: "Status endpoint com versão, uptime e verificação de dependências",
       category: "Protótipos",
+      template_type: "computation",
       icon: "heart",
       method: "POST",
       files: %{

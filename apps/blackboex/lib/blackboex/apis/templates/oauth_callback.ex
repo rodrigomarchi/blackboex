@@ -13,6 +13,7 @@ defmodule Blackboex.Apis.Templates.OauthCallback do
       name: "OAuth Callback Handler",
       description: "Recebe callback OAuth2 com código de autorização e retorna token mock",
       category: "Webhooks",
+      template_type: "webhook",
       icon: "key",
       method: "POST",
       files: %{

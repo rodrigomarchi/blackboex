@@ -14,6 +14,7 @@ defmodule Blackboex.Apis.Templates.CotacaoFrete do
       description:
         "Calcula frete por CEP, peso e dimensões para PAC, SEDEX e transportadora privada",
       category: "AI Agent Tools",
+      template_type: "computation",
       icon: "truck",
       method: "POST",
       files: %{

@@ -13,6 +13,7 @@ defmodule Blackboex.Apis.Templates.OpenaiStub do
       name: "OpenAI-Compatible Stub",
       description: "Endpoint /v1/chat/completions compatível com SDK OpenAI para testes",
       category: "Mocks",
+      template_type: "computation",
       icon: "cpu",
       method: "POST",
       files: %{

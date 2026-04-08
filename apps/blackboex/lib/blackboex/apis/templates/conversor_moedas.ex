@@ -12,6 +12,7 @@ defmodule Blackboex.Apis.Templates.ConversorMoedas do
       name: "Conversor de Moedas",
       description: "Converte entre moedas com taxas de referência hardcoded",
       category: "AI Agent Tools",
+      template_type: "computation",
       icon: "currency-dollar",
       method: "POST",
       files: %{

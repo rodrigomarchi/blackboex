@@ -13,6 +13,7 @@ defmodule Blackboex.Apis.Templates.CrudResource do
       name: "REST CRUD Resource",
       description: "CRUD completo genérico para qualquer recurso (in-memory)",
       category: "Protótipos",
+      template_type: "crud",
       icon: "table-cells",
       method: "POST",
       files: %{

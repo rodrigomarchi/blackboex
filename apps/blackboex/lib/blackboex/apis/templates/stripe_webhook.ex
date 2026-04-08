@@ -13,6 +13,7 @@ defmodule Blackboex.Apis.Templates.StripeWebhook do
       name: "Stripe Webhook Receiver",
       description: "Recebe eventos de pagamento do Stripe com verificação de assinatura",
       category: "Webhooks",
+      template_type: "webhook",
       icon: "credit-card",
       method: "POST",
       files: %{

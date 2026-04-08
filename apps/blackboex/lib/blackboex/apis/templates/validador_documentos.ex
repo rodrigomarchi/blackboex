@@ -13,6 +13,7 @@ defmodule Blackboex.Apis.Templates.ValidadorDocumentos do
       name: "Validador de Documentos",
       description: "Valida CPF, CNPJ, email e telefone brasileiro com formatação",
       category: "AI Agent Tools",
+      template_type: "computation",
       icon: "shield-check",
       method: "POST",
       files: %{

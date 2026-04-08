@@ -13,6 +13,7 @@ defmodule Blackboex.Apis.Templates.FormSubmission do
       name: "Form Submission Backend",
       description: "Recebe dados de formulário de contato/lead com validação completa",
       category: "Webhooks",
+      template_type: "computation",
       icon: "file-text",
       method: "POST",
       files: %{

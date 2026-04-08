@@ -13,6 +13,7 @@ defmodule Blackboex.Apis.Templates.NotificationMock do
       name: "SMS/Email Notification Mock",
       description: "Simula envio de notificação multi-canal (SMS, email, push) para testes",
       category: "Mocks",
+      template_type: "computation",
       icon: "bell",
       method: "POST",
       files: %{

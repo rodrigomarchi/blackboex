@@ -13,6 +13,7 @@ defmodule Blackboex.Apis.Templates.CalculadoraImpostos do
       name: "Calculadora de Impostos BR",
       description: "Calcula ICMS, ISS, PIS/COFINS sobre valor e tipo de produto/serviço",
       category: "AI Agent Tools",
+      template_type: "computation",
       icon: "calculator",
       method: "POST",
       files: %{

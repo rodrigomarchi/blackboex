@@ -26,6 +26,10 @@ defmodule BlackboexWeb.Router do
     plug BlackboexWeb.Plugs.RequirePlatformAdmin
   end
 
+  pipeline :set_organization do
+    plug BlackboexWeb.Plugs.SetOrganization
+  end
+
   pipeline :admin_layout do
     plug :put_root_layout, html: {BlackboexWeb.Layouts, :admin_root}
   end
@@ -40,6 +44,19 @@ defmodule BlackboexWeb.Router do
   scope "/p", BlackboexWeb do
     pipe_through :browser
     get "/:org_slug/:api_slug", PublicApiController, :show
+  end
+
+  # Flow webhook — public, no auth, no CSRF
+  scope "/webhook", BlackboexWeb do
+    pipe_through :api
+    post "/:token", FlowWebhookController, :execute
+  end
+
+  # Flow execution API — authenticated via session + org scope
+  scope "/api/v1", BlackboexWeb do
+    pipe_through [:browser, :require_authenticated_user, :set_organization]
+    get "/flows/:slug/executions", FlowExecutionController, :index
+    get "/executions/:id", FlowExecutionController, :show
   end
 
   # Dynamic API routing — forwards all /api/* requests to the DynamicApiRouter

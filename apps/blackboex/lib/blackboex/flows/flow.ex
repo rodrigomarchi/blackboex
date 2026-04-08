@@ -19,6 +19,7 @@ defmodule Blackboex.Flows.Flow do
     field :description, :string
     field :status, :string, default: "draft"
     field :definition, :map, default: %{}
+    field :webhook_token, :string
 
     belongs_to :organization, Blackboex.Organizations.Organization
     belongs_to :user, Blackboex.Accounts.User, type: :id
@@ -41,7 +42,16 @@ defmodule Blackboex.Flows.Flow do
         "must contain only lowercase letters, numbers, and hyphens, and not start/end with a hyphen"
     )
     |> validate_inclusion(:status, @valid_statuses)
+    |> maybe_generate_webhook_token()
     |> unique_constraint([:organization_id, :slug])
+    |> unique_constraint(:webhook_token)
+  end
+
+  @spec webhook_token_changeset(t()) :: Ecto.Changeset.t()
+  def webhook_token_changeset(flow) do
+    flow
+    |> change(%{webhook_token: generate_webhook_token()})
+    |> unique_constraint(:webhook_token)
   end
 
   @spec definition_changeset(t(), map()) :: Ecto.Changeset.t()
@@ -49,6 +59,17 @@ defmodule Blackboex.Flows.Flow do
     flow
     |> cast(attrs, [:definition])
     |> validate_required([:definition])
+  end
+
+  defp maybe_generate_webhook_token(changeset) do
+    case get_field(changeset, :webhook_token) do
+      nil -> put_change(changeset, :webhook_token, generate_webhook_token())
+      _ -> changeset
+    end
+  end
+
+  defp generate_webhook_token do
+    :crypto.strong_rand_bytes(24) |> Base.url_encode64(padding: false)
   end
 
   defp maybe_generate_slug(changeset) do

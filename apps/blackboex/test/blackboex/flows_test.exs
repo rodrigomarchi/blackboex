@@ -132,4 +132,59 @@ defmodule Blackboex.FlowsTest do
       assert is_nil(Flows.get_flow(org.id, flow.id))
     end
   end
+
+  describe "webhook_token" do
+    test "auto-generates webhook_token on create", %{user: user, org: org} do
+      attrs = %{name: "Token Flow", organization_id: org.id, user_id: user.id}
+      assert {:ok, flow} = Flows.create_flow(attrs)
+      assert is_binary(flow.webhook_token)
+      assert String.length(flow.webhook_token) == 32
+    end
+
+    test "generates unique tokens for different flows", %{user: user, org: org} do
+      assert {:ok, flow1} =
+               Flows.create_flow(%{name: "Flow 1", organization_id: org.id, user_id: user.id})
+
+      assert {:ok, flow2} =
+               Flows.create_flow(%{name: "Flow 2", organization_id: org.id, user_id: user.id})
+
+      refute flow1.webhook_token == flow2.webhook_token
+    end
+  end
+
+  describe "get_flow_by_token!/1" do
+    test "returns the flow matching the token", %{user: user, org: org} do
+      flow = flow_fixture(%{user: user, org: org})
+      found = Flows.get_flow_by_token!(flow.webhook_token)
+      assert found.id == flow.id
+    end
+
+    test "raises for nonexistent token" do
+      assert_raise Ecto.NoResultsError, fn ->
+        Flows.get_flow_by_token!("nonexistent_token_value")
+      end
+    end
+  end
+
+  describe "regenerate_webhook_token/1" do
+    test "generates a new token", %{user: user, org: org} do
+      flow = flow_fixture(%{user: user, org: org})
+      old_token = flow.webhook_token
+
+      assert {:ok, updated} = Flows.regenerate_webhook_token(flow)
+      assert is_binary(updated.webhook_token)
+      refute updated.webhook_token == old_token
+    end
+
+    test "old token no longer works after regeneration", %{user: user, org: org} do
+      flow = flow_fixture(%{user: user, org: org})
+      old_token = flow.webhook_token
+
+      assert {:ok, _updated} = Flows.regenerate_webhook_token(flow)
+
+      assert_raise Ecto.NoResultsError, fn ->
+        Flows.get_flow_by_token!(old_token)
+      end
+    end
+  end
 end

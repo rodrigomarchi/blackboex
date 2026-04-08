@@ -20,6 +20,12 @@ defmodule Blackboex.Flows.FlowQueries do
     |> where([f], f.organization_id == ^organization_id and f.id == ^flow_id)
   end
 
+  @spec by_org_and_slug(Ecto.UUID.t(), String.t()) :: Ecto.Query.t()
+  def by_org_and_slug(organization_id, slug) do
+    Flow
+    |> where([f], f.organization_id == ^organization_id and f.slug == ^slug)
+  end
+
   @spec search(Ecto.Query.t(), String.t()) :: Ecto.Query.t()
   def search(query, term) do
     like = "%#{term}%"

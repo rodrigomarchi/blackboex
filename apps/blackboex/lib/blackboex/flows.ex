@@ -72,6 +72,25 @@ defmodule Blackboex.Flows do
     Repo.delete(flow)
   end
 
+  @spec get_flow_by_slug(Ecto.UUID.t(), String.t()) :: Flow.t() | nil
+  def get_flow_by_slug(organization_id, slug) do
+    organization_id |> FlowQueries.by_org_and_slug(slug) |> Repo.one()
+  end
+
+  # ── Webhook Token ─────────────────────────────────────────
+
+  @spec get_flow_by_token!(String.t()) :: Flow.t()
+  def get_flow_by_token!(token) do
+    Repo.get_by!(Flow, webhook_token: token)
+  end
+
+  @spec regenerate_webhook_token(Flow.t()) :: {:ok, Flow.t()} | {:error, Ecto.Changeset.t()}
+  def regenerate_webhook_token(%Flow{} = flow) do
+    flow
+    |> Flow.webhook_token_changeset()
+    |> Repo.update()
+  end
+
   # ── Private ────────────────────────────────────────────────
 
   defp create_flow_with_lock(attrs, org_id) do

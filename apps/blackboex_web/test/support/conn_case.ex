@@ -38,6 +38,7 @@ defmodule BlackboexWeb.ConnCase do
       import Blackboex.TestingFixtures
       import Blackboex.ApiFilesFixtures
       import Blackboex.FlowsFixtures
+      import Blackboex.FlowExecutionsFixtures
       import Blackboex.MockDefaults
     end
   end

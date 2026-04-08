@@ -32,6 +32,8 @@ defmodule Blackboex.DataCase do
       import Blackboex.TestingFixtures
       import Blackboex.ApiFilesFixtures
       import Blackboex.FlowsFixtures
+      import Blackboex.FlowExecutionsFixtures
+      import Blackboex.FlowSecretsFixtures
       import Blackboex.MockDefaults
     end
   end

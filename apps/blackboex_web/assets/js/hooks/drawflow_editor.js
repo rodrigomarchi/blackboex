@@ -1,4 +1,5 @@
 import Drawflow from "../../vendor/drawflow.min.js"
+import { drawflowToBlackboex, blackboexToDrawflow } from "./drawflow_converter.js"
 
 // Node type visual config
 const nodeConfig = {
@@ -33,7 +34,7 @@ function countOutputs(editor, nodeId) {
   return node ? Object.keys(node.outputs).length : 0
 }
 
-function buildNodeHTML(type, outputs) {
+export function buildNodeHTML(type, outputs) {
   const cfg = nodeConfig[type]
   if (!cfg) return `<div class="df-node"><strong>${type}</strong></div>`
 
@@ -82,12 +83,17 @@ const DrawflowEditor = {
     this.editor.reroute_curvature = 0.5
     this.editor.start()
 
-    // Load existing definition
+    // Load existing definition (BlackboexFlow format from server)
     const definition = this.el.dataset.definition
     if (definition) {
       try {
         const parsed = JSON.parse(definition)
-        if (parsed && parsed.drawflow) {
+        if (parsed && parsed.version && parsed.nodes) {
+          // Convert BlackboexFlow → Drawflow for the editor
+          const drawflowData = blackboexToDrawflow(parsed, buildNodeHTML)
+          this.editor.import(drawflowData)
+        } else if (parsed && parsed.drawflow) {
+          // Legacy: raw Drawflow JSON (backwards compat during migration)
           this.editor.import(parsed)
         }
       } catch (_e) {
@@ -195,16 +201,18 @@ const DrawflowEditor = {
 
     // ── Save/load events ──
     this.handleEvent("export_definition", () => {
-      const data = this.editor.export()
-      this.pushEvent("save_definition", { definition: data })
+      const drawflowData = this.editor.export()
+      const blackboexData = drawflowToBlackboex(drawflowData)
+      this.pushEvent("save_definition", { definition: blackboexData })
     })
 
     this.handleEvent("definition_saved", () => {})
 
-    // JSON preview modal
+    // JSON preview modal — show BlackboexFlow format
     this.handleEvent("export_json_preview", () => {
-      const data = this.editor.export()
-      this.pushEvent("show_json_preview", { definition: data })
+      const drawflowData = this.editor.export()
+      const blackboexData = drawflowToBlackboex(drawflowData)
+      this.pushEvent("show_json_preview", { definition: blackboexData })
     })
   },
 

@@ -7,6 +7,8 @@ defmodule BlackboexWeb.FlowLive.Edit do
 
   use BlackboexWeb, :live_view
 
+  alias Blackboex.FlowExecutor
+  alias Blackboex.FlowExecutor.BlackboexFlow
   alias Blackboex.Flows
   alias Blackboex.Policy
 
@@ -77,7 +79,13 @@ defmodule BlackboexWeb.FlowLive.Edit do
            saved: false,
            selected_node: nil,
            show_json_modal: false,
-           json_preview: ""
+           json_preview: "",
+           show_run_modal: false,
+           run_input: "{}",
+           run_result: nil,
+           run_error: nil,
+           running: false,
+           run_task_ref: nil
          )}
     end
   end
@@ -90,7 +98,8 @@ defmodule BlackboexWeb.FlowLive.Edit do
     scope = socket.assigns.current_scope
     org = scope.organization
 
-    with :ok <- Policy.authorize_and_track(:flow_update, scope, org) do
+    with :ok <- BlackboexFlow.validate(definition),
+         :ok <- Policy.authorize_and_track(:flow_update, scope, org) do
       case Flows.update_definition(flow, definition) do
         {:ok, updated_flow} ->
           {:noreply,
@@ -105,6 +114,12 @@ defmodule BlackboexWeb.FlowLive.Edit do
            |> put_flash(:error, "Could not save flow.")}
       end
     else
+      {:error, reason} when is_binary(reason) ->
+        {:noreply,
+         socket
+         |> assign(saving: false)
+         |> put_flash(:error, "Invalid flow: #{reason}")}
+
       {:error, _} ->
         {:noreply, put_flash(socket, :error, "Not authorized.")}
     end
@@ -182,6 +197,94 @@ defmodule BlackboexWeb.FlowLive.Edit do
     {:noreply, assign(socket, show_json_modal: false)}
   end
 
+  # ── Test Run ─────────────────────────────────────────────────────────────
+
+  @impl true
+  def handle_event("open_run_modal", _params, socket) do
+    {:noreply, assign(socket, show_run_modal: true, run_result: nil, run_error: nil)}
+  end
+
+  @impl true
+  def handle_event("close_run_modal", _params, socket) do
+    {:noreply, assign(socket, show_run_modal: false)}
+  end
+
+  @impl true
+  def handle_event("update_run_input", %{"value" => value}, socket) do
+    {:noreply, assign(socket, run_input: value)}
+  end
+
+  @impl true
+  def handle_event("execute_test_run", _params, socket) do
+    flow = socket.assigns.flow
+
+    case Jason.decode(socket.assigns.run_input) do
+      {:ok, input} when is_map(input) ->
+        # Run async to avoid blocking the LiveView process
+        task =
+          Task.Supervisor.async_nolink(Blackboex.TaskSupervisor, fn ->
+            FlowExecutor.execute_sync(flow, input)
+          end)
+
+        {:noreply,
+         socket
+         |> assign(running: true, run_result: nil, run_error: nil, run_task_ref: task.ref)}
+
+      {:ok, _} ->
+        {:noreply, assign(socket, run_error: "Input must be a JSON object")}
+
+      {:error, _} ->
+        {:noreply, assign(socket, run_error: "Invalid JSON")}
+    end
+  end
+
+  # ── Webhook Token ───────────────────────────────────────────────────────
+
+  @impl true
+  def handle_event("regenerate_token", _params, socket) do
+    flow = socket.assigns.flow
+
+    case Flows.regenerate_webhook_token(flow) do
+      {:ok, updated_flow} ->
+        {:noreply,
+         socket
+         |> assign(flow: updated_flow)
+         |> put_flash(:info, "Webhook token regenerated.")}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Could not regenerate token.")}
+    end
+  end
+
+  # ── Async Task Results ─────────────────────────────────────────────────
+
+  @impl true
+  def handle_info({ref, result}, socket) when socket.assigns.run_task_ref == ref do
+    Process.demonitor(ref, [:flush])
+
+    case result do
+      {:ok, run_result} ->
+        {:noreply, assign(socket, running: false, run_result: run_result, run_task_ref: nil)}
+
+      {:error, %{error: error_msg}} ->
+        {:noreply, assign(socket, running: false, run_error: error_msg, run_task_ref: nil)}
+
+      {:error, reason} ->
+        {:noreply, assign(socket, running: false, run_error: inspect(reason), run_task_ref: nil)}
+    end
+  end
+
+  @impl true
+  def handle_info({:DOWN, ref, :process, _pid, reason}, socket)
+      when socket.assigns.run_task_ref == ref do
+    {:noreply,
+     assign(socket,
+       running: false,
+       run_error: "Test run crashed: #{inspect(reason)}",
+       run_task_ref: nil
+     )}
+  end
+
   # ── Render ───────────────────────────────────────────────────────────────
 
   @impl true
@@ -201,7 +304,33 @@ defmodule BlackboexWeb.FlowLive.Edit do
         </div>
 
         <div class="flex items-center gap-2">
+          <%!-- Webhook URL --%>
+          <div class="hidden md:flex items-center gap-1 rounded border bg-muted/50 px-2 py-1">
+            <span class="text-[0.65rem] text-muted-foreground font-mono truncate max-w-[200px]">
+              /webhook/{String.slice(@flow.webhook_token, 0..7)}...
+            </span>
+            <button
+              phx-click={JS.dispatch("phx:copy_to_clipboard", detail: %{text: webhook_url(@flow)})}
+              class="p-0.5 text-muted-foreground hover:text-foreground"
+              title="Copy webhook URL"
+            >
+              <.icon name="hero-clipboard-document" class="size-3.5" />
+            </button>
+            <button
+              phx-click="regenerate_token"
+              class="p-0.5 text-muted-foreground hover:text-foreground"
+              title="Regenerate token"
+              data-confirm="Regenerate webhook token? The old URL will stop working."
+            >
+              <.icon name="hero-arrow-path" class="size-3.5" />
+            </button>
+          </div>
+
           <span :if={@saved} class="text-xs text-green-600 dark:text-green-400">Saved</span>
+
+          <.button variant="outline" size="sm" phx-click="open_run_modal">
+            <.icon name="hero-play" class="mr-1.5 size-4" /> Run
+          </.button>
           <.button variant="outline" size="sm" phx-click="request_json_preview">
             <.icon name="hero-code-bracket" class="mr-1.5 size-4" /> JSON
           </.button>
@@ -308,8 +437,81 @@ defmodule BlackboexWeb.FlowLive.Edit do
           </div>
         </div>
       <% end %>
+
+      <%!-- Test Run Modal --%>
+      <%= if @show_run_modal do %>
+        <div
+          class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          phx-click="close_run_modal"
+        >
+          <div
+            class="flex flex-col w-[600px] max-h-[80vh] rounded-xl border bg-card shadow-2xl"
+            phx-click-away="close_run_modal"
+          >
+            <div class="flex items-center justify-between border-b px-5 py-3">
+              <div class="flex items-center gap-2">
+                <.icon name="hero-play" class="size-5 text-green-500" />
+                <h2 class="text-sm font-semibold">Test Run</h2>
+              </div>
+              <button
+                phx-click="close_run_modal"
+                class="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+              >
+                <.icon name="hero-x-mark" class="size-5" />
+              </button>
+            </div>
+            <div class="flex-1 overflow-auto p-5 space-y-4">
+              <div>
+                <label class="block text-xs font-medium text-muted-foreground mb-1.5">
+                  Input (JSON)
+                </label>
+                <textarea
+                  phx-blur="update_run_input"
+                  rows="6"
+                  class="w-full rounded-lg border bg-background px-3 py-2 font-mono text-xs leading-relaxed focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                ><%= @run_input %></textarea>
+              </div>
+              <.button
+                variant="primary"
+                size="sm"
+                phx-click="execute_test_run"
+                disabled={@running}
+              >
+                <%= if @running do %>
+                  <.icon name="hero-arrow-path" class="mr-1.5 size-4 animate-spin" /> Running...
+                <% else %>
+                  <.icon name="hero-play" class="mr-1.5 size-4" /> Execute
+                <% end %>
+              </.button>
+
+              <%= if @run_error do %>
+                <div class="rounded-lg border border-destructive/50 bg-destructive/5 p-3">
+                  <p class="text-xs font-medium text-destructive">Error</p>
+                  <pre class="mt-1 text-xs text-destructive/80 whitespace-pre-wrap"><%= @run_error %></pre>
+                </div>
+              <% end %>
+
+              <%= if @run_result do %>
+                <div class="rounded-lg border border-green-500/50 bg-green-500/5 p-3 space-y-2">
+                  <div class="flex items-center justify-between">
+                    <p class="text-xs font-medium text-green-600">Success</p>
+                    <span class="text-[0.65rem] text-muted-foreground">
+                      {@run_result[:duration_ms]}ms
+                    </span>
+                  </div>
+                  <pre class="text-xs font-mono leading-relaxed text-foreground whitespace-pre-wrap"><%= Jason.encode!(@run_result[:output], pretty: true) %></pre>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      <% end %>
     </div>
     """
+  end
+
+  defp webhook_url(flow) do
+    BlackboexWeb.Endpoint.url() <> "/webhook/#{flow.webhook_token}"
   end
 
   # ── Properties drawer ────────────────────────────────────────────────────
@@ -373,10 +575,23 @@ defmodule BlackboexWeb.FlowLive.Edit do
         type="textarea"
       />
       <.prop_select
+        label="Execution Mode"
+        field="execution_mode"
+        value={@data["execution_mode"] || "sync"}
+        options={[{"Sync (request/response)", "sync"}, {"Async (polling)", "async"}]}
+      />
+      <.prop_field
+        label="Timeout (ms)"
+        field="timeout_ms"
+        value={@data["timeout_ms"] || "30000"}
+        placeholder="30000"
+        type="number"
+      />
+      <.prop_select
         label="Trigger Type"
         field="trigger_type"
-        value={@data["trigger_type"] || "manual"}
-        options={[{"Manual", "manual"}, {"Webhook", "webhook"}, {"Schedule", "schedule"}]}
+        value={@data["trigger_type"] || "webhook"}
+        options={[{"Webhook", "webhook"}, {"Manual", "manual"}, {"Schedule", "schedule"}]}
       />
     </div>
     """

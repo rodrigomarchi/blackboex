@@ -1,6 +1,6 @@
 import Drawflow from "../../vendor/drawflow.min.js"
 
-// Each node type has: color accent, icon SVG, label, subtitle
+// Node type visual config
 const nodeConfig = {
   start: {
     color: "#10b981",
@@ -8,29 +8,17 @@ const nodeConfig = {
     label: "Start",
     subtitle: "Trigger"
   },
-  http_request: {
+  elixir_code: {
     color: "#8b5cf6",
-    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="df-node-icon"><path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM4.332 8.027a6.012 6.012 0 0 1 1.912-2.706C6.512 5.73 6.974 6 7.5 6A1.5 1.5 0 0 1 9 7.5V8a2 2 0 0 0 4 0 2 2 0 0 1 1.523-1.943A5.977 5.977 0 0 1 16 10c0 .34-.028.675-.083 1H15a2 2 0 0 0-2 2v2.197A5.973 5.973 0 0 1 10 16v-2a2 2 0 0 0-2-2 2 2 0 0 1-2-2 2 2 0 0 0-1.668-1.973Z" clip-rule="evenodd" /></svg>`,
-    label: "HTTP Request",
-    subtitle: "GET / POST / PUT"
-  },
-  transform: {
-    color: "#f59e0b",
     icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="df-node-icon"><path fill-rule="evenodd" d="M6.28 5.22a.75.75 0 0 1 0 1.06L2.56 10l3.72 3.72a.75.75 0 0 1-1.06 1.06L.97 10.53a.75.75 0 0 1 0-1.06l4.25-4.25a.75.75 0 0 1 1.06 0Zm7.44 0a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L17.44 10l-3.72-3.72a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" /></svg>`,
-    label: "Transform",
-    subtitle: "Map & filter data"
+    label: "Elixir Code",
+    subtitle: "Run Elixir code"
   },
   condition: {
     color: "#3b82f6",
-    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="df-node-icon"><path fill-rule="evenodd" d="M15.312 11.424a5.5 5.5 0 0 1-9.201 2.466l-.312-.311h2.433a.75.75 0 0 0 0-1.5H4.638a.75.75 0 0 0-.75.75v3.594a.75.75 0 0 0 1.5 0v-2.134l.429.429a7 7 0 0 0 11.712-3.138.75.75 0 0 0-1.217-.156Zm-6.624-7.74a7 7 0 0 0-11.712 3.138.75.75 0 0 0 1.217.156 5.5 5.5 0 0 1 9.201-2.466l.312.311h-2.433a.75.75 0 0 0 0 1.5h3.594a.75.75 0 0 0 .75-.75V2.003a.75.75 0 0 0-1.5 0v2.134l-.429-.429Z" clip-rule="evenodd" /></svg>`,
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="df-node-icon"><path fill-rule="evenodd" d="M10 3a.75.75 0 0 1 .55.24l3.25 3.5a.75.75 0 1 1-1.1 1.02L10 4.852 7.3 7.76a.75.75 0 0 1-1.1-1.02l3.25-3.5A.75.75 0 0 1 10 3Zm-3.76 9.2a.75.75 0 0 1 1.06.04l2.7 2.908 2.7-2.908a.75.75 0 1 1 1.1 1.02l-3.25 3.5a.75.75 0 0 1-1.1 0l-3.25-3.5a.75.75 0 0 1 .04-1.06Z" clip-rule="evenodd" /></svg>`,
     label: "Condition",
-    subtitle: "If / else branch"
-  },
-  response: {
-    color: "#ef4444",
-    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="df-node-icon"><path fill-rule="evenodd" d="M3 4.25A2.25 2.25 0 0 1 5.25 2h5.5A2.25 2.25 0 0 1 13 4.25v2a.75.75 0 0 1-1.5 0v-2a.75.75 0 0 0-.75-.75h-5.5a.75.75 0 0 0-.75.75v11.5c0 .414.336.75.75.75h5.5a.75.75 0 0 0 .75-.75v-2a.75.75 0 0 1 1.5 0v2A2.25 2.25 0 0 1 10.75 18h-5.5A2.25 2.25 0 0 1 3 15.75V4.25Z" clip-rule="evenodd" /><path fill-rule="evenodd" d="M19 10a.75.75 0 0 0-.75-.75H8.704l1.048-.943a.75.75 0 1 0-1.004-1.114l-2.5 2.25a.75.75 0 0 0 0 1.114l2.5 2.25a.75.75 0 1 0 1.004-1.114l-1.048-.943h9.546A.75.75 0 0 0 19 10Z" clip-rule="evenodd" /></svg>`,
-    label: "Response",
-    subtitle: "Return result"
+    subtitle: "Branch"
   },
   end: {
     color: "#6b7280",
@@ -40,9 +28,24 @@ const nodeConfig = {
   }
 }
 
-function buildNodeHTML(type) {
+function countOutputs(editor, nodeId) {
+  const node = editor.getNodeFromId(nodeId)
+  return node ? Object.keys(node.outputs).length : 0
+}
+
+function buildNodeHTML(type, outputs) {
   const cfg = nodeConfig[type]
   if (!cfg) return `<div class="df-node"><strong>${type}</strong></div>`
+
+  const subtitle = type === "condition" ? `${outputs} branches` : cfg.subtitle
+
+  const controls = type === "condition"
+    ? `<div class="df-node-controls">
+        <button class="df-btn df-btn-remove-output" title="Remove branch">−</button>
+        <span class="df-branch-count">${outputs}</span>
+        <button class="df-btn df-btn-add-output" title="Add branch">+</button>
+      </div>`
+    : ""
 
   return `<div class="df-node" style="--node-color: ${cfg.color}">
     <div class="df-node-header">
@@ -51,10 +54,23 @@ function buildNodeHTML(type) {
       </div>
       <div class="df-node-text">
         <div class="df-node-label">${cfg.label}</div>
-        <div class="df-node-subtitle">${cfg.subtitle}</div>
+        <div class="df-node-subtitle">${subtitle}</div>
       </div>
     </div>
+    ${controls}
   </div>`
+}
+
+function updateConditionLabel(editor, nodeId) {
+  const count = countOutputs(editor, nodeId)
+  const el = document.querySelector(`#node-${nodeId}`)
+  if (!el) return
+
+  const subtitle = el.querySelector(".df-node-subtitle")
+  if (subtitle) subtitle.textContent = `${count} branches`
+
+  const badge = el.querySelector(".df-branch-count")
+  if (badge) badge.textContent = count
 }
 
 const DrawflowEditor = {
@@ -79,7 +95,74 @@ const DrawflowEditor = {
       }
     }
 
-    // Handle drag-drop from sidebar
+    // ── Node selection → push to LiveView for properties drawer ──
+    this.editor.on("nodeSelected", (nodeId) => {
+      const node = this.editor.getNodeFromId(nodeId)
+      if (node) {
+        this.pushEvent("node_selected", {
+          id: String(nodeId),
+          type: node.class,
+          data: node.data || {}
+        })
+      }
+    })
+
+    this.editor.on("nodeUnselected", () => {
+      this.pushEvent("node_deselected", {})
+    })
+
+    // When a node is removed, close the drawer
+    this.editor.on("nodeRemoved", () => {
+      this.pushEvent("node_deselected", {})
+    })
+
+    // Also close drawer when clicking empty canvas
+    this.editor.on("click", () => {
+      // Drawflow fires nodeUnselected separately, but this catches edge cases
+    })
+
+    // ── Server pushes updated data back to a node ──
+    this.handleEvent("set_node_data", ({ id, data }) => {
+      const node = this.editor.getNodeFromId(id)
+      if (node) {
+        // Merge data into node
+        node.data = { ...node.data, ...data }
+
+        // Update the node label if name was changed
+        if (data.name) {
+          const el = document.querySelector(`#node-${id} .df-node-label`)
+          if (el) el.textContent = data.name
+        }
+      }
+    })
+
+    // ── Condition node +/- buttons ──
+    this.el.addEventListener("click", (e) => {
+      const addBtn = e.target.closest(".df-btn-add-output")
+      const removeBtn = e.target.closest(".df-btn-remove-output")
+
+      if (addBtn || removeBtn) {
+        e.stopPropagation()
+        const nodeEl = e.target.closest(".drawflow-node")
+        if (!nodeEl) return
+        const nodeId = nodeEl.id.replace("node-", "")
+
+        if (addBtn) {
+          this.editor.addNodeOutput(nodeId)
+          updateConditionLabel(this.editor, nodeId)
+        }
+
+        if (removeBtn) {
+          const outputs = countOutputs(this.editor, nodeId)
+          if (outputs > 1) {
+            this.editor.removeNodeOutput(nodeId, `output_${outputs}`)
+            updateConditionLabel(this.editor, nodeId)
+          }
+        }
+      }
+    })
+
+    // ── Drag-drop from sidebar ──
     this.el.addEventListener("drop", (e) => {
       e.preventDefault()
       const type = e.dataTransfer.getData("node-type")
@@ -87,7 +170,7 @@ const DrawflowEditor = {
       const outputs = parseInt(e.dataTransfer.getData("node-outputs") || "1")
 
       if (type) {
-        const html = buildNodeHTML(type)
+        const html = buildNodeHTML(type, outputs)
         const rect = this.el.getBoundingClientRect()
         const x = (e.clientX - rect.left - this.editor.precanvas.getBoundingClientRect().left + this.editor.canvas_x) / this.editor.zoom
         const y = (e.clientY - rect.top - this.editor.precanvas.getBoundingClientRect().top + this.editor.canvas_y) / this.editor.zoom
@@ -110,15 +193,18 @@ const DrawflowEditor = {
       })
     })
 
-    // Server asks us to export the definition for saving
+    // ── Save/load events ──
     this.handleEvent("export_definition", () => {
       const data = this.editor.export()
       this.pushEvent("save_definition", { definition: data })
     })
 
-    // Server confirms save
-    this.handleEvent("definition_saved", () => {
-      // LiveView handles the "Saved" indicator
+    this.handleEvent("definition_saved", () => {})
+
+    // JSON preview modal
+    this.handleEvent("export_json_preview", () => {
+      const data = this.editor.export()
+      this.pushEvent("show_json_preview", { definition: data })
     })
   },
 

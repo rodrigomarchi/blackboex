@@ -48,10 +48,10 @@ defmodule BlackboexWeb.FlowLive.EditTest do
         })
 
       {:ok, _view, html} = live(conn, ~p"/flows/#{flow.id}/edit")
-      assert html =~ "HTTP Request"
-      assert html =~ "Transform"
+      assert html =~ "Start"
+      assert html =~ "Elixir Code"
       assert html =~ "Condition"
-      assert html =~ "Response"
+      assert html =~ "End"
     end
 
     test "saves definition via event", %{conn: conn, user: user} do

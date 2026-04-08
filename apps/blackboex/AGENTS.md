@@ -11,6 +11,7 @@ Each context has its own AGENTS.md — **read it before generating code in that 
 | **Accounts** | `Blackboex.Accounts` | User, UserToken, Scope | `UserQueries` |
 | **Organizations** | `Blackboex.Organizations` | Organization, Membership | `OrganizationQueries` |
 | **Apis** | `Blackboex.Apis` | Api, ApiKey, ApiVersion, ApiFile | `ApiQueries`, `FileQueries`, `VersionQueries` |
+| **Flows** | `Blackboex.Flows` | Flow | `FlowQueries` |
 | **Conversations** | `Blackboex.Conversations` | Conversation, Run, Event | `ConversationQueries` |
 | **Agent** | `Blackboex.Agent` | — | — |
 | **CodeGen** | `Blackboex.CodeGen` | — | — |

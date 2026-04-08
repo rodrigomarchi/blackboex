@@ -102,6 +102,31 @@ defmodule Blackboex.Policy do
     end
   end
 
+  object :flow do
+    action :create do
+      allow role: :owner
+      allow role: :admin
+      allow role: :member
+    end
+
+    action :read do
+      allow role: :owner
+      allow role: :admin
+      allow role: :member
+    end
+
+    action :update do
+      allow role: :owner
+      allow role: :admin
+      allow role: :member
+    end
+
+    action :delete do
+      allow role: :owner
+      allow role: :admin
+    end
+  end
+
   object :api_key do
     action :create do
       allow role: :owner

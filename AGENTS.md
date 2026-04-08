@@ -52,6 +52,7 @@ infra/                — Docker, deployment
 - `apps/blackboex/AGENTS.md` — Domain contexts, public APIs, invariants
 - `apps/blackboex/lib/blackboex/accounts/AGENTS.md` — Auth, Scope, UserToken, UserQueries
 - `apps/blackboex/lib/blackboex/apis/AGENTS.md` — Core entity, sub-contexts, lifecycle, Registry
+- `apps/blackboex/lib/blackboex/flows/AGENTS.md` — Visual workflow flows, Drawflow editor, CRUD
 - `apps/blackboex/lib/blackboex/agent/AGENTS.md` — AI agent facade, Pipeline.*, Session.*
 - `apps/blackboex/lib/blackboex/billing/AGENTS.md` — Stripe/billing, BillingQueries
 - `apps/blackboex/lib/blackboex/code_gen/AGENTS.md` — Compiler, sandbox, DiffEngine

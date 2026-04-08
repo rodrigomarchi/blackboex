@@ -148,6 +148,7 @@ defmodule BlackboexWeb.Router do
       live "/apis/new", ApiLive.New, :new
       live "/apis/:id", ApiLive.Show, :show
       live "/apis/:id/analytics", ApiLive.Analytics, :analytics
+      live "/flows", FlowLive.Index, :index
       live "/api-keys", ApiKeyLive.Index, :index
       live "/api-keys/:id", ApiKeyLive.Show, :show
       live "/billing", BillingLive.Plans, :index
@@ -170,6 +171,7 @@ defmodule BlackboexWeb.Router do
       live "/apis/:id/edit/metrics", ApiLive.Edit.MetricsLive
       live "/apis/:id/edit/publish", ApiLive.Edit.PublishLive
       live "/apis/:id/edit/info", ApiLive.Edit.InfoLive
+      live "/flows/:id/edit", FlowLive.Edit, :edit
     end
 
     post "/users/update-password", UserSessionController, :update_password

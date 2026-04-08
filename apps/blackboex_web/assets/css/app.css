@@ -12,6 +12,131 @@
 @plugin "../vendor/heroicons";
 @plugin "@tailwindcss/typography";
 
+/* Drawflow editor */
+@import "../vendor/drawflow.min.css";
+
+/* ── Canvas: dot grid background (n8n style) ── */
+.drawflow {
+  background-color: hsl(var(--background));
+  background-image: radial-gradient(circle, hsl(var(--border)) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* ── Node card ── */
+.drawflow .drawflow-node {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-left: 3px solid var(--node-color, hsl(var(--primary)));
+  color: hsl(var(--card-foreground));
+  border-radius: 0.625rem;
+  min-width: 180px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+
+.drawflow .drawflow-node:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+}
+
+.drawflow .drawflow-node.selected,
+.drawflow .drawflow-node.selected:hover {
+  background: hsl(var(--card));
+  border-color: var(--node-color, hsl(var(--primary)));
+  border-left-color: var(--node-color, hsl(var(--primary)));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--node-color, hsl(var(--primary))) 25%, transparent);
+}
+
+/* ── Connection ports ── */
+.drawflow .drawflow-node .input,
+.drawflow .drawflow-node .output {
+  width: 12px;
+  height: 12px;
+  background: hsl(var(--card));
+  border: 2px solid hsl(var(--muted-foreground));
+  border-radius: 50%;
+  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+}
+
+.drawflow .drawflow-node .input:hover,
+.drawflow .drawflow-node .output:hover {
+  background: hsl(var(--primary));
+  border-color: hsl(var(--primary));
+  transform: scale(1.3);
+}
+
+/* ── Connection lines ── */
+.drawflow .connection .main-path {
+  stroke: hsl(var(--muted-foreground));
+  stroke-width: 2;
+  transition: stroke 0.15s;
+}
+
+.drawflow .connection .main-path:hover {
+  stroke: hsl(var(--primary));
+  stroke-width: 2.5;
+}
+
+/* ── Node content layout (n8n style) ── */
+.drawflow .drawflow-node .drawflow_content_node {
+  padding: 0;
+}
+
+.df-node {
+  padding: 0;
+}
+
+.df-node-header {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.625rem 0.75rem;
+}
+
+.df-node-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  flex-shrink: 0;
+}
+
+.df-node-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.df-node-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.df-node-subtitle {
+  font-size: 0.6875rem;
+  color: hsl(var(--muted-foreground));
+  line-height: 1.2;
+  margin-top: 1px;
+}
+
+/* ── Delete button on node ── */
+.drawflow .drawflow-delete {
+  background: hsl(var(--destructive));
+  color: hsl(var(--destructive-foreground));
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  font-size: 11px;
+  line-height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  top: -8px;
+  right: -8px;
+}
+
 /* SaladUI / shadcn-style CSS variables — light theme (default) */
 :root {
   --background: 0 0% 100%;

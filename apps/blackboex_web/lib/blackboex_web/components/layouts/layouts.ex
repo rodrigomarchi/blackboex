@@ -39,6 +39,7 @@ defmodule BlackboexWeb.Layouts do
         <nav class="ml-8 hidden items-center gap-1 md:flex">
           <.nav_link navigate={~p"/dashboard"} icon="hero-home">Dashboard</.nav_link>
           <.nav_link navigate={~p"/apis"} icon="hero-bolt">APIs</.nav_link>
+          <.nav_link navigate={~p"/flows"} icon="hero-arrow-path">Flows</.nav_link>
           <.nav_link navigate={~p"/api-keys"} icon="hero-key">API Keys</.nav_link>
           <.nav_link navigate={~p"/billing"} icon="hero-credit-card">Billing</.nav_link>
         </nav>
@@ -85,6 +86,7 @@ defmodule BlackboexWeb.Layouts do
         <nav class="flex flex-col gap-1">
           <.nav_link navigate={~p"/dashboard"} icon="hero-home">Dashboard</.nav_link>
           <.nav_link navigate={~p"/apis"} icon="hero-bolt">APIs</.nav_link>
+          <.nav_link navigate={~p"/flows"} icon="hero-arrow-path">Flows</.nav_link>
           <.nav_link navigate={~p"/api-keys"} icon="hero-key">API Keys</.nav_link>
           <.nav_link navigate={~p"/billing"} icon="hero-credit-card">Billing</.nav_link>
           <.nav_link navigate={~p"/settings"} icon="hero-cog-6-tooth">Settings</.nav_link>

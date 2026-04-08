@@ -57,6 +57,20 @@ defmodule Blackboex.Billing.Enforcement do
     end
   end
 
+  def check_limit(%Organization{} = org, :create_flow) do
+    plan = effective_plan(org)
+    limits = Map.fetch!(@limits, plan)
+
+    case limits.max_apis do
+      :unlimited ->
+        {:ok, :unlimited}
+
+      max ->
+        current = count_flows(org.id)
+        check(current, max, to_string(plan))
+    end
+  end
+
   def check_limit(%Organization{} = org, :api_invocation) do
     plan = effective_plan(org)
     limits = Map.fetch!(@limits, plan)
@@ -136,6 +150,12 @@ defmodule Blackboex.Billing.Enforcement do
   defp count_apis(organization_id) do
     Blackboex.Apis.Api
     |> where([a], a.organization_id == ^organization_id)
+    |> Repo.aggregate(:count)
+  end
+
+  defp count_flows(organization_id) do
+    Blackboex.Flows.Flow
+    |> where([f], f.organization_id == ^organization_id)
     |> Repo.aggregate(:count)
   end
 end

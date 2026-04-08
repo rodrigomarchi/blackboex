@@ -49,12 +49,12 @@ Deterministic, no LLM. Returns plain `map()` (JSON-serializable).
 ## Integration Points
 
 - `Agent.CodePipeline` → `Docs.generate/2` (streaming, `token_callback` broadcasts to PubSub)
-- `CodeGen.UnifiedPipeline` → `Docs.generate/2` (stub Api, soft failure)
+- `Agent.CodePipeline` → `Docs.generate/2` (via Generation.step_generate_docs)
 - `Testing.TestGenerator` → `Docs.generate_openapi/2` (for test prompt context)
 - `DocsLive` LiveView → `Docs.generate/2` via `Task.async`
 
 ## Gotchas
 
 1. **Streaming usage is empty** — `usage: %{}` in streaming mode. Callers recording usage will record zeros.
-2. **Stub Api in UnifiedPipeline** — generates with `name: "API"`, `method: "POST"`, `requires_auth: true`. OpenAPI spec is for LLM context only.
+2. **Stub Api in pipeline** — generates with `name: "API"`, `method: "POST"`, `requires_auth: true`. OpenAPI spec is for LLM context only.
 3. **Mock LLM, not DocGenerator** — use `Blackboex.LLM.ClientMock` in tests. `DocGeneratorTest` uses `async: false` (global mock).

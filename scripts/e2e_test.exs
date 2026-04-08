@@ -19,9 +19,7 @@ defmodule E2ETest do
   alias Blackboex.Apis.Registry
   alias Blackboex.CodeGen.Compiler
   alias Blackboex.CodeGen.Linter
-  alias Blackboex.CodeGen.Pipeline
   alias Blackboex.CodeGen.SchemaExtractor
-  alias Blackboex.CodeGen.UnifiedPipeline
   alias Blackboex.Repo
 
   @base_url "http://localhost:4000"
@@ -934,19 +932,8 @@ defmodule E2ETest do
     org = Process.get(:e2e_org)
     description = "An API that calculates the factorial of a non-negative integer number"
 
-    case Pipeline.generate(description, organization_id: org.id) do
-      {:ok, result} ->
-        Process.put(:e2e_llm_code, result.code)
-        Process.put(:e2e_llm_template, result.template)
-        assert(is_binary(result.code), "Code generated")
-        assert(String.length(result.code) > 20, "Code has content")
-        info("Template: #{result.template}, #{String.length(result.code)} chars")
-
-      {:error, :limit_exceeded, details} ->
-        raise "Billing limit exceeded: #{inspect(details)}"
-
-      {:error, reason} ->
-        raise "Code generation failed: #{inspect(reason)}"
+    # TODO: Migrate to Agent.CodePipeline (CodeGen.Pipeline was removed as dead code)
+    raise "llm_generate not implemented — CodeGen.Pipeline was removed. Use Agent.CodePipeline instead."
     end
   end
 
@@ -989,20 +976,9 @@ defmodule E2ETest do
     code = Process.get(:e2e_llm_code)
     template = Process.get(:e2e_llm_template)
 
-    case UnifiedPipeline.validate_and_test(code, template) do
-      {:ok, result} ->
-        Process.put(:e2e_llm_test_code, result.test_code)
-        r = result.validation
-        info("Compilation: #{r.compilation}, Tests: #{r.tests}")
-
-        if r.test_results != [] do
-          passed = Enum.count(r.test_results, &(&1.status == "passed"))
-          info("Test results: #{passed}/#{length(r.test_results)} passing")
-        end
-
-      {:error, reason} ->
-        warn("Pipeline: #{inspect(reason)} (continuing)")
-    end
+    # TODO: Migrate to Agent pipeline (UnifiedPipeline was removed as dead code)
+    warn("llm_pipeline skipped — UnifiedPipeline was removed. Use Agent pipeline instead.")
+    _ = {code, template}
   end
 
   defp llm_save_publish do

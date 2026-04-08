@@ -20,7 +20,6 @@ Source code
 |--------|---------|------|
 | `CodeGen` | Facade: `compile/2`, `unload/1`, `validate_and_test/3` | `code_gen.ex` |
 | `Compiler` | `compile/2`, `compile_files/2`, `unload/1`, `module_name_for/1` | `compiler.ex` |
-| `UnifiedPipeline` | `validate_and_test/3`, `validate_on_save/4`, `run_for_edit/5` | `unified_pipeline.ex` |
 | `AstValidator` | Security validation on parsed AST | `ast_validator.ex` |
 | `Linter` | Credo + auto-format | `linter.ex` |
 | `DiffEngine` | `compute_diff/2`, `apply_search_replace/2` | `diff_engine.ex` |
@@ -29,12 +28,6 @@ Source code
 | `Sandbox` | Isolated execution environment | `sandbox.ex` |
 
 **Note:** `DiffEngine` moved here from `Apis` context. Use `CodeGen.DiffEngine`, not `Apis.DiffEngine`.
-
-## UnifiedPipeline Stages
-
-1. `validate_and_test/3` — Full: compile → lint → AST validate → extract schema → generate tests → run tests
-2. `validate_on_save/4` — Quick: compile → lint (no tests)
-3. `run_for_edit/5` — LLM edit + validation: generate edit → compile → lint → test
 
 ## Security Rules
 
@@ -56,5 +49,5 @@ Source code
 
 1. **Module.create/3 persists until purge** — always call `Compiler.unload/1` before recompiling same module.
 2. **Dynamic modules lost on restart** — Registry reloads from DB on init. Never clear `source_code` on a published API.
-3. **Billing gate** — `CodeGen.Pipeline` checks `Billing.Enforcement` before LLM generation calls.
+3. **Billing gate** — `Agent.CodePipeline` checks `Billing.Enforcement` before LLM generation calls.
 4. **ExUnit module leak** — use `SandboxCase` instead of `use ExUnit.Case` in generated tests.

@@ -62,7 +62,7 @@ defmodule Blackboex.Apis.TemplateE2ETest do
 
   # ---------------------------------------------------------------------------
   # Core e2e: full platform pipeline for each template
-  # Mirrors UnifiedPipeline: compile → format → credo → test → publish → HTTP
+  # Mirrors Agent pipeline: compile → format → credo → test → publish → HTTP
   # ---------------------------------------------------------------------------
 
   describe "all templates: full platform pipeline (compile → format → lint → test → publish → HTTP 200)" do

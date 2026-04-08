@@ -75,7 +75,7 @@ Existing span sites:
 | Span name | Module |
 |---|---|
 | `"blackboex.codegen.compile"` | `Blackboex.CodeGen.Compiler.compile/2` |
-| `"blackboex.codegen.generate"` | `Blackboex.CodeGen.Pipeline.do_generate/2` |
+| `"blackboex.codegen.generate"` | `Blackboex.Agent.CodePipeline` |
 | `"blackboex.sandbox.execute"` | `Blackboex.CodeGen.Sandbox` |
 
 Attribute naming: domain attrs prefixed `blackboex.`, Gen AI attrs use `gen_ai.*` namespace.

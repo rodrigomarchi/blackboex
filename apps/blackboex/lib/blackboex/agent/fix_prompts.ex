@@ -6,54 +6,16 @@ defmodule Blackboex.Agent.FixPrompts do
   code regeneration when edits can't be applied.
   """
 
-  @handler_rules """
-  ## Handler Code Rules (violations cause compilation failure)
-  - Return ONLY `def`/`defp` functions and `defmodule Request`/`defmodule Response` — NOT a full module.
-  - Functions receive params as a plain map and return a plain map.
-  - Do NOT use `conn`, `json/2`, `put_status/2`, `send_resp/3`, or any Plug/Phoenix functions.
-  - Allowed defmodule names: Request, Response, Params, and nested schema modules for embeds.
-  - Every public `def` MUST have @doc and @spec directly above it.
-  - Use `use Blackboex.Schema` for Request/Response schemas (provides Ecto embedded_schema + Changeset).
-  - Nested schemas (embeds_one/embeds_many) MUST define `changeset/2` (struct + params), NOT `changeset/1`.
-  - `elsif` DOES NOT EXIST in Elixir. Use `cond do` or pattern matching with function clauses.
-  - NEVER use `String.to_existing_atom`, `String.to_atom`, or `List.to_atom` — all are blocked.
-    Use `fn {msg, _opts} -> msg end` for traverse_errors. Use Map lookup for string-to-atom needs.
-  - Max 40 lines per function, max 120 chars per line, max 4 nesting levels.
-
-  ## Allowed Modules
-  #{Enum.join(Blackboex.LLM.SecurityConfig.allowed_modules(), ", ")}
-
-  ## Prohibited Modules (NEVER use these)
-  #{Enum.join(Blackboex.LLM.SecurityConfig.prohibited_modules(), ", ")}
-  """
-
-  @edit_format_instructions """
-  ## Response Format: SEARCH/REPLACE Edits
-
-  Return ONLY targeted edits using this exact format (one or more blocks):
-
-  <<<<<<< SEARCH
-  (exact lines from the current code that need to change)
-  =======
-  (replacement lines)
-  >>>>>>> REPLACE
-
-  Rules:
-  - The SEARCH block must match EXACTLY a contiguous section of the current code.
-  - Include enough surrounding context lines (2-3) so the match is unique.
-  - You can have multiple SEARCH/REPLACE blocks for multiple changes.
-  - To ADD code (e.g., @doc above a function), use a SEARCH block that matches the
-    existing lines and a REPLACE block that includes the new lines plus the original.
-  - To DELETE code, use an empty REPLACE block.
-  - NEVER return the full code. Only return the SEARCH/REPLACE blocks.
-  """
+  alias Blackboex.LLM.PromptFragments
+  alias Blackboex.LLM.PromptParsers
 
   @spec fix_compilation(String.t(), String.t(), String.t()) :: {String.t(), String.t()}
   def fix_compilation(code, errors, context_log \\ "") do
     system = """
     You are an expert Elixir developer. Fix compilation errors using targeted edits.
 
-    #{@handler_rules}
+    #{PromptFragments.handler_rules()}
+    #{PromptFragments.allowed_and_prohibited_modules()}
 
     Common fixes:
     - "uses json()" → remove json(), return plain map instead: `%{result: value}`
@@ -82,7 +44,7 @@ defmodule Blackboex.Agent.FixPrompts do
       RIGHT: `fn {msg, _opts} -> msg end` (for traverse_errors)
       RIGHT: Use a map like `%{"key" => :key}` for known string-to-atom mappings
 
-    #{@edit_format_instructions}
+    #{PromptFragments.search_replace_format()}
     """
 
     context_section = build_context_section(context_log)
@@ -103,16 +65,9 @@ defmodule Blackboex.Agent.FixPrompts do
     system = """
     You are an expert Elixir developer. Fix linter issues using targeted edits.
 
-    #{@handler_rules}
-
-    LINTER RULES (all enforced automatically):
-    - Max 120 characters per line — break long lines
-    - Max 40 lines per function — extract `defp` helpers for complex logic
-    - Max 4 levels of nesting (if/case/cond/with) — flatten with `with` or function clauses
-    - Every public `def` MUST have @doc directly above it (before @spec)
-    - Every public `def` MUST have @spec directly above it (after @doc)
-    - Private `defp` SHOULD have @spec
-    - Code MUST be compatible with `mix format`
+    #{PromptFragments.handler_rules()}
+    #{PromptFragments.allowed_and_prohibited_modules()}
+    #{PromptFragments.code_quality_rules()}
 
     HOW TO FIX each issue type:
 
@@ -134,7 +89,7 @@ defmodule Blackboex.Agent.FixPrompts do
 
     IMPORTANT: When splitting functions, keep total unique atoms under 800 to avoid compilation limits.
 
-    #{@edit_format_instructions}
+    #{PromptFragments.search_replace_format()}
     """
 
     context_section = build_context_section(context_log)
@@ -157,24 +112,11 @@ defmodule Blackboex.Agent.FixPrompts do
     Analyze whether the bug is in the handler or in the test.
     Fix the appropriate code using targeted edits.
 
-    #{@handler_rules}
+    #{PromptFragments.handler_rules()}
+    #{PromptFragments.allowed_and_prohibited_modules()}
+    #{PromptFragments.test_rules()}
 
-    IMPORTANT:
-    - The `Handler` module wraps the handler code and is compiled separately.
-    - Tests must call `Handler.handle(params)`, `Handler.handle_list(params)`, etc.
-    - Do NOT define handler functions inside the test module.
-    - Do NOT use Req, HTTPoison, File, System, Code, Process, or I/O modules.
-    - Every public `def` in handler code MUST have @doc and @spec.
-    - NEVER add `defmodule Handler` in the handler code — only Request, Response, Params are allowed.
     - Prefer fixing the TESTS over the handler code. Only change the handler if the logic is truly wrong.
-    - NEVER use `==` for computed float values. Use tolerance: `assert abs(expected - actual) < 0.1`
-      (use 0.1, NOT 0.01 — floating point errors can be up to 0.05 for monetary calculations).
-    - For `0` vs `0.0`: use `assert result >= 0` not `assert result > 0.0` when zero is a valid result.
-      Or use `assert is_number(result)` for type checking.
-    - If a test asserts `> 0.0` and gets integer `0`, the fix is `>= 0` or check structure instead.
-    - **Resilience rule**: If only 1-3 tests fail and you cannot confidently fix them after analyzing
-      the error, DELETE those tests entirely. A passing suite with 30 tests is better than a failing
-      suite with 33. Do not waste fix attempts on flaky or impossible-to-fix assertions.
 
     ## Response Format
 
@@ -214,79 +156,22 @@ defmodule Blackboex.Agent.FixPrompts do
     {system, prompt}
   end
 
-  @spec edit_code(String.t(), String.t(), String.t(), String.t()) :: {String.t(), String.t()}
-  def edit_code(base_system_prompt, instruction, current_code, current_tests) do
-    system = """
-    #{base_system_prompt}
-
-    You are modifying existing code based on the user's instruction.
-    Return ONLY the complete modified code. No explanations, no markdown fences.
-    Preserve all existing functionality unless the instruction explicitly asks to change it.
-    """
-
-    prompt = """
-    ## Instruction
-    #{instruction}
-
-    ## Current Code
-    #{current_code}
-
-    ## Current Tests
-    #{current_tests}
-    """
-
-    {system, prompt}
-  end
-
-  # ── Parsers ────────────────────────────────────────────────────
+  # ── Parsers (delegated to PromptParsers) ──────────────────────
 
   @doc "Parse SEARCH/REPLACE blocks from LLM response into structured edits."
   @spec parse_search_replace_blocks(String.t()) :: [%{search: String.t(), replace: String.t()}]
-  def parse_search_replace_blocks(response) do
-    # Normalize Windows line endings (\r\n) to Unix (\n) before parsing.
-    # LLMs can return either format depending on training data.
-    normalized = String.replace(response, "\r\n", "\n")
-
-    ~r/<<<<<<< SEARCH\n(.*?)=======\n(.*?)>>>>>>> REPLACE/s
-    |> Regex.scan(normalized)
-    |> Enum.map(fn [_, search, replace] ->
-      %{search: String.trim_trailing(search, "\n"), replace: String.trim_trailing(replace, "\n")}
-    end)
-  end
+  defdelegate parse_search_replace_blocks(response), to: PromptParsers
 
   @doc "Parse the ---CODE--- / ---TESTS--- format with SEARCH/REPLACE blocks."
   @spec parse_test_fix_edits(String.t()) ::
           {[%{search: String.t(), replace: String.t()}],
            [%{search: String.t(), replace: String.t()}]}
           | :error
-  def parse_test_fix_edits(response) do
-    code_section =
-      case Regex.run(~r/---CODE---\s*\n(.*?)(?=---TESTS---|$)/s, response) do
-        [_, section] -> parse_search_replace_blocks(section)
-        nil -> []
-      end
-
-    test_section =
-      case Regex.run(~r/---TESTS---\s*\n(.*)/s, response) do
-        [_, section] -> parse_search_replace_blocks(section)
-        nil -> []
-      end
-
-    if code_section == [] and test_section == [] do
-      :error
-    else
-      {code_section, test_section}
-    end
-  end
+  defdelegate parse_test_fix_edits(response), to: PromptParsers
 
   @doc "Parse the ---CODE--- / ---TESTS--- format from test fix responses (legacy full-code format)."
   @spec parse_code_and_tests(String.t()) :: {String.t(), String.t()} | :error
-  def parse_code_and_tests(response) do
-    case Regex.run(~r/---CODE---\s*\n(.*?)---TESTS---\s*\n(.*)/s, response) do
-      [_, code, tests] -> {String.trim(code), String.trim(tests)}
-      nil -> :error
-    end
-  end
+  defdelegate parse_code_and_tests(response), to: PromptParsers
 
   # ── Private Helpers ────────────────────────────────────────────
 

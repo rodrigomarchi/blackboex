@@ -171,38 +171,6 @@ defmodule Blackboex.Agent.FixPromptsTest do
   end
 
   # ──────────────────────────────────────────────────────────────
-  # edit_code/4
-  # ──────────────────────────────────────────────────────────────
-
-  describe "edit_code/4" do
-    test "returns {system, prompt} with all inputs" do
-      {system, prompt} =
-        FixPrompts.edit_code("base system", "add validation", "def handle(p), do: p", "tests")
-
-      assert system =~ "base system"
-      assert system =~ "modifying existing code"
-      assert prompt =~ "Instruction"
-      assert prompt =~ "add validation"
-      assert prompt =~ "Current Code"
-      assert prompt =~ "def handle(p), do: p"
-      assert prompt =~ "Current Tests"
-      assert prompt =~ "tests"
-    end
-
-    test "system prompt instructs to preserve existing functionality" do
-      {system, _prompt} = FixPrompts.edit_code("base", "instruction", "code", "tests")
-
-      assert system =~ "Preserve all existing functionality"
-    end
-
-    test "system prompt instructs no markdown fences" do
-      {system, _prompt} = FixPrompts.edit_code("base", "instruction", "code", "tests")
-
-      assert system =~ "No explanations, no markdown fences"
-    end
-  end
-
-  # ──────────────────────────────────────────────────────────────
   # parse_search_replace_blocks/1
   # ──────────────────────────────────────────────────────────────
 

@@ -7,6 +7,8 @@ defmodule Blackboex.Testing.TestPrompts do
   """
 
   alias Blackboex.Apis.Api
+  alias Blackboex.LLM.PromptFragments
+  alias Blackboex.LLM.PromptParsers
 
   @spec system_prompt() :: String.t()
   def system_prompt do
@@ -22,19 +24,15 @@ defmodule Blackboex.Testing.TestPrompts do
     - Cover the full spectrum: happy paths, edge cases, validation, error messages
     - Tests must exercise the FULL end-to-end flow: params → handler → response with ALL fields checked
 
+    #{PromptFragments.test_rules()}
+
     ## Architecture
-    The handler functions are available in a module called `Handler`.
-    DO NOT copy or redefine handler code — just call `Handler.handle(params)`, etc.
-    The `Handler` module is compiled separately and available at test runtime.
     The Request/Response DTOs are also available as `Handler.Request` and `Handler.Response`.
     Nested schemas (e.g., Vehicle, Driver) are available as `Handler.Vehicle`, `Handler.Driver`, etc.
 
-    ## Rules
+    ## Additional Rules
     1. Generate a COMPLETE ExUnit test module with `defmodule GeneratedAPITest` and `use ExUnit.Case`.
-    2. Call handler functions via `Handler.handle(params)` — NOT via HTTP.
-    3. DO NOT define handler functions in the test module.
-    4. Do NOT use `Req`, `HTTPoison`, `File`, `System`, `Code`, or `Process`.
-    5. Use `assert` and `refute` only.
+    2. Use `assert` and `refute` only.
 
     ## Test Coverage Requirements (MANDATORY — ALL categories must be present)
 
@@ -264,13 +262,27 @@ defmodule Blackboex.Testing.TestPrompts do
     """
   end
 
-  @spec parse_response(String.t()) :: {:ok, String.t()} | {:error, :no_code_found}
-  def parse_response(response) do
-    case Regex.run(~r/```(?:elixir)?\s*[\r\n](.*?)```/s, response) do
-      [_, code] -> {:ok, String.trim(code)}
-      _ -> {:error, :no_code_found}
-    end
+  @doc "System prompt for editing existing tests after handler code was modified."
+  @spec edit_system_prompt(String.t()) :: String.t()
+  def edit_system_prompt(instruction) do
+    """
+    You are an expert Elixir test engineer. The handler code was just edited.
+    Update the existing tests to match the code changes. Use SEARCH/REPLACE blocks.
+
+    The edit instruction was: #{instruction}
+
+    Rules:
+    - Only change tests affected by the code edit — do NOT rewrite the whole suite.
+    - If new behavior was added, ADD new test cases.
+    - If behavior changed, UPDATE the relevant assertions.
+    - Use SEARCH/REPLACE format (same as code edits).
+    - If no test changes are needed, return: NO CHANGES NEEDED
+    """
   end
+
+  @doc "Extract code from a ```elixir code block in LLM response."
+  @spec parse_response(String.t()) :: {:ok, String.t()} | {:error, :no_code_found}
+  defdelegate parse_response(response), to: PromptParsers, as: :parse_code_block
 
   defp handler_functions_hint("crud") do
     """
@@ -290,13 +302,7 @@ defmodule Blackboex.Testing.TestPrompts do
     "- `Handler.handle(params)` — main computation function"
   end
 
-  defp sanitize_code_fence(text) do
-    String.replace(text, "```", "` ` `")
-  end
+  defp sanitize_code_fence(text), do: PromptParsers.sanitize_code_fence(text)
 
-  defp sanitize_field(text) do
-    text
-    |> String.replace(~r/[```]/, "")
-    |> String.slice(0, 10_000)
-  end
+  defp sanitize_field(text), do: PromptParsers.sanitize_field(text)
 end

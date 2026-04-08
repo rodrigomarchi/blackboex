@@ -21,7 +21,7 @@ API test framework. Facade: `Blackboex.Testing` (`testing.ex`).
 | `TestRunner` | Executes tests in isolated sandbox (30s timeout, 20MB heap) |
 | `TestSuite` | Schema: `test_suites`. One per generation run per API. |
 | `TestRequest` | Schema: `test_requests`. One per manual HTTP request from UI. |
-| `TestPrompts` | Prompt builders: `system_prompt/0`, `build_generation_prompt/2`, `parse_response/1` |
+| `TestPrompts` | Prompt builders: `system_prompt/0`, `build_generation_prompt/3`, `build_retry_prompt/2`, `edit_system_prompt/1`, `parse_response/1` |
 | `SandboxCase` | Replaces `use ExUnit.Case` in generated tests (prevents ExUnit registration) |
 | `ResponseValidator` | Flat schema validation for manual test requests |
 | `ContractValidator` | Full OpenAPI contract validation via ExJsonSchema |

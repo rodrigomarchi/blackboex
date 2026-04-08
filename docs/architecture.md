@@ -137,7 +137,7 @@ User clicks "Upgrade to Pro"
   │
   ├─ Enforcement gates (real-time)
   │    ├─ Apis.create_api/1 → Enforcement.check(:create_api, org)
-  │    ├─ CodeGen.Pipeline → Enforcement.check(:llm_generation, org)
+  │    ├─ Agent.CodePipeline → Enforcement.check(:llm_generation, org)
   │    └─ DynamicApiRouter → Enforcement.check(:api_invocation, org)
   │
   └─ Usage aggregation (async)

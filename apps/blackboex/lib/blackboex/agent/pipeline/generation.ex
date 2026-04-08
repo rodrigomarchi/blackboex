@@ -13,8 +13,8 @@ defmodule Blackboex.Agent.Pipeline.Generation do
   alias Blackboex.Docs.DocGenerator
   alias Blackboex.LLM.EditPrompts
   alias Blackboex.LLM.Prompts
-  alias Blackboex.LLM.Templates
   alias Blackboex.Testing.TestGenerator
+  alias Blackboex.Testing.TestPrompts
 
   @type broadcast_fn :: (term() -> :ok)
   @type file_entry :: %{path: String.t(), content: String.t(), file_type: String.t()}
@@ -28,15 +28,7 @@ defmodule Blackboex.Agent.Pipeline.Generation do
     Budget.touch_run(run_id)
 
     template_type = Budget.template_atom(api.template_type)
-
-    system = """
-    #{Prompts.system_prompt()}
-
-    #{Templates.get(template_type)}
-
-    Generate the handler code for this API.
-    Return the code in a single ```elixir code block. No explanations outside the block.
-    """
+    system = Prompts.generation_system_prompt(template_type)
 
     case Budget.guarded_llm_call(description, system) do
       {:ok, content} ->
@@ -108,19 +100,7 @@ defmodule Blackboex.Agent.Pipeline.Generation do
       broadcast.({:step_started, %{step: :generating_tests}})
       Budget.touch_run(run_id)
 
-      system = """
-      You are an expert Elixir test engineer. The handler code was just edited.
-      Update the existing tests to match the code changes. Use SEARCH/REPLACE blocks.
-
-      The edit instruction was: #{instruction}
-
-      Rules:
-      - Only change tests affected by the code edit — do NOT rewrite the whole suite.
-      - If new behavior was added, ADD new test cases.
-      - If behavior changed, UPDATE the relevant assertions.
-      - Use SEARCH/REPLACE format (same as code edits).
-      - If no test changes are needed, return: NO CHANGES NEEDED
-      """
+      system = TestPrompts.edit_system_prompt(instruction)
 
       prompt = """
       ## Current Handler Code
@@ -229,14 +209,7 @@ defmodule Blackboex.Agent.Pipeline.Generation do
     Budget.touch_run(run_id)
 
     template_type = Budget.template_atom(api.template_type)
-
-    system = """
-    #{Prompts.system_prompt()}
-
-    #{Templates.get(template_type)}
-
-    #{Prompts.handler_generation_prompt(description, manifest)}
-    """
+    system = Prompts.handler_system_prompt(template_type, description, manifest)
 
     case Budget.guarded_llm_call("Generate the handler code as specified above.", system) do
       {:ok, content} ->
@@ -323,23 +296,7 @@ defmodule Blackboex.Agent.Pipeline.Generation do
       |> Enum.map(fn f -> "### #{f["path"]}\n```elixir\n#{f["content"]}\n```" end)
       |> Enum.join("\n\n")
 
-    system = """
-    #{Prompts.system_prompt()}
-
-    You are generating a single helper file for an Elixir API project.
-
-    ## API Description
-    #{description}
-
-    ## Already Generated Files (reference only)
-    #{context}
-
-    ## File to Generate: #{path}
-    Description: #{file_desc}
-
-    Generate ONLY the code for this file. Return it in a single ```elixir block.
-    Follow the same rules as the handler: @moduledoc, @doc, @spec on public functions.
-    """
+    system = Prompts.helper_file_system_prompt(description, context, path, file_desc)
 
     case Budget.guarded_llm_call("Generate #{path} as described.", system) do
       {:ok, content} ->

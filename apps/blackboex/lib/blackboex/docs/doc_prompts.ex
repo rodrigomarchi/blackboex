@@ -4,6 +4,7 @@ defmodule Blackboex.Docs.DocPrompts do
   """
 
   alias Blackboex.Apis.Api
+  alias Blackboex.LLM.PromptParsers
 
   @spec system_prompt() :: String.t()
   def system_prompt do
@@ -50,15 +51,7 @@ defmodule Blackboex.Docs.DocPrompts do
     """
   end
 
-  # Escape triple backticks in user content to prevent prompt structure breakout
-  defp sanitize_code_fence(text) do
-    String.replace(text, "```", "` ` `")
-  end
+  defp sanitize_code_fence(text), do: PromptParsers.sanitize_code_fence(text)
 
-  # Strip backticks from user-provided text fields and cap length
-  defp sanitize_field(text) do
-    text
-    |> String.replace(~r/[```]/, "")
-    |> String.slice(0, 10_000)
-  end
+  defp sanitize_field(text), do: PromptParsers.sanitize_field(text)
 end

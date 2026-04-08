@@ -45,7 +45,9 @@ SecurityConfig.prohibited_modules() :: [String.t()]
 | `Config` | `client/0` — resolves mock in test, `ReqLLMClient` in prod |
 | `CircuitBreaker` | GenServer. Per-provider health: closed/open/half_open |
 | `RateLimiter` | Per-user token bucket (ExRated). `check_rate(user_id, plan)` |
-| `Prompts` | System prompts and generation prompt builders |
+| `PromptFragments` | Canonical source for shared prompt text fragments (handler rules, code quality, etc.) |
+| `PromptParsers` | Response parsing (code blocks, SEARCH/REPLACE, sanitization) |
+| `Prompts` | System prompts and generation prompt builders (composes from PromptFragments) |
 | `EditPrompts` | SEARCH/REPLACE diff format for conversational editing |
 | `StreamHandler` | Fire-and-forget streaming task |
 | `Usage` | Schema for `llm_usage` table |

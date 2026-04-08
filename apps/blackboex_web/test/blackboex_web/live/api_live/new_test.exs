@@ -36,14 +36,13 @@ defmodule BlackboexWeb.ApiLive.NewTest do
       html = render_click(view, "open_create_modal")
 
       assert html =~ "Create API"
-      assert html =~ "What should this API do?"
 
       html =
         view
         |> element("button", "Cancel")
         |> render_click()
 
-      refute html =~ "What should this API do?"
+      refute html =~ "AI Agent Tools"
     end
 
     test "shows error on empty name", %{conn: conn} do
@@ -63,6 +62,7 @@ defmodule BlackboexWeb.ApiLive.NewTest do
       {:ok, view, _html} = live(conn, ~p"/apis")
 
       render_click(view, "open_create_modal")
+      render_click(view, "switch_to_description")
 
       view
       |> form("form[phx-submit='create_api']", %{name: "Test API", description: ""})
@@ -76,6 +76,7 @@ defmodule BlackboexWeb.ApiLive.NewTest do
       {:ok, view, _html} = live(conn, ~p"/apis")
 
       render_click(view, "open_create_modal")
+      render_click(view, "switch_to_description")
 
       view
       |> form("form[phx-submit='create_api']", %{

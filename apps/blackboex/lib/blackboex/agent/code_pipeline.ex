@@ -227,7 +227,8 @@ defmodule Blackboex.Agent.CodePipeline do
 
   # Guarded LLM call — prevents runaway loops across all fix steps.
   # Streams tokens via token_callback when available, falls back to sync.
-  @spec guarded_llm_call(String.t(), String.t()) :: {:ok, String.t()} | {:error, String.t()}
+  @spec guarded_llm_call(String.t(), String.t()) ::
+          {:ok, String.t()} | {:error, String.t()} | {:error, :budget_exhausted}
   defp guarded_llm_call(prompt, system) do
     count = Process.get(:pipeline_llm_calls, 0)
     max_calls = Process.get(:pipeline_max_llm_calls, @max_total_llm_calls)

@@ -33,6 +33,7 @@ defmodule Blackboex.Apis.Api do
     field :generation_status, :string
     field :generation_error, :string
     field :validation_report, :map
+    field :template_id, :string
 
     belongs_to :organization, Blackboex.Organizations.Organization
     belongs_to :user, Blackboex.Accounts.User, type: :id
@@ -62,6 +63,7 @@ defmodule Blackboex.Apis.Api do
       :generation_status,
       :generation_error,
       :validation_report,
+      :template_id,
       :organization_id,
       :user_id
     ])

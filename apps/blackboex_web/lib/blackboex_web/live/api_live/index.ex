@@ -1,7 +1,7 @@
 defmodule BlackboexWeb.ApiLive.Index do
   @moduledoc """
   LiveView listing APIs for the current organization with 24h stats.
-  Includes inline modal for creating new APIs.
+  Includes inline modal for creating new APIs, with template library support.
   """
 
   use BlackboexWeb, :live_view
@@ -13,6 +13,7 @@ defmodule BlackboexWeb.ApiLive.Index do
 
   alias Blackboex.Apis
   alias Blackboex.Apis.DashboardQueries
+  alias Blackboex.Apis.Templates
   alias Blackboex.Policy
 
   @max_description_length 10_000
@@ -36,7 +37,11 @@ defmodule BlackboexWeb.ApiLive.Index do
        page_title: "APIs",
        show_create_modal: false,
        create_form: to_form(%{"name" => "", "description" => ""}),
-       create_error: nil
+       create_error: nil,
+       selected_template: nil,
+       template_categories: [],
+       active_category: nil,
+       creation_mode: :template
      )}
   end
 
@@ -87,11 +92,23 @@ defmodule BlackboexWeb.ApiLive.Index do
 
   @impl true
   def handle_event("open_create_modal", _params, socket) do
+    categories = Templates.list_by_category()
+
+    first_category =
+      case categories do
+        [{cat, _} | _] -> cat
+        [] -> nil
+      end
+
     {:noreply,
      assign(socket,
        show_create_modal: true,
        create_form: to_form(%{"name" => "", "description" => ""}),
-       create_error: nil
+       create_error: nil,
+       selected_template: nil,
+       template_categories: categories,
+       active_category: first_category,
+       creation_mode: :template
      )}
   end
 
@@ -101,11 +118,51 @@ defmodule BlackboexWeb.ApiLive.Index do
   end
 
   @impl true
+  def handle_event("switch_to_template", _params, socket) do
+    {:noreply, assign(socket, creation_mode: :template, selected_template: nil)}
+  end
+
+  @impl true
+  def handle_event("switch_to_description", _params, socket) do
+    {:noreply, assign(socket, creation_mode: :description, selected_template: nil)}
+  end
+
+  @impl true
+  def handle_event("set_active_category", %{"category" => cat}, socket) do
+    {:noreply, assign(socket, active_category: cat, selected_template: nil)}
+  end
+
+  @impl true
+  def handle_event("select_template", %{"id" => id}, socket) do
+    template = Templates.get(id)
+
+    socket =
+      if template do
+        name_value = socket.assigns.create_form[:name].value
+        updated_name = if name_value == "", do: template.name, else: name_value
+
+        assign(socket,
+          selected_template: template,
+          create_form: to_form(%{"name" => updated_name, "description" => ""})
+        )
+      else
+        socket
+      end
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("clear_template", _params, socket) do
+    {:noreply, assign(socket, selected_template: nil)}
+  end
+
+  @impl true
   def handle_event("create_api", %{"name" => name, "description" => description}, socket) do
     name = String.trim(name)
     description = String.trim(description)
 
-    case validate_create_inputs(name, description) do
+    case validate_create_inputs(name, description, socket.assigns.selected_template) do
       {:error, msg} ->
         {:noreply, assign(socket, create_error: msg)}
 
@@ -114,9 +171,11 @@ defmodule BlackboexWeb.ApiLive.Index do
     end
   end
 
-  defp validate_create_inputs("", _description), do: {:error, "Name is required"}
+  defp validate_create_inputs("", _description, _template), do: {:error, "Name is required"}
 
-  defp validate_create_inputs(_name, description) do
+  defp validate_create_inputs(_name, _description, template) when not is_nil(template), do: :ok
+
+  defp validate_create_inputs(_name, description, _template) do
     if String.length(description) > @max_description_length do
       {:error, "Description too long (max #{@max_description_length} characters)"}
     else
@@ -130,33 +189,67 @@ defmodule BlackboexWeb.ApiLive.Index do
     user = scope.user
 
     with :ok <- Policy.authorize_and_track(:api_create, scope, org) do
-      has_description = description != ""
+      case socket.assigns.selected_template do
+        nil ->
+          do_create_from_description(socket, name, description, org, user)
 
-      attrs = %{
-        name: name,
-        description: if(has_description, do: description, else: nil),
-        generation_status: if(has_description, do: "pending", else: nil),
-        organization_id: org.id,
-        user_id: user.id
-      }
-
-      case Apis.create_api_with_files(attrs) do
-        {:ok, api} ->
-          maybe_enqueue_generation(api, description, user.id, org.id)
-          {:noreply, push_navigate(socket, to: ~p"/apis/#{api.id}/edit")}
-
-        {:error, :limit_exceeded, details} ->
-          {:noreply,
-           assign(socket,
-             create_error:
-               "You've reached the #{details.plan} plan limit of #{details.limit} APIs."
-           )}
-
-        {:error, changeset} ->
-          {:noreply, assign(socket, create_error: format_changeset_errors(changeset))}
+        template ->
+          do_create_from_template(socket, name, template, org, user)
       end
     else
       {:error, _reason} -> {:noreply, put_flash(socket, :error, "Not authorized.")}
+    end
+  end
+
+  defp do_create_from_description(socket, name, description, org, user) do
+    has_description = description != ""
+
+    attrs = %{
+      name: name,
+      description: if(has_description, do: description, else: nil),
+      generation_status: if(has_description, do: "pending", else: nil),
+      organization_id: org.id,
+      user_id: user.id
+    }
+
+    case Apis.create_api_with_files(attrs) do
+      {:ok, api} ->
+        maybe_enqueue_generation(api, description, user.id, org.id)
+        {:noreply, push_navigate(socket, to: ~p"/apis/#{api.id}/edit")}
+
+      {:error, :limit_exceeded, details} ->
+        {:noreply,
+         assign(socket,
+           create_error: "You've reached the #{details.plan} plan limit of #{details.limit} APIs."
+         )}
+
+      {:error, changeset} ->
+        {:noreply, assign(socket, create_error: format_changeset_errors(changeset))}
+    end
+  end
+
+  defp do_create_from_template(socket, name, template, org, user) do
+    attrs = %{
+      name: name,
+      organization_id: org.id,
+      user_id: user.id
+    }
+
+    case Apis.create_api_from_template(attrs, template.id) do
+      {:ok, api} ->
+        {:noreply, push_navigate(socket, to: ~p"/apis/#{api.id}/edit")}
+
+      {:error, :template_not_found} ->
+        {:noreply, assign(socket, create_error: "Template not found.")}
+
+      {:error, :limit_exceeded, details} ->
+        {:noreply,
+         assign(socket,
+           create_error: "You've reached the #{details.plan} plan limit of #{details.limit} APIs."
+         )}
+
+      {:error, changeset} ->
+        {:noreply, assign(socket, create_error: format_changeset_errors(changeset))}
     end
   end
 
@@ -277,6 +370,36 @@ defmodule BlackboexWeb.ApiLive.Index do
           </div>
         <% end %>
 
+        <%!-- Mode toggle --%>
+        <div class="flex gap-1 rounded-lg bg-muted p-1 mb-4">
+          <button
+            type="button"
+            phx-click="switch_to_template"
+            class={[
+              "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+              if(@creation_mode == :template,
+                do: "bg-background text-foreground shadow-sm",
+                else: "text-muted-foreground hover:text-foreground"
+              )
+            ]}
+          >
+            <.icon name="hero-squares-2x2" class="mr-1.5 size-4 inline" /> From template
+          </button>
+          <button
+            type="button"
+            phx-click="switch_to_description"
+            class={[
+              "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+              if(@creation_mode == :description,
+                do: "bg-background text-foreground shadow-sm",
+                else: "text-muted-foreground hover:text-foreground"
+              )
+            ]}
+          >
+            <.icon name="hero-sparkles" class="mr-1.5 size-4 inline" /> Describe from scratch
+          </button>
+        </div>
+
         <form phx-submit="create_api" class="space-y-4">
           <.input
             type="text"
@@ -288,25 +411,140 @@ defmodule BlackboexWeb.ApiLive.Index do
             placeholder="My API"
             autofocus
           />
-          <.input
-            type="textarea"
-            name="description"
-            value={@create_form[:description].value}
-            label="What should this API do?"
-            rows="4"
-            maxlength="10000"
-            placeholder="An API that receives a list of products with prices and returns the total, average, and most expensive item."
-          />
-          <p class="text-xs text-muted-foreground">
-            Describe in natural language. Code will be generated automatically.
-          </p>
+
+          <%!-- Template mode --%>
+          <%= if @creation_mode == :template do %>
+            <%= if @template_categories == [] do %>
+              <p class="text-sm text-muted-foreground">No templates available yet.</p>
+            <% else %>
+              <%!-- Category tabs --%>
+              <div class="flex gap-1 flex-wrap">
+                <%= for {cat, _templates} <- @template_categories do %>
+                  <button
+                    type="button"
+                    phx-click="set_active_category"
+                    phx-value-category={cat}
+                    class={[
+                      "rounded-full px-3 py-1 text-xs font-medium transition-colors border",
+                      if(@active_category == cat,
+                        do: "bg-primary text-primary-foreground border-primary",
+                        else:
+                          "bg-background text-muted-foreground border-border hover:border-primary/50 hover:text-foreground"
+                      )
+                    ]}
+                  >
+                    {cat}
+                  </button>
+                <% end %>
+              </div>
+
+              <%!-- Template grid --%>
+              <div class="max-h-52 overflow-y-auto -mx-1 px-1">
+                <div class="grid grid-cols-2 gap-2">
+                  <%= for {cat, templates} <- @template_categories, cat == @active_category, template <- templates do %>
+                    <button
+                      type="button"
+                      phx-click="select_template"
+                      phx-value-id={template.id}
+                      class={[
+                        "flex items-start gap-2 rounded-lg border p-2.5 text-left transition-colors hover:border-primary/50",
+                        if(@selected_template && @selected_template.id == template.id,
+                          do: "border-primary bg-primary/5 ring-1 ring-primary",
+                          else: "border-border bg-background"
+                        )
+                      ]}
+                    >
+                      <.icon name="hero-bolt" class="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                      <div class="min-w-0">
+                        <p class="text-xs font-medium leading-snug">{template.name}</p>
+                        <p class="text-xs text-muted-foreground line-clamp-2 leading-snug mt-0.5">
+                          {template.description}
+                        </p>
+                      </div>
+                    </button>
+                  <% end %>
+                </div>
+              </div>
+
+              <%!-- Selected template preview --%>
+              <%= if @selected_template do %>
+                <div class="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-1">
+                  <div class="flex items-center justify-between">
+                    <p class="text-sm font-medium">{@selected_template.name}</p>
+                    <button
+                      type="button"
+                      phx-click="clear_template"
+                      class="text-muted-foreground hover:text-foreground"
+                    >
+                      <.icon name="hero-x-mark" class="size-4" />
+                    </button>
+                  </div>
+                  <p class="text-xs text-muted-foreground">{@selected_template.description}</p>
+                  <div class="flex flex-wrap gap-1 pt-1">
+                    <span class="rounded bg-muted px-1.5 py-0.5 text-xs font-mono">handler.ex</span>
+                    <span class="rounded bg-muted px-1.5 py-0.5 text-xs font-mono">helpers.ex</span>
+                    <span class="rounded bg-muted px-1.5 py-0.5 text-xs font-mono">
+                      request_schema.ex
+                    </span>
+                    <span class="rounded bg-muted px-1.5 py-0.5 text-xs font-mono">
+                      response_schema.ex
+                    </span>
+                    <span class="rounded bg-muted px-1.5 py-0.5 text-xs font-mono">
+                      handler_test.ex
+                    </span>
+                    <span class="rounded bg-muted px-1.5 py-0.5 text-xs font-mono">README.md</span>
+                  </div>
+                </div>
+              <% else %>
+                <p class="text-xs text-muted-foreground">
+                  Select a template above, or
+                  <button
+                    type="button"
+                    phx-click="switch_to_description"
+                    class="underline hover:text-foreground"
+                  >
+                    describe from scratch
+                  </button>
+                  to generate with AI.
+                </p>
+              <% end %>
+            <% end %>
+          <% end %>
+
+          <%!-- Description mode --%>
+          <%= if @creation_mode == :description do %>
+            <.input
+              type="textarea"
+              name="description"
+              value={@create_form[:description].value}
+              label="What should this API do?"
+              rows="4"
+              maxlength="10000"
+              placeholder="An API that receives a list of products with prices and returns the total, average, and most expensive item."
+            />
+            <p class="text-xs text-muted-foreground">
+              Describe in natural language. Code will be generated automatically.
+            </p>
+          <% end %>
+
+          <%!-- Hidden description field in template mode so form submission works --%>
+          <%= if @creation_mode == :template do %>
+            <input type="hidden" name="description" value="" />
+          <% end %>
+
           <div class="flex justify-end gap-3 pt-2">
             <.button type="button" variant="outline" phx-click="close_create_modal">
               Cancel
             </.button>
-            <.button type="submit" variant="primary">
-              <.icon name="hero-arrow-right" class="mr-2 size-4" /> Create & Edit
-            </.button>
+            <%= if @creation_mode == :template && @selected_template do %>
+              <.button type="submit" variant="primary">
+                <.icon name="hero-bolt" class="mr-2 size-4" /> Create from template
+              </.button>
+            <% else %>
+              <.button type="submit" variant="primary">
+                <.icon name="hero-arrow-right" class="mr-2 size-4" /> Create & Edit
+              </.button>
+            <% end %>
           </div>
         </form>
       </.modal>

@@ -650,6 +650,81 @@ defmodule Blackboex.ApisTest do
   end
 
   # ---------------------------------------------------------------------------
+  # create_api_from_template/2
+  # ---------------------------------------------------------------------------
+
+  describe "create_api_from_template/2" do
+    test "creates API with status compiled", %{user: user, org: org} do
+      attrs = %{
+        name: "Frete API",
+        organization_id: org.id,
+        user_id: user.id
+      }
+
+      assert {:ok, api} = Apis.create_api_from_template(attrs, "cotacao-frete")
+      assert api.status == "compiled"
+    end
+
+    test "saves template_id on the API", %{user: user, org: org} do
+      attrs = %{name: "Frete API", organization_id: org.id, user_id: user.id}
+      assert {:ok, api} = Apis.create_api_from_template(attrs, "cotacao-frete")
+      assert api.template_id == "cotacao-frete"
+    end
+
+    test "generation_status is nil (no LLM pipeline triggered)", %{user: user, org: org} do
+      attrs = %{name: "Frete API", organization_id: org.id, user_id: user.id}
+      assert {:ok, api} = Apis.create_api_from_template(attrs, "cotacao-frete")
+      assert api.generation_status == nil
+    end
+
+    test "creates 6 files with template content", %{user: user, org: org} do
+      attrs = %{name: "Frete API", organization_id: org.id, user_id: user.id}
+      assert {:ok, api} = Apis.create_api_from_template(attrs, "cotacao-frete")
+
+      files = Apis.list_files(api.id)
+      paths = Enum.map(files, & &1.path) |> MapSet.new()
+
+      assert MapSet.member?(paths, "/src/handler.ex")
+      assert MapSet.member?(paths, "/src/helpers.ex")
+      assert MapSet.member?(paths, "/src/request_schema.ex")
+      assert MapSet.member?(paths, "/src/response_schema.ex")
+      assert MapSet.member?(paths, "/test/handler_test.ex")
+      assert MapSet.member?(paths, "/README.md")
+      assert length(files) == 6
+    end
+
+    test "fills param_schema, example_request, example_response, validation_report", %{
+      user: user,
+      org: org
+    } do
+      attrs = %{name: "Frete API", organization_id: org.id, user_id: user.id}
+      assert {:ok, api} = Apis.create_api_from_template(attrs, "cotacao-frete")
+
+      assert is_map(api.param_schema) and map_size(api.param_schema) > 0
+      assert is_map(api.example_request) and map_size(api.example_request) > 0
+      assert is_map(api.example_response) and map_size(api.example_response) > 0
+      assert is_map(api.validation_report) and api.validation_report["overall"] == "pass"
+    end
+
+    test "sets method from template", %{user: user, org: org} do
+      attrs = %{name: "Frete API", organization_id: org.id, user_id: user.id}
+      assert {:ok, api} = Apis.create_api_from_template(attrs, "cotacao-frete")
+      assert api.method == "POST"
+    end
+
+    test "returns error for unknown template", %{user: user, org: org} do
+      attrs = %{name: "Unknown", organization_id: org.id, user_id: user.id}
+
+      assert {:error, :template_not_found} =
+               Apis.create_api_from_template(attrs, "does-not-exist")
+    end
+
+    test "returns changeset error for invalid attrs" do
+      assert {:error, %Ecto.Changeset{}} = Apis.create_api_from_template(%{}, "cotacao-frete")
+    end
+  end
+
+  # ---------------------------------------------------------------------------
   # published_version/1
   # ---------------------------------------------------------------------------
 

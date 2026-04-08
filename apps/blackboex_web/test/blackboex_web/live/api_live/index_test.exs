@@ -218,7 +218,6 @@ defmodule BlackboexWeb.ApiLive.IndexTest do
       html = render_click(view, "open_create_modal")
 
       assert html =~ "Create API"
-      assert html =~ "What should this API do?"
     end
 
     test "closes create modal", %{conn: conn} do
@@ -247,6 +246,7 @@ defmodule BlackboexWeb.ApiLive.IndexTest do
       {:ok, view, _html} = live(conn, ~p"/apis")
 
       render_click(view, "open_create_modal")
+      render_click(view, "switch_to_description")
 
       long_description = String.duplicate("x", 10_001)
 
@@ -265,6 +265,7 @@ defmodule BlackboexWeb.ApiLive.IndexTest do
       {:ok, view, _html} = live(conn, ~p"/apis")
 
       render_click(view, "open_create_modal")
+      render_click(view, "switch_to_description")
 
       view
       |> form("form[phx-submit='create_api']", %{name: "New API", description: ""})
@@ -278,6 +279,7 @@ defmodule BlackboexWeb.ApiLive.IndexTest do
       {:ok, view, _html} = live(conn, ~p"/apis")
 
       render_click(view, "open_create_modal")
+      render_click(view, "switch_to_description")
 
       view
       |> form("form[phx-submit='create_api']", %{
@@ -288,6 +290,103 @@ defmodule BlackboexWeb.ApiLive.IndexTest do
 
       {path, _flash} = assert_redirect(view)
       assert path =~ ~r"/apis/.+/edit"
+    end
+  end
+
+  describe "template selector in create modal" do
+    setup :register_and_log_in_user
+
+    test "modal shows template section with category tabs", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/apis")
+      html = render_click(view, "open_create_modal")
+
+      # Should show category tabs for templates
+      assert html =~ "AI Agent Tools"
+    end
+
+    test "modal opens in template mode by default", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/apis")
+      html = render_click(view, "open_create_modal")
+
+      # Template cards should be visible (cotacao-frete is the first template)
+      assert html =~ "Cotação de Frete"
+    end
+
+    test "selecting a template pre-fills the name and shows template preview", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/apis")
+      render_click(view, "open_create_modal")
+
+      html = render_click(view, "select_template", %{"id" => "cotacao-frete"})
+
+      # Template name should appear in the preview section
+      assert html =~ "Cotação de Frete"
+    end
+
+    test "clearing a selected template removes template preview", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/apis")
+      render_click(view, "open_create_modal")
+
+      render_click(view, "select_template", %{"id" => "cotacao-frete"})
+      html = render_click(view, "clear_template")
+
+      # After clearing, the template preview should be gone and description field should be back
+      refute html =~ "phx-click=\"clear_template\""
+    end
+
+    test "switching to description mode shows description field", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/apis")
+      render_click(view, "open_create_modal")
+
+      html = render_click(view, "switch_to_description")
+
+      assert html =~ "What should this API do?"
+    end
+
+    test "switching back to template mode shows template grid", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/apis")
+      render_click(view, "open_create_modal")
+
+      render_click(view, "switch_to_description")
+      html = render_click(view, "switch_to_template")
+
+      assert html =~ "AI Agent Tools"
+    end
+
+    test "creating API from template redirects to editor", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/apis")
+      render_click(view, "open_create_modal")
+
+      render_click(view, "select_template", %{"id" => "cotacao-frete"})
+
+      view
+      |> form("form[phx-submit='create_api']", %{name: "My Frete API", description: ""})
+      |> render_submit()
+
+      {path, _flash} = assert_redirect(view)
+      assert path =~ ~r"/apis/.+/edit"
+    end
+
+    test "API created from template has compiled status and template_id", %{
+      conn: conn,
+      user: user
+    } do
+      {:ok, view, _html} = live(conn, ~p"/apis")
+      render_click(view, "open_create_modal")
+
+      render_click(view, "select_template", %{"id" => "cotacao-frete"})
+
+      view
+      |> form("form[phx-submit='create_api']", %{name: "My Frete API", description: ""})
+      |> render_submit()
+
+      {path, _flash} = assert_redirect(view)
+      api_id = path |> String.split("/") |> Enum.at(-2)
+
+      [org | _] = Blackboex.Organizations.list_user_organizations(user)
+      api = Blackboex.Apis.get_api(org.id, api_id)
+
+      assert api.status == "compiled"
+      assert api.template_id == "cotacao-frete"
     end
   end
 end

@@ -15,6 +15,7 @@ defmodule Blackboex.Apis do
   alias Blackboex.Apis.ApiVersion
   alias Blackboex.Apis.DiffEngine
   alias Blackboex.Apis.Registry
+  alias Blackboex.Apis.Templates
   alias Blackboex.Apis.VirtualFile
   alias Blackboex.Audit
   alias Blackboex.Billing.Enforcement
@@ -571,6 +572,89 @@ defmodule Blackboex.Apis do
 
       error ->
         error
+    end
+  end
+
+  @doc """
+  Creates an API from a pre-built template, populating all artefacts
+  (6 source files + 4 Api schema fields) without going through the LLM pipeline.
+
+  Returns `{:ok, api}` with `status: "compiled"` on success.
+  Returns `{:error, :template_not_found}` if the template id is unknown.
+  """
+  @spec create_api_from_template(map(), String.t()) ::
+          {:ok, Api.t()}
+          | {:error, :template_not_found}
+          | {:error, Ecto.Changeset.t()}
+          | {:error, :limit_exceeded, map()}
+  def create_api_from_template(attrs, template_id) do
+    case Templates.get(template_id) do
+      nil ->
+        {:error, :template_not_found}
+
+      template ->
+        attrs =
+          Map.merge(attrs, %{
+            template_id: template_id,
+            status: "compiled",
+            method: template.method,
+            param_schema: template.param_schema,
+            example_request: template.example_request,
+            example_response: template.example_response,
+            validation_report: template.validation_report
+          })
+
+        case create_api(attrs) do
+          {:ok, api} ->
+            files = template.files
+
+            create_file(api, %{
+              path: "/src/handler.ex",
+              content: files.handler,
+              file_type: "source",
+              source: "template"
+            })
+
+            create_file(api, %{
+              path: "/src/helpers.ex",
+              content: files.helpers,
+              file_type: "source",
+              source: "template"
+            })
+
+            create_file(api, %{
+              path: "/src/request_schema.ex",
+              content: files.request_schema,
+              file_type: "source",
+              source: "template"
+            })
+
+            create_file(api, %{
+              path: "/src/response_schema.ex",
+              content: files.response_schema,
+              file_type: "source",
+              source: "template"
+            })
+
+            create_file(api, %{
+              path: "/test/handler_test.ex",
+              content: files.test,
+              file_type: "test",
+              source: "template"
+            })
+
+            create_file(api, %{
+              path: "/README.md",
+              content: files.readme,
+              file_type: "doc",
+              source: "template"
+            })
+
+            {:ok, api}
+
+          error ->
+            error
+        end
     end
   end
 

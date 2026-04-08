@@ -11,7 +11,7 @@ defmodule Blackboex.Apis.ApiFileRevision do
 
   @type t :: %__MODULE__{}
 
-  @valid_sources ~w(generation chat_edit manual_edit rollback scaffold)
+  @valid_sources ~w(generation chat_edit manual_edit rollback scaffold template)
 
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id

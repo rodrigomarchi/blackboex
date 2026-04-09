@@ -32,7 +32,7 @@ defmodule BlackboexWeb.FlowLive.ExecutionsTest do
 
       {:ok, _view, html} = live(conn, ~p"/flows/#{flow.id}/executions")
       assert html =~ "completed"
-      assert html =~ "Details"
+      assert html =~ "total runs"
     end
 
     test "shows failed execution", %{conn: conn, user: user} do

@@ -1178,13 +1178,20 @@ defmodule BlackboexWeb.FlowLive.Edit do
           value={@data["url"] || ""}
           placeholder="https://api.example.com/{{state.path}}"
         />
-        <.prop_field
-          label="Body Template"
-          field="body_template"
-          value={@data["body_template"] || ""}
-          placeholder={~s|{"key": "{{input.value}}"}|}
-          type="textarea"
-        />
+        <div>
+          <label class="block text-xs font-medium text-muted-foreground mb-1.5">Body Template</label>
+          <div
+            id={"code-editor-#{@node_id}-body_template"}
+            phx-hook="CodeEditor"
+            phx-update="ignore"
+            data-language="json"
+            data-event="update_node_data"
+            data-field="body_template"
+            data-value={@data["body_template"] || ""}
+            class="w-full rounded-lg border overflow-hidden"
+            style="height: 120px;"
+          />
+        </div>
       </div>
 
       <div :if={@tab == "auth"} class="space-y-4">
@@ -1325,23 +1332,27 @@ defmodule BlackboexWeb.FlowLive.Edit do
             </p>
           <% end %>
 
-          <div class="space-y-2">
+          <div class="space-y-3">
             <div
               :for={field <- @sub_flow_schema}
-              class="flex items-center gap-2"
+              class="space-y-1"
             >
-              <div class="w-1/3 shrink-0">
+              <div class="flex items-center gap-1.5">
                 <span class="text-xs font-medium text-foreground">{field["name"]}</span>
-                <span class="text-xs text-muted-foreground ml-1">({field["type"]})</span>
+                <span class="text-xs text-muted-foreground">({field["type"]})</span>
+                <span class="text-xs text-muted-foreground">&larr;</span>
               </div>
-              <span class="text-xs text-muted-foreground">&larr;</span>
-              <input
-                type="text"
-                phx-blur="update_input_mapping"
-                phx-value-field={field["name"]}
-                value={get_in(@data, ["input_mapping", field["name"]]) || ""}
-                placeholder={~s(state["#{field["name"]}"])}
-                class="flex-1 rounded-lg border bg-background px-2 py-1.5 text-xs font-mono focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              <div
+                id={"code-editor-#{@node_id}-mapping-#{field["name"]}"}
+                phx-hook="CodeEditor"
+                phx-update="ignore"
+                data-language="elixir"
+                data-minimal="true"
+                data-event="update_input_mapping"
+                data-field={field["name"]}
+                data-value={get_in(@data, ["input_mapping", field["name"]]) || ""}
+                class="w-full rounded-lg border overflow-hidden"
+                style="height: 36px;"
               />
             </div>
           </div>
@@ -1366,12 +1377,22 @@ defmodule BlackboexWeb.FlowLive.Edit do
 
       <div :if={@tab == "settings"} class="space-y-4">
         <.prop_field label="Node Name" field="name" value={@data["name"] || "For Each"} />
-        <.prop_field
-          label="Source Expression"
-          field="source_expression"
-          value={@data["source_expression"] || ""}
-          placeholder={~s(input["items"])}
-        />
+        <div>
+          <label class="block text-xs font-medium text-muted-foreground mb-1.5">
+            Source Expression
+          </label>
+          <div
+            id={"code-editor-#{@node_id}-source_expression"}
+            phx-hook="CodeEditor"
+            phx-update="ignore"
+            data-language="elixir"
+            data-event="update_node_data"
+            data-field="source_expression"
+            data-value={@data["source_expression"] || ""}
+            class="w-full rounded-lg border overflow-hidden"
+            style="height: 60px;"
+          />
+        </div>
         <.prop_field
           label="Item Variable"
           field="item_variable"

@@ -6,6 +6,7 @@ const CodeEditor = {
   mounted() {
     const language = this.el.dataset.language || "text"
     const readOnly = this.el.dataset.readonly === "true"
+    const minimal = this.el.dataset.minimal === "true"
     const eventName = this.el.dataset.event
     const fieldName = this.el.dataset.field
     const initialValue = this.el.dataset.value || ""
@@ -18,7 +19,7 @@ const CodeEditor = {
         }
       : null
 
-    const extensions = buildExtensions({ language, readOnly, onBlur })
+    const extensions = buildExtensions({ language, readOnly, onBlur, minimal })
 
     const state = EditorState.create({
       doc: initialValue,

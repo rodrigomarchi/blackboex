@@ -9,17 +9,20 @@ import { EditorState } from "@codemirror/state"
 import { lineNumbers, highlightActiveLineGutter, highlightActiveLine } from "@codemirror/view"
 import { blackboexEditorTheme } from "./codemirror_theme"
 
-export function buildExtensions({ language, readOnly, onBlur }) {
+export function buildExtensions({ language, readOnly, onBlur, minimal }) {
   const extensions = [
-    lineNumbers(),
-    highlightActiveLineGutter(),
-    highlightActiveLine(),
     bracketMatching(),
     indentOnInput(),
     closeBrackets(),
     keymap.of([...defaultKeymap, indentWithTab]),
     blackboexEditorTheme,
   ]
+
+  if (!minimal) {
+    extensions.push(lineNumbers())
+    extensions.push(highlightActiveLineGutter())
+    extensions.push(highlightActiveLine())
+  }
 
   if (language === "elixir") {
     extensions.push(StreamLanguage.define(ruby))

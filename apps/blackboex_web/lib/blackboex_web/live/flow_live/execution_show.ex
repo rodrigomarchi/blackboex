@@ -160,7 +160,11 @@ defmodule BlackboexWeb.FlowLive.ExecutionShow do
                   {format_duration(ne.duration_ms)}
                 </span>
                 <.icon
-                  name={if @expanded_node == ne.node_id, do: "hero-chevron-down-mini", else: "hero-chevron-right-mini"}
+                  name={
+                    if @expanded_node == ne.node_id,
+                      do: "hero-chevron-down-mini",
+                      else: "hero-chevron-right-mini"
+                  }
                   class="size-3.5 text-muted-foreground/50 shrink-0"
                 />
               </button>
@@ -169,7 +173,10 @@ defmodule BlackboexWeb.FlowLive.ExecutionShow do
                 :if={@expanded_node == ne.node_id}
                 class="px-4 pb-3 pt-1 pl-10 bg-muted/10 space-y-2"
               >
-                <div :if={ne.error} class="text-xs text-destructive bg-destructive/10 rounded px-2 py-1.5">
+                <div
+                  :if={ne.error}
+                  class="text-xs text-destructive bg-destructive/10 rounded px-2 py-1.5"
+                >
                   {ne.error}
                 </div>
                 <div :if={ne.output} class="text-xs">

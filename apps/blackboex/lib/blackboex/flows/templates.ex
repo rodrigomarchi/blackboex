@@ -22,7 +22,14 @@ defmodule Blackboex.Flows.Templates do
   @templates [
     Blackboex.Flows.Templates.HelloWorld.template(),
     Blackboex.Flows.Templates.Notification.template(),
-    Blackboex.Flows.Templates.AllNodesDemo.template()
+    Blackboex.Flows.Templates.AllNodesDemo.template(),
+    Blackboex.Flows.Templates.DataPipeline.template(),
+    Blackboex.Flows.Templates.OrderProcessor.template(),
+    Blackboex.Flows.Templates.BatchProcessor.template(),
+    Blackboex.Flows.Templates.HttpEnrichment.template(),
+    Blackboex.Flows.Templates.ApprovalWorkflow.template(),
+    Blackboex.Flows.Templates.RestApiCrud.template(),
+    Blackboex.Flows.Templates.ApiStatusChecker.template()
   ]
 
   @doc "Returns all available flow templates."

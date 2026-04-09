@@ -24,7 +24,7 @@ defmodule Blackboex.FlowExecutor.Nodes.HttpRequest do
       |> String.downcase()
       |> String.to_existing_atom()
 
-    url = options |> Keyword.fetch!(:url) |> interpolate(input, state)
+    url = options |> Keyword.fetch!(:url) |> interpolate_url(input, state)
 
     headers =
       options
@@ -99,6 +99,13 @@ defmodule Blackboex.FlowExecutor.Nodes.HttpRequest do
   # ---------------------------------------------------------------------------
   # Private — interpolation
   # ---------------------------------------------------------------------------
+
+  @spec interpolate_url(String.t(), any(), map()) :: String.t()
+  defp interpolate_url(template, input, state) when is_binary(template) do
+    Regex.replace(~r/\{\{(\w+)\.(\w+)\}\}/, template, fn _, scope, key ->
+      resolve_placeholder(scope, key, input, state) |> URI.encode_www_form()
+    end)
+  end
 
   @spec interpolate(String.t(), any(), map()) :: String.t()
   defp interpolate(template, input, state) when is_binary(template) do

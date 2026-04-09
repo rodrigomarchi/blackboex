@@ -39,6 +39,15 @@ defmodule BlackboexWeb.FlowWebhookController do
         |> put_status(200)
         |> json(%{output: output, execution_id: exec_id, duration_ms: dur})
 
+      {:ok, %{halted: true, execution_id: exec_id}} ->
+        conn
+        |> put_status(200)
+        |> json(%{
+          status: "halted",
+          execution_id: exec_id,
+          resume_url: "/webhook/#{flow.webhook_token}/resume"
+        })
+
       {:error, %{error: error_msg, execution_id: exec_id}} ->
         status =
           if String.starts_with?(error_msg, "Payload validation failed"), do: 422, else: 500

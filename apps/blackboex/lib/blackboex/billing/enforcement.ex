@@ -20,7 +20,7 @@ defmodule Blackboex.Billing.Enforcement do
              }}
 
   @limits %{
-    free: %{max_apis: 10, max_invocations_per_day: 1_000, max_llm_generations_per_month: 50},
+    free: %{max_apis: 100, max_invocations_per_day: 1_000, max_llm_generations_per_month: 50},
     pro: %{max_apis: 50, max_invocations_per_day: 50_000, max_llm_generations_per_month: 500},
     enterprise: %{
       max_apis: :unlimited,

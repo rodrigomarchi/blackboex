@@ -27,6 +27,24 @@ defmodule BlackboexWeb.FlowLive.Components.SchemaBuilder do
 
   @max_depth 3
 
+  # ── Type icon helpers ──
+
+  defp type_icon("string"), do: "hero-language"
+  defp type_icon("integer"), do: "hero-hashtag"
+  defp type_icon("float"), do: "hero-hashtag"
+  defp type_icon("boolean"), do: "hero-check-circle"
+  defp type_icon("array"), do: "hero-queue-list"
+  defp type_icon("object"), do: "hero-cube"
+  defp type_icon(_), do: "hero-question-mark-circle"
+
+  defp type_color("string"), do: "text-emerald-500"
+  defp type_color("integer"), do: "text-blue-500"
+  defp type_color("float"), do: "text-blue-500"
+  defp type_color("boolean"), do: "text-amber-500"
+  defp type_color("array"), do: "text-purple-500"
+  defp type_color("object"), do: "text-indigo-500"
+  defp type_color(_), do: "text-muted-foreground"
+
   # ── Main component ──
 
   attr :schema_id, :string, required: true
@@ -39,26 +57,27 @@ defmodule BlackboexWeb.FlowLive.Components.SchemaBuilder do
     assigns = assign(assigns, :fields, assigns.fields || [])
 
     ~H"""
-    <div class="space-y-3">
-      <div class="flex items-center justify-between">
+    <div class="space-y-1">
+      <div class="flex items-center justify-between mb-1">
         <label class="text-xs font-medium text-muted-foreground">{@label}</label>
         <button
           type="button"
           phx-click="schema_add_field"
           phx-value-schema-id={@schema_id}
           phx-value-path=""
-          class="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
+          class="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
         >
-          <.icon name="hero-plus-mini" class="size-3" /> Add Field
+          <.icon name="hero-plus-mini" class="size-3" /> Add
         </button>
       </div>
 
-      <div :if={@fields == []} class="text-xs text-muted-foreground italic py-2">
-        No fields defined. Click "Add Field" to start.
+      <div :if={@fields == []} class="text-[10px] text-muted-foreground italic py-1.5 text-center">
+        No fields defined
       </div>
 
-      <div :for={{field, index} <- Enum.with_index(@fields)} class="space-y-2">
+      <div class="space-y-0.5">
         <.schema_field_row
+          :for={{field, index} <- Enum.with_index(@fields)}
           field={field}
           index={index}
           schema_id={@schema_id}
@@ -71,7 +90,7 @@ defmodule BlackboexWeb.FlowLive.Components.SchemaBuilder do
     """
   end
 
-  # ── Single field row ──
+  # ── Single field row (compact) ──
 
   attr :field, :map, required: true
   attr :index, :integer, required: true
@@ -82,89 +101,129 @@ defmodule BlackboexWeb.FlowLive.Components.SchemaBuilder do
 
   defp schema_field_row(assigns) do
     field_path = build_path(assigns.path, assigns.index)
-    assigns = assign(assigns, :field_path, field_path)
+    field_type = assigns.field["type"] || "string"
+    has_constraints = has_any_constraint?(assigns.field)
+
+    assigns =
+      assigns
+      |> assign(:field_path, field_path)
+      |> assign(:field_type, field_type)
+      |> assign(:has_constraints, has_constraints)
 
     ~H"""
-    <div class={"rounded-lg border bg-card p-3 space-y-2 #{if @depth > 0, do: "ml-4 border-dashed"}"}>
-      <%!-- Row 1: Name + Type + Required + Remove --%>
-      <div class="flex items-center gap-2">
+    <div class={"#{if @depth > 0, do: "ml-3 pl-2 border-l border-dashed border-border"}"}>
+      <%!-- Compact row: icon + name + type + required + actions --%>
+      <div class="group flex items-center gap-1.5 rounded-md px-1.5 py-1 hover:bg-accent/50">
+        <%!-- Type icon --%>
+        <.icon name={type_icon(@field_type)} class={"size-3.5 shrink-0 #{type_color(@field_type)}"} />
+
+        <%!-- Field name --%>
         <input
           type="text"
           value={@field["name"] || ""}
-          placeholder="field_name"
+          placeholder="name"
           phx-blur="schema_update_field"
           phx-value-schema-id={@schema_id}
           phx-value-path={@field_path}
           phx-value-prop="name"
-          class="flex-1 rounded-md border bg-background px-2 py-1 text-xs focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+          class="flex-1 min-w-0 bg-transparent px-1 py-0 text-xs border-0 focus:outline-none focus:ring-0 placeholder:text-muted-foreground/50"
         />
+
+        <%!-- Type select (compact) --%>
         <select
           phx-change="schema_update_field"
           phx-value-schema-id={@schema_id}
           phx-value-path={@field_path}
           phx-value-prop="type"
-          class="rounded-md border bg-background px-2 py-1 text-xs focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+          class="rounded border-0 bg-transparent py-0 pl-0 pr-4 text-[10px] font-medium text-muted-foreground focus:outline-none focus:ring-0 cursor-pointer"
         >
-          <option :for={{label, val} <- type_options()} value={val} selected={val == @field["type"]}>
+          <option :for={{label, val} <- type_options()} value={val} selected={val == @field_type}>
             {label}
           </option>
         </select>
-        <label class="flex items-center gap-1 text-xs text-muted-foreground whitespace-nowrap">
-          <input
-            type="checkbox"
-            checked={@field["required"] == true}
-            phx-click="schema_update_field"
-            phx-value-schema-id={@schema_id}
-            phx-value-path={@field_path}
-            phx-value-prop="required"
-            phx-value-value={to_string(@field["required"] != true)}
-            class="rounded border-muted-foreground"
-          /> Req
-        </label>
+
+        <%!-- Required toggle (asterisk) --%>
+        <button
+          type="button"
+          phx-click="schema_update_field"
+          phx-value-schema-id={@schema_id}
+          phx-value-path={@field_path}
+          phx-value-prop="required"
+          phx-value-value={to_string(@field["required"] != true)}
+          title={if @field["required"], do: "Required (click to make optional)", else: "Optional (click to make required)"}
+          class={"rounded p-0.5 text-[10px] font-bold transition-colors " <>
+            if(@field["required"] == true,
+              do: "text-red-400 hover:text-red-300",
+              else: "text-muted-foreground/30 hover:text-muted-foreground"
+            )}
+        >
+          *
+        </button>
+
+        <%!-- Expand constraints (gear) --%>
+        <button
+          :if={@field_type in ["string", "integer", "float", "array"] or @show_initial_value}
+          type="button"
+          phx-click={JS.toggle(to: "#constraints-#{@schema_id}-#{@field_path}")}
+          title="Constraints"
+          class={"rounded p-0.5 transition-colors " <>
+            if(@has_constraints,
+              do: "text-primary hover:text-primary/80",
+              else: "text-muted-foreground/40 hover:text-muted-foreground opacity-0 group-hover:opacity-100"
+            )}
+        >
+          <.icon name="hero-adjustments-horizontal-mini" class="size-3" />
+        </button>
+
+        <%!-- Delete --%>
         <button
           type="button"
           phx-click="schema_remove_field"
           phx-value-schema-id={@schema_id}
           phx-value-path={@field_path}
-          class="rounded-md p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+          class="rounded p-0.5 text-muted-foreground/40 hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
         >
-          <.icon name="hero-trash-mini" class="size-3.5" />
+          <.icon name="hero-x-mark-mini" class="size-3" />
         </button>
       </div>
 
-      <%!-- Row 2: Type-specific constraints --%>
-      <.string_constraints
-        :if={@field["type"] == "string"}
-        field={@field}
-        schema_id={@schema_id}
-        path={@field_path}
-      />
-      <.number_constraints
-        :if={@field["type"] in ["integer", "float"]}
-        field={@field}
-        schema_id={@schema_id}
-        path={@field_path}
-      />
-      <.array_constraints
-        :if={@field["type"] == "array"}
-        field={@field}
-        schema_id={@schema_id}
-        path={@field_path}
-        depth={@depth}
-        show_initial_value={@show_initial_value}
-      />
+      <%!-- Collapsible constraints panel --%>
+      <div
+        :if={@field_type in ["string", "integer", "float", "array"] or @show_initial_value}
+        id={"constraints-#{@schema_id}-#{@field_path}"}
+        class={"ml-5 mr-1 mb-1 mt-0.5 rounded-md bg-accent/30 p-2 space-y-2 text-[10px] " <> if(@has_constraints, do: "", else: "hidden")}
+      >
+        <.string_constraints
+          :if={@field_type == "string"}
+          field={@field}
+          schema_id={@schema_id}
+          path={@field_path}
+        />
+        <.number_constraints
+          :if={@field_type in ["integer", "float"]}
+          field={@field}
+          schema_id={@schema_id}
+          path={@field_path}
+        />
+        <.array_constraints
+          :if={@field_type == "array"}
+          field={@field}
+          schema_id={@schema_id}
+          path={@field_path}
+          depth={@depth}
+          show_initial_value={@show_initial_value}
+        />
+        <.initial_value_input
+          :if={@show_initial_value}
+          field={@field}
+          schema_id={@schema_id}
+          path={@field_path}
+        />
+      </div>
 
-      <%!-- Row 3: Initial value (state schema only) --%>
-      <.initial_value_input
-        :if={@show_initial_value}
-        field={@field}
-        schema_id={@schema_id}
-        path={@field_path}
-      />
-
-      <%!-- Row 4: Nested fields for object type --%>
+      <%!-- Nested fields for object type --%>
       <.nested_object_fields
-        :if={@field["type"] == "object" and @depth < @max_depth - 1}
+        :if={@field_type == "object" and @depth < @max_depth - 1}
         field={@field}
         schema_id={@schema_id}
         path={@field_path}
@@ -175,7 +234,7 @@ defmodule BlackboexWeb.FlowLive.Components.SchemaBuilder do
     """
   end
 
-  # ── String constraints ──
+  # ── String constraints (inline) ──
 
   attr :field, :map, required: true
   attr :schema_id, :string, required: true
@@ -186,44 +245,46 @@ defmodule BlackboexWeb.FlowLive.Components.SchemaBuilder do
     assigns = assign(assigns, :constraints, constraints)
 
     ~H"""
-    <div class="grid grid-cols-2 gap-2">
-      <.constraint_input
-        label="Min Length"
+    <div class="flex flex-wrap gap-1.5">
+      <.inline_constraint
+        label="min"
         prop="min_length"
         value={@constraints["min_length"]}
         type="number"
         schema_id={@schema_id}
         path={@path}
       />
-      <.constraint_input
-        label="Max Length"
+      <.inline_constraint
+        label="max"
         prop="max_length"
         value={@constraints["max_length"]}
         type="number"
         schema_id={@schema_id}
         path={@path}
       />
-      <.constraint_input
-        label="Pattern"
+      <.inline_constraint
+        label="pattern"
         prop="pattern"
         value={@constraints["pattern"]}
-        placeholder="^[A-Z]+$"
+        placeholder="regex"
         schema_id={@schema_id}
         path={@path}
+        class="flex-1 min-w-[100px]"
       />
-      <.constraint_input
-        label="Enum (comma-sep)"
+      <.inline_constraint
+        label="enum"
         prop="enum"
         value={format_enum(@constraints["enum"])}
         placeholder="a,b,c"
         schema_id={@schema_id}
         path={@path}
+        class="flex-1 min-w-[100px]"
       />
     </div>
     """
   end
 
-  # ── Number constraints ──
+  # ── Number constraints (inline) ──
 
   attr :field, :map, required: true
   attr :schema_id, :string, required: true
@@ -234,17 +295,17 @@ defmodule BlackboexWeb.FlowLive.Components.SchemaBuilder do
     assigns = assign(assigns, :constraints, constraints)
 
     ~H"""
-    <div class="grid grid-cols-2 gap-2">
-      <.constraint_input
-        label="Min"
+    <div class="flex gap-1.5">
+      <.inline_constraint
+        label="min"
         prop="min"
         value={@constraints["min"]}
         type="number"
         schema_id={@schema_id}
         path={@path}
       />
-      <.constraint_input
-        label="Max"
+      <.inline_constraint
+        label="max"
         prop="max"
         value={@constraints["max"]}
         type="number"
@@ -268,16 +329,16 @@ defmodule BlackboexWeb.FlowLive.Components.SchemaBuilder do
     assigns = assign(assigns, :constraints, constraints)
 
     ~H"""
-    <div class="space-y-2">
-      <div class="grid grid-cols-3 gap-2">
-        <div>
-          <label class="block text-[10px] text-muted-foreground mb-0.5">Item Type</label>
+    <div class="space-y-1.5">
+      <div class="flex gap-1.5">
+        <div class="flex items-center gap-1">
+          <span class="text-muted-foreground">items:</span>
           <select
             phx-change="schema_update_constraint"
             phx-value-schema-id={@schema_id}
             phx-value-path={@path}
             phx-value-prop="item_type"
-            class="w-full rounded-md border bg-background px-2 py-1 text-xs focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            class="rounded border-0 bg-background px-1 py-0 text-[10px] focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
           >
             <option
               :for={{label, val} <- item_type_options()}
@@ -288,16 +349,16 @@ defmodule BlackboexWeb.FlowLive.Components.SchemaBuilder do
             </option>
           </select>
         </div>
-        <.constraint_input
-          label="Min Items"
+        <.inline_constraint
+          label="min"
           prop="min_items"
           value={@constraints["min_items"]}
           type="number"
           schema_id={@schema_id}
           path={@path}
         />
-        <.constraint_input
-          label="Max Items"
+        <.inline_constraint
+          label="max"
           prop="max_items"
           value={@constraints["max_items"]}
           type="number"
@@ -332,29 +393,30 @@ defmodule BlackboexWeb.FlowLive.Components.SchemaBuilder do
     assigns = assign(assigns, :nested_fields, nested_fields)
 
     ~H"""
-    <div class="space-y-2 mt-2">
-      <div class="flex items-center justify-between">
-        <span class="text-[10px] font-medium text-muted-foreground">Object Fields</span>
+    <div class="ml-3 pl-2 border-l border-dashed border-border mt-0.5">
+      <div class="flex items-center justify-between py-0.5 px-1">
+        <span class="text-[10px] text-muted-foreground flex items-center gap-1">
+          <.icon name="hero-cube-mini" class="size-2.5" /> fields
+        </span>
         <button
           type="button"
           phx-click="schema_add_field"
           phx-value-schema-id={@schema_id}
           phx-value-path={@path <> ".fields"}
-          class="inline-flex items-center gap-0.5 rounded border px-1.5 py-0.5 text-[10px] text-muted-foreground hover:bg-accent"
+          class="inline-flex items-center gap-0.5 rounded px-1 py-0 text-[10px] text-muted-foreground hover:bg-accent hover:text-foreground"
         >
-          <.icon name="hero-plus-mini" class="size-2.5" /> Add
+          <.icon name="hero-plus-mini" class="size-2.5" />
         </button>
       </div>
-      <div :for={{nested, idx} <- Enum.with_index(@nested_fields)} class="space-y-1">
-        <.schema_field_row
-          field={nested}
-          index={idx}
-          schema_id={@schema_id}
-          path={@path <> ".fields"}
-          depth={@depth + 1}
-          show_initial_value={@show_initial_value}
-        />
-      </div>
+      <.schema_field_row
+        :for={{nested, idx} <- Enum.with_index(@nested_fields)}
+        field={nested}
+        index={idx}
+        schema_id={@schema_id}
+        path={@path <> ".fields"}
+        depth={@depth + 1}
+        show_initial_value={@show_initial_value}
+      />
     </div>
     """
   end
@@ -372,29 +434,30 @@ defmodule BlackboexWeb.FlowLive.Components.SchemaBuilder do
     assigns = assign(assigns, :item_fields, item_fields)
 
     ~H"""
-    <div class="space-y-2 mt-2">
-      <div class="flex items-center justify-between">
-        <span class="text-[10px] font-medium text-muted-foreground">Item Fields</span>
+    <div class="mt-1">
+      <div class="flex items-center justify-between py-0.5">
+        <span class="text-muted-foreground flex items-center gap-1">
+          <.icon name="hero-cube-mini" class="size-2.5" /> item fields
+        </span>
         <button
           type="button"
           phx-click="schema_add_field"
           phx-value-schema-id={@schema_id}
           phx-value-path={@path <> ".constraints.item_fields"}
-          class="inline-flex items-center gap-0.5 rounded border px-1.5 py-0.5 text-[10px] text-muted-foreground hover:bg-accent"
+          class="inline-flex items-center gap-0.5 rounded px-1 py-0 text-[10px] text-muted-foreground hover:bg-accent hover:text-foreground"
         >
-          <.icon name="hero-plus-mini" class="size-2.5" /> Add
+          <.icon name="hero-plus-mini" class="size-2.5" />
         </button>
       </div>
-      <div :for={{item_field, idx} <- Enum.with_index(@item_fields)} class="space-y-1">
-        <.schema_field_row
-          field={item_field}
-          index={idx}
-          schema_id={@schema_id}
-          path={@path <> ".constraints.item_fields"}
-          depth={@depth + 1}
-          show_initial_value={@show_initial_value}
-        />
-      </div>
+      <.schema_field_row
+        :for={{item_field, idx} <- Enum.with_index(@item_fields)}
+        field={item_field}
+        index={idx}
+        schema_id={@schema_id}
+        path={@path <> ".constraints.item_fields"}
+        depth={@depth + 1}
+        show_initial_value={@show_initial_value}
+      />
     </div>
     """
   end
@@ -407,22 +470,22 @@ defmodule BlackboexWeb.FlowLive.Components.SchemaBuilder do
 
   defp initial_value_input(assigns) do
     ~H"""
-    <div>
-      <label class="block text-[10px] text-muted-foreground mb-0.5">Initial Value</label>
+    <div class="flex items-center gap-1.5">
+      <span class="text-muted-foreground whitespace-nowrap">initial:</span>
       <input
         :if={@field["type"] in ["string", "integer", "float"]}
         type={if @field["type"] == "string", do: "text", else: "number"}
         value={format_initial_value(@field["initial_value"])}
-        placeholder="Initial value"
+        placeholder="—"
         phx-blur="schema_update_field"
         phx-value-schema-id={@schema_id}
         phx-value-path={@path}
         phx-value-prop="initial_value"
-        class="w-full rounded-md border bg-background px-2 py-1 text-xs focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+        class="flex-1 rounded border bg-background px-1.5 py-0 text-[10px] focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
       />
       <label
         :if={@field["type"] == "boolean"}
-        class="flex items-center gap-1.5 text-xs text-muted-foreground"
+        class="flex items-center gap-1 text-[10px] text-muted-foreground"
       >
         <input
           type="checkbox"
@@ -432,8 +495,8 @@ defmodule BlackboexWeb.FlowLive.Components.SchemaBuilder do
           phx-value-path={@path}
           phx-value-prop="initial_value"
           phx-value-value={to_string(@field["initial_value"] != true)}
-          class="rounded border-muted-foreground"
-        /> Initial: {to_string(@field["initial_value"] || false)}
+          class="rounded border-muted-foreground size-3"
+        /> {to_string(@field["initial_value"] || false)}
       </label>
       <textarea
         :if={@field["type"] in ["array", "object"]}
@@ -441,15 +504,15 @@ defmodule BlackboexWeb.FlowLive.Components.SchemaBuilder do
         phx-value-schema-id={@schema_id}
         phx-value-path={@path}
         phx-value-prop="initial_value"
-        rows="2"
+        rows="1"
         placeholder={if @field["type"] == "array", do: "[]", else: "{}"}
-        class="w-full rounded-md border bg-background px-2 py-1 text-xs font-mono focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+        class="flex-1 rounded border bg-background px-1.5 py-0 text-[10px] font-mono focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
       ><%= format_json_value(@field["initial_value"]) %></textarea>
     </div>
     """
   end
 
-  # ── Constraint input (reusable) ──
+  # ── Inline constraint input (compact) ──
 
   attr :label, :string, required: true
   attr :prop, :string, required: true
@@ -458,11 +521,12 @@ defmodule BlackboexWeb.FlowLive.Components.SchemaBuilder do
   attr :placeholder, :string, default: ""
   attr :schema_id, :string, required: true
   attr :path, :string, required: true
+  attr :class, :string, default: ""
 
-  defp constraint_input(assigns) do
+  defp inline_constraint(assigns) do
     ~H"""
-    <div>
-      <label class="block text-[10px] text-muted-foreground mb-0.5">{@label}</label>
+    <div class={"flex items-center gap-1 #{@class}"}>
+      <span class="text-muted-foreground whitespace-nowrap">{@label}:</span>
       <input
         type={@type}
         value={@value || ""}
@@ -471,7 +535,7 @@ defmodule BlackboexWeb.FlowLive.Components.SchemaBuilder do
         phx-value-schema-id={@schema_id}
         phx-value-path={@path}
         phx-value-prop={@prop}
-        class="w-full rounded-md border bg-background px-2 py-1 text-xs focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+        class="w-12 flex-1 rounded border bg-background px-1.5 py-0 text-[10px] focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
       />
     </div>
     """
@@ -488,17 +552,19 @@ defmodule BlackboexWeb.FlowLive.Components.SchemaBuilder do
     assigns = assign(assigns, :mapping, assigns.mapping || [])
 
     ~H"""
-    <div :if={@response_schema != []} class="space-y-2 mt-3">
+    <div :if={@response_schema != []} class="space-y-1 mt-2">
       <label class="text-xs font-medium text-muted-foreground">Field → State Mapping</label>
-      <div :for={field <- @response_schema} class="flex items-center gap-2">
-        <span class="text-xs font-mono min-w-[80px] truncate">{field["name"]}</span>
-        <.icon name="hero-arrow-right-mini" class="size-3 text-muted-foreground shrink-0" />
+      <div :for={field <- @response_schema} class="flex items-center gap-1.5 py-0.5">
+        <span class="text-[10px] font-mono text-muted-foreground min-w-[60px] truncate">
+          {field["name"]}
+        </span>
+        <.icon name="hero-arrow-right-mini" class="size-2.5 text-muted-foreground/50 shrink-0" />
         <select
           phx-change="schema_update_mapping"
           phx-value-response-field={field["name"]}
-          class="flex-1 rounded-md border bg-background px-2 py-1 text-xs focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+          class="flex-1 rounded border-0 bg-transparent py-0 pl-0 pr-4 text-[10px] text-muted-foreground focus:outline-none focus:ring-0 cursor-pointer"
         >
-          <option value="">— Select state variable —</option>
+          <option value="">—</option>
           <option
             :for={var <- @state_variables}
             value={var}
@@ -537,6 +603,14 @@ defmodule BlackboexWeb.FlowLive.Components.SchemaBuilder do
       nil -> ""
       entry -> entry["state_variable"]
     end
+  end
+
+  defp has_any_constraint?(field) do
+    constraints = field["constraints"] || %{}
+
+    Enum.any?(constraints, fn {key, val} ->
+      key != "item_type" and val != nil and val != "" and val != []
+    end)
   end
 
   @doc false

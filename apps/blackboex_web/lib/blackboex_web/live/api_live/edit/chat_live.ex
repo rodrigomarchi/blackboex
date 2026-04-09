@@ -142,7 +142,9 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
   @impl true
   def handle_event("execute_confirm", _params, socket) do
     case socket.assigns.confirm do
-      nil -> {:noreply, socket}
+      nil ->
+        {:noreply, socket}
+
       %{event: event, meta: meta} ->
         handle_event(event, meta, assign(socket, confirm: nil))
     end

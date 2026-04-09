@@ -64,7 +64,10 @@ defmodule BlackboexWeb.Components.ConfirmDialog do
       phx-key="Escape"
     >
       <%!-- Backdrop --%>
-      <div class="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150" phx-click="dismiss_confirm" />
+      <div
+        class="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150"
+        phx-click="dismiss_confirm"
+      />
 
       <%!-- Dialog --%>
       <div class="relative z-10 w-full max-w-md mx-4 rounded-xl border bg-card text-card-foreground shadow-2xl animate-in zoom-in-95 fade-in duration-200">

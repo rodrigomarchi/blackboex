@@ -94,7 +94,10 @@ defmodule BlackboexWeb.ApiKeyLive.Index do
             <span class="text-muted-foreground text-xs">{format_last_used(key.last_used_at)}</span>
           </:col>
           <:action :let={key}>
-            <.link navigate={~p"/api-keys/#{key.id}"} class="inline-flex items-center text-xs text-primary hover:underline">
+            <.link
+              navigate={~p"/api-keys/#{key.id}"}
+              class="inline-flex items-center text-xs text-primary hover:underline"
+            >
               <.icon name="hero-eye-mini" class="mr-1 size-3" /> Details
             </.link>
           </:action>

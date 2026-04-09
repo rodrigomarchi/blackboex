@@ -61,7 +61,9 @@ defmodule BlackboexWeb.ApiLive.Index do
   @impl true
   def handle_event("execute_confirm", _params, socket) do
     case socket.assigns.confirm do
-      nil -> {:noreply, socket}
+      nil ->
+        {:noreply, socket}
+
       %{event: event, meta: meta} ->
         handle_event(event, meta, assign(socket, confirm: nil))
     end
@@ -366,8 +368,13 @@ defmodule BlackboexWeb.ApiLive.Index do
           </:col>
           <:col :let={row} label="Errors">
             <div class="flex items-center gap-1.5">
-              <.icon name="hero-exclamation-circle-mini" class={"size-3.5 #{if row.errors_24h > 0, do: "text-red-400", else: "text-muted-foreground/50"}"} />
-              <span class={"text-xs font-mono #{if row.errors_24h > 0, do: "text-red-400", else: ""}"}>{row.errors_24h}</span>
+              <.icon
+                name="hero-exclamation-circle-mini"
+                class={"size-3.5 #{if row.errors_24h > 0, do: "text-red-400", else: "text-muted-foreground/50"}"}
+              />
+              <span class={"text-xs font-mono #{if row.errors_24h > 0, do: "text-red-400", else: ""}"}>
+                {row.errors_24h}
+              </span>
             </div>
           </:col>
           <:col :let={row} label="Endpoint">
@@ -381,7 +388,10 @@ defmodule BlackboexWeb.ApiLive.Index do
           </:col>
           <:action :let={row}>
             <div class="flex items-center gap-2">
-              <.link navigate={~p"/apis/#{row.api.id}/edit"} class="inline-flex items-center text-xs text-primary hover:underline">
+              <.link
+                navigate={~p"/apis/#{row.api.id}/edit"}
+                class="inline-flex items-center text-xs text-primary hover:underline"
+              >
                 <.icon name="hero-pencil-square-mini" class="mr-1 size-3" /> Edit
               </.link>
               <button
@@ -610,7 +620,8 @@ defmodule BlackboexWeb.ApiLive.Index do
   defp build_confirm("delete", params) do
     %{
       title: "Delete API?",
-      description: "This action cannot be undone. The API and all its versions will be permanently removed.",
+      description:
+        "This action cannot be undone. The API and all its versions will be permanently removed.",
       variant: :danger,
       confirm_label: "Delete",
       event: "delete",

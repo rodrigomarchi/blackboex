@@ -56,7 +56,9 @@ defmodule BlackboexWeb.FlowLive.Index do
   @impl true
   def handle_event("execute_confirm", _params, socket) do
     case socket.assigns.confirm do
-      nil -> {:noreply, socket}
+      nil ->
+        {:noreply, socket}
+
       %{event: event, meta: meta} ->
         handle_event(event, meta, assign(socket, confirm: nil))
     end
@@ -258,11 +260,16 @@ defmodule BlackboexWeb.FlowLive.Index do
             <.badge class={flow_status_classes(flow.status)}>{flow.status}</.badge>
           </:col>
           <:col :let={flow} label="Created">
-            <span class="text-xs text-muted-foreground">{Calendar.strftime(flow.inserted_at, "%b %d, %Y")}</span>
+            <span class="text-xs text-muted-foreground">
+              {Calendar.strftime(flow.inserted_at, "%b %d, %Y")}
+            </span>
           </:col>
           <:action :let={flow}>
             <div class="flex items-center gap-2">
-              <.link navigate={~p"/flows/#{flow.id}/edit"} class="inline-flex items-center text-xs text-primary hover:underline">
+              <.link
+                navigate={~p"/flows/#{flow.id}/edit"}
+                class="inline-flex items-center text-xs text-primary hover:underline"
+              >
                 <.icon name="hero-pencil-square-mini" class="mr-1 size-3" /> Edit
               </.link>
               <button
@@ -383,7 +390,8 @@ defmodule BlackboexWeb.FlowLive.Index do
   defp build_confirm("delete", params) do
     %{
       title: "Delete flow?",
-      description: "This action cannot be undone. The flow and all its data will be permanently removed.",
+      description:
+        "This action cannot be undone. The flow and all its data will be permanently removed.",
       variant: :danger,
       confirm_label: "Delete",
       event: "delete",

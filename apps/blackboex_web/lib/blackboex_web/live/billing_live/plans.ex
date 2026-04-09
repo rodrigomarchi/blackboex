@@ -122,7 +122,8 @@ defmodule BlackboexWeb.BillingLive.Plans do
             <div class="flex items-center justify-between mb-4">
               <h2 class="text-lg font-semibold">Current Plan: {@usage.plan}</h2>
               <.button navigate={~p"/billing/manage"} variant="default" size="sm">
-                <.icon name="hero-cog-6-tooth" class="mr-1.5 size-3.5 text-slate-400" /> Manage Subscription
+                <.icon name="hero-cog-6-tooth" class="mr-1.5 size-3.5 text-slate-400" />
+                Manage Subscription
               </.button>
             </div>
 
@@ -189,7 +190,8 @@ defmodule BlackboexWeb.BillingLive.Plans do
             <div class="flex gap-2 pt-2 mt-6">
               <%= if plan.id == @current_plan do %>
                 <.button variant="default" disabled class="w-full opacity-50 cursor-not-allowed">
-                  <.icon name="hero-check-circle" class="mr-1.5 size-3.5 text-slate-400" /> Current Plan
+                  <.icon name="hero-check-circle" class="mr-1.5 size-3.5 text-slate-400" />
+                  Current Plan
                 </.button>
               <% else %>
                 <%= if plan.id == "free" do %>
@@ -207,7 +209,8 @@ defmodule BlackboexWeb.BillingLive.Plans do
                     <%= if @loading_plan == plan.id do %>
                       <.spinner class="size-4 mr-2" />
                     <% else %>
-                      <.icon name="hero-arrow-right" class="mr-1.5 size-3.5 text-emerald-300" /> Choose {plan.name}
+                      <.icon name="hero-arrow-right" class="mr-1.5 size-3.5 text-emerald-300" />
+                      Choose {plan.name}
                     <% end %>
                   </.button>
                 <% end %>

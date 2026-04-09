@@ -150,7 +150,11 @@ defmodule BlackboexWeb.FlowLive.Components.SchemaBuilder do
           phx-value-path={@field_path}
           phx-value-prop="required"
           phx-value-value={to_string(@field["required"] != true)}
-          title={if @field["required"], do: "Required (click to make optional)", else: "Optional (click to make required)"}
+          title={
+            if @field["required"],
+              do: "Required (click to make optional)",
+              else: "Optional (click to make required)"
+          }
           class={"rounded p-0.5 text-[10px] font-bold transition-colors " <>
             if(@field["required"] == true,
               do: "text-red-400 hover:text-red-300",

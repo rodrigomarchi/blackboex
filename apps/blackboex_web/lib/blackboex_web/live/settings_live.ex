@@ -71,7 +71,9 @@ defmodule BlackboexWeb.SettingsLive do
     ~H"""
     <.card>
       <.card_content class="pt-6">
-        <h2 class="flex items-center gap-2 text-lg font-semibold"><.icon name="hero-user-circle" class="size-4 text-blue-400" /> Profile</h2>
+        <h2 class="flex items-center gap-2 text-lg font-semibold">
+          <.icon name="hero-user-circle" class="size-4 text-blue-400" /> Profile
+        </h2>
 
         <div class="flex items-center gap-4 mb-6 mt-4">
           <.avatar class="h-12 w-12">
@@ -96,7 +98,8 @@ defmodule BlackboexWeb.SettingsLive do
 
         <div class="mt-4">
           <.button navigate={~p"/users/settings"} variant="default" size="sm">
-            <.icon name="hero-pencil-square" class="mr-1.5 size-3.5 text-blue-400" /> Edit Email & Password
+            <.icon name="hero-pencil-square" class="mr-1.5 size-3.5 text-blue-400" />
+            Edit Email & Password
           </.button>
         </div>
       </.card_content>
@@ -108,7 +111,9 @@ defmodule BlackboexWeb.SettingsLive do
     ~H"""
     <.card>
       <.card_content class="pt-6">
-        <h2 class="flex items-center gap-2 text-lg font-semibold"><.icon name="hero-building-office-2" class="size-4 text-violet-400" /> Organization</h2>
+        <h2 class="flex items-center gap-2 text-lg font-semibold">
+          <.icon name="hero-building-office-2" class="size-4 text-violet-400" /> Organization
+        </h2>
         <p class="text-muted-foreground mt-4">No organization selected.</p>
       </.card_content>
     </.card>
@@ -119,7 +124,9 @@ defmodule BlackboexWeb.SettingsLive do
     ~H"""
     <.card>
       <.card_content class="pt-6">
-        <h2 class="flex items-center gap-2 text-lg font-semibold"><.icon name="hero-building-office-2" class="size-4 text-violet-400" /> Organization</h2>
+        <h2 class="flex items-center gap-2 text-lg font-semibold">
+          <.icon name="hero-building-office-2" class="size-4 text-violet-400" /> Organization
+        </h2>
         <div class="mt-4">
           <.description_list>
             <:item label="Name">{@current_scope.organization.name}</:item>
@@ -136,7 +143,9 @@ defmodule BlackboexWeb.SettingsLive do
         </div>
 
         <div :if={@members != []} class="mt-6">
-          <h3 class="flex items-center gap-1.5 font-semibold mb-2"><.icon name="hero-user-group" class="size-4 text-blue-400" /> Members</h3>
+          <h3 class="flex items-center gap-1.5 font-semibold mb-2">
+            <.icon name="hero-user-group" class="size-4 text-blue-400" /> Members
+          </h3>
           <div class="space-y-2">
             <div
               :for={member <- @members}
@@ -156,7 +165,9 @@ defmodule BlackboexWeb.SettingsLive do
     ~H"""
     <.card>
       <.card_content class="pt-6">
-        <h2 class="flex items-center gap-2 text-lg font-semibold"><.icon name="hero-credit-card" class="size-4 text-emerald-400" /> Billing</h2>
+        <h2 class="flex items-center gap-2 text-lg font-semibold">
+          <.icon name="hero-credit-card" class="size-4 text-emerald-400" /> Billing
+        </h2>
         <p class="text-muted-foreground mt-4">No organization selected.</p>
       </.card_content>
     </.card>
@@ -167,7 +178,9 @@ defmodule BlackboexWeb.SettingsLive do
     ~H"""
     <.card>
       <.card_content class="pt-6">
-        <h2 class="flex items-center gap-2 text-lg font-semibold"><.icon name="hero-credit-card" class="size-4 text-emerald-400" /> Billing</h2>
+        <h2 class="flex items-center gap-2 text-lg font-semibold">
+          <.icon name="hero-credit-card" class="size-4 text-emerald-400" /> Billing
+        </h2>
         <div class="mt-4">
           <.description_list>
             <:item label="Current Plan">
@@ -188,7 +201,8 @@ defmodule BlackboexWeb.SettingsLive do
             <.icon name="hero-sparkles" class="mr-1.5 size-3.5 text-amber-300" /> View Plans
           </.button>
           <.button navigate={~p"/billing/manage"} variant="default" size="sm">
-            <.icon name="hero-credit-card" class="mr-1.5 size-3.5 text-emerald-400" /> Manage Subscription
+            <.icon name="hero-credit-card" class="mr-1.5 size-3.5 text-emerald-400" />
+            Manage Subscription
           </.button>
         </div>
       </.card_content>
@@ -200,14 +214,18 @@ defmodule BlackboexWeb.SettingsLive do
     ~H"""
     <.card>
       <.card_content class="pt-6">
-        <h2 class="flex items-center gap-2 text-lg font-semibold"><.icon name="hero-shield-check" class="size-4 text-teal-400" /> Security & Audit</h2>
+        <h2 class="flex items-center gap-2 text-lg font-semibold">
+          <.icon name="hero-shield-check" class="size-4 text-teal-400" /> Security & Audit
+        </h2>
 
         <div :if={@audit_logs == []} class="mt-4 text-muted-foreground">
           No recent activity.
         </div>
 
         <div :if={@audit_logs != []} class="mt-4">
-          <h3 class="flex items-center gap-1.5 font-semibold mb-2"><.icon name="hero-clock" class="size-4 text-amber-400" /> Recent Activity</h3>
+          <h3 class="flex items-center gap-1.5 font-semibold mb-2">
+            <.icon name="hero-clock" class="size-4 text-amber-400" /> Recent Activity
+          </h3>
           <div class="space-y-2">
             <div
               :for={log <- @audit_logs}

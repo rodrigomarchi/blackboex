@@ -177,7 +177,9 @@ defmodule BlackboexWeb.ApiKeyLive.Show do
   @impl true
   def handle_event("execute_confirm", _params, socket) do
     case socket.assigns.confirm do
-      nil -> {:noreply, socket}
+      nil ->
+        {:noreply, socket}
+
       %{event: event, meta: meta} ->
         handle_event(event, meta, assign(socket, confirm: nil))
     end
@@ -245,7 +247,8 @@ defmodule BlackboexWeb.ApiKeyLive.Show do
   defp build_confirm("revoke", _params) do
     %{
       title: "Revoke this API key?",
-      description: "The key will be immediately revoked and can no longer be used to authenticate requests. This cannot be undone.",
+      description:
+        "The key will be immediately revoked and can no longer be used to authenticate requests. This cannot be undone.",
       variant: :danger,
       confirm_label: "Revoke",
       event: "revoke",

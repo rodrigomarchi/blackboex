@@ -169,7 +169,9 @@ defmodule BlackboexWeb.ApiLive.Edit.RunLive do
   @impl true
   def handle_event("execute_confirm", _params, socket) do
     case socket.assigns.confirm do
-      nil -> {:noreply, socket}
+      nil ->
+        {:noreply, socket}
+
       %{event: event, meta: meta} ->
         handle_event(event, meta, assign(socket, confirm: nil))
     end
@@ -466,7 +468,8 @@ defmodule BlackboexWeb.ApiLive.Edit.RunLive do
   defp build_confirm("clear_history", _params) do
     %{
       title: "Clear request history?",
-      description: "All saved request/response pairs will be removed. This won't affect your API code.",
+      description:
+        "All saved request/response pairs will be removed. This won't affect your API code.",
       variant: :warning,
       confirm_label: "Clear",
       event: "clear_history",

@@ -87,10 +87,12 @@ defmodule BlackboexWeb.BillingLive.Manage do
                 <%= if @loading_portal do %>
                   <.spinner />
                 <% end %>
-                <.icon name="hero-arrow-top-right-on-square" class="mr-1.5 size-3.5 text-emerald-300" /> Manage Subscription
+                <.icon name="hero-arrow-top-right-on-square" class="mr-1.5 size-3.5 text-emerald-300" />
+                Manage Subscription
               </.button>
               <.button navigate={~p"/billing"} variant="default">
-                <.icon name="hero-arrows-up-down" class="mr-1.5 size-3.5 text-amber-400" /> Change Plan
+                <.icon name="hero-arrows-up-down" class="mr-1.5 size-3.5 text-amber-400" />
+                Change Plan
               </.button>
             </div>
           </.card_content>

@@ -327,7 +327,9 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLive do
   @impl true
   def handle_event("execute_confirm", _params, socket) do
     case socket.assigns.confirm do
-      nil -> {:noreply, socket}
+      nil ->
+        {:noreply, socket}
+
       %{event: event, meta: meta} ->
         handle_event(event, meta, assign(socket, confirm: nil))
     end
@@ -447,7 +449,8 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLive do
   defp build_confirm("unpublish", _params) do
     %{
       title: "Unpublish API?",
-      description: "The API will no longer be accessible to consumers. You can republish it later.",
+      description:
+        "The API will no longer be accessible to consumers. You can republish it later.",
       variant: :warning,
       confirm_label: "Unpublish",
       event: "unpublish",
@@ -458,7 +461,8 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLive do
   defp build_confirm("publish_version", params) do
     %{
       title: "Publish this version?",
-      description: "This will make it the live version. The current published version will be replaced.",
+      description:
+        "This will make it the live version. The current published version will be replaced.",
       variant: :info,
       confirm_label: "Publish",
       event: "publish_version",

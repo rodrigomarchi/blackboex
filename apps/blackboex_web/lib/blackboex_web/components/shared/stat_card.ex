@@ -21,7 +21,12 @@ defmodule BlackboexWeb.Components.Shared.StatCard do
   def stat_card(assigns) do
     ~H"""
     <div class={classes(["rounded-lg border bg-card p-4 shadow-sm", @class])}>
-      <p class={classes(["text-xs font-medium text-muted-foreground uppercase tracking-wide", @icon && "flex items-center gap-1"])}>
+      <p class={
+        classes([
+          "text-xs font-medium text-muted-foreground uppercase tracking-wide",
+          @icon && "flex items-center gap-1"
+        ])
+      }>
         <.icon :if={@icon} name={@icon} class={classes(["size-3.5", @icon_class])} />
         {@label}
       </p>

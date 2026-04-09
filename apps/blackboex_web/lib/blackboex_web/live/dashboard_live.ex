@@ -89,14 +89,20 @@ defmodule BlackboexWeb.DashboardLive do
         >
           <:actions>
             <.button navigate={~p"/apis/new"} variant="primary">
-              <.icon name="hero-plus" class="mr-1.5 size-3.5 text-emerald-300" /> Create your first API
+              <.icon name="hero-plus" class="mr-1.5 size-3.5 text-emerald-300" />
+              Create your first API
             </.button>
           </:actions>
         </.empty_state>
       <% else %>
         <%!-- Row 1: Stat cards --%>
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          <.stat_card label="Total APIs" value={format_number(@summary.total_apis)} icon="hero-cube-mini" icon_class="text-blue-400" />
+          <.stat_card
+            label="Total APIs"
+            value={format_number(@summary.total_apis)}
+            icon="hero-cube-mini"
+            icon_class="text-blue-400"
+          />
           <.stat_card
             label={"Calls (#{period_label(@period)})"}
             value={format_number(period_total_calls(@metrics))}
@@ -115,7 +121,12 @@ defmodule BlackboexWeb.DashboardLive do
             icon="hero-clock-mini"
             icon_class="text-amber-400"
           />
-          <.stat_card label="LLM Gens" value={format_number(period_total_gens(@llm_usage))} icon="hero-sparkles-mini" icon_class="text-violet-400" />
+          <.stat_card
+            label="LLM Gens"
+            value={format_number(period_total_gens(@llm_usage))}
+            icon="hero-sparkles-mini"
+            icon_class="text-violet-400"
+          />
         </div>
 
         <%!-- Row 2: API Calls + Errors charts --%>
@@ -162,19 +173,22 @@ defmodule BlackboexWeb.DashboardLive do
                 />
                 <div class="flex justify-between text-sm py-2 border-t">
                   <span class="flex items-center gap-1.5 text-muted-foreground">
-                    <.icon name="hero-arrow-down-tray-mini" class="size-3.5 text-blue-400" /> Tokens In
+                    <.icon name="hero-arrow-down-tray-mini" class="size-3.5 text-blue-400" />
+                    Tokens In
                   </span>
                   <span class="font-medium">{format_tokens(@llm_usage.tokens_in_total)}</span>
                 </div>
                 <div class="flex justify-between text-sm py-2 border-t">
                   <span class="flex items-center gap-1.5 text-muted-foreground">
-                    <.icon name="hero-arrow-up-tray-mini" class="size-3.5 text-emerald-400" /> Tokens Out
+                    <.icon name="hero-arrow-up-tray-mini" class="size-3.5 text-emerald-400" />
+                    Tokens Out
                   </span>
                   <span class="font-medium">{format_tokens(@llm_usage.tokens_out_total)}</span>
                 </div>
                 <div class="flex justify-between text-sm py-2 border-t">
                   <span class="flex items-center gap-1.5 text-muted-foreground">
-                    <.icon name="hero-currency-dollar-mini" class="size-3.5 text-amber-400" /> LLM Cost
+                    <.icon name="hero-currency-dollar-mini" class="size-3.5 text-amber-400" />
+                    LLM Cost
                   </span>
                   <span class="font-medium">
                     ${Float.round(@llm_usage.cost_total_cents / 100, 2)}
@@ -190,7 +204,8 @@ defmodule BlackboexWeb.DashboardLive do
           <.card>
             <.card_content class="p-4">
               <p class="flex items-center gap-1.5 text-sm font-medium text-muted-foreground mb-3">
-                <.icon name="hero-arrow-trending-up-mini" class="size-3.5 text-sky-400" /> Top APIs by Calls
+                <.icon name="hero-arrow-trending-up-mini" class="size-3.5 text-sky-400" />
+                Top APIs by Calls
               </p>
               <.table id="top-apis" rows={Enum.with_index(@metrics.top_apis, 1)}>
                 <:col :let={{_api, idx}} label="#">{idx}</:col>

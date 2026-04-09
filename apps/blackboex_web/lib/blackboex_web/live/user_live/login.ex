@@ -63,7 +63,8 @@ defmodule BlackboexWeb.UserLive.Login do
           spellcheck="false"
         />
         <.button class="w-full" name={@form[:remember_me].name} value="true">
-          <.icon name="hero-arrow-right-end-on-rectangle" class="mr-1.5 size-3.5 text-amber-300" /> Log in <span aria-hidden="true">&rarr;</span>
+          <.icon name="hero-arrow-right-end-on-rectangle" class="mr-1.5 size-3.5 text-amber-300" />
+          Log in <span aria-hidden="true">&rarr;</span>
         </.button>
       </.form>
 

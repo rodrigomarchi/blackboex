@@ -151,6 +151,11 @@ defmodule Blackboex.FlowExecutor.ExecutionMiddleware do
     )
   end
 
+  defp maybe_update_shared_state(_execution_id, %{output: :__branch_skipped__}), do: :ok
+
+  # IMPORTANT: This does a full overwrite of shared_state. Correctness depends on
+  # all steps running with async?: false (sequential execution). If steps ever run
+  # in parallel, this needs optimistic locking or jsonb_concat at the DB level.
   defp maybe_update_shared_state(execution_id, %{state: new_state}) when is_map(new_state) do
     case FlowExecutions.get_execution(execution_id) do
       nil ->

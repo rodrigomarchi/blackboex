@@ -151,8 +151,24 @@ defmodule Blackboex.FlowExecutor.ReactorBuilder do
 
   defp branch_gate(other, _expected_branch), do: other
 
-  defp set_return(reactor, %ParsedFlow{end_node_ids: [end_id | _]}) do
+  defp set_return(reactor, %ParsedFlow{end_node_ids: [end_id]}) do
     Builder.return(reactor, step_name(end_id))
+  end
+
+  defp set_return(reactor, %ParsedFlow{end_node_ids: end_ids}) when length(end_ids) > 1 do
+    # Multiple end nodes (branching flows): add a collector step that picks
+    # the first non-skipped result. Each end node feeds into the collector.
+    args =
+      Enum.map(end_ids, fn id ->
+        Argument.from_result(String.to_atom("end_#{id}"), step_name(id))
+      end)
+
+    with {:ok, reactor} <-
+           Builder.add_step(reactor, :__flow_collector__, {__MODULE__.Collector, []}, args,
+             async?: false
+           ) do
+      Builder.return(reactor, :__flow_collector__)
+    end
   end
 
   defp set_return(_reactor, _parsed_flow) do

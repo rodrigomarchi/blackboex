@@ -23,6 +23,7 @@ defmodule Blackboex.FlowExecutor.BlackboexFlow do
 
   @current_version "1.0"
   @valid_node_types ~w(start elixir_code condition end)
+  @node_id_format ~r/^n\d+$/
 
   @spec current_version() :: String.t()
   def current_version, do: @current_version
@@ -32,7 +33,11 @@ defmodule Blackboex.FlowExecutor.BlackboexFlow do
     with :ok <- validate_version(version),
          :ok <- validate_nodes(definition),
          :ok <- validate_edges(definition),
-         :ok <- validate_edge_refs(definition) do
+         :ok <- validate_edge_refs(definition),
+         :ok <- validate_no_self_loops(definition),
+         :ok <- validate_no_duplicate_edges(definition),
+         :ok <- validate_source_ports(definition),
+         :ok <- validate_no_fan_in(definition) do
       :ok
     end
   end
@@ -65,9 +70,11 @@ defmodule Blackboex.FlowExecutor.BlackboexFlow do
 
   defp validate_node_shape(%{"id" => id, "type" => type, "position" => pos, "data" => _data})
        when is_binary(id) and is_binary(type) and is_map(pos) do
-    case pos do
-      %{"x" => x, "y" => y} when is_number(x) and is_number(y) -> :ok
-      _ -> {:error, "node #{id}: position must have numeric x and y"}
+    with :ok <- validate_node_id_format(id) do
+      case pos do
+        %{"x" => x, "y" => y} when is_number(x) and is_number(y) -> :ok
+        _ -> {:error, "node #{id}: position must have numeric x and y"}
+      end
     end
   end
 
@@ -76,6 +83,14 @@ defmodule Blackboex.FlowExecutor.BlackboexFlow do
   end
 
   defp validate_node_shape(_), do: {:error, "node missing required field: id"}
+
+  defp validate_node_id_format(id) do
+    if Regex.match?(@node_id_format, id) do
+      :ok
+    else
+      {:error, "node #{id}: id must match format 'n<number>' (e.g. n1, n2)"}
+    end
+  end
 
   defp validate_node_type(%{"id" => id, "type" => type}) do
     if type in @valid_node_types do
@@ -146,5 +161,66 @@ defmodule Blackboex.FlowExecutor.BlackboexFlow do
           {:cont, :ok}
       end
     end)
+  end
+
+  defp validate_no_self_loops(%{"edges" => edges}) do
+    case Enum.find(edges, fn e -> e["source"] == e["target"] end) do
+      nil -> :ok
+      edge -> {:error, "edge #{edge["id"]}: self-loop detected (source == target)"}
+    end
+  end
+
+  defp validate_no_duplicate_edges(%{"edges" => edges}) do
+    edge_keys =
+      Enum.map(edges, fn e -> {e["source"], e["source_port"], e["target"], e["target_port"]} end)
+
+    case edge_keys -- Enum.uniq(edge_keys) do
+      [] ->
+        :ok
+
+      [dup | _] ->
+        {:error,
+         "duplicate edge: #{elem(dup, 0)} port #{elem(dup, 1)} → #{elem(dup, 2)} port #{elem(dup, 3)}"}
+    end
+  end
+
+  # Condition nodes have dynamic outputs, so only validate fixed-output node types
+  @fixed_output_counts %{"start" => 1, "elixir_code" => 1, "end" => 0}
+
+  defp validate_source_ports(%{"nodes" => nodes, "edges" => edges}) do
+    node_map = Map.new(nodes, fn n -> {n["id"], n} end)
+
+    Enum.reduce_while(edges, :ok, fn edge, :ok ->
+      node = Map.get(node_map, edge["source"])
+      validate_edge_source_port(edge, node)
+    end)
+  end
+
+  defp validate_edge_source_port(_edge, %{"type" => "condition"}), do: {:cont, :ok}
+
+  defp validate_edge_source_port(edge, %{"type" => type} = _node) do
+    max_port = Map.get(@fixed_output_counts, type, 1) - 1
+
+    if edge["source_port"] > max_port do
+      {:halt,
+       {:error,
+        "edge #{edge["id"]}: source_port #{edge["source_port"]} exceeds max port #{max_port} for #{type} node #{edge["source"]}"}}
+    else
+      {:cont, :ok}
+    end
+  end
+
+  defp validate_no_fan_in(%{"edges" => edges}) do
+    # Each node input port can receive at most one incoming edge
+    target_ports = Enum.map(edges, fn e -> {e["target"], e["target_port"]} end)
+
+    case target_ports -- Enum.uniq(target_ports) do
+      [] ->
+        :ok
+
+      [dup | _] ->
+        {:error,
+         "node #{elem(dup, 0)} port #{elem(dup, 1)}: multiple incoming edges (fan-in not supported)"}
+    end
   end
 end

@@ -72,6 +72,43 @@ defmodule BlackboexWeb.FlowLive.IndexTest do
       refute render(view) =~ "Delete Me"
     end
 
+    test "create modal has template and blank tabs", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/flows")
+
+      view |> element("header button[phx-click='open_create_modal']") |> render_click()
+
+      html = render(view)
+      assert html =~ "From Template"
+      assert html =~ "Blank Flow"
+    end
+
+    test "template tab shows Hello World template", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/flows")
+
+      view |> element("header button[phx-click='open_create_modal']") |> render_click()
+      view |> element("button[phx-value-mode='template']") |> render_click()
+
+      html = render(view)
+      assert html =~ "Hello World"
+      assert html =~ "contact router"
+    end
+
+    test "creating from template creates flow with definition", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/flows")
+
+      view |> element("header button[phx-click='open_create_modal']") |> render_click()
+      view |> element("button[phx-value-mode='template']") |> render_click()
+      view |> element("button[phx-value-id='hello_world']") |> render_click()
+
+      view
+      |> form("form[phx-submit='create_flow']", %{name: "Template Flow", description: ""})
+      |> render_submit()
+
+      # Should navigate to editor
+      {path, _flash} = assert_redirect(view)
+      assert path =~ ~r"/flows/.*/edit"
+    end
+
     test "searches flows by name", %{conn: conn, user: user} do
       [org | _] = Blackboex.Organizations.list_user_organizations(user)
 

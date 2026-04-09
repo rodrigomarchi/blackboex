@@ -7,6 +7,8 @@ defmodule Blackboex.Flows.Flow do
   use Ecto.Schema
   import Ecto.Changeset
 
+  alias Blackboex.FlowExecutor.BlackboexFlow
+
   @type t :: %__MODULE__{}
 
   @valid_statuses ~w(draft active archived)
@@ -59,6 +61,23 @@ defmodule Blackboex.Flows.Flow do
     flow
     |> cast(attrs, [:definition])
     |> validate_required([:definition])
+    |> validate_definition_structure()
+  end
+
+  defp validate_definition_structure(changeset) do
+    case get_change(changeset, :definition) do
+      nil ->
+        changeset
+
+      definition when definition == %{} ->
+        changeset
+
+      definition ->
+        case BlackboexFlow.validate(definition) do
+          :ok -> changeset
+          {:error, reason} -> add_error(changeset, :definition, reason)
+        end
+    end
   end
 
   defp maybe_generate_webhook_token(changeset) do

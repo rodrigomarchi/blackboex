@@ -10,7 +10,13 @@ defmodule Blackboex.FlowExecutor.Nodes.EndNode do
   @spec run(Reactor.inputs(), Reactor.context(), keyword()) :: {:ok, map()}
   def run(arguments, _context, _options) do
     {input, state} = extract_input_and_state(arguments)
-    {:ok, %{output: input, state: state}}
+
+    # Skip if branch was gated
+    if input == :__branch_skipped__ do
+      {:ok, %{output: :__branch_skipped__, state: state}}
+    else
+      {:ok, %{output: input, state: state}}
+    end
   end
 
   defp extract_input_and_state(%{prev_result: %{output: output, state: state}}),

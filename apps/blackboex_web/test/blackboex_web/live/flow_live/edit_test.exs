@@ -101,6 +101,66 @@ defmodule BlackboexWeb.FlowLive.EditTest do
       assert hd(updated.definition["nodes"])["data"]["name"] == "Start"
     end
 
+    test "shows activate button for draft flow", %{conn: conn, user: user} do
+      [org | _] = Blackboex.Organizations.list_user_organizations(user)
+      flow = flow_from_template_fixture(%{user: user, org: org})
+
+      {:ok, _view, html} = live(conn, ~p"/flows/#{flow.id}/edit")
+      assert html =~ "Activate"
+      assert html =~ "draft"
+    end
+
+    test "activates flow with valid definition", %{conn: conn, user: user} do
+      [org | _] = Blackboex.Organizations.list_user_organizations(user)
+      flow = flow_from_template_fixture(%{user: user, org: org})
+
+      {:ok, view, _html} = live(conn, ~p"/flows/#{flow.id}/edit")
+
+      html = view |> element("button[phx-click='activate_flow']") |> render_click()
+
+      assert html =~ "active"
+      assert html =~ "Deactivate"
+    end
+
+    test "deactivates an active flow", %{conn: conn, user: user} do
+      [org | _] = Blackboex.Organizations.list_user_organizations(user)
+      flow = flow_from_template_fixture(%{user: user, org: org})
+      {:ok, flow} = Blackboex.Flows.activate_flow(flow)
+
+      {:ok, view, _html} = live(conn, ~p"/flows/#{flow.id}/edit")
+
+      html = view |> element("button[phx-click='deactivate_flow']") |> render_click()
+
+      assert html =~ "draft"
+      assert html =~ "Activate"
+    end
+
+    test "shows error when activating flow with empty definition", %{conn: conn, user: user} do
+      [org | _] = Blackboex.Organizations.list_user_organizations(user)
+
+      {:ok, flow} =
+        Blackboex.Flows.create_flow(%{
+          name: "Empty Flow",
+          organization_id: org.id,
+          user_id: user.id
+        })
+
+      {:ok, view, _html} = live(conn, ~p"/flows/#{flow.id}/edit")
+
+      html = view |> element("button[phx-click='activate_flow']") |> render_click()
+
+      assert html =~ "Cannot activate"
+    end
+
+    test "shows History button linking to executions", %{conn: conn, user: user} do
+      [org | _] = Blackboex.Organizations.list_user_organizations(user)
+      flow = flow_fixture(%{user: user, org: org})
+
+      {:ok, _view, html} = live(conn, ~p"/flows/#{flow.id}/edit")
+      assert html =~ "History"
+      assert html =~ "/flows/#{flow.id}/executions"
+    end
+
     test "rejects invalid definition on save", %{conn: conn, user: user} do
       [org | _] = Blackboex.Organizations.list_user_organizations(user)
 

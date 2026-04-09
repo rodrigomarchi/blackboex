@@ -53,6 +53,50 @@ defmodule Blackboex.FlowsFixtures do
   end
 
   @doc """
+  Creates a flow from a template.
+
+  ## Options
+
+    * `:user` - the owner user (required, or auto-created with org)
+    * `:org` - the organization (required, or auto-created with user)
+    * `:template_id` - template id (default: "hello_world")
+    * `:name` - flow name (default: auto-generated)
+
+  Returns the Flow struct.
+  """
+  @spec flow_from_template_fixture(map()) :: Blackboex.Flows.Flow.t()
+  def flow_from_template_fixture(attrs \\ %{}) do
+    {user, org} =
+      case {attrs[:user], attrs[:org]} do
+        {nil, nil} ->
+          Blackboex.OrganizationsFixtures.user_and_org_fixture()
+
+        {user, nil} ->
+          {user, Blackboex.OrganizationsFixtures.org_fixture(%{user: user})}
+
+        {nil, org} ->
+          {Blackboex.AccountsFixtures.user_fixture(), org}
+
+        {user, org} ->
+          {user, org}
+      end
+
+    template_id = attrs[:template_id] || "hello_world"
+
+    {:ok, flow} =
+      Flows.create_flow_from_template(
+        %{
+          name: attrs[:name] || "Template Flow #{System.unique_integer([:positive])}",
+          organization_id: org.id,
+          user_id: user.id
+        },
+        template_id
+      )
+
+    flow
+  end
+
+  @doc """
   Named setup: creates a flow for existing user + org in context.
 
   Requires `:user` and `:org` in context.

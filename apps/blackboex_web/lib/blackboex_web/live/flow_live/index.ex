@@ -12,6 +12,7 @@ defmodule BlackboexWeb.FlowLive.Index do
   import BlackboexWeb.Components.Shared.EmptyState
 
   alias Blackboex.Flows
+  alias Blackboex.Flows.Templates
   alias Blackboex.Policy
 
   @impl true
@@ -31,6 +32,9 @@ defmodule BlackboexWeb.FlowLive.Index do
        search: "",
        page_title: "Flows",
        show_create_modal: false,
+       create_mode: :blank,
+       selected_template: nil,
+       templates: Templates.list(),
        create_form: to_form(%{"name" => "", "description" => ""}),
        create_error: nil
      )}
@@ -84,6 +88,8 @@ defmodule BlackboexWeb.FlowLive.Index do
     {:noreply,
      assign(socket,
        show_create_modal: true,
+       create_mode: :blank,
+       selected_template: nil,
        create_form: to_form(%{"name" => "", "description" => ""}),
        create_error: nil
      )}
@@ -92,6 +98,26 @@ defmodule BlackboexWeb.FlowLive.Index do
   @impl true
   def handle_event("close_create_modal", _params, socket) do
     {:noreply, assign(socket, show_create_modal: false)}
+  end
+
+  @impl true
+  def handle_event("set_create_mode", %{"mode" => "blank"}, socket) do
+    {:noreply, assign(socket, create_mode: :blank, selected_template: nil, create_error: nil)}
+  end
+
+  def handle_event("set_create_mode", %{"mode" => "template"}, socket) do
+    {:noreply, assign(socket, create_mode: :template, create_error: nil)}
+  end
+
+  @impl true
+  def handle_event("select_template", %{"id" => template_id}, socket) do
+    template = Templates.get(template_id)
+
+    {:noreply,
+     assign(socket,
+       selected_template: template,
+       create_form: to_form(%{"name" => template.name, "description" => template.description})
+     )}
   end
 
   @impl true
@@ -119,7 +145,13 @@ defmodule BlackboexWeb.FlowLive.Index do
         user_id: user.id
       }
 
-      case Flows.create_flow(attrs) do
+      result =
+        case socket.assigns.selected_template do
+          nil -> Flows.create_flow(attrs)
+          template -> Flows.create_flow_from_template(attrs, template.id)
+        end
+
+      case result do
         {:ok, flow} ->
           {:noreply, push_navigate(socket, to: ~p"/flows/#{flow.id}/edit")}
 
@@ -229,6 +261,50 @@ defmodule BlackboexWeb.FlowLive.Index do
           </div>
         <% end %>
 
+        <%!-- Mode Tabs --%>
+        <div class="mb-4 flex border-b border-border">
+          <button
+            type="button"
+            phx-click="set_create_mode"
+            phx-value-mode="template"
+            class={"px-4 py-2 text-sm font-medium border-b-2 -mb-px #{if @create_mode == :template, do: "border-primary text-primary", else: "border-transparent text-muted-foreground hover:text-foreground"}"}
+          >
+            From Template
+          </button>
+          <button
+            type="button"
+            phx-click="set_create_mode"
+            phx-value-mode="blank"
+            class={"px-4 py-2 text-sm font-medium border-b-2 -mb-px #{if @create_mode == :blank, do: "border-primary text-primary", else: "border-transparent text-muted-foreground hover:text-foreground"}"}
+          >
+            Blank Flow
+          </button>
+        </div>
+
+        <%!-- Template Picker --%>
+        <div :if={@create_mode == :template} class="mb-4">
+          <div class="grid grid-cols-1 gap-3">
+            <button
+              :for={t <- @templates}
+              type="button"
+              phx-click="select_template"
+              phx-value-id={t.id}
+              class={"flex items-start gap-3 rounded-lg border p-3 text-left transition-colors #{if @selected_template && @selected_template.id == t.id, do: "border-primary bg-primary/5 ring-1 ring-primary", else: "border-border hover:border-muted-foreground/50"}"}
+            >
+              <div class="flex size-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                <.icon name={t.icon} class="size-5" />
+              </div>
+              <div class="min-w-0">
+                <div class="font-medium text-sm">{t.name}</div>
+                <div class="text-xs text-muted-foreground mt-0.5">{t.description}</div>
+                <div class="text-xs text-muted-foreground/70 mt-1">
+                  {length(t.definition["nodes"])} nodes
+                </div>
+              </div>
+            </button>
+          </div>
+        </div>
+
         <form phx-submit="create_flow" class="space-y-4">
           <.input
             type="text"
@@ -255,7 +331,11 @@ defmodule BlackboexWeb.FlowLive.Index do
             <.button type="button" variant="outline" phx-click="close_create_modal">
               Cancel
             </.button>
-            <.button type="submit" variant="primary">
+            <.button
+              type="submit"
+              variant="primary"
+              disabled={@create_mode == :template && is_nil(@selected_template)}
+            >
               <.icon name="hero-arrow-right" class="mr-2 size-4" /> Create & Edit
             </.button>
           </div>

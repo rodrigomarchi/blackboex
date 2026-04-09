@@ -77,6 +77,39 @@ defmodule Blackboex.Flows do
     organization_id |> FlowQueries.by_org_and_slug(slug) |> Repo.one()
   end
 
+  # ── Activation ─────────────────────────────────────────────
+
+  @spec activate_flow(Flow.t()) :: {:ok, Flow.t()} | {:error, String.t() | Ecto.Changeset.t()}
+  def activate_flow(%Flow{} = flow) do
+    alias Blackboex.FlowExecutor.{BlackboexFlow, CodeValidator, DefinitionParser}
+
+    definition = flow.definition || %{}
+
+    with :ok <- BlackboexFlow.validate(definition),
+         {:ok, parsed} <- DefinitionParser.parse(definition),
+         :ok <- CodeValidator.validate_flow(parsed) do
+      update_flow(flow, %{status: "active"})
+    else
+      {:error, reason} when is_binary(reason) -> {:error, reason}
+      {:error, errors} when is_list(errors) -> {:error, format_validation_errors(errors)}
+      {:error, reason} -> {:error, inspect(reason)}
+    end
+  end
+
+  @spec deactivate_flow(Flow.t()) :: {:ok, Flow.t()} | {:error, Ecto.Changeset.t()}
+  def deactivate_flow(%Flow{} = flow) do
+    update_flow(flow, %{status: "draft"})
+  end
+
+  defp format_validation_errors(errors) when is_list(errors) do
+    errors
+    |> Enum.map(fn
+      {node_id, field, reason} -> "#{node_id}.#{field}: #{reason}"
+      other -> inspect(other)
+    end)
+    |> Enum.join("; ")
+  end
+
   # ── Webhook Token ─────────────────────────────────────────
 
   @spec get_flow_by_token!(String.t()) :: Flow.t()
@@ -89,6 +122,26 @@ defmodule Blackboex.Flows do
     flow
     |> Flow.webhook_token_changeset()
     |> Repo.update()
+  end
+
+  # ── Templates ──────────────────────────────────────────────
+
+  @spec create_flow_from_template(map(), String.t()) ::
+          {:ok, Flow.t()}
+          | {:error, :template_not_found}
+          | {:error, Ecto.Changeset.t()}
+          | {:error, :limit_exceeded, map()}
+  def create_flow_from_template(attrs, template_id) do
+    alias Blackboex.Flows.Templates
+
+    case Templates.get(template_id) do
+      nil ->
+        {:error, :template_not_found}
+
+      template ->
+        attrs = Map.put(attrs, :definition, template.definition)
+        create_flow(attrs)
+    end
   end
 
   # ── Private ────────────────────────────────────────────────

@@ -6,6 +6,11 @@ defmodule Blackboex.FlowExecutor.DefinitionParser do
 
   alias Blackboex.FlowExecutor.{ParsedFlow, ParsedNode}
 
+  # Suppress Dialyxir false positives: MapSet opaque type in BFS/DFS functions.
+  # Dialyxir's "Legacy warning" format can't be matched by .dialyzer_ignore.exs.
+  # See https://github.com/jeremyjh/dialyxir/issues
+  @dialyzer [:no_opaque]
+
   @known_types ~w(start elixir_code condition end)a
 
   @spec parse(map()) :: {:ok, ParsedFlow.t()} | {:error, term()}
@@ -65,7 +70,8 @@ defmodule Blackboex.FlowExecutor.DefinitionParser do
   @known_type_strings Enum.map(@known_types, &Atom.to_string/1)
 
   defp safe_to_atom(type) when type in @known_type_strings do
-    String.to_existing_atom(type)
+    # Safe: guard guarantees type is one of the known types from @known_types
+    String.to_atom(type)
   end
 
   defp safe_to_atom(type) when is_binary(type) do

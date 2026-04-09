@@ -40,7 +40,7 @@ defmodule BlackboexWeb.FlowLive.Edit do
       icon: "hero-arrows-right-left",
       color: "#3b82f6",
       inputs: 1,
-      outputs: 2,
+      outputs: 3,
       group: "logic"
     },
     %{
@@ -256,6 +256,63 @@ defmodule BlackboexWeb.FlowLive.Edit do
     end
   end
 
+  # ── Activation ──────────────────────────────────────────────────────────
+
+  @impl true
+  def handle_event("activate_flow", _params, socket) do
+    scope = socket.assigns.current_scope
+    org = scope.organization
+    flow = socket.assigns.flow
+
+    with :ok <- Policy.authorize_and_track(:flow_update, scope, org) do
+      # Reload flow from DB to ensure we validate the latest saved definition
+      flow = Flows.get_flow(org.id, flow.id)
+
+      case Flows.activate_flow(flow) do
+        {:ok, updated_flow} ->
+          {:noreply,
+           socket
+           |> assign(flow: updated_flow)
+           |> put_flash(:info, "Flow activated. Webhook is now live.")}
+
+        {:error, reason} when is_binary(reason) ->
+          {:noreply,
+           put_flash(
+             socket,
+             :error,
+             "Cannot activate: #{reason}. Save the flow first if you have unsaved changes."
+           )}
+
+        {:error, _changeset} ->
+          {:noreply, put_flash(socket, :error, "Could not activate flow.")}
+      end
+    else
+      {:error, _} -> {:noreply, put_flash(socket, :error, "Not authorized.")}
+    end
+  end
+
+  @impl true
+  def handle_event("deactivate_flow", _params, socket) do
+    scope = socket.assigns.current_scope
+    org = scope.organization
+    flow = socket.assigns.flow
+
+    with :ok <- Policy.authorize_and_track(:flow_update, scope, org) do
+      case Flows.deactivate_flow(flow) do
+        {:ok, updated_flow} ->
+          {:noreply,
+           socket
+           |> assign(flow: updated_flow)
+           |> put_flash(:info, "Flow deactivated.")}
+
+        {:error, _} ->
+          {:noreply, put_flash(socket, :error, "Could not deactivate flow.")}
+      end
+    else
+      {:error, _} -> {:noreply, put_flash(socket, :error, "Not authorized.")}
+    end
+  end
+
   # ── Async Task Results ─────────────────────────────────────────────────
 
   @impl true
@@ -298,9 +355,28 @@ defmodule BlackboexWeb.FlowLive.Edit do
             <.icon name="hero-arrow-left" class="size-5" />
           </.link>
           <h1 class="text-sm font-semibold truncate max-w-xs">{@flow.name}</h1>
-          <span class="rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+          <span class={"rounded px-2 py-0.5 text-xs #{status_badge_classes(@flow.status)}"}>
             {@flow.status}
           </span>
+          <%= if @flow.status == "active" do %>
+            <.button
+              variant="outline"
+              size="sm"
+              phx-click="deactivate_flow"
+              class="text-orange-600 border-orange-300 hover:bg-orange-50 dark:hover:bg-orange-950"
+            >
+              <.icon name="hero-pause" class="mr-1 size-3.5" /> Deactivate
+            </.button>
+          <% else %>
+            <.button
+              variant="outline"
+              size="sm"
+              phx-click="activate_flow"
+              class="text-green-600 border-green-300 hover:bg-green-50 dark:hover:bg-green-950"
+            >
+              <.icon name="hero-bolt" class="mr-1 size-3.5" /> Activate
+            </.button>
+          <% end %>
         </div>
 
         <div class="flex items-center gap-2">
@@ -328,6 +404,9 @@ defmodule BlackboexWeb.FlowLive.Edit do
 
           <span :if={@saved} class="text-xs text-green-600 dark:text-green-400">Saved</span>
 
+          <.button variant="outline" size="sm" navigate={~p"/flows/#{@flow.id}/executions"}>
+            <.icon name="hero-clock" class="mr-1.5 size-4" /> History
+          </.button>
           <.button variant="outline" size="sm" phx-click="open_run_modal">
             <.icon name="hero-play" class="mr-1.5 size-4" /> Run
           </.button>
@@ -440,10 +519,7 @@ defmodule BlackboexWeb.FlowLive.Edit do
 
       <%!-- Test Run Modal --%>
       <%= if @show_run_modal do %>
-        <div
-          class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-          phx-click="close_run_modal"
-        >
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div
             class="flex flex-col w-[600px] max-h-[80vh] rounded-xl border bg-card shadow-2xl"
             phx-click-away="close_run_modal"
@@ -513,6 +589,14 @@ defmodule BlackboexWeb.FlowLive.Edit do
   defp webhook_url(flow) do
     BlackboexWeb.Endpoint.url() <> "/webhook/#{flow.webhook_token}"
   end
+
+  defp status_badge_classes("active"),
+    do: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+
+  defp status_badge_classes("archived"),
+    do: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200"
+
+  defp status_badge_classes(_), do: "bg-muted text-muted-foreground"
 
   # ── Properties drawer ────────────────────────────────────────────────────
 

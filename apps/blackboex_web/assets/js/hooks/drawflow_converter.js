@@ -19,7 +19,6 @@
 export function drawflowToBlackboex(drawflowData) {
   const nodes = []
   const edges = []
-  let edgeCounter = 0
 
   const homeData = drawflowData?.drawflow?.Home?.data || {}
 
@@ -39,10 +38,13 @@ export function drawflowToBlackboex(drawflowData) {
       const connections = output.connections || []
 
       for (const conn of connections) {
-        edgeCounter++
-        const targetPort = parseInt((conn.input || "input_1").replace("input_", ""), 10) - 1
+        // Drawflow convention: output connections store {node, output} where
+        // "output" is actually the INPUT port name on the target node
+        const targetPort = parseInt((conn.output || "input_1").replace("input_", ""), 10) - 1
+        // Deterministic edge ID from source/target/ports — stable across round-trips
+        const edgeId = `e_n${nodeId}_${sourcePort}_n${conn.node}_${targetPort}`
         edges.push({
-          id: `e${edgeCounter}`,
+          id: edgeId,
           source: `n${nodeId}`,
           source_port: sourcePort,
           target: `n${conn.node}`,
@@ -86,7 +88,8 @@ export function blackboexToDrawflow(blackboex, buildHTML) {
     nodeOutputMaxPort[edge.source] = Math.max(current, edge.source_port + 1)
   }
 
-  // Build connection lookup: source_id -> { output_port -> [{node, input}] }
+  // Build connection lookup: source_id -> { output_port -> [{node, output}] }
+  // Drawflow convention: in output connections, "output" = the INPUT port on the target
   const connectionMap = {}
   for (const edge of (blackboex.edges || [])) {
     if (!connectionMap[edge.source]) connectionMap[edge.source] = {}
@@ -95,10 +98,11 @@ export function blackboexToDrawflow(blackboex, buildHTML) {
 
     const targetNodeId = edge.target.replace("n", "")
     const inputKey = `input_${edge.target_port + 1}`
-    connectionMap[edge.source][outKey].push({ node: targetNodeId, output: outKey, input: inputKey })
+    connectionMap[edge.source][outKey].push({ node: targetNodeId, output: inputKey })
   }
 
   // Also build reverse connections for inputs
+  // Drawflow convention: in input connections, "input" = the OUTPUT port on the source
   const inputConnectionMap = {}
   for (const edge of (blackboex.edges || [])) {
     if (!inputConnectionMap[edge.target]) inputConnectionMap[edge.target] = {}
@@ -107,7 +111,7 @@ export function blackboexToDrawflow(blackboex, buildHTML) {
 
     const sourceNodeId = edge.source.replace("n", "")
     const outKey = `output_${edge.source_port + 1}`
-    inputConnectionMap[edge.target][inKey].push({ node: sourceNodeId, output: outKey, input: inKey })
+    inputConnectionMap[edge.target][inKey].push({ node: sourceNodeId, input: outKey })
   }
 
   for (const node of blackboex.nodes) {

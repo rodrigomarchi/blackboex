@@ -117,11 +117,35 @@ defmodule Blackboex.FlowsTest do
   end
 
   describe "update_definition/2" do
-    test "saves the definition map", %{user: user, org: org} do
+    test "saves a valid definition", %{user: user, org: org} do
+      flow = flow_fixture(%{user: user, org: org})
+
+      definition = %{
+        "version" => "1.0",
+        "nodes" => [
+          %{"id" => "n1", "type" => "start", "position" => %{"x" => 0, "y" => 0}, "data" => %{}},
+          %{"id" => "n2", "type" => "end", "position" => %{"x" => 200, "y" => 0}, "data" => %{}}
+        ],
+        "edges" => [
+          %{
+            "id" => "e1",
+            "source" => "n1",
+            "source_port" => 0,
+            "target" => "n2",
+            "target_port" => 0
+          }
+        ]
+      }
+
+      assert {:ok, updated} = Flows.update_definition(flow, definition)
+      assert updated.definition["version"] == "1.0"
+    end
+
+    test "rejects invalid definition structure", %{user: user, org: org} do
       flow = flow_fixture(%{user: user, org: org})
       definition = %{"drawflow" => %{"Home" => %{"data" => %{}}}}
-      assert {:ok, updated} = Flows.update_definition(flow, definition)
-      assert updated.definition == definition
+      assert {:error, changeset} = Flows.update_definition(flow, definition)
+      assert %{definition: _} = errors_on(changeset)
     end
   end
 
@@ -163,6 +187,58 @@ defmodule Blackboex.FlowsTest do
       assert_raise Ecto.NoResultsError, fn ->
         Flows.get_flow_by_token!("nonexistent_token_value")
       end
+    end
+  end
+
+  describe "activate_flow/1" do
+    test "activates a flow with valid definition", %{user: user, org: org} do
+      flow = flow_from_template_fixture(%{user: user, org: org})
+      assert {:ok, activated} = Flows.activate_flow(flow)
+      assert activated.status == "active"
+    end
+
+    test "rejects activation with empty definition", %{user: user, org: org} do
+      flow = flow_fixture(%{user: user, org: org})
+      assert {:error, reason} = Flows.activate_flow(flow)
+      assert is_binary(reason)
+    end
+
+    test "rejects activation with invalid definition", %{user: user, org: org} do
+      flow =
+        flow_fixture(%{
+          user: user,
+          org: org,
+          definition: %{"version" => "1.0", "nodes" => [], "edges" => []}
+        })
+
+      assert {:error, reason} = Flows.activate_flow(flow)
+      assert is_binary(reason)
+    end
+  end
+
+  describe "deactivate_flow/1" do
+    test "sets flow back to draft", %{user: user, org: org} do
+      flow = flow_from_template_fixture(%{user: user, org: org})
+      {:ok, activated} = Flows.activate_flow(flow)
+      assert {:ok, deactivated} = Flows.deactivate_flow(activated)
+      assert deactivated.status == "draft"
+    end
+  end
+
+  describe "create_flow_from_template/2" do
+    test "creates flow with template definition", %{user: user, org: org} do
+      attrs = %{name: "From Template", organization_id: org.id, user_id: user.id}
+      assert {:ok, flow} = Flows.create_flow_from_template(attrs, "hello_world")
+      assert flow.name == "From Template"
+      assert flow.status == "draft"
+      assert flow.definition["version"] == "1.0"
+      assert length(flow.definition["nodes"]) == 10
+      assert length(flow.definition["edges"]) == 9
+    end
+
+    test "returns error for unknown template", %{user: user, org: org} do
+      attrs = %{name: "Bad Template", organization_id: org.id, user_id: user.id}
+      assert {:error, :template_not_found} = Flows.create_flow_from_template(attrs, "nonexistent")
     end
   end
 

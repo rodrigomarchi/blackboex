@@ -10,38 +10,49 @@ defmodule Blackboex.FlowExecutor.Nodes.ElixirCode do
 
   use Reactor.Step
 
+  alias Blackboex.FlowExecutor.Nodes.Helpers
+
   @impl true
   @spec run(Reactor.inputs(), Reactor.context(), keyword()) :: {:ok, map()} | {:error, any()}
   def run(arguments, _context, options) do
     code = Keyword.fetch!(options, :code)
     timeout_ms = Keyword.get(options, :timeout_ms, 5_000)
-    {input, state} = extract_input_and_state(arguments)
-
-    # Skip if branch was gated
-    if input == :__branch_skipped__ do
-      {:ok, %{output: :__branch_skipped__, state: state}}
-    else
-      execute_with_timeout(code, input, state, timeout_ms)
-    end
+    {input, state} = Helpers.extract_input_and_state(arguments)
+    execute_with_timeout(code, input, state, timeout_ms)
   end
 
   defp execute_with_timeout(code, input, state, timeout_ms) do
-    task =
-      Task.async(fn ->
+    Helpers.execute_with_timeout(
+      fn ->
         try do
           bindings = [input: input, state: state]
           {result, _bindings} = Code.eval_string(code, bindings)
-          normalize_result(result, state)
+
+          {:ok, output, new_state} = normalize_result(result, state)
+          {:ok, %{output: output, state: new_state}}
         rescue
           e -> {:error, Exception.message(e)}
         end
-      end)
+      end,
+      timeout_ms
+    )
+  end
 
-    case Task.yield(task, timeout_ms) || Task.shutdown(task, :brutal_kill) do
-      {:ok, {:ok, output, new_state}} -> {:ok, %{output: output, state: new_state}}
-      {:ok, {:error, reason}} -> {:error, reason}
-      nil -> {:error, "code execution timed out after #{timeout_ms}ms"}
+  @impl true
+  @spec compensate(any(), Reactor.inputs(), Reactor.context(), keyword()) :: :ok | :retry
+  def compensate(reason, _arguments, _context, _options) do
+    case reason do
+      %ErlangError{original: :timeout} -> :retry
+      "execution timed out" <> _ -> :retry
+      _ -> :ok
     end
+  end
+
+  @impl true
+  @spec backoff(any(), Reactor.inputs(), Reactor.context(), keyword()) :: non_neg_integer()
+  def backoff(_reason, _arguments, context, _options) do
+    retry_count = Map.get(context, :current_try, 0)
+    min(round(:math.pow(2, retry_count) * 500), 10_000)
   end
 
   defp normalize_result({output, new_state}, _old_state) when is_map(new_state) do
@@ -56,16 +67,4 @@ defmodule Blackboex.FlowExecutor.Nodes.ElixirCode do
   defp normalize_result(output, old_state) do
     {:ok, output, old_state}
   end
-
-  defp extract_input_and_state(%{prev_result: %{output: output, state: state}}),
-    do: {output, state}
-
-  defp extract_input_and_state(%{prev_result: %{value: value, state: state}}),
-    do: {value, state}
-
-  defp extract_input_and_state(%{prev_result: %{value: value}}),
-    do: {value, %{}}
-
-  defp extract_input_and_state(%{input: input}),
-    do: {input, %{}}
 end

@@ -26,6 +26,36 @@ const nodeConfig = {
     icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="df-node-icon"><path fill-rule="evenodd" d="M2 10a8 8 0 1 1 16 0 8 8 0 0 1-16 0Zm5-2.25A.75.75 0 0 1 7.75 7h.5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-.75.75h-.5a.75.75 0 0 1-.75-.75v-4.5Zm4 0a.75.75 0 0 1 .75-.75h.5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-.75.75h-.5a.75.75 0 0 1-.75-.75v-4.5Z" clip-rule="evenodd" /></svg>`,
     label: "End",
     subtitle: "Stop flow"
+  },
+  http_request: {
+    color: "#f97316",
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="df-node-icon"><path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM4.332 8.027a6.012 6.012 0 0 1 1.912-2.706C6.512 5.73 6.974 6 7.5 6A1.5 1.5 0 0 1 9 7.5V8a2 2 0 0 0 4 0 2 2 0 0 1 1.523-1.943A5.977 5.977 0 0 1 16 10c0 .34-.028.675-.083 1H15a2 2 0 0 0-2 2v2.197A5.973 5.973 0 0 1 10 16v-2a2 2 0 0 0-2-2 2 2 0 0 1-2-2 2 2 0 0 0-1.668-1.973Z" clip-rule="evenodd" /></svg>`,
+    label: "HTTP Request",
+    subtitle: "Call API"
+  },
+  delay: {
+    color: "#eab308",
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="df-node-icon"><path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm.75-13a.75.75 0 0 0-1.5 0v5c0 .414.336.75.75.75h4a.75.75 0 0 0 0-1.5h-3.25V5Z" clip-rule="evenodd" /></svg>`,
+    label: "Delay",
+    subtitle: "Wait"
+  },
+  sub_flow: {
+    color: "#6366f1",
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="df-node-icon"><path d="M2 4.5A2.5 2.5 0 0 1 4.5 2h3A2.5 2.5 0 0 1 10 4.5v3A2.5 2.5 0 0 1 7.5 10h-3A2.5 2.5 0 0 1 2 7.5v-3ZM2 12.5A2.5 2.5 0 0 1 4.5 10h3a2.5 2.5 0 0 1 2.5 2.5v3A2.5 2.5 0 0 1 7.5 18h-3A2.5 2.5 0 0 1 2 15.5v-3ZM10 4.5A2.5 2.5 0 0 1 12.5 2h3A2.5 2.5 0 0 1 18 4.5v3a2.5 2.5 0 0 1-2.5 2.5h-3A2.5 2.5 0 0 1 10 7.5v-3Z" /></svg>`,
+    label: "Sub-Flow",
+    subtitle: "Nested flow"
+  },
+  for_each: {
+    color: "#14b8a6",
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="df-node-icon"><path d="M15.312 11.424a5.5 5.5 0 0 1-9.201 2.466l-.312-.311h2.433a.75.75 0 0 0 0-1.5H4.233a.75.75 0 0 0-.75.75v4a.75.75 0 0 0 1.5 0v-2.146l.312.31a7 7 0 0 0 11.712-3.138.75.75 0 0 0-1.449-.39Zm1.455-7.191a.75.75 0 0 0-1.5 0v2.146l-.312-.31a7 7 0 0 0-11.712 3.138.75.75 0 0 0 1.449.39 5.5 5.5 0 0 1 9.201-2.466l.312.311h-2.433a.75.75 0 0 0 0 1.5H15.767a.75.75 0 0 0 .75-.75v-4Z" /></svg>`,
+    label: "For Each",
+    subtitle: "Iterate list"
+  },
+  webhook_wait: {
+    color: "#ec4899",
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="df-node-icon"><path d="M3.196 12.87l-.825.483a.75.75 0 0 0 .762 1.294l.825-.484a3.978 3.978 0 0 0 2.08 1.088l-.076.95a.75.75 0 1 0 1.496.12l.076-.95c.796-.087 1.524-.4 2.11-.878l.669.614a.75.75 0 0 0 1.016-1.105l-.669-.613a4.001 4.001 0 0 0 .95-2.187h.87a.75.75 0 0 0 0-1.5h-.87a4.002 4.002 0 0 0-.95-2.187l.669-.613A.75.75 0 0 0 10.68 5.99l-.669.613a3.98 3.98 0 0 0-2.11-.878l-.076-.95A.75.75 0 1 0 6.33 4.894l.076.95a3.978 3.978 0 0 0-2.08 1.088l-.825-.484a.75.75 0 0 0-.762 1.294l.825.484A3.987 3.987 0 0 0 3 10c0 1.073.421 2.048 1.108 2.766L3.196 12.87Z" /></svg>`,
+    label: "Webhook Wait",
+    subtitle: "Pause for event"
   }
 }
 

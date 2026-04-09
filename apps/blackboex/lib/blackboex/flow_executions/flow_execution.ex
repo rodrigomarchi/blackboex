@@ -7,7 +7,7 @@ defmodule Blackboex.FlowExecutions.FlowExecution do
   import Ecto.Changeset
 
   @type t :: %__MODULE__{}
-  @valid_statuses ~w(pending running completed failed)
+  @valid_statuses ~w(pending running completed failed halted)
 
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
@@ -17,6 +17,8 @@ defmodule Blackboex.FlowExecutions.FlowExecution do
     field :output, :map
     field :shared_state, :map, default: %{}
     field :error, :string
+    field :halted_state, :binary
+    field :wait_event_type, :string
     field :started_at, :utc_datetime_usec
     field :finished_at, :utc_datetime_usec
     field :duration_ms, :integer
@@ -40,6 +42,8 @@ defmodule Blackboex.FlowExecutions.FlowExecution do
       :output,
       :shared_state,
       :error,
+      :halted_state,
+      :wait_event_type,
       :started_at,
       :finished_at,
       :duration_ms

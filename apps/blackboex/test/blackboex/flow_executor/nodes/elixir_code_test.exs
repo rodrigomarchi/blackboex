@@ -53,7 +53,7 @@ defmodule Blackboex.FlowExecutor.Nodes.ElixirCodeTest do
       args = %{prev_result: %{output: 1, state: %{}}}
       opts = [code: ":timer.sleep(5000); input", timeout_ms: 50]
 
-      assert {:error, "code execution timed out" <> _} = ElixirCode.run(args, %{}, opts)
+      assert {:error, "execution timed out after" <> _} = ElixirCode.run(args, %{}, opts)
     end
 
     test "falls back to input key when prev_result not present" do

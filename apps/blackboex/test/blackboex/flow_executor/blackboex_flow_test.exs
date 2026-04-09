@@ -106,13 +106,13 @@ defmodule Blackboex.FlowExecutor.BlackboexFlowTest do
         put_in(@valid_flow["nodes"], [
           %{
             "id" => "n1",
-            "type" => "http_request",
+            "type" => "unknown_type",
             "position" => %{"x" => 0, "y" => 0},
             "data" => %{}
           }
         ])
 
-      assert {:error, "node n1: invalid type 'http_request'" <> _} = BlackboexFlow.validate(flow)
+      assert {:error, "node n1: invalid type 'unknown_type'" <> _} = BlackboexFlow.validate(flow)
     end
 
     test "rejects node with non-numeric position" do
@@ -492,6 +492,393 @@ defmodule Blackboex.FlowExecutor.BlackboexFlowTest do
   describe "current_version/0" do
     test "returns 1.0" do
       assert "1.0" = BlackboexFlow.current_version()
+    end
+  end
+
+  describe "validate/1 — http_request node" do
+    defp http_request_flow(data) do
+      %{
+        "version" => "1.0",
+        "nodes" => [
+          %{"id" => "n1", "type" => "start", "position" => %{"x" => 0, "y" => 0}, "data" => %{}},
+          %{
+            "id" => "n2",
+            "type" => "http_request",
+            "position" => %{"x" => 200, "y" => 0},
+            "data" => data
+          },
+          %{"id" => "n3", "type" => "end", "position" => %{"x" => 400, "y" => 0}, "data" => %{}}
+        ],
+        "edges" => []
+      }
+    end
+
+    test "accepts valid http_request node with required fields" do
+      flow = http_request_flow(%{"method" => "GET", "url" => "https://example.com"})
+      assert :ok = BlackboexFlow.validate(flow)
+    end
+
+    test "accepts valid http_request node with all optional fields" do
+      data = %{
+        "method" => "POST",
+        "url" => "https://api.example.com/data",
+        "headers" => %{"Authorization" => "Bearer token"},
+        "body_template" => "{\"key\": \"value\"}",
+        "timeout_ms" => 5000,
+        "max_retries" => 3,
+        "auth_type" => "bearer",
+        "auth_config" => %{"token" => "my_token"},
+        "expected_status" => [200, 201]
+      }
+
+      flow = http_request_flow(data)
+      assert :ok = BlackboexFlow.validate(flow)
+    end
+
+    test "accepts all valid HTTP methods" do
+      for method <- ~w(GET POST PUT PATCH DELETE) do
+        flow = http_request_flow(%{"method" => method, "url" => "https://example.com"})
+        assert :ok = BlackboexFlow.validate(flow), "expected :ok for method #{method}"
+      end
+    end
+
+    test "rejects http_request with missing url" do
+      flow = http_request_flow(%{"method" => "GET"})
+      assert {:error, msg} = BlackboexFlow.validate(flow)
+      assert msg =~ "url"
+    end
+
+    test "rejects http_request with missing method" do
+      flow = http_request_flow(%{"url" => "https://example.com"})
+      assert {:error, msg} = BlackboexFlow.validate(flow)
+      assert msg =~ "method"
+    end
+
+    test "rejects http_request with invalid method" do
+      flow = http_request_flow(%{"method" => "INVALID", "url" => "https://example.com"})
+      assert {:error, msg} = BlackboexFlow.validate(flow)
+      assert msg =~ "method"
+    end
+
+    test "rejects http_request with empty url" do
+      flow = http_request_flow(%{"method" => "GET", "url" => ""})
+      assert {:error, msg} = BlackboexFlow.validate(flow)
+      assert msg =~ "url"
+    end
+
+    test "rejects http_request with non-map headers" do
+      flow =
+        http_request_flow(%{
+          "method" => "GET",
+          "url" => "https://example.com",
+          "headers" => "bad"
+        })
+
+      assert {:error, msg} = BlackboexFlow.validate(flow)
+      assert msg =~ "headers"
+    end
+
+    test "rejects http_request with negative timeout_ms" do
+      flow =
+        http_request_flow(%{
+          "method" => "GET",
+          "url" => "https://example.com",
+          "timeout_ms" => -1
+        })
+
+      assert {:error, msg} = BlackboexFlow.validate(flow)
+      assert msg =~ "timeout_ms"
+    end
+
+    test "rejects http_request with invalid auth_type" do
+      flow =
+        http_request_flow(%{
+          "method" => "GET",
+          "url" => "https://example.com",
+          "auth_type" => "oauth"
+        })
+
+      assert {:error, msg} = BlackboexFlow.validate(flow)
+      assert msg =~ "auth_type"
+    end
+
+    test "rejects http_request with non-integer in expected_status" do
+      flow =
+        http_request_flow(%{
+          "method" => "GET",
+          "url" => "https://example.com",
+          "expected_status" => [200, "ok"]
+        })
+
+      assert {:error, msg} = BlackboexFlow.validate(flow)
+      assert msg =~ "expected_status"
+    end
+  end
+
+  describe "validate/1 — delay node" do
+    defp delay_flow(data) do
+      %{
+        "version" => "1.0",
+        "nodes" => [
+          %{"id" => "n1", "type" => "start", "position" => %{"x" => 0, "y" => 0}, "data" => %{}},
+          %{
+            "id" => "n2",
+            "type" => "delay",
+            "position" => %{"x" => 200, "y" => 0},
+            "data" => data
+          },
+          %{"id" => "n3", "type" => "end", "position" => %{"x" => 400, "y" => 0}, "data" => %{}}
+        ],
+        "edges" => []
+      }
+    end
+
+    test "accepts valid delay node with required duration_ms" do
+      flow = delay_flow(%{"duration_ms" => 1000})
+      assert :ok = BlackboexFlow.validate(flow)
+    end
+
+    test "accepts valid delay node with optional max_duration_ms" do
+      flow = delay_flow(%{"duration_ms" => 1000, "max_duration_ms" => 5000})
+      assert :ok = BlackboexFlow.validate(flow)
+    end
+
+    test "rejects delay with missing duration_ms" do
+      flow = delay_flow(%{})
+      assert {:error, msg} = BlackboexFlow.validate(flow)
+      assert msg =~ "duration_ms"
+    end
+
+    test "rejects delay with zero duration_ms" do
+      flow = delay_flow(%{"duration_ms" => 0})
+      assert {:error, msg} = BlackboexFlow.validate(flow)
+      assert msg =~ "duration_ms"
+    end
+
+    test "rejects delay with negative duration_ms" do
+      flow = delay_flow(%{"duration_ms" => -500})
+      assert {:error, msg} = BlackboexFlow.validate(flow)
+      assert msg =~ "duration_ms"
+    end
+
+    test "rejects delay with non-integer duration_ms" do
+      flow = delay_flow(%{"duration_ms" => "1000"})
+      assert {:error, msg} = BlackboexFlow.validate(flow)
+      assert msg =~ "duration_ms"
+    end
+  end
+
+  describe "validate/1 — for_each node" do
+    defp for_each_flow(data) do
+      %{
+        "version" => "1.0",
+        "nodes" => [
+          %{"id" => "n1", "type" => "start", "position" => %{"x" => 0, "y" => 0}, "data" => %{}},
+          %{
+            "id" => "n2",
+            "type" => "for_each",
+            "position" => %{"x" => 200, "y" => 0},
+            "data" => data
+          },
+          %{"id" => "n3", "type" => "end", "position" => %{"x" => 400, "y" => 0}, "data" => %{}}
+        ],
+        "edges" => []
+      }
+    end
+
+    test "accepts valid for_each node with required fields" do
+      flow = for_each_flow(%{"source_expression" => "state.items", "body_code" => "item * 2"})
+      assert :ok = BlackboexFlow.validate(flow)
+    end
+
+    test "accepts valid for_each node with all optional fields" do
+      data = %{
+        "source_expression" => "state.items",
+        "body_code" => "item * 2",
+        "item_variable" => "item",
+        "accumulator" => "results",
+        "batch_size" => 10,
+        "timeout_ms" => 30_000
+      }
+
+      flow = for_each_flow(data)
+      assert :ok = BlackboexFlow.validate(flow)
+    end
+
+    test "rejects for_each with missing source_expression" do
+      flow = for_each_flow(%{"body_code" => "item * 2"})
+      assert {:error, msg} = BlackboexFlow.validate(flow)
+      assert msg =~ "source_expression"
+    end
+
+    test "rejects for_each with missing body_code" do
+      flow = for_each_flow(%{"source_expression" => "state.items"})
+      assert {:error, msg} = BlackboexFlow.validate(flow)
+      assert msg =~ "body_code"
+    end
+
+    test "rejects for_each with empty source_expression" do
+      flow = for_each_flow(%{"source_expression" => "", "body_code" => "item * 2"})
+      assert {:error, msg} = BlackboexFlow.validate(flow)
+      assert msg =~ "source_expression"
+    end
+
+    test "rejects for_each with empty body_code" do
+      flow = for_each_flow(%{"source_expression" => "state.items", "body_code" => ""})
+      assert {:error, msg} = BlackboexFlow.validate(flow)
+      assert msg =~ "body_code"
+    end
+
+    test "rejects for_each with invalid item_variable (contains spaces)" do
+      flow =
+        for_each_flow(%{
+          "source_expression" => "state.items",
+          "body_code" => "item * 2",
+          "item_variable" => "my item"
+        })
+
+      assert {:error, msg} = BlackboexFlow.validate(flow)
+      assert msg =~ "item_variable"
+    end
+
+    test "rejects for_each with batch_size out of range" do
+      flow =
+        for_each_flow(%{
+          "source_expression" => "state.items",
+          "body_code" => "item * 2",
+          "batch_size" => 0
+        })
+
+      assert {:error, msg} = BlackboexFlow.validate(flow)
+      assert msg =~ "batch_size"
+    end
+
+    test "rejects for_each with batch_size over 100" do
+      flow =
+        for_each_flow(%{
+          "source_expression" => "state.items",
+          "body_code" => "item * 2",
+          "batch_size" => 101
+        })
+
+      assert {:error, msg} = BlackboexFlow.validate(flow)
+      assert msg =~ "batch_size"
+    end
+  end
+
+  describe "validate/1 — webhook_wait node" do
+    defp webhook_wait_flow(data) do
+      %{
+        "version" => "1.0",
+        "nodes" => [
+          %{"id" => "n1", "type" => "start", "position" => %{"x" => 0, "y" => 0}, "data" => %{}},
+          %{
+            "id" => "n2",
+            "type" => "webhook_wait",
+            "position" => %{"x" => 200, "y" => 0},
+            "data" => data
+          },
+          %{"id" => "n3", "type" => "end", "position" => %{"x" => 400, "y" => 0}, "data" => %{}}
+        ],
+        "edges" => []
+      }
+    end
+
+    test "accepts valid webhook_wait node with required event_type" do
+      flow = webhook_wait_flow(%{"event_type" => "payment.confirmed"})
+      assert :ok = BlackboexFlow.validate(flow)
+    end
+
+    test "accepts valid webhook_wait node with all optional fields" do
+      data = %{
+        "event_type" => "payment.confirmed",
+        "timeout_ms" => 60_000,
+        "resume_path" => "/webhooks/resume"
+      }
+
+      flow = webhook_wait_flow(data)
+      assert :ok = BlackboexFlow.validate(flow)
+    end
+
+    test "rejects webhook_wait with missing event_type" do
+      flow = webhook_wait_flow(%{})
+      assert {:error, msg} = BlackboexFlow.validate(flow)
+      assert msg =~ "event_type"
+    end
+
+    test "rejects webhook_wait with empty event_type" do
+      flow = webhook_wait_flow(%{"event_type" => ""})
+      assert {:error, msg} = BlackboexFlow.validate(flow)
+      assert msg =~ "event_type"
+    end
+
+    test "rejects webhook_wait with non-positive timeout_ms" do
+      flow = webhook_wait_flow(%{"event_type" => "payment.confirmed", "timeout_ms" => 0})
+      assert {:error, msg} = BlackboexFlow.validate(flow)
+      assert msg =~ "timeout_ms"
+    end
+  end
+
+  describe "validate/1 — sub_flow node" do
+    defp sub_flow_flow(data) do
+      %{
+        "version" => "1.0",
+        "nodes" => [
+          %{"id" => "n1", "type" => "start", "position" => %{"x" => 0, "y" => 0}, "data" => %{}},
+          %{
+            "id" => "n2",
+            "type" => "sub_flow",
+            "position" => %{"x" => 200, "y" => 0},
+            "data" => data
+          },
+          %{"id" => "n3", "type" => "end", "position" => %{"x" => 400, "y" => 0}, "data" => %{}}
+        ],
+        "edges" => []
+      }
+    end
+
+    test "accepts valid sub_flow node with required flow_id" do
+      flow = sub_flow_flow(%{"flow_id" => "abc-123-def"})
+      assert :ok = BlackboexFlow.validate(flow)
+    end
+
+    test "accepts sub_flow with all optional fields" do
+      data = %{
+        "flow_id" => "abc-123-def",
+        "input_mapping" => %{"key" => "state[\"val\"]"},
+        "timeout_ms" => 15_000
+      }
+
+      flow = sub_flow_flow(data)
+      assert :ok = BlackboexFlow.validate(flow)
+    end
+
+    test "accepts sub_flow with missing flow_id (draft state)" do
+      flow = sub_flow_flow(%{})
+      assert :ok = BlackboexFlow.validate(flow)
+    end
+
+    test "accepts sub_flow with empty flow_id (draft state)" do
+      flow = sub_flow_flow(%{"flow_id" => ""})
+      assert :ok = BlackboexFlow.validate(flow)
+    end
+
+    test "rejects sub_flow with non-string flow_id" do
+      flow = sub_flow_flow(%{"flow_id" => 42})
+      assert {:error, msg} = BlackboexFlow.validate(flow)
+      assert msg =~ "flow_id"
+    end
+
+    test "rejects sub_flow with non-map input_mapping" do
+      flow = sub_flow_flow(%{"flow_id" => "abc", "input_mapping" => "bad"})
+      assert {:error, msg} = BlackboexFlow.validate(flow)
+      assert msg =~ "input_mapping"
+    end
+
+    test "rejects sub_flow with non-positive timeout_ms" do
+      flow = sub_flow_flow(%{"flow_id" => "abc", "timeout_ms" => 0})
+      assert {:error, msg} = BlackboexFlow.validate(flow)
+      assert msg =~ "timeout_ms"
     end
   end
 end

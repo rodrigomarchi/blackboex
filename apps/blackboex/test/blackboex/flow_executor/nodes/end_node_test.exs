@@ -125,16 +125,6 @@ defmodule Blackboex.FlowExecutor.Nodes.EndNodeTest do
                EndNode.run(args, %{}, response_schema: [], response_mapping: [])
     end
 
-    test "handles branch-skipped marker unchanged regardless of mapping" do
-      args = %{prev_result: %{output: :__branch_skipped__, state: %{}}}
-
-      assert {:ok, %{output: :__branch_skipped__}} =
-               EndNode.run(args, %{},
-                 response_schema: @response_schema,
-                 response_mapping: @response_mapping
-               )
-    end
-
     test "preserves nil, 0, false values through mapping" do
       args = %{
         prev_result: %{

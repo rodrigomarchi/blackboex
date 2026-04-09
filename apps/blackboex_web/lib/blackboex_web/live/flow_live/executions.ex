@@ -76,7 +76,13 @@ defmodule BlackboexWeb.FlowLive.Executions do
                 <td class="px-4 py-2 text-muted-foreground">
                   {format_time(exec.inserted_at)}
                 </td>
-                <td class="px-4 py-2 text-right">
+                <td class="px-4 py-2 text-right flex items-center justify-end gap-2">
+                  <span
+                    :if={exec.status == "halted"}
+                    class="inline-flex items-center gap-1 text-xs text-amber-600"
+                  >
+                    <.icon name="hero-pause-circle" class="size-3.5" /> Waiting
+                  </span>
                   <.link
                     navigate={~p"/flows/#{@flow.id}/executions/#{exec.id}"}
                     class="text-primary hover:underline text-xs"
@@ -101,6 +107,9 @@ defmodule BlackboexWeb.FlowLive.Executions do
 
   defp exec_status_classes("running"),
     do: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+
+  defp exec_status_classes("halted"),
+    do: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
 
   defp exec_status_classes(_),
     do: "bg-muted text-muted-foreground"

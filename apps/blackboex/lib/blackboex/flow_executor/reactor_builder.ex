@@ -9,18 +9,31 @@ defmodule Blackboex.FlowExecutor.ReactorBuilder do
   ## Branch Gating
 
   Condition nodes output `%{branch: index, value: input, state: state}`.
-  Downstream nodes of a condition are wrapped in a `BranchGate` step that
-  checks whether the branch index matches the edge's source_port. If it
-  doesn't match, the gate passes `nil` — the downstream step is skipped.
+  Nodes reachable (directly or transitively) from a Condition node are wrapped
+  in a `BranchGate` step. The argument transform on the edge from the condition
+  produces `%{output: :__branch_skipped__, state: state}` for non-matching
+  branches. The BranchGate step checks for this sentinel and returns early
+  without running the real node logic. Matching branches are delegated to the
+  real node implementation unchanged.
+
+  This centralises sentinel handling in `BranchGate` and the branch-gate
+  argument transform, keeping individual node modules free of branching
+  mechanics.
   """
 
   alias Blackboex.FlowExecutor.{ExecutionMiddleware, ParsedFlow, ParsedNode}
 
   alias Blackboex.FlowExecutor.Nodes.{
+    BranchGate,
     Condition,
+    Delay,
     ElixirCode,
     EndNode,
-    Start
+    ForEach,
+    HttpRequest,
+    Start,
+    SubFlow,
+    WebhookWait
   }
 
   alias Reactor.{Argument, Builder}
@@ -28,14 +41,18 @@ defmodule Blackboex.FlowExecutor.ReactorBuilder do
   @max_nodes 100
   @max_edges 500
 
-  @spec build(ParsedFlow.t()) :: {:ok, Reactor.t()} | {:error, any()}
-  def build(%ParsedFlow{} = parsed_flow) do
+  @spec build(ParsedFlow.t(), keyword()) :: {:ok, Reactor.t()} | {:error, any()}
+  def build(%ParsedFlow{} = parsed_flow, opts \\ []) do
+    default_async? = Application.get_env(:blackboex, :flow_executor_async, true)
+    async? = Keyword.get(opts, :async?, default_async?)
+
     with :ok <- validate_limits(parsed_flow) do
       reactor = Builder.new()
+      condition_reachable = condition_reachable_node_ids(parsed_flow)
 
       with {:ok, reactor} <- Builder.add_input(reactor, :payload),
-           {:ok, reactor} <- add_all_steps(reactor, parsed_flow),
-           {:ok, reactor} <- set_return(reactor, parsed_flow),
+           {:ok, reactor} <- add_all_steps(reactor, parsed_flow, condition_reachable, async?),
+           {:ok, reactor} <- set_return(reactor, parsed_flow, async?),
            {:ok, reactor} <- Builder.add_middleware(reactor, ExecutionMiddleware) do
         {:ok, reactor}
       end
@@ -57,18 +74,60 @@ defmodule Blackboex.FlowExecutor.ReactorBuilder do
     end
   end
 
-  defp add_all_steps(reactor, %ParsedFlow{} = parsed_flow) do
+  # Returns the set of node IDs reachable from any condition node
+  # (directly or transitively). These nodes are wrapped in BranchGate.
+  @spec condition_reachable_node_ids(ParsedFlow.t()) :: MapSet.t(String.t())
+  defp condition_reachable_node_ids(%ParsedFlow{nodes: nodes, adjacency: adjacency}) do
+    condition_ids =
+      nodes
+      |> Enum.filter(&(&1.type == :condition))
+      |> Enum.map(& &1.id)
+
+    Enum.reduce(condition_ids, MapSet.new(), fn cond_id, acc ->
+      reachable = bfs_reachable(cond_id, adjacency)
+      MapSet.union(acc, reachable)
+    end)
+  end
+
+  defp bfs_reachable(start_id, adjacency) do
+    do_bfs([start_id], MapSet.new([start_id]), adjacency)
+  end
+
+  defp do_bfs([], visited, _adjacency), do: visited
+
+  defp do_bfs([current | queue], visited, adjacency) do
+    neighbours = Map.get(adjacency, current, [])
+
+    {new_queue, new_visited} =
+      Enum.reduce(neighbours, {queue, visited}, fn neighbour, {q, v} ->
+        if MapSet.member?(v, neighbour) do
+          {q, v}
+        else
+          {[neighbour | q], MapSet.put(v, neighbour)}
+        end
+      end)
+
+    do_bfs(new_queue, new_visited, adjacency)
+  end
+
+  defp add_all_steps(reactor, %ParsedFlow{} = parsed_flow, condition_reachable, async?) do
     ordered = topological_sort(parsed_flow)
 
     Enum.reduce_while(ordered, {:ok, reactor}, fn node, {:ok, reactor} ->
-      case add_node_step(reactor, node, parsed_flow) do
+      case add_node_step(reactor, node, parsed_flow, condition_reachable, async?) do
         {:ok, reactor} -> {:cont, {:ok, reactor}}
         {:error, _} = error -> {:halt, error}
       end
     end)
   end
 
-  defp add_node_step(reactor, %ParsedNode{type: :start} = node, _parsed_flow) do
+  defp add_node_step(
+         reactor,
+         %ParsedNode{type: :start} = node,
+         _parsed_flow,
+         _condition_reachable,
+         _async?
+       ) do
     schema_opts = start_schema_options(node.data)
 
     Builder.add_step(
@@ -80,20 +139,40 @@ defmodule Blackboex.FlowExecutor.ReactorBuilder do
     )
   end
 
-  defp add_node_step(reactor, %ParsedNode{type: :elixir_code} = node, parsed_flow) do
+  defp add_node_step(
+         reactor,
+         %ParsedNode{type: :elixir_code} = node,
+         parsed_flow,
+         condition_reachable,
+         async?
+       ) do
     code = node.data["code"] || ""
     timeout_ms = parse_timeout(node.data["timeout_ms"], 5_000)
+    impl_opts = [code: code, timeout_ms: timeout_ms]
+
+    {impl, opts} =
+      if MapSet.member?(condition_reachable, node.id) do
+        {BranchGate, [impl: ElixirCode, impl_options: impl_opts]}
+      else
+        {ElixirCode, impl_opts}
+      end
 
     Builder.add_step(
       reactor,
       step_name(node.id),
-      {ElixirCode, code: code, timeout_ms: timeout_ms},
+      {impl, opts},
       [build_input_argument(node, parsed_flow)],
-      async?: false
+      async?: async?
     )
   end
 
-  defp add_node_step(reactor, %ParsedNode{type: :condition} = node, parsed_flow) do
+  defp add_node_step(
+         reactor,
+         %ParsedNode{type: :condition} = node,
+         parsed_flow,
+         _condition_reachable,
+         async?
+       ) do
     expression = node.data["expression"] || "0"
     timeout_ms = parse_timeout(node.data["timeout_ms"], 5_000)
 
@@ -102,19 +181,186 @@ defmodule Blackboex.FlowExecutor.ReactorBuilder do
       step_name(node.id),
       {Condition, expression: expression, timeout_ms: timeout_ms},
       [build_input_argument(node, parsed_flow)],
-      async?: false
+      async?: async?
     )
   end
 
-  defp add_node_step(reactor, %ParsedNode{type: :end} = node, parsed_flow) do
-    schema_opts = end_schema_options(node.data)
+  defp add_node_step(
+         reactor,
+         %ParsedNode{type: :sub_flow} = node,
+         parsed_flow,
+         condition_reachable,
+         async?
+       ) do
+    flow_id = node.data["flow_id"] || ""
+    timeout_ms = parse_timeout(node.data["timeout_ms"], 30_000)
+    input_mapping = node.data["input_mapping"] || %{}
+    impl_opts = [flow_id: flow_id, timeout_ms: timeout_ms, input_mapping: input_mapping]
+
+    {impl, opts} =
+      if MapSet.member?(condition_reachable, node.id) do
+        {BranchGate, [impl: SubFlow, impl_options: impl_opts]}
+      else
+        {SubFlow, impl_opts}
+      end
 
     Builder.add_step(
       reactor,
       step_name(node.id),
-      {EndNode, schema_opts},
+      {impl, opts},
       [build_input_argument(node, parsed_flow)],
-      async?: false
+      async?: async?
+    )
+  end
+
+  defp add_node_step(
+         reactor,
+         %ParsedNode{type: :http_request} = node,
+         parsed_flow,
+         condition_reachable,
+         async?
+       ) do
+    impl_opts =
+      [
+        method: Map.get(node.data, "method", "GET"),
+        url: Map.get(node.data, "url", ""),
+        headers: Map.get(node.data, "headers", %{}),
+        body_template: Map.get(node.data, "body_template", ""),
+        timeout_ms: parse_timeout(node.data["timeout_ms"], 10_000),
+        max_retries: Map.get(node.data, "max_retries", 3),
+        auth_type: Map.get(node.data, "auth_type", "none"),
+        auth_config: Map.get(node.data, "auth_config", %{}),
+        expected_status: Map.get(node.data, "expected_status", [200, 201])
+      ]
+      |> maybe_add_test_plug(node.data)
+
+    {impl, opts} =
+      if MapSet.member?(condition_reachable, node.id) do
+        {BranchGate, [impl: HttpRequest, impl_options: impl_opts]}
+      else
+        {HttpRequest, impl_opts}
+      end
+
+    Builder.add_step(
+      reactor,
+      step_name(node.id),
+      {impl, opts},
+      [build_input_argument(node, parsed_flow)],
+      async?: async?
+    )
+  end
+
+  defp add_node_step(
+         reactor,
+         %ParsedNode{type: :delay} = node,
+         parsed_flow,
+         condition_reachable,
+         async?
+       ) do
+    impl_opts = [
+      duration_ms: parse_timeout(node.data["duration_ms"], 1_000),
+      max_duration_ms: parse_timeout(node.data["max_duration_ms"], 60_000)
+    ]
+
+    {impl, opts} =
+      if MapSet.member?(condition_reachable, node.id) do
+        {BranchGate, [impl: Delay, impl_options: impl_opts]}
+      else
+        {Delay, impl_opts}
+      end
+
+    Builder.add_step(
+      reactor,
+      step_name(node.id),
+      {impl, opts},
+      [build_input_argument(node, parsed_flow)],
+      async?: async?
+    )
+  end
+
+  defp add_node_step(
+         reactor,
+         %ParsedNode{type: :for_each} = node,
+         parsed_flow,
+         condition_reachable,
+         async?
+       ) do
+    impl_opts = [
+      source_expression: Map.get(node.data, "source_expression", ""),
+      body_code: Map.get(node.data, "body_code", ""),
+      item_variable: Map.get(node.data, "item_variable", "item"),
+      accumulator: Map.get(node.data, "accumulator", "results"),
+      batch_size: Map.get(node.data, "batch_size", 10),
+      timeout_ms: parse_timeout(node.data["timeout_ms"], 5_000)
+    ]
+
+    {impl, opts} =
+      if MapSet.member?(condition_reachable, node.id) do
+        {BranchGate, [impl: ForEach, impl_options: impl_opts]}
+      else
+        {ForEach, impl_opts}
+      end
+
+    Builder.add_step(
+      reactor,
+      step_name(node.id),
+      {impl, opts},
+      [build_input_argument(node, parsed_flow)],
+      async?: async?
+    )
+  end
+
+  defp add_node_step(
+         reactor,
+         %ParsedNode{type: :webhook_wait} = node,
+         parsed_flow,
+         condition_reachable,
+         async?
+       ) do
+    impl_opts = [
+      event_type: Map.get(node.data, "event_type", ""),
+      timeout_ms: parse_timeout(node.data["timeout_ms"], 3_600_000),
+      resume_path: Map.get(node.data, "resume_path", "")
+    ]
+
+    {impl, opts} =
+      if MapSet.member?(condition_reachable, node.id) do
+        {BranchGate, [impl: WebhookWait, impl_options: impl_opts]}
+      else
+        {WebhookWait, impl_opts}
+      end
+
+    Builder.add_step(
+      reactor,
+      step_name(node.id),
+      {impl, opts},
+      [build_input_argument(node, parsed_flow)],
+      async?: async?
+    )
+  end
+
+  defp add_node_step(
+         reactor,
+         %ParsedNode{type: :end} = node,
+         parsed_flow,
+         condition_reachable,
+         async?
+       ) do
+    schema_opts = end_schema_options(node.data)
+
+    {impl, opts} =
+      if MapSet.member?(condition_reachable, node.id) do
+        {BranchGate, [impl: EndNode, impl_options: schema_opts]}
+      else
+        {EndNode, schema_opts}
+      end
+
+    Builder.add_step(
+      reactor,
+      step_name(node.id),
+      {impl, opts},
+      [build_input_argument(node, parsed_flow)],
+      async?: async?
     )
   end
 
@@ -155,11 +401,12 @@ defmodule Blackboex.FlowExecutor.ReactorBuilder do
 
   defp branch_gate(other, _expected_branch), do: other
 
-  defp set_return(reactor, %ParsedFlow{end_node_ids: [end_id]}) do
+  defp set_return(reactor, %ParsedFlow{end_node_ids: [end_id]}, _async?) do
     Builder.return(reactor, step_name(end_id))
   end
 
-  defp set_return(reactor, %ParsedFlow{end_node_ids: end_ids}) when length(end_ids) > 1 do
+  defp set_return(reactor, %ParsedFlow{end_node_ids: end_ids}, _async?)
+       when length(end_ids) > 1 do
     # Multiple end nodes (branching flows): add a collector step that picks
     # the first non-skipped result. Each end node feeds into the collector.
     args =
@@ -175,7 +422,7 @@ defmodule Blackboex.FlowExecutor.ReactorBuilder do
     end
   end
 
-  defp set_return(_reactor, _parsed_flow) do
+  defp set_return(_reactor, _parsed_flow, _async?) do
     {:error, "no end node found to set as return"}
   end
 
@@ -256,4 +503,11 @@ defmodule Blackboex.FlowExecutor.ReactorBuilder do
   defp maybe_add_opt(opts, _key, nil), do: opts
   defp maybe_add_opt(opts, _key, []), do: opts
   defp maybe_add_opt(opts, key, value), do: Keyword.put(opts, key, value)
+
+  # Allows injecting a Req.Test plug via node data for E2E testing.
+  @spec maybe_add_test_plug(keyword(), map()) :: keyword()
+  defp maybe_add_test_plug(opts, %{"plug" => plug}) when not is_nil(plug),
+    do: opts ++ [plug: plug, retry: false]
+
+  defp maybe_add_test_plug(opts, _data), do: opts
 end

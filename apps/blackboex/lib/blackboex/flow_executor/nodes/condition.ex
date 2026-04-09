@@ -9,24 +9,37 @@ defmodule Blackboex.FlowExecutor.Nodes.Condition do
 
   use Reactor.Step
 
+  alias Blackboex.FlowExecutor.Nodes.Helpers
+
   @impl true
   @spec run(Reactor.inputs(), Reactor.context(), keyword()) :: {:ok, map()} | {:error, any()}
   def run(arguments, _context, options) do
     expression = Keyword.fetch!(options, :expression)
     timeout_ms = Keyword.get(options, :timeout_ms, 5_000)
-    {input, state} = extract_input_and_state(arguments)
+    {input, state} = Helpers.extract_input_and_state(arguments)
+    execute_with_timeout(expression, input, state, timeout_ms)
+  end
 
-    # Skip if branch was gated
-    if input == :__branch_skipped__ do
-      {:ok, %{branch: -1, value: :__branch_skipped__, state: state}}
-    else
-      execute_with_timeout(expression, input, state, timeout_ms)
+  @impl true
+  @spec compensate(any(), Reactor.inputs(), Reactor.context(), keyword()) :: :ok | :retry
+  def compensate(reason, _arguments, _context, _options) do
+    case reason do
+      %ErlangError{original: :timeout} -> :retry
+      "execution timed out" <> _ -> :retry
+      _ -> :ok
     end
   end
 
+  @impl true
+  @spec backoff(any(), Reactor.inputs(), Reactor.context(), keyword()) :: non_neg_integer()
+  def backoff(_reason, _arguments, context, _options) do
+    retry_count = Map.get(context, :current_try, 0)
+    min(round(:math.pow(2, retry_count) * 500), 10_000)
+  end
+
   defp execute_with_timeout(expression, input, state, timeout_ms) do
-    task =
-      Task.async(fn ->
+    Helpers.execute_with_timeout(
+      fn ->
         try do
           bindings = [input: input, state: state]
           {result, _bindings} = Code.eval_string(expression, bindings)
@@ -42,20 +55,8 @@ defmodule Blackboex.FlowExecutor.Nodes.Condition do
         rescue
           e -> {:error, Exception.message(e)}
         end
-      end)
-
-    case Task.yield(task, timeout_ms) || Task.shutdown(task, :brutal_kill) do
-      {:ok, result} -> result
-      nil -> {:error, "condition expression timed out after #{timeout_ms}ms"}
-    end
+      end,
+      timeout_ms
+    )
   end
-
-  defp extract_input_and_state(%{prev_result: %{output: output, state: state}}),
-    do: {output, state}
-
-  defp extract_input_and_state(%{prev_result: %{value: value, state: state}}),
-    do: {value, state}
-
-  defp extract_input_and_state(%{input: input}),
-    do: {input, %{}}
 end

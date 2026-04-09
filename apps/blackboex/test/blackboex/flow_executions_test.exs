@@ -171,6 +171,56 @@ defmodule Blackboex.FlowExecutionsTest do
     end
   end
 
+  describe "merge_shared_state/2" do
+    test "merges into empty shared_state", %{flow: flow} do
+      {:ok, exec} = FlowExecutions.create_execution(flow)
+      assert exec.shared_state == %{}
+
+      assert :ok = FlowExecutions.merge_shared_state(exec.id, %{"key" => "value"})
+
+      updated = FlowExecutions.get_execution(exec.id)
+      assert updated.shared_state == %{"key" => "value"}
+    end
+
+    test "merges into existing shared_state preserving old keys", %{flow: flow} do
+      {:ok, exec} = FlowExecutions.create_execution(flow)
+      FlowExecutions.merge_shared_state(exec.id, %{"existing" => 1})
+
+      assert :ok = FlowExecutions.merge_shared_state(exec.id, %{"new_key" => 2})
+
+      updated = FlowExecutions.get_execution(exec.id)
+      assert updated.shared_state == %{"existing" => 1, "new_key" => 2}
+    end
+
+    test "overlapping keys: new values win", %{flow: flow} do
+      {:ok, exec} = FlowExecutions.create_execution(flow)
+      FlowExecutions.merge_shared_state(exec.id, %{"key" => "original"})
+
+      assert :ok = FlowExecutions.merge_shared_state(exec.id, %{"key" => "updated"})
+
+      updated = FlowExecutions.get_execution(exec.id)
+      assert updated.shared_state["key"] == "updated"
+    end
+
+    test "concurrent merges of different keys do not lose data", %{flow: flow} do
+      {:ok, exec} = FlowExecutions.create_execution(flow)
+
+      task1 = Task.async(fn -> FlowExecutions.merge_shared_state(exec.id, %{"a" => 1}) end)
+      task2 = Task.async(fn -> FlowExecutions.merge_shared_state(exec.id, %{"b" => 2}) end)
+
+      Task.await(task1)
+      Task.await(task2)
+
+      updated = FlowExecutions.get_execution(exec.id)
+      assert updated.shared_state["a"] == 1
+      assert updated.shared_state["b"] == 2
+    end
+
+    test "returns :ok for non-existent execution_id" do
+      assert :ok = FlowExecutions.merge_shared_state(Ecto.UUID.generate(), %{"x" => 1})
+    end
+  end
+
   describe "fixtures" do
     test "flow_execution_fixture creates a valid execution" do
       exec = flow_execution_fixture()

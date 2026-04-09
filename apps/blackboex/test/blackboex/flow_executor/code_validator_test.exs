@@ -102,6 +102,98 @@ defmodule Blackboex.FlowExecutor.CodeValidatorTest do
       assert field == "expression"
     end
 
+    test "returns :ok for for_each node with valid source_expression and body_code" do
+      flow = %ParsedFlow{
+        start_node: %ParsedNode{id: "n1", type: :start, position: %{x: 0, y: 0}},
+        nodes: [
+          %ParsedNode{id: "n1", type: :start, position: %{x: 0, y: 0}},
+          %ParsedNode{
+            id: "n2",
+            type: :for_each,
+            position: %{x: 100, y: 0},
+            data: %{"source_expression" => "state.items", "body_code" => "item * 2"}
+          },
+          %ParsedNode{id: "n3", type: :end, position: %{x: 200, y: 0}}
+        ],
+        edges: [],
+        end_node_ids: ["n3"],
+        adjacency: %{}
+      }
+
+      assert :ok = CodeValidator.validate_flow(flow)
+    end
+
+    test "returns error for for_each node with invalid source_expression syntax" do
+      flow = %ParsedFlow{
+        start_node: %ParsedNode{id: "n1", type: :start, position: %{x: 0, y: 0}},
+        nodes: [
+          %ParsedNode{id: "n1", type: :start, position: %{x: 0, y: 0}},
+          %ParsedNode{
+            id: "n2",
+            type: :for_each,
+            position: %{x: 100, y: 0},
+            data: %{"source_expression" => "def foo(", "body_code" => "item * 2"}
+          },
+          %ParsedNode{id: "n3", type: :end, position: %{x: 200, y: 0}}
+        ],
+        edges: [],
+        end_node_ids: ["n3"],
+        adjacency: %{}
+      }
+
+      assert {:error, errors} = CodeValidator.validate_flow(flow)
+
+      assert Enum.any?(errors, fn {id, field, _} ->
+               id == "n2" and field == "source_expression"
+             end)
+    end
+
+    test "returns error for for_each node with invalid body_code syntax" do
+      flow = %ParsedFlow{
+        start_node: %ParsedNode{id: "n1", type: :start, position: %{x: 0, y: 0}},
+        nodes: [
+          %ParsedNode{id: "n1", type: :start, position: %{x: 0, y: 0}},
+          %ParsedNode{
+            id: "n2",
+            type: :for_each,
+            position: %{x: 100, y: 0},
+            data: %{"source_expression" => "state.items", "body_code" => "if true do"}
+          },
+          %ParsedNode{id: "n3", type: :end, position: %{x: 200, y: 0}}
+        ],
+        edges: [],
+        end_node_ids: ["n3"],
+        adjacency: %{}
+      }
+
+      assert {:error, errors} = CodeValidator.validate_flow(flow)
+      assert Enum.any?(errors, fn {id, field, _} -> id == "n2" and field == "body_code" end)
+    end
+
+    test "returns both errors for for_each node with both fields invalid" do
+      flow = %ParsedFlow{
+        start_node: %ParsedNode{id: "n1", type: :start, position: %{x: 0, y: 0}},
+        nodes: [
+          %ParsedNode{id: "n1", type: :start, position: %{x: 0, y: 0}},
+          %ParsedNode{
+            id: "n2",
+            type: :for_each,
+            position: %{x: 100, y: 0},
+            data: %{"source_expression" => "def bad(", "body_code" => "if true do"}
+          },
+          %ParsedNode{id: "n3", type: :end, position: %{x: 200, y: 0}}
+        ],
+        edges: [],
+        end_node_ids: ["n3"],
+        adjacency: %{}
+      }
+
+      assert {:error, errors} = CodeValidator.validate_flow(flow)
+      assert length(errors) == 2
+      assert Enum.any?(errors, fn {_, field, _} -> field == "source_expression" end)
+      assert Enum.any?(errors, fn {_, field, _} -> field == "body_code" end)
+    end
+
     test "skips validation for start and end nodes" do
       flow = %ParsedFlow{
         start_node: %ParsedNode{id: "n1", type: :start, position: %{x: 0, y: 0}},

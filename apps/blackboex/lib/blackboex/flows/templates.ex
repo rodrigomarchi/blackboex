@@ -20,7 +20,9 @@ defmodule Blackboex.Flows.Templates do
   ]
 
   @templates [
-    Blackboex.Flows.Templates.HelloWorld.template()
+    Blackboex.Flows.Templates.HelloWorld.template(),
+    Blackboex.Flows.Templates.Notification.template(),
+    Blackboex.Flows.Templates.AllNodesDemo.template()
   ]
 
   @doc "Returns all available flow templates."

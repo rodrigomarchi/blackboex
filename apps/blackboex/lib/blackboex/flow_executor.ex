@@ -21,19 +21,26 @@ defmodule Blackboex.FlowExecutor do
 
   require Logger
 
+  # Reactor.run/4 returns {:halted, reactor} when a step (e.g. webhook_wait) halts,
+  # but its @spec omits this variant. Suppress the resulting Dialyzer pattern_match warning.
+  @dialyzer {:no_match, run: 3}
+
   @spec run(Flow.t(), map(), Ecto.UUID.t() | nil) ::
-          {:ok, map()} | {:error, any()}
+          {:ok, map()} | {:halted, map()} | {:error, any()}
   def run(%Flow{} = flow, input, execution_id \\ nil) do
     with :ok <- BlackboexFlow.validate(flow.definition || %{}),
          {:ok, resolved_def} <- resolve_secrets(flow),
          {:ok, parsed} <- DefinitionParser.parse(resolved_def),
          :ok <- CodeValidator.validate_flow(parsed),
          {:ok, reactor} <- ReactorBuilder.build(parsed) do
-      context = build_context(parsed, execution_id)
+      context = build_context(parsed, execution_id, flow.organization_id)
 
       case Reactor.run(reactor, %{payload: input}, context) do
         {:ok, result} ->
           {:ok, result}
+
+        {:halted, _reactor} ->
+          {:halted, %{execution_id: execution_id}}
 
         {:error, reason} ->
           {:error, format_error(reason)}
@@ -55,6 +62,10 @@ defmodule Blackboex.FlowExecutor do
           duration_ms = compute_duration(execution)
           FlowExecutions.complete_execution(execution, wrap_for_db(output), duration_ms)
           {:ok, %{output: output, execution_id: execution.id, duration_ms: duration_ms}}
+
+        {:halted, _halt_info} ->
+          # webhook_wait node already set the execution to "waiting" status.
+          {:ok, %{halted: true, execution_id: execution.id}}
 
         {:error, reason} ->
           error_msg = format_error(reason)
@@ -86,7 +97,7 @@ defmodule Blackboex.FlowExecutor do
     SecretResolver.resolve(definition, org_id)
   end
 
-  defp build_context(parsed, execution_id) do
+  defp build_context(parsed, execution_id, organization_id) do
     node_map =
       Map.new(parsed.nodes, fn node ->
         {String.to_atom("node_#{node.id}"), %{id: node.id, type: node.type}}
@@ -94,7 +105,8 @@ defmodule Blackboex.FlowExecutor do
 
     %{
       execution_id: execution_id,
-      node_map: node_map
+      node_map: node_map,
+      organization_id: organization_id
     }
   end
 

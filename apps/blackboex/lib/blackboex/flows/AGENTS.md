@@ -53,7 +53,18 @@ Facade: `Blackboex.Flows` (`flows.ex`). All web/worker code calls through this f
 - Communication: `export_definition` (server→client), `save_definition` (client→server)
 - Canvas element uses `phx-update="ignore"` to prevent LiveView DOM interference
 
+## Templates
+
+| Module | ID | Description |
+|--------|----|-------------|
+| `Templates.HelloWorld` | `hello_world` | Contact Router — 3-branch flow (email/phone/error) |
+| `Templates.Notification` | `notification` | Simple sub-flow: start → format → end |
+| `Templates.AllNodesDemo` | `all_nodes_demo` | All 9 node types in a 10-node, 2-branch flow |
+
+Registry: `Flows.Templates` — `list/0`, `get/1`, `list_by_category/0`
+
 ## Fixtures
 
 - `FlowsFixtures.flow_fixture/1` — creates flow with user + org
+- `FlowsFixtures.flow_from_template_fixture/1` — creates flow from template
 - Named setups: `:create_flow`, `:create_org_and_flow`

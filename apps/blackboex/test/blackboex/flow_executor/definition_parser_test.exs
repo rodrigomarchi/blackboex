@@ -231,6 +231,171 @@ defmodule Blackboex.FlowExecutor.DefinitionParserTest do
     end
   end
 
+  describe "parse/1 with new node types" do
+    test "parses flow containing http_request node" do
+      flow = %{
+        "version" => "1.0",
+        "nodes" => [
+          %{"id" => "n1", "type" => "start", "position" => %{"x" => 0, "y" => 0}, "data" => %{}},
+          %{
+            "id" => "n2",
+            "type" => "http_request",
+            "position" => %{"x" => 200, "y" => 0},
+            "data" => %{"method" => "GET", "url" => "https://example.com"}
+          },
+          %{"id" => "n3", "type" => "end", "position" => %{"x" => 400, "y" => 0}, "data" => %{}}
+        ],
+        "edges" => [
+          %{
+            "id" => "e1",
+            "source" => "n1",
+            "source_port" => 0,
+            "target" => "n2",
+            "target_port" => 0
+          },
+          %{
+            "id" => "e2",
+            "source" => "n2",
+            "source_port" => 0,
+            "target" => "n3",
+            "target_port" => 0
+          }
+        ]
+      }
+
+      assert {:ok, %ParsedFlow{nodes: nodes}} = DefinitionParser.parse(flow)
+      http_node = Enum.find(nodes, &(&1.id == "n2"))
+      assert http_node.type == :http_request
+    end
+
+    test "parses flow containing delay node" do
+      flow = %{
+        "version" => "1.0",
+        "nodes" => [
+          %{"id" => "n1", "type" => "start", "position" => %{"x" => 0, "y" => 0}, "data" => %{}},
+          %{
+            "id" => "n2",
+            "type" => "delay",
+            "position" => %{"x" => 200, "y" => 0},
+            "data" => %{"duration_ms" => 1000}
+          },
+          %{"id" => "n3", "type" => "end", "position" => %{"x" => 400, "y" => 0}, "data" => %{}}
+        ],
+        "edges" => [
+          %{
+            "id" => "e1",
+            "source" => "n1",
+            "source_port" => 0,
+            "target" => "n2",
+            "target_port" => 0
+          },
+          %{
+            "id" => "e2",
+            "source" => "n2",
+            "source_port" => 0,
+            "target" => "n3",
+            "target_port" => 0
+          }
+        ]
+      }
+
+      assert {:ok, %ParsedFlow{nodes: nodes}} = DefinitionParser.parse(flow)
+      delay_node = Enum.find(nodes, &(&1.id == "n2"))
+      assert delay_node.type == :delay
+    end
+
+    test "parses flow containing for_each node" do
+      flow = %{
+        "version" => "1.0",
+        "nodes" => [
+          %{"id" => "n1", "type" => "start", "position" => %{"x" => 0, "y" => 0}, "data" => %{}},
+          %{
+            "id" => "n2",
+            "type" => "for_each",
+            "position" => %{"x" => 200, "y" => 0},
+            "data" => %{"source_expression" => "state.items", "body_code" => "item * 2"}
+          },
+          %{"id" => "n3", "type" => "end", "position" => %{"x" => 400, "y" => 0}, "data" => %{}}
+        ],
+        "edges" => [
+          %{
+            "id" => "e1",
+            "source" => "n1",
+            "source_port" => 0,
+            "target" => "n2",
+            "target_port" => 0
+          },
+          %{
+            "id" => "e2",
+            "source" => "n2",
+            "source_port" => 0,
+            "target" => "n3",
+            "target_port" => 0
+          }
+        ]
+      }
+
+      assert {:ok, %ParsedFlow{nodes: nodes}} = DefinitionParser.parse(flow)
+      fe_node = Enum.find(nodes, &(&1.id == "n2"))
+      assert fe_node.type == :for_each
+    end
+
+    test "parses flow containing webhook_wait node" do
+      flow = %{
+        "version" => "1.0",
+        "nodes" => [
+          %{"id" => "n1", "type" => "start", "position" => %{"x" => 0, "y" => 0}, "data" => %{}},
+          %{
+            "id" => "n2",
+            "type" => "webhook_wait",
+            "position" => %{"x" => 200, "y" => 0},
+            "data" => %{"event_type" => "payment.confirmed"}
+          },
+          %{"id" => "n3", "type" => "end", "position" => %{"x" => 400, "y" => 0}, "data" => %{}}
+        ],
+        "edges" => [
+          %{
+            "id" => "e1",
+            "source" => "n1",
+            "source_port" => 0,
+            "target" => "n2",
+            "target_port" => 0
+          },
+          %{
+            "id" => "e2",
+            "source" => "n2",
+            "source_port" => 0,
+            "target" => "n3",
+            "target_port" => 0
+          }
+        ]
+      }
+
+      assert {:ok, %ParsedFlow{nodes: nodes}} = DefinitionParser.parse(flow)
+      ww_node = Enum.find(nodes, &(&1.id == "n2"))
+      assert ww_node.type == :webhook_wait
+    end
+
+    test "returns error for truly unknown node type" do
+      flow = %{
+        "version" => "1.0",
+        "nodes" => [
+          %{"id" => "n1", "type" => "start", "position" => %{"x" => 0, "y" => 0}, "data" => %{}},
+          %{
+            "id" => "n2",
+            "type" => "totally_unknown",
+            "position" => %{"x" => 200, "y" => 0},
+            "data" => %{}
+          },
+          %{"id" => "n3", "type" => "end", "position" => %{"x" => 400, "y" => 0}, "data" => %{}}
+        ],
+        "edges" => []
+      }
+
+      assert {:error, {:unknown_node_type, "totally_unknown"}} = DefinitionParser.parse(flow)
+    end
+  end
+
   describe "parse/1 error: orphan nodes" do
     test "returns error when node is not reachable from start" do
       flow = %{

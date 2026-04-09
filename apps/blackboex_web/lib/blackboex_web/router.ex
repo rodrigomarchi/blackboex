@@ -50,6 +50,7 @@ defmodule BlackboexWeb.Router do
   scope "/webhook", BlackboexWeb do
     pipe_through :api
     post "/:token", FlowWebhookController, :execute
+    post "/:token/resume/:event_type", FlowWebhookController, :resume
   end
 
   # Flow execution API — authenticated via session + org scope

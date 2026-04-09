@@ -10,18 +10,14 @@ defmodule Blackboex.FlowExecutor.Nodes.EndNode do
 
   use Reactor.Step
 
+  alias Blackboex.FlowExecutor.Nodes.Helpers
   alias Blackboex.FlowExecutor.SchemaValidator
 
   @impl true
   @spec run(Reactor.inputs(), Reactor.context(), keyword()) :: {:ok, map()} | {:error, String.t()}
   def run(arguments, _context, options) do
-    {input, state} = extract_input_and_state(arguments)
-
-    if input == :__branch_skipped__ do
-      {:ok, %{output: :__branch_skipped__, state: state}}
-    else
-      build_output(input, state, options)
-    end
+    {input, state} = Helpers.extract_input_and_state(arguments)
+    build_output(input, state, options)
   end
 
   defp build_output(input, state, options) do
@@ -46,13 +42,4 @@ defmodule Blackboex.FlowExecutor.Nodes.EndNode do
     details = Enum.map_join(errors, "; ", fn e -> "#{e.field} #{e.message}" end)
     "Response mapping failed: #{details}"
   end
-
-  defp extract_input_and_state(%{prev_result: %{output: output, state: state}}),
-    do: {output, state}
-
-  defp extract_input_and_state(%{prev_result: %{value: value, state: state}}),
-    do: {value, state}
-
-  defp extract_input_and_state(%{input: input}),
-    do: {input, %{}}
 end

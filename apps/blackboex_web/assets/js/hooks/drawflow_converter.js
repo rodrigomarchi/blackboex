@@ -132,6 +132,14 @@ export function blackboexToDrawflow(blackboex, buildHTML) {
         inputCount = 1
         outputCount = Math.max(2, nodeOutputMaxPort[node.id] || 2)
         break
+      case "http_request":
+      case "delay":
+      case "sub_flow":
+      case "for_each":
+      case "webhook_wait":
+        inputCount = 1
+        outputCount = 1
+        break
       default:
         inputCount = 1
         outputCount = Math.max(1, nodeOutputMaxPort[node.id] || 1)

@@ -3,6 +3,8 @@ defmodule Blackboex.FlowExecutions do
   The FlowExecutions context. Manages execution records for flows and their nodes.
   """
 
+  import Ecto.Query, warn: false
+
   alias Blackboex.FlowExecutions.FlowExecution
   alias Blackboex.FlowExecutions.FlowExecutionQueries
   alias Blackboex.FlowExecutions.NodeExecution
@@ -81,6 +83,44 @@ defmodule Blackboex.FlowExecutions do
       finished_at: DateTime.utc_now()
     })
     |> Repo.update()
+  end
+
+  @spec halt_execution(FlowExecution.t(), String.t()) ::
+          {:ok, FlowExecution.t()} | {:error, Ecto.Changeset.t()}
+  def halt_execution(%FlowExecution{} = execution, event_type) do
+    execution
+    |> FlowExecution.changeset(%{status: "halted", wait_event_type: event_type})
+    |> Repo.update()
+  end
+
+  @spec get_halted_execution_by_token(String.t(), String.t()) :: FlowExecution.t() | nil
+  def get_halted_execution_by_token(token, event_type) do
+    from(e in FlowExecution,
+      join: f in assoc(e, :flow),
+      where: f.webhook_token == ^token,
+      where: e.status == "halted",
+      where: e.wait_event_type == ^event_type,
+      order_by: [desc: e.inserted_at],
+      limit: 1,
+      preload: [:flow]
+    )
+    |> Repo.one()
+  end
+
+  @spec merge_shared_state(Ecto.UUID.t(), map()) :: :ok | {:error, any()}
+  def merge_shared_state(execution_id, new_state) when is_map(new_state) do
+    from(e in FlowExecution,
+      where: e.id == ^execution_id,
+      update: [
+        set: [
+          shared_state:
+            fragment("COALESCE(shared_state, '{}'::jsonb) || ?::jsonb", type(^new_state, :map))
+        ]
+      ]
+    )
+    |> Repo.update_all([])
+
+    :ok
   end
 
   # ── NodeExecution ─────────────────────────────────────────

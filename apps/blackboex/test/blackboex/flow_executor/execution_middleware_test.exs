@@ -101,6 +101,25 @@ defmodule Blackboex.FlowExecutor.ExecutionMiddlewareTest do
       exec = FlowExecutions.get_execution(execution.id)
       assert exec.shared_state["updated"] == true
     end
+
+    test "merges shared_state atomically (new keys preserved, existing keys not lost)", %{
+      flow: flow
+    } do
+      # Pre-seed shared_state with an existing key via direct merge
+      code = ~s|{input, Map.put(state, "step_two", "done")}|
+      flow = set_definition!(flow, linear_definition(code))
+
+      {:ok, execution} = FlowExecutions.create_execution(flow, %{})
+      # Pre-seed a key that the flow code won't touch
+      FlowExecutions.merge_shared_state(execution.id, %{"pre_existing" => "keep_me"})
+
+      assert {:ok, _} = FlowExecutor.run(flow, %{}, execution.id)
+
+      exec = FlowExecutions.get_execution(execution.id)
+      # The node added "step_two" via merge — pre_existing should still be there
+      assert exec.shared_state["step_two"] == "done"
+      assert exec.shared_state["pre_existing"] == "keep_me"
+    end
   end
 
   describe "PubSub broadcasts" do

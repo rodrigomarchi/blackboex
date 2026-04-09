@@ -24,7 +24,7 @@ defmodule Blackboex.FlowExecutor.BlackboexFlow do
   alias Blackboex.FlowExecutor.SchemaValidator
 
   @current_version "1.0"
-  @valid_node_types ~w(start elixir_code condition end)
+  @valid_node_types ~w(start elixir_code condition end http_request delay sub_flow for_each webhook_wait)
   @node_id_format ~r/^n\d+$/
 
   @spec current_version() :: String.t()
@@ -188,7 +188,16 @@ defmodule Blackboex.FlowExecutor.BlackboexFlow do
   end
 
   # Condition nodes have dynamic outputs, so only validate fixed-output node types
-  @fixed_output_counts %{"start" => 1, "elixir_code" => 1, "end" => 0}
+  @fixed_output_counts %{
+    "start" => 1,
+    "elixir_code" => 1,
+    "end" => 0,
+    "sub_flow" => 1,
+    "http_request" => 1,
+    "delay" => 1,
+    "for_each" => 1,
+    "webhook_wait" => 1
+  }
 
   defp validate_source_ports(%{"nodes" => nodes, "edges" => edges}) do
     node_map = Map.new(nodes, fn n -> {n["id"], n} end)
@@ -252,7 +261,187 @@ defmodule Blackboex.FlowExecutor.BlackboexFlow do
     end
   end
 
+  defp validate_single_node_schema(%{"id" => id, "type" => "http_request", "data" => data}) do
+    with :ok <- validate_required_string(data, "url", id),
+         :ok <- validate_http_method(data, id),
+         :ok <- validate_optional_map(data, "headers", id),
+         :ok <- validate_optional_string(data, "body_template", id),
+         :ok <- validate_optional_positive_integer(data, "timeout_ms", id),
+         :ok <- validate_optional_non_negative_integer(data, "max_retries", id),
+         :ok <- validate_optional_enum(data, "auth_type", ~w(none bearer basic api_key), id),
+         :ok <- validate_optional_map(data, "auth_config", id),
+         :ok <- validate_optional_integer_list(data, "expected_status", id) do
+      :ok
+    end
+  end
+
+  defp validate_single_node_schema(%{"id" => id, "type" => "delay", "data" => data}) do
+    with :ok <- validate_required_positive_integer(data, "duration_ms", id),
+         :ok <- validate_optional_positive_integer(data, "max_duration_ms", id) do
+      :ok
+    end
+  end
+
+  defp validate_single_node_schema(%{"id" => id, "type" => "for_each", "data" => data}) do
+    with :ok <- validate_required_string(data, "source_expression", id),
+         :ok <- validate_required_string(data, "body_code", id),
+         :ok <- validate_optional_identifier(data, "item_variable", id),
+         :ok <- validate_optional_identifier(data, "accumulator", id),
+         :ok <- validate_optional_batch_size(data, "batch_size", id),
+         :ok <- validate_optional_positive_integer(data, "timeout_ms", id) do
+      :ok
+    end
+  end
+
+  defp validate_single_node_schema(%{"id" => id, "type" => "webhook_wait", "data" => data}) do
+    with :ok <- validate_required_string(data, "event_type", id),
+         :ok <- validate_optional_positive_integer(data, "timeout_ms", id),
+         :ok <- validate_optional_string(data, "resume_path", id) do
+      :ok
+    end
+  end
+
+  defp validate_single_node_schema(%{"id" => id, "type" => "sub_flow", "data" => data}) do
+    with :ok <- validate_optional_string(data, "flow_id", id),
+         :ok <- validate_optional_map(data, "input_mapping", id),
+         :ok <- validate_optional_positive_integer(data, "timeout_ms", id) do
+      :ok
+    end
+  end
+
   defp validate_single_node_schema(_node), do: :ok
+
+  # ── Node data field validators ──────────────────────────────
+
+  defp validate_required_string(data, key, node_id) do
+    case Map.get(data, key) do
+      val when is_binary(val) and byte_size(val) > 0 -> :ok
+      nil -> {:error, "node #{node_id}: missing required field: #{key}"}
+      "" -> {:error, "node #{node_id}: #{key} must be a non-empty string"}
+      _ -> {:error, "node #{node_id}: #{key} must be a string"}
+    end
+  end
+
+  defp validate_optional_string(data, key, node_id) do
+    case Map.get(data, key) do
+      nil -> :ok
+      val when is_binary(val) -> :ok
+      _ -> {:error, "node #{node_id}: #{key} must be a string"}
+    end
+  end
+
+  defp validate_optional_map(data, key, node_id) do
+    case Map.get(data, key) do
+      nil -> :ok
+      val when is_map(val) -> :ok
+      _ -> {:error, "node #{node_id}: #{key} must be a map"}
+    end
+  end
+
+  defp validate_optional_positive_integer(data, key, node_id) do
+    case Map.get(data, key) do
+      nil -> :ok
+      val when is_integer(val) and val > 0 -> :ok
+      _ -> {:error, "node #{node_id}: #{key} must be a positive integer"}
+    end
+  end
+
+  defp validate_required_positive_integer(data, key, node_id) do
+    case Map.get(data, key) do
+      val when is_integer(val) and val > 0 -> :ok
+      nil -> {:error, "node #{node_id}: missing required field: #{key}"}
+      _ -> {:error, "node #{node_id}: #{key} must be a positive integer"}
+    end
+  end
+
+  defp validate_optional_non_negative_integer(data, key, node_id) do
+    case Map.get(data, key) do
+      nil -> :ok
+      val when is_integer(val) and val >= 0 -> :ok
+      _ -> {:error, "node #{node_id}: #{key} must be a non-negative integer"}
+    end
+  end
+
+  defp validate_optional_enum(data, key, allowed, node_id) do
+    case Map.get(data, key) do
+      nil ->
+        :ok
+
+      val when is_binary(val) ->
+        if val in allowed do
+          :ok
+        else
+          {:error, "node #{node_id}: #{key} must be one of: #{Enum.join(allowed, ", ")}"}
+        end
+
+      _ ->
+        {:error, "node #{node_id}: #{key} must be a string"}
+    end
+  end
+
+  defp validate_optional_integer_list(data, key, node_id) do
+    case Map.get(data, key) do
+      nil ->
+        :ok
+
+      val when is_list(val) ->
+        if Enum.all?(val, &is_integer/1) do
+          :ok
+        else
+          {:error, "node #{node_id}: #{key} must be a list of integers"}
+        end
+
+      _ ->
+        {:error, "node #{node_id}: #{key} must be a list"}
+    end
+  end
+
+  @identifier_format ~r/^\w+$/
+
+  defp validate_optional_identifier(data, key, node_id) do
+    case Map.get(data, key) do
+      nil ->
+        :ok
+
+      val when is_binary(val) ->
+        if Regex.match?(@identifier_format, val) do
+          :ok
+        else
+          {:error,
+           "node #{node_id}: #{key} must contain only alphanumeric characters and underscores"}
+        end
+
+      _ ->
+        {:error, "node #{node_id}: #{key} must be a string"}
+    end
+  end
+
+  defp validate_optional_batch_size(data, key, node_id) do
+    case Map.get(data, key) do
+      nil -> :ok
+      val when is_integer(val) and val >= 1 and val <= 100 -> :ok
+      _ -> {:error, "node #{node_id}: #{key} must be an integer between 1 and 100"}
+    end
+  end
+
+  defp validate_http_method(data, node_id) do
+    valid_methods = ~w(GET POST PUT PATCH DELETE)
+
+    case Map.get(data, "method") do
+      val when is_binary(val) ->
+        if val in valid_methods do
+          :ok
+        else
+          {:error, "node #{node_id}: method must be one of: #{Enum.join(valid_methods, ", ")}"}
+        end
+
+      nil ->
+        {:error, "node #{node_id}: missing required field: method"}
+
+      _ ->
+        {:error, "node #{node_id}: method must be a string"}
+    end
+  end
 
   defp validate_optional_schema(data, key, node_id) do
     case Map.get(data, key) do

@@ -319,5 +319,446 @@ defmodule Blackboex.FlowExecutor.ReactorBuilderTest do
       assert {:error, _reason} =
                Reactor.run(reactor, %{payload: "test"}, %{shared_state: %{}})
     end
+
+    test "builds reactor with http_request node" do
+      flow = %{
+        "version" => "1.0",
+        "nodes" => [
+          %{
+            "id" => "n1",
+            "type" => "start",
+            "position" => %{"x" => 0, "y" => 0},
+            "data" => %{}
+          },
+          %{
+            "id" => "n2",
+            "type" => "http_request",
+            "position" => %{"x" => 200, "y" => 0},
+            "data" => %{
+              "method" => "GET",
+              "url" => "https://example.com",
+              "headers" => %{},
+              "timeout_ms" => 10_000,
+              "max_retries" => 2,
+              "auth_type" => "none",
+              "auth_config" => %{},
+              "expected_status" => [200]
+            }
+          },
+          %{
+            "id" => "n3",
+            "type" => "end",
+            "position" => %{"x" => 400, "y" => 0},
+            "data" => %{}
+          }
+        ],
+        "edges" => [
+          %{
+            "id" => "e1",
+            "source" => "n1",
+            "source_port" => 0,
+            "target" => "n2",
+            "target_port" => 0
+          },
+          %{
+            "id" => "e2",
+            "source" => "n2",
+            "source_port" => 0,
+            "target" => "n3",
+            "target_port" => 0
+          }
+        ]
+      }
+
+      {:ok, parsed} = DefinitionParser.parse(flow)
+      assert {:ok, reactor} = ReactorBuilder.build(parsed)
+      assert %Reactor{} = reactor
+      assert length(reactor.steps) >= 3
+    end
+
+    test "builds reactor with delay node" do
+      flow = %{
+        "version" => "1.0",
+        "nodes" => [
+          %{
+            "id" => "n1",
+            "type" => "start",
+            "position" => %{"x" => 0, "y" => 0},
+            "data" => %{}
+          },
+          %{
+            "id" => "n2",
+            "type" => "delay",
+            "position" => %{"x" => 200, "y" => 0},
+            "data" => %{"duration_ms" => 0, "max_duration_ms" => 60_000}
+          },
+          %{
+            "id" => "n3",
+            "type" => "end",
+            "position" => %{"x" => 400, "y" => 0},
+            "data" => %{}
+          }
+        ],
+        "edges" => [
+          %{
+            "id" => "e1",
+            "source" => "n1",
+            "source_port" => 0,
+            "target" => "n2",
+            "target_port" => 0
+          },
+          %{
+            "id" => "e2",
+            "source" => "n2",
+            "source_port" => 0,
+            "target" => "n3",
+            "target_port" => 0
+          }
+        ]
+      }
+
+      {:ok, parsed} = DefinitionParser.parse(flow)
+      assert {:ok, reactor} = ReactorBuilder.build(parsed)
+      assert %Reactor{} = reactor
+      assert length(reactor.steps) >= 3
+    end
+
+    test "delay node executes and records delay in state" do
+      flow = %{
+        "version" => "1.0",
+        "nodes" => [
+          %{
+            "id" => "n1",
+            "type" => "start",
+            "position" => %{"x" => 0, "y" => 0},
+            "data" => %{}
+          },
+          %{
+            "id" => "n2",
+            "type" => "delay",
+            "position" => %{"x" => 200, "y" => 0},
+            "data" => %{"duration_ms" => 0}
+          },
+          %{
+            "id" => "n3",
+            "type" => "end",
+            "position" => %{"x" => 400, "y" => 0},
+            "data" => %{}
+          }
+        ],
+        "edges" => [
+          %{
+            "id" => "e1",
+            "source" => "n1",
+            "source_port" => 0,
+            "target" => "n2",
+            "target_port" => 0
+          },
+          %{
+            "id" => "e2",
+            "source" => "n2",
+            "source_port" => 0,
+            "target" => "n3",
+            "target_port" => 0
+          }
+        ]
+      }
+
+      {:ok, parsed} = DefinitionParser.parse(flow)
+      {:ok, reactor} = ReactorBuilder.build(parsed)
+
+      assert {:ok, result} = Reactor.run(reactor, %{payload: "hello"}, %{shared_state: %{}})
+      assert Map.has_key?(result.state, "delayed_ms")
+    end
+
+    test "builds reactor with for_each node" do
+      flow = %{
+        "version" => "1.0",
+        "nodes" => [
+          %{
+            "id" => "n1",
+            "type" => "start",
+            "position" => %{"x" => 0, "y" => 0},
+            "data" => %{}
+          },
+          %{
+            "id" => "n2",
+            "type" => "for_each",
+            "position" => %{"x" => 200, "y" => 0},
+            "data" => %{
+              "source_expression" => "[1, 2, 3]",
+              "body_code" => "item * 2",
+              "item_variable" => "item",
+              "accumulator" => "results",
+              "batch_size" => 5,
+              "timeout_ms" => 5_000
+            }
+          },
+          %{
+            "id" => "n3",
+            "type" => "end",
+            "position" => %{"x" => 400, "y" => 0},
+            "data" => %{}
+          }
+        ],
+        "edges" => [
+          %{
+            "id" => "e1",
+            "source" => "n1",
+            "source_port" => 0,
+            "target" => "n2",
+            "target_port" => 0
+          },
+          %{
+            "id" => "e2",
+            "source" => "n2",
+            "source_port" => 0,
+            "target" => "n3",
+            "target_port" => 0
+          }
+        ]
+      }
+
+      {:ok, parsed} = DefinitionParser.parse(flow)
+      assert {:ok, reactor} = ReactorBuilder.build(parsed)
+      assert %Reactor{} = reactor
+      assert length(reactor.steps) >= 3
+    end
+
+    test "for_each node executes and accumulates results" do
+      flow = %{
+        "version" => "1.0",
+        "nodes" => [
+          %{
+            "id" => "n1",
+            "type" => "start",
+            "position" => %{"x" => 0, "y" => 0},
+            "data" => %{}
+          },
+          %{
+            "id" => "n2",
+            "type" => "for_each",
+            "position" => %{"x" => 200, "y" => 0},
+            "data" => %{
+              "source_expression" => "[1, 2, 3]",
+              "body_code" => "item * 2",
+              "item_variable" => "item",
+              "accumulator" => "results"
+            }
+          },
+          %{
+            "id" => "n3",
+            "type" => "end",
+            "position" => %{"x" => 400, "y" => 0},
+            "data" => %{}
+          }
+        ],
+        "edges" => [
+          %{
+            "id" => "e1",
+            "source" => "n1",
+            "source_port" => 0,
+            "target" => "n2",
+            "target_port" => 0
+          },
+          %{
+            "id" => "e2",
+            "source" => "n2",
+            "source_port" => 0,
+            "target" => "n3",
+            "target_port" => 0
+          }
+        ]
+      }
+
+      {:ok, parsed} = DefinitionParser.parse(flow)
+      {:ok, reactor} = ReactorBuilder.build(parsed)
+
+      assert {:ok, result} = Reactor.run(reactor, %{payload: nil}, %{shared_state: %{}})
+      assert Map.has_key?(result.state, "results")
+    end
+
+    test "builds reactor with webhook_wait node" do
+      flow = %{
+        "version" => "1.0",
+        "nodes" => [
+          %{
+            "id" => "n1",
+            "type" => "start",
+            "position" => %{"x" => 0, "y" => 0},
+            "data" => %{}
+          },
+          %{
+            "id" => "n2",
+            "type" => "webhook_wait",
+            "position" => %{"x" => 200, "y" => 0},
+            "data" => %{
+              "event_type" => "payment.confirmed",
+              "timeout_ms" => 3_600_000,
+              "resume_path" => "/webhooks/resume"
+            }
+          },
+          %{
+            "id" => "n3",
+            "type" => "end",
+            "position" => %{"x" => 400, "y" => 0},
+            "data" => %{}
+          }
+        ],
+        "edges" => [
+          %{
+            "id" => "e1",
+            "source" => "n1",
+            "source_port" => 0,
+            "target" => "n2",
+            "target_port" => 0
+          },
+          %{
+            "id" => "e2",
+            "source" => "n2",
+            "source_port" => 0,
+            "target" => "n3",
+            "target_port" => 0
+          }
+        ]
+      }
+
+      {:ok, parsed} = DefinitionParser.parse(flow)
+      assert {:ok, reactor} = ReactorBuilder.build(parsed)
+      assert %Reactor{} = reactor
+      assert length(reactor.steps) >= 3
+    end
+
+    test "webhook_wait node halts the reactor" do
+      flow = %{
+        "version" => "1.0",
+        "nodes" => [
+          %{
+            "id" => "n1",
+            "type" => "start",
+            "position" => %{"x" => 0, "y" => 0},
+            "data" => %{}
+          },
+          %{
+            "id" => "n2",
+            "type" => "webhook_wait",
+            "position" => %{"x" => 200, "y" => 0},
+            "data" => %{"event_type" => "order.paid"}
+          },
+          %{
+            "id" => "n3",
+            "type" => "end",
+            "position" => %{"x" => 400, "y" => 0},
+            "data" => %{}
+          }
+        ],
+        "edges" => [
+          %{
+            "id" => "e1",
+            "source" => "n1",
+            "source_port" => 0,
+            "target" => "n2",
+            "target_port" => 0
+          },
+          %{
+            "id" => "e2",
+            "source" => "n2",
+            "source_port" => 0,
+            "target" => "n3",
+            "target_port" => 0
+          }
+        ]
+      }
+
+      {:ok, parsed} = DefinitionParser.parse(flow)
+      {:ok, reactor} = ReactorBuilder.build(parsed)
+
+      assert {:halted, halted_reactor} =
+               Reactor.run(reactor, %{payload: "start"}, %{shared_state: %{}})
+
+      assert %Reactor{} = halted_reactor
+    end
+
+    test "builds reactor with all new node types in a single flow" do
+      flow = %{
+        "version" => "1.0",
+        "nodes" => [
+          %{
+            "id" => "n1",
+            "type" => "start",
+            "position" => %{"x" => 0, "y" => 0},
+            "data" => %{}
+          },
+          %{
+            "id" => "n2",
+            "type" => "delay",
+            "position" => %{"x" => 200, "y" => 0},
+            "data" => %{"duration_ms" => 0}
+          },
+          %{
+            "id" => "n3",
+            "type" => "for_each",
+            "position" => %{"x" => 400, "y" => 0},
+            "data" => %{
+              "source_expression" => "[]",
+              "body_code" => "item",
+              "item_variable" => "item",
+              "accumulator" => "items"
+            }
+          },
+          %{
+            "id" => "n4",
+            "type" => "http_request",
+            "position" => %{"x" => 600, "y" => 0},
+            "data" => %{
+              "method" => "POST",
+              "url" => "https://example.com/api",
+              "auth_type" => "none"
+            }
+          },
+          %{
+            "id" => "n5",
+            "type" => "end",
+            "position" => %{"x" => 800, "y" => 0},
+            "data" => %{}
+          }
+        ],
+        "edges" => [
+          %{
+            "id" => "e1",
+            "source" => "n1",
+            "source_port" => 0,
+            "target" => "n2",
+            "target_port" => 0
+          },
+          %{
+            "id" => "e2",
+            "source" => "n2",
+            "source_port" => 0,
+            "target" => "n3",
+            "target_port" => 0
+          },
+          %{
+            "id" => "e3",
+            "source" => "n3",
+            "source_port" => 0,
+            "target" => "n4",
+            "target_port" => 0
+          },
+          %{
+            "id" => "e4",
+            "source" => "n4",
+            "source_port" => 0,
+            "target" => "n5",
+            "target_port" => 0
+          }
+        ]
+      }
+
+      {:ok, parsed} = DefinitionParser.parse(flow)
+      assert {:ok, reactor} = ReactorBuilder.build(parsed)
+      assert %Reactor{} = reactor
+      assert length(reactor.steps) >= 5
+    end
   end
 end

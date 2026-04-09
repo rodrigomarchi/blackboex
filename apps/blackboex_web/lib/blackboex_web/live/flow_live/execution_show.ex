@@ -79,6 +79,26 @@ defmodule BlackboexWeb.FlowLive.ExecutionShow do
           <div class="text-xs font-medium text-destructive mb-1">Error</div>
           <pre class="text-xs text-destructive whitespace-pre-wrap">{@execution.error}</pre>
         </div>
+
+        <div
+          :if={@execution.status == "halted" && @execution.wait_event_type}
+          class="mt-4 rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/20 p-3"
+        >
+          <div class="text-xs font-medium text-amber-800 dark:text-amber-200 mb-1">
+            Waiting for Event
+          </div>
+          <div class="text-xs text-amber-700 dark:text-amber-300 space-y-1">
+            <div>
+              Event type: <span class="font-mono font-medium">{@execution.wait_event_type}</span>
+            </div>
+            <div>
+              Resume URL:
+              <code class="font-mono bg-amber-100 dark:bg-amber-900/50 px-1 rounded">
+                POST /webhook/{@flow.webhook_token}/resume/{@execution.wait_event_type}
+              </code>
+            </div>
+          </div>
+        </div>
       </.card>
 
       <%!-- Node Timeline --%>
@@ -133,12 +153,16 @@ defmodule BlackboexWeb.FlowLive.ExecutionShow do
   defp exec_status_classes("running"),
     do: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
 
+  defp exec_status_classes("halted"),
+    do: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
+
   defp exec_status_classes(_),
     do: "bg-muted text-muted-foreground"
 
   defp node_dot_color("completed"), do: "bg-green-500"
   defp node_dot_color("failed"), do: "bg-red-500"
   defp node_dot_color("running"), do: "bg-blue-500"
+  defp node_dot_color("halted"), do: "bg-amber-500"
   defp node_dot_color(_), do: "bg-gray-400"
 
   defp format_duration(nil), do: "—"

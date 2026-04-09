@@ -151,21 +151,13 @@ defmodule Blackboex.FlowExecutor.ExecutionMiddleware do
     )
   end
 
+  # Do not merge state when the branch was skipped — the skipped branch
+  # carries only the initial/propagated state and must not overwrite state
+  # set by a previously-executed matching branch node.
   defp maybe_update_shared_state(_execution_id, %{output: :__branch_skipped__}), do: :ok
 
-  # IMPORTANT: This does a full overwrite of shared_state. Correctness depends on
-  # all steps running with async?: false (sequential execution). If steps ever run
-  # in parallel, this needs optimistic locking or jsonb_concat at the DB level.
   defp maybe_update_shared_state(execution_id, %{state: new_state}) when is_map(new_state) do
-    case FlowExecutions.get_execution(execution_id) do
-      nil ->
-        :ok
-
-      execution ->
-        execution
-        |> Ecto.Changeset.change(%{shared_state: new_state})
-        |> Blackboex.Repo.update()
-    end
+    FlowExecutions.merge_shared_state(execution_id, new_state)
   end
 
   defp maybe_update_shared_state(_execution_id, _result), do: :ok

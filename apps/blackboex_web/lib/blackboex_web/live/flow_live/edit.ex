@@ -54,10 +54,69 @@ defmodule BlackboexWeb.FlowLive.Edit do
       inputs: 1,
       outputs: 0,
       group: "flow"
+    },
+    %{
+      type: "http_request",
+      label: "HTTP Request",
+      subtitle: "Call API",
+      icon: "hero-globe-alt",
+      color: "#f97316",
+      inputs: 1,
+      outputs: 1,
+      group: "integration"
+    },
+    %{
+      type: "delay",
+      label: "Delay",
+      subtitle: "Wait",
+      icon: "hero-clock",
+      color: "#eab308",
+      inputs: 1,
+      outputs: 1,
+      group: "control"
+    },
+    %{
+      type: "webhook_wait",
+      label: "Webhook Wait",
+      subtitle: "Pause for event",
+      icon: "hero-arrow-path",
+      color: "#ec4899",
+      inputs: 1,
+      outputs: 1,
+      group: "control"
+    },
+    %{
+      type: "sub_flow",
+      label: "Sub-Flow",
+      subtitle: "Nested flow",
+      icon: "hero-squares-2x2",
+      color: "#6366f1",
+      inputs: 1,
+      outputs: 1,
+      group: "composition"
+    },
+    %{
+      type: "for_each",
+      label: "For Each",
+      subtitle: "Iterate list",
+      icon: "hero-arrow-path-rounded-square",
+      color: "#14b8a6",
+      inputs: 1,
+      outputs: 1,
+      group: "composition"
     }
   ]
 
   @node_type_map Map.new(@node_types, fn n -> {n.type, n} end)
+
+  # Maps synthetic auth form fields to nested auth_config keys
+  @auth_field_map %{
+    "auth_token" => {"auth_config", "token"},
+    "auth_username" => {"auth_config", "username"},
+    "auth_password" => {"auth_config", "password"},
+    "auth_key_name" => {"auth_config", "key_name"},
+    "auth_key_value" => {"auth_config", "key_value"}
+  }
 
   @impl true
   def mount(%{"id" => id}, _session, socket) do
@@ -72,11 +131,19 @@ defmodule BlackboexWeb.FlowLive.Edit do
          |> push_navigate(to: ~p"/flows")}
 
       flow ->
+        org_flows =
+          org.id
+          |> Flows.list_flows()
+          |> Enum.filter(&(&1.id != flow.id && &1.status in ~w(draft active)))
+          |> Enum.map(&%{id: &1.id, name: &1.name})
+
         {:ok,
          assign(socket,
            flow: flow,
            page_title: flow.name,
            node_types: @node_types,
+           org_flows: org_flows,
+           sub_flow_schema: [],
            saving: false,
            saved: false,
            selected_node: nil,
@@ -142,6 +209,14 @@ defmodule BlackboexWeb.FlowLive.Edit do
   def handle_event("node_selected", %{"id" => id, "type" => type, "data" => data}, socket) do
     node_meta = Map.get(@node_type_map, type, %{label: type, icon: "hero-cube", color: "#6b7280"})
 
+    # Load sub-flow payload schema when selecting a sub_flow node
+    sub_flow_schema =
+      if type == "sub_flow" do
+        extract_payload_schema(data["flow_id"], socket)
+      else
+        socket.assigns.sub_flow_schema
+      end
+
     {:noreply,
      assign(socket,
        selected_node: %{
@@ -152,6 +227,7 @@ defmodule BlackboexWeb.FlowLive.Edit do
          icon: node_meta[:icon] || "hero-cube",
          color: node_meta[:color] || "#6b7280"
        },
+       sub_flow_schema: sub_flow_schema,
        properties_tab: "settings"
      )}
   end
@@ -168,7 +244,7 @@ defmodule BlackboexWeb.FlowLive.Edit do
         {:noreply, socket}
 
       node ->
-        updated_data = Map.put(node.data, field, value)
+        updated_data = apply_field_update(node.data, field, value)
         updated_node = %{node | data: updated_data}
 
         {:noreply,
@@ -188,6 +264,63 @@ defmodule BlackboexWeb.FlowLive.Edit do
   @impl true
   def handle_event("set_properties_tab", %{"tab" => tab}, socket) do
     {:noreply, assign(socket, properties_tab: tab)}
+  end
+
+  # ── Sub-flow picker ─────────────────────────────────────────────────────
+
+  @impl true
+  def handle_event("select_sub_flow", %{"flow_id" => flow_id}, socket) do
+    node = socket.assigns.selected_node
+
+    case node do
+      nil ->
+        {:noreply, socket}
+
+      _ ->
+        schema = extract_payload_schema(flow_id, socket)
+        updated_data = Map.put(node.data, "flow_id", flow_id)
+
+        # Initialize input_mapping with empty values for each schema field
+        existing_mapping = Map.get(node.data, "input_mapping", %{})
+
+        input_mapping =
+          Enum.reduce(schema, existing_mapping, fn field, acc ->
+            Map.put_new(acc, field["name"], "")
+          end)
+
+        updated_data = Map.put(updated_data, "input_mapping", input_mapping)
+        updated_node = %{node | data: updated_data}
+
+        {:noreply,
+         socket
+         |> assign(selected_node: updated_node, sub_flow_schema: schema)
+         |> push_event("set_node_data", %{id: node.id, data: updated_data})}
+    end
+  end
+
+  @impl true
+  def handle_event(
+        "update_input_mapping",
+        %{"field" => field, "value" => value},
+        socket
+      ) do
+    node = socket.assigns.selected_node
+
+    case node do
+      nil ->
+        {:noreply, socket}
+
+      _ ->
+        mapping = Map.get(node.data, "input_mapping", %{})
+        updated_mapping = Map.put(mapping, field, value)
+        updated_data = Map.put(node.data, "input_mapping", updated_mapping)
+        updated_node = %{node | data: updated_data}
+
+        {:noreply,
+         socket
+         |> assign(selected_node: updated_node)
+         |> push_event("set_node_data", %{id: node.id, data: updated_data})}
+    end
   end
 
   # ── Schema builder events ───────────────────────────────────────────────
@@ -389,6 +522,40 @@ defmodule BlackboexWeb.FlowLive.Edit do
     end
   end
 
+  # ── Private helpers for handle_event ─────────────────────────────────────
+
+  defp apply_field_update(data, field, value) do
+    case Map.get(@auth_field_map, field) do
+      {parent_key, nested_key} ->
+        parent = Map.get(data, parent_key, %{})
+        Map.put(data, parent_key, Map.put(parent, nested_key, value))
+
+      nil ->
+        Map.put(data, field, value)
+    end
+  end
+
+  defp extract_payload_schema("", _socket), do: []
+  defp extract_payload_schema(nil, _socket), do: []
+
+  defp extract_payload_schema(flow_id, socket) do
+    org = socket.assigns.current_scope.organization
+
+    case org && Flows.get_flow(org.id, flow_id) do
+      nil ->
+        []
+
+      flow ->
+        (flow.definition || %{})
+        |> Map.get("nodes", [])
+        |> Enum.find(fn n -> n["type"] == "start" end)
+        |> case do
+          nil -> []
+          start_node -> get_in(start_node, ["data", "payload_schema"]) || []
+        end
+    end
+  end
+
   # ── Async Task Results ─────────────────────────────────────────────────
 
   @impl true
@@ -519,6 +686,18 @@ defmodule BlackboexWeb.FlowLive.Edit do
               nodes={Enum.filter(@node_types, &(&1.group == "flow"))}
             />
             <.node_group label="Logic" nodes={Enum.filter(@node_types, &(&1.group == "logic"))} />
+            <.node_group
+              label="Integration"
+              nodes={Enum.filter(@node_types, &(&1.group == "integration"))}
+            />
+            <.node_group
+              label="Control"
+              nodes={Enum.filter(@node_types, &(&1.group == "control"))}
+            />
+            <.node_group
+              label="Composition"
+              nodes={Enum.filter(@node_types, &(&1.group == "composition"))}
+            />
           </div>
         </aside>
 
@@ -538,6 +717,8 @@ defmodule BlackboexWeb.FlowLive.Edit do
           node={@selected_node}
           tab={@properties_tab}
           state_variables={get_state_variables(@flow, @selected_node)}
+          org_flows={@org_flows}
+          sub_flow_schema={@sub_flow_schema}
         />
       </div>
 
@@ -696,6 +877,8 @@ defmodule BlackboexWeb.FlowLive.Edit do
   attr :node, :map, default: nil
   attr :tab, :string, default: "settings"
   attr :state_variables, :list, default: []
+  attr :org_flows, :list, default: []
+  attr :sub_flow_schema, :list, default: []
 
   defp properties_drawer(%{node: nil} = assigns) do
     ~H"""
@@ -732,6 +915,8 @@ defmodule BlackboexWeb.FlowLive.Edit do
           node_id={@node.id}
           tab={@tab}
           state_variables={@state_variables}
+          org_flows={@org_flows}
+          sub_flow_schema={@sub_flow_schema}
         />
       </div>
     </aside>
@@ -745,6 +930,8 @@ defmodule BlackboexWeb.FlowLive.Edit do
   attr :node_id, :string, required: true
   attr :tab, :string, default: "settings"
   attr :state_variables, :list, default: []
+  attr :org_flows, :list, default: []
+  attr :sub_flow_schema, :list, default: []
 
   defp node_properties(%{type: "start"} = assigns) do
     ~H"""
@@ -951,6 +1138,307 @@ defmodule BlackboexWeb.FlowLive.Edit do
     """
   end
 
+  defp node_properties(%{type: "http_request"} = assigns) do
+    ~H"""
+    <div class="space-y-4">
+      <.properties_tabs
+        tabs={[{"Settings", "settings"}, {"Auth", "auth"}, {"Advanced", "advanced"}]}
+        active={@tab}
+      />
+
+      <div :if={@tab == "settings"} class="space-y-4">
+        <.prop_field label="Node Name" field="name" value={@data["name"] || "HTTP Request"} />
+        <.prop_select
+          label="Method"
+          field="method"
+          value={@data["method"] || "GET"}
+          options={[
+            {"GET", "GET"},
+            {"POST", "POST"},
+            {"PUT", "PUT"},
+            {"PATCH", "PATCH"},
+            {"DELETE", "DELETE"}
+          ]}
+        />
+        <.prop_field
+          label="URL"
+          field="url"
+          value={@data["url"] || ""}
+          placeholder="https://api.example.com/{{state.path}}"
+        />
+        <.prop_field
+          label="Body Template"
+          field="body_template"
+          value={@data["body_template"] || ""}
+          placeholder={~s|{"key": "{{input.value}}"}|}
+          type="textarea"
+        />
+      </div>
+
+      <div :if={@tab == "auth"} class="space-y-4">
+        <.prop_select
+          label="Auth Type"
+          field="auth_type"
+          value={@data["auth_type"] || "none"}
+          options={[
+            {"None", "none"},
+            {"Bearer Token", "bearer"},
+            {"Basic Auth", "basic"},
+            {"API Key", "api_key"}
+          ]}
+        />
+        <.prop_field
+          :if={@data["auth_type"] == "bearer"}
+          label="Token"
+          field="auth_token"
+          value={get_in(@data, ["auth_config", "token"]) || ""}
+          placeholder="Bearer token"
+        />
+        <.prop_field
+          :if={@data["auth_type"] == "basic"}
+          label="Username"
+          field="auth_username"
+          value={get_in(@data, ["auth_config", "username"]) || ""}
+        />
+        <.prop_field
+          :if={@data["auth_type"] == "basic"}
+          label="Password"
+          field="auth_password"
+          value={get_in(@data, ["auth_config", "password"]) || ""}
+        />
+        <.prop_field
+          :if={@data["auth_type"] == "api_key"}
+          label="Key Name"
+          field="auth_key_name"
+          value={get_in(@data, ["auth_config", "key_name"]) || ""}
+          placeholder="X-API-Key"
+        />
+        <.prop_field
+          :if={@data["auth_type"] == "api_key"}
+          label="Key Value"
+          field="auth_key_value"
+          value={get_in(@data, ["auth_config", "key_value"]) || ""}
+        />
+      </div>
+
+      <div :if={@tab == "advanced"} class="space-y-4">
+        <.prop_field
+          label="Timeout (ms)"
+          field="timeout_ms"
+          value={@data["timeout_ms"] || "10000"}
+          type="number"
+        />
+        <.prop_field
+          label="Max Retries"
+          field="max_retries"
+          value={@data["max_retries"] || "3"}
+          type="number"
+        />
+        <.prop_field
+          label="Expected Status Codes"
+          field="expected_status"
+          value={format_status_codes(@data["expected_status"])}
+          placeholder="200, 201"
+        />
+      </div>
+    </div>
+    """
+  end
+
+  defp node_properties(%{type: "delay"} = assigns) do
+    ~H"""
+    <div class="space-y-4">
+      <.prop_field label="Node Name" field="name" value={@data["name"] || "Delay"} />
+      <.prop_field
+        label="Duration (ms)"
+        field="duration_ms"
+        value={@data["duration_ms"] || "1000"}
+        placeholder="1000"
+        type="number"
+      />
+      <.prop_field
+        label="Max Duration (ms)"
+        field="max_duration_ms"
+        value={@data["max_duration_ms"] || "60000"}
+        placeholder="60000"
+        type="number"
+      />
+      <.prop_field
+        label="Description"
+        field="description"
+        value={@data["description"] || ""}
+        placeholder="Why is this delay needed?"
+        type="textarea"
+      />
+    </div>
+    """
+  end
+
+  defp node_properties(%{type: "sub_flow"} = assigns) do
+    ~H"""
+    <div class="space-y-4">
+      <.prop_field label="Node Name" field="name" value={@data["name"] || "Sub-Flow"} />
+
+      <div>
+        <label class="block text-xs font-medium text-muted-foreground mb-1.5">Sub-Flow</label>
+        <select
+          phx-change="select_sub_flow"
+          name="flow_id"
+          class="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+        >
+          <option value="">Select a flow...</option>
+          <option
+            :for={flow <- @org_flows}
+            value={flow.id}
+            selected={flow.id == @data["flow_id"]}
+          >
+            {flow.name}
+          </option>
+        </select>
+      </div>
+
+      <%= if @data["flow_id"] && @data["flow_id"] != "" do %>
+        <div>
+          <label class="block text-xs font-medium text-muted-foreground mb-2">
+            Input Mapping
+          </label>
+          <p class="text-xs text-muted-foreground mb-3">
+            Map parent flow state/input to sub-flow payload fields
+          </p>
+
+          <%= if (@sub_flow_schema) == [] do %>
+            <p class="text-xs text-muted-foreground italic">
+              Selected flow has no payload schema defined.
+              You can still add custom mappings below.
+            </p>
+          <% end %>
+
+          <div class="space-y-2">
+            <div
+              :for={field <- @sub_flow_schema}
+              class="flex items-center gap-2"
+            >
+              <div class="w-1/3 shrink-0">
+                <span class="text-xs font-medium text-foreground">{field["name"]}</span>
+                <span class="text-xs text-muted-foreground ml-1">({field["type"]})</span>
+              </div>
+              <span class="text-xs text-muted-foreground">&larr;</span>
+              <input
+                type="text"
+                phx-blur="update_input_mapping"
+                phx-value-field={field["name"]}
+                value={get_in(@data, ["input_mapping", field["name"]]) || ""}
+                placeholder={~s(state["#{field["name"]}"])}
+                class="flex-1 rounded-lg border bg-background px-2 py-1.5 text-xs font-mono focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </div>
+          </div>
+        </div>
+      <% end %>
+
+      <.prop_field
+        label="Timeout (ms)"
+        field="timeout_ms"
+        value={@data["timeout_ms"] || "30000"}
+        placeholder="30000"
+        type="number"
+      />
+    </div>
+    """
+  end
+
+  defp node_properties(%{type: "for_each"} = assigns) do
+    ~H"""
+    <div class="space-y-4">
+      <.properties_tabs tabs={[{"Settings", "settings"}, {"Code", "code"}]} active={@tab} />
+
+      <div :if={@tab == "settings"} class="space-y-4">
+        <.prop_field label="Node Name" field="name" value={@data["name"] || "For Each"} />
+        <.prop_field
+          label="Source Expression"
+          field="source_expression"
+          value={@data["source_expression"] || ""}
+          placeholder={~s(input["items"])}
+        />
+        <.prop_field
+          label="Item Variable"
+          field="item_variable"
+          value={@data["item_variable"] || "item"}
+          placeholder="item"
+        />
+        <.prop_field
+          label="Accumulator Key"
+          field="accumulator"
+          value={@data["accumulator"] || "results"}
+          placeholder="results"
+        />
+        <.prop_field
+          label="Batch Size"
+          field="batch_size"
+          value={@data["batch_size"] || "10"}
+          placeholder="10"
+          type="number"
+        />
+        <.prop_field
+          label="Timeout per Item (ms)"
+          field="timeout_ms"
+          value={@data["timeout_ms"] || "5000"}
+          placeholder="5000"
+          type="number"
+        />
+      </div>
+
+      <div :if={@tab == "code"}>
+        <label class="block text-xs font-medium text-muted-foreground mb-1.5">Body Code</label>
+        <div
+          id={"code-editor-#{@node_id}-body_code"}
+          phx-hook="CodeEditor"
+          phx-update="ignore"
+          data-language="elixir"
+          data-event="update_node_data"
+          data-field="body_code"
+          data-value={@data["body_code"] || ""}
+          class="w-full rounded-lg border overflow-hidden"
+          style="min-height: 200px;"
+        />
+      </div>
+    </div>
+    """
+  end
+
+  defp node_properties(%{type: "webhook_wait"} = assigns) do
+    ~H"""
+    <div class="space-y-4">
+      <.prop_field label="Node Name" field="name" value={@data["name"] || "Webhook Wait"} />
+      <.prop_field
+        label="Event Type"
+        field="event_type"
+        value={@data["event_type"] || ""}
+        placeholder="e.g. approval, payment.confirmed"
+      />
+      <.prop_field
+        label="Timeout (ms)"
+        field="timeout_ms"
+        value={@data["timeout_ms"] || "3600000"}
+        placeholder="3600000"
+        type="number"
+      />
+      <.prop_field
+        label="Resume Path"
+        field="resume_path"
+        value={@data["resume_path"] || ""}
+        placeholder="e.g. data.approved"
+      />
+      <div>
+        <label class="block text-xs font-medium text-muted-foreground mb-1.5">Callback URL</label>
+        <p class="rounded-lg border bg-muted/50 px-3 py-2 text-xs text-muted-foreground font-mono">
+          POST /webhook/:token/resume/{@data["event_type"] || "<event_type>"}
+        </p>
+      </div>
+    </div>
+    """
+  end
+
   defp node_properties(assigns) do
     ~H"""
     <div class="space-y-4">
@@ -974,6 +1462,9 @@ defmodule BlackboexWeb.FlowLive.Edit do
 
   defp format_branch_labels(labels) when is_binary(labels), do: labels
   defp format_branch_labels(_), do: ""
+
+  defp format_status_codes(codes) when is_list(codes), do: Enum.join(codes, ", ")
+  defp format_status_codes(_), do: "200, 201"
 
   attr :label, :string, required: true
   attr :field, :string, required: true

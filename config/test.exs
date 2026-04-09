@@ -63,3 +63,7 @@ config :blackboex_web, BlackboexWeb.PromEx,
 
 # OpenTelemetry: disable export in tests
 config :opentelemetry, traces_exporter: :none
+
+# Flow executor: run steps synchronously in tests so Ecto sandbox ownership
+# is respected (async steps run in separate processes without sandbox access).
+config :blackboex, :flow_executor_async, false

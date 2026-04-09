@@ -41,8 +41,31 @@ defmodule BlackboexWeb.ApiLive.Index do
        selected_template: nil,
        template_categories: [],
        active_category: nil,
-       creation_mode: :template
+       creation_mode: :template,
+       confirm: nil
      )}
+  end
+
+  # ── Confirm Dialog ───────────────────────────────────────────────────────
+
+  @impl true
+  def handle_event("request_confirm", params, socket) do
+    confirm = build_confirm(params["action"], params)
+    {:noreply, assign(socket, confirm: confirm)}
+  end
+
+  @impl true
+  def handle_event("dismiss_confirm", _params, socket) do
+    {:noreply, assign(socket, confirm: nil)}
+  end
+
+  @impl true
+  def handle_event("execute_confirm", _params, socket) do
+    case socket.assigns.confirm do
+      nil -> {:noreply, socket}
+      %{event: event, meta: meta} ->
+        handle_event(event, meta, assign(socket, confirm: nil))
+    end
   end
 
   # ── Search ───────────────────────────────────────────────────────────────
@@ -350,9 +373,9 @@ defmodule BlackboexWeb.ApiLive.Index do
                 <.button
                   variant="destructive"
                   size="sm"
-                  phx-click="delete"
+                  phx-click="request_confirm"
+                  phx-value-action="delete"
                   phx-value-id={row.api.id}
-                  data-confirm="Are you sure you want to delete this API?"
                 >
                   Delete
                 </.button>
@@ -548,6 +571,14 @@ defmodule BlackboexWeb.ApiLive.Index do
           </div>
         </form>
       </.modal>
+
+      <.confirm_dialog
+        :if={@confirm}
+        title={@confirm.title}
+        description={@confirm.description}
+        variant={@confirm[:variant] || :warning}
+        confirm_label={@confirm[:confirm_label] || "Confirm"}
+      />
     </div>
     """
   end
@@ -563,6 +594,19 @@ defmodule BlackboexWeb.ApiLive.Index do
     </span>
     """
   end
+
+  defp build_confirm("delete", params) do
+    %{
+      title: "Delete API?",
+      description: "This action cannot be undone. The API and all its versions will be permanently removed.",
+      variant: :danger,
+      confirm_label: "Delete",
+      event: "delete",
+      meta: Map.take(params, ["id"])
+    }
+  end
+
+  defp build_confirm(_, _), do: nil
 
   defp format_latency(nil), do: "--"
   defp format_latency(ms) when ms < 1, do: "<1ms"

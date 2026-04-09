@@ -156,8 +156,31 @@ defmodule BlackboexWeb.FlowLive.Edit do
            run_error: nil,
            running: false,
            run_task_ref: nil,
-           drawer_expanded: false
+           drawer_expanded: false,
+           confirm: nil
          )}
+    end
+  end
+
+  # ── Confirm Dialog ───────────────────────────────────────────────────────
+
+  @impl true
+  def handle_event("request_confirm", params, socket) do
+    confirm = build_confirm(params["action"], params)
+    {:noreply, assign(socket, confirm: confirm)}
+  end
+
+  @impl true
+  def handle_event("dismiss_confirm", _params, socket) do
+    {:noreply, assign(socket, confirm: nil)}
+  end
+
+  @impl true
+  def handle_event("execute_confirm", _params, socket) do
+    case socket.assigns.confirm do
+      nil -> {:noreply, socket}
+      %{event: event, meta: meta} ->
+        handle_event(event, meta, assign(socket, confirm: nil))
     end
   end
 
@@ -647,10 +670,10 @@ defmodule BlackboexWeb.FlowLive.Edit do
               <.icon name="hero-clipboard-document" class="size-3.5 text-sky-400" />
             </button>
             <button
-              phx-click="regenerate_token"
+              phx-click="request_confirm"
+              phx-value-action="regenerate_token"
               class="p-0.5 text-muted-foreground hover:text-foreground"
               title="Regenerate token"
-              data-confirm="Regenerate webhook token? The old URL will stop working."
             >
               <.icon name="hero-arrow-path" class="size-3.5 text-amber-400" />
             </button>
@@ -856,9 +879,30 @@ defmodule BlackboexWeb.FlowLive.Edit do
           </div>
         </div>
       <% end %>
+
+      <.confirm_dialog
+        :if={@confirm}
+        title={@confirm.title}
+        description={@confirm.description}
+        variant={@confirm[:variant] || :warning}
+        confirm_label={@confirm[:confirm_label] || "Confirm"}
+      />
     </div>
     """
   end
+
+  defp build_confirm("regenerate_token", _params) do
+    %{
+      title: "Regenerate webhook token?",
+      description: "The current webhook URL will immediately stop working. Any integrations using it will need to be updated.",
+      variant: :warning,
+      confirm_label: "Regenerate",
+      event: "regenerate_token",
+      meta: %{}
+    }
+  end
+
+  defp build_confirm(_, _), do: nil
 
   defp webhook_url(flow) do
     BlackboexWeb.Endpoint.url() <> "/webhook/#{flow.webhook_token}"

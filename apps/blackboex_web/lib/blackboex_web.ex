@@ -93,6 +93,7 @@ defmodule BlackboexWeb do
       import BlackboexWeb.Components.Header
       import BlackboexWeb.Components.Helpers
       import BlackboexWeb.Components.StatusHelpers
+      import BlackboexWeb.Components.ConfirmDialog
       import BlackboexWeb.Logo
 
       # Common modules used in templates

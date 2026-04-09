@@ -24,9 +24,9 @@ defmodule BlackboexWeb.Components.Editor.ChatPanel do
           <.icon name="hero-bolt" class="size-4 text-primary" /> Agent Timeline
         </h2>
         <button
-          phx-click="clear_conversation"
+          phx-click="request_confirm"
+          phx-value-action="clear_conversation"
           class="text-xs text-muted-foreground hover:text-foreground"
-          data-confirm="Clear conversation? Code will not be affected."
         >
           New conversation
         </button>

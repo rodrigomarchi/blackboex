@@ -49,8 +49,8 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLive do
             <% end %>
             <%= if @api.status == "published" do %>
               <button
-                phx-click="unpublish"
-                data-confirm="Unpublish this API? It will no longer be accessible."
+                phx-click="request_confirm"
+                phx-value-action="unpublish"
                 class="rounded-md border border-destructive px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10"
               >
                 Unpublish
@@ -154,9 +154,9 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLive do
                     </button>
                     <%= if can_publish_version?(version, @published_version, @api.status) do %>
                       <button
-                        phx-click="publish_version"
+                        phx-click="request_confirm"
+                        phx-value-action="publish_version"
                         phx-value-number={version.version_number}
-                        data-confirm={"Publish v#{version.version_number}? This will make it the live version."}
                         class="text-info hover:underline font-medium"
                       >
                         Publish this version
@@ -286,6 +286,14 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLive do
           </div>
         <% end %>
       </div>
+
+      <.confirm_dialog
+        :if={@confirm}
+        title={@confirm.title}
+        description={@confirm.description}
+        variant={@confirm[:variant] || :warning}
+        confirm_label={@confirm[:confirm_label] || "Confirm"}
+      />
     </.editor_shell>
     """
   end
@@ -295,6 +303,28 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLive do
   @impl true
   def handle_event(event, params, socket) when event in @command_palette_events do
     Shared.handle_command_palette(event, params, socket)
+  end
+
+  # ── Confirm Dialog ────────────────────────────────────────────────────
+
+  @impl true
+  def handle_event("request_confirm", params, socket) do
+    confirm = build_confirm(params["action"], params)
+    {:noreply, assign(socket, confirm: confirm)}
+  end
+
+  @impl true
+  def handle_event("dismiss_confirm", _params, socket) do
+    {:noreply, assign(socket, confirm: nil)}
+  end
+
+  @impl true
+  def handle_event("execute_confirm", _params, socket) do
+    case socket.assigns.confirm do
+      nil -> {:noreply, socket}
+      %{event: event, meta: meta} ->
+        handle_event(event, meta, assign(socket, confirm: nil))
+    end
   end
 
   # ── Events: publish actions ──────────────────────────────────────────
@@ -408,6 +438,30 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLive do
 
   # ── Private ──────────────────────────────────────────────────────────
 
+  defp build_confirm("unpublish", _params) do
+    %{
+      title: "Unpublish API?",
+      description: "The API will no longer be accessible to consumers. You can republish it later.",
+      variant: :warning,
+      confirm_label: "Unpublish",
+      event: "unpublish",
+      meta: %{}
+    }
+  end
+
+  defp build_confirm("publish_version", params) do
+    %{
+      title: "Publish this version?",
+      description: "This will make it the live version. The current published version will be replaced.",
+      variant: :info,
+      confirm_label: "Publish",
+      event: "publish_version",
+      meta: Map.take(params, ["number"])
+    }
+  end
+
+  defp build_confirm(_, _), do: nil
+
   @spec init_assigns(Phoenix.LiveView.Socket.t()) :: Phoenix.LiveView.Socket.t()
   defp init_assigns(socket) do
     api = socket.assigns.api
@@ -416,7 +470,8 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLive do
     |> assign(
       metrics: nil,
       published_version: Apis.published_version(api.id),
-      keys_summary: Keys.keys_summary(api.id)
+      keys_summary: Keys.keys_summary(api.id),
+      confirm: nil
     )
     |> load_metrics(api)
   end

@@ -54,7 +54,8 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
             test_code: test_content,
             files: files,
             selected_file: Enum.find(files, &(&1.path == "/src/handler.ex")),
-            editor_live_content: nil
+            editor_live_content: nil,
+            confirm: nil
           )
 
         {:ok, socket}
@@ -103,6 +104,14 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
           />
         </div>
       </div>
+
+      <.confirm_dialog
+        :if={@confirm}
+        title={@confirm.title}
+        description={@confirm.description}
+        variant={@confirm[:variant] || :warning}
+        confirm_label={@confirm[:confirm_label] || "Confirm"}
+      />
     </.editor_shell>
     """
   end
@@ -115,6 +124,28 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
   @impl true
   def handle_event(event, params, socket) when event in @command_palette_events do
     Shared.handle_command_palette(event, params, socket)
+  end
+
+  # ── Confirm Dialog ────────────────────────────────────────────────────
+
+  @impl true
+  def handle_event("request_confirm", params, socket) do
+    confirm = build_confirm(params["action"], params)
+    {:noreply, assign(socket, confirm: confirm)}
+  end
+
+  @impl true
+  def handle_event("dismiss_confirm", _params, socket) do
+    {:noreply, assign(socket, confirm: nil)}
+  end
+
+  @impl true
+  def handle_event("execute_confirm", _params, socket) do
+    case socket.assigns.confirm do
+      nil -> {:noreply, socket}
+      %{event: event, meta: meta} ->
+        handle_event(event, meta, assign(socket, confirm: nil))
+    end
   end
 
   # ── File Tree Events ──────────────────────────────────────────────────
@@ -514,6 +545,19 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
   def handle_info({:agent_started, _payload}, socket), do: {:noreply, socket}
 
   # ── Private Helpers ───────────────────────────────────────────────────
+
+  defp build_confirm("clear_conversation", _params) do
+    %{
+      title: "Clear conversation?",
+      description: "The chat history will be cleared. Your API code will not be affected.",
+      variant: :warning,
+      confirm_label: "Clear",
+      event: "clear_conversation",
+      meta: %{}
+    }
+  end
+
+  defp build_confirm(_, _), do: nil
 
   defp shared_shell_assigns(assigns) do
     Map.take(assigns, [

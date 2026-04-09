@@ -26,7 +26,8 @@ defmodule BlackboexWeb.ApiKeyLive.Show do
          key: key,
          metrics: metrics,
          period: "7d",
-         plain_key_flash: nil
+         plain_key_flash: nil,
+         confirm: nil
        )}
     else
       {:ok, socket |> put_flash(:error, "Key not found") |> push_navigate(to: ~p"/api-keys")}
@@ -70,8 +71,8 @@ defmodule BlackboexWeb.ApiKeyLive.Show do
             </.button>
             <.button
               :if={!@key.revoked_at}
-              phx-click="revoke"
-              data-confirm="Revoke this key? API calls using it will immediately fail."
+              phx-click="request_confirm"
+              phx-value-action="revoke"
               variant="destructive"
               size="sm"
             >
@@ -156,6 +157,28 @@ defmodule BlackboexWeb.ApiKeyLive.Show do
     """
   end
 
+  # ── Confirm Dialog ───────────────────────────────────────────────────────
+
+  @impl true
+  def handle_event("request_confirm", params, socket) do
+    confirm = build_confirm(params["action"], params)
+    {:noreply, assign(socket, confirm: confirm)}
+  end
+
+  @impl true
+  def handle_event("dismiss_confirm", _params, socket) do
+    {:noreply, assign(socket, confirm: nil)}
+  end
+
+  @impl true
+  def handle_event("execute_confirm", _params, socket) do
+    case socket.assigns.confirm do
+      nil -> {:noreply, socket}
+      %{event: event, meta: meta} ->
+        handle_event(event, meta, assign(socket, confirm: nil))
+    end
+  end
+
   @impl true
   def handle_event("set_period", %{"period" => period}, socket) do
     atom_period =
@@ -214,6 +237,19 @@ defmodule BlackboexWeb.ApiKeyLive.Show do
   def handle_event("dismiss_flash", _params, socket) do
     {:noreply, assign(socket, plain_key_flash: nil)}
   end
+
+  defp build_confirm("revoke", _params) do
+    %{
+      title: "Revoke this API key?",
+      description: "The key will be immediately revoked and can no longer be used to authenticate requests. This cannot be undone.",
+      variant: :danger,
+      confirm_label: "Revoke",
+      event: "revoke",
+      meta: %{}
+    }
+  end
+
+  defp build_confirm(_, _), do: nil
 
   defp status_label(%{revoked_at: r}) when not is_nil(r), do: "Revoked"
 

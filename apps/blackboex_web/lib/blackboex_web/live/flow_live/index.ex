@@ -36,8 +36,31 @@ defmodule BlackboexWeb.FlowLive.Index do
        selected_template: nil,
        templates: Templates.list(),
        create_form: to_form(%{"name" => "", "description" => ""}),
-       create_error: nil
+       create_error: nil,
+       confirm: nil
      )}
+  end
+
+  # ── Confirm Dialog ───────────────────────────────────────────────────────
+
+  @impl true
+  def handle_event("request_confirm", params, socket) do
+    confirm = build_confirm(params["action"], params)
+    {:noreply, assign(socket, confirm: confirm)}
+  end
+
+  @impl true
+  def handle_event("dismiss_confirm", _params, socket) do
+    {:noreply, assign(socket, confirm: nil)}
+  end
+
+  @impl true
+  def handle_event("execute_confirm", _params, socket) do
+    case socket.assigns.confirm do
+      nil -> {:noreply, socket}
+      %{event: event, meta: meta} ->
+        handle_event(event, meta, assign(socket, confirm: nil))
+    end
   end
 
   # ── Search ───────────────────────────────────────────────────────────────
@@ -241,9 +264,9 @@ defmodule BlackboexWeb.FlowLive.Index do
                 <.button
                   variant="destructive"
                   size="sm"
-                  phx-click="delete"
+                  phx-click="request_confirm"
+                  phx-value-action="delete"
                   phx-value-id={flow.id}
-                  data-confirm="Are you sure you want to delete this flow?"
                 >
                   Delete
                 </.button>
@@ -252,6 +275,14 @@ defmodule BlackboexWeb.FlowLive.Index do
           </.card>
         </div>
       <% end %>
+
+      <.confirm_dialog
+        :if={@confirm}
+        title={@confirm.title}
+        description={@confirm.description}
+        variant={@confirm[:variant] || :warning}
+        confirm_label={@confirm[:confirm_label] || "Confirm"}
+      />
 
       <%!-- Create Flow Modal --%>
       <.modal show={@show_create_modal} on_close="close_create_modal" title="Create Flow">
@@ -346,6 +377,19 @@ defmodule BlackboexWeb.FlowLive.Index do
   end
 
   # ── Helpers ──────────────────────────────────────────────────────────────
+
+  defp build_confirm("delete", params) do
+    %{
+      title: "Delete flow?",
+      description: "This action cannot be undone. The flow and all its data will be permanently removed.",
+      variant: :danger,
+      confirm_label: "Delete",
+      event: "delete",
+      meta: Map.take(params, ["id"])
+    }
+  end
+
+  defp build_confirm(_, _), do: nil
 
   defp flow_status_classes("draft"), do: "bg-muted text-muted-foreground"
 

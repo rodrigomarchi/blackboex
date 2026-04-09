@@ -85,8 +85,8 @@ defmodule BlackboexWeb.ApiLive.Edit.RunLive do
             <h4 class="text-xs font-semibold text-muted-foreground uppercase">History</h4>
             <button
               :if={@test_history != []}
-              phx-click="clear_history"
-              data-confirm="Clear request history?"
+              phx-click="request_confirm"
+              phx-value-action="clear_history"
               class="text-[10px] text-destructive hover:underline"
             >
               Clear
@@ -132,6 +132,14 @@ defmodule BlackboexWeb.ApiLive.Edit.RunLive do
           <% end %>
         </div>
       </div>
+
+      <.confirm_dialog
+        :if={@confirm}
+        title={@confirm.title}
+        description={@confirm.description}
+        variant={@confirm[:variant] || :warning}
+        confirm_label={@confirm[:confirm_label] || "Confirm"}
+      />
     </.editor_shell>
     """
   end
@@ -141,6 +149,28 @@ defmodule BlackboexWeb.ApiLive.Edit.RunLive do
   @impl true
   def handle_event(event, params, socket) when event in @command_palette_events do
     Shared.handle_command_palette(event, params, socket)
+  end
+
+  # ── Confirm Dialog ────────────────────────────────────────────────────
+
+  @impl true
+  def handle_event("request_confirm", params, socket) do
+    confirm = build_confirm(params["action"], params)
+    {:noreply, assign(socket, confirm: confirm)}
+  end
+
+  @impl true
+  def handle_event("dismiss_confirm", _params, socket) do
+    {:noreply, assign(socket, confirm: nil)}
+  end
+
+  @impl true
+  def handle_event("execute_confirm", _params, socket) do
+    case socket.assigns.confirm do
+      nil -> {:noreply, socket}
+      %{event: event, meta: meta} ->
+        handle_event(event, meta, assign(socket, confirm: nil))
+    end
   end
 
   # ── handle_event: run tab ─────────────────────────────────────────────
@@ -431,6 +461,19 @@ defmodule BlackboexWeb.ApiLive.Edit.RunLive do
 
   # ── Private Helpers ───────────────────────────────────────────────────
 
+  defp build_confirm("clear_history", _params) do
+    %{
+      title: "Clear request history?",
+      description: "All saved request/response pairs will be removed. This won't affect your API code.",
+      variant: :warning,
+      confirm_label: "Clear",
+      event: "clear_history",
+      meta: %{}
+    }
+  end
+
+  defp build_confirm(_, _), do: nil
+
   defp init_assigns(socket) do
     api = socket.assigns.api
     org = socket.assigns.org
@@ -453,7 +496,8 @@ defmodule BlackboexWeb.ApiLive.Edit.RunLive do
       history_loaded: false,
       request_tab: "body",
       response_tab: "body",
-      test_ref: nil
+      test_ref: nil,
+      confirm: nil
     )
   end
 

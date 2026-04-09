@@ -28,7 +28,8 @@ defmodule BlackboexWeb.ApiLive.Edit.InfoLive do
         {:ok,
          assign(socket,
            source_lines: count_lines(source_content),
-           test_lines: count_lines(test_content)
+           test_lines: count_lines(test_content),
+           confirm: nil
          )}
 
       {:error, socket} ->
@@ -160,8 +161,8 @@ defmodule BlackboexWeb.ApiLive.Edit.InfoLive do
               </p>
             </div>
             <button
-              phx-click="archive_api"
-              data-confirm="Archive this API? Published APIs will be unpublished. This cannot be undone."
+              phx-click="request_confirm"
+              phx-value-action="archive_api"
               class="rounded-md border border-destructive px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10"
             >
               Archive API
@@ -169,6 +170,14 @@ defmodule BlackboexWeb.ApiLive.Edit.InfoLive do
           </div>
         </div>
       </div>
+
+      <.confirm_dialog
+        :if={@confirm}
+        title={@confirm.title}
+        description={@confirm.description}
+        variant={@confirm[:variant] || :warning}
+        confirm_label={@confirm[:confirm_label] || "Confirm"}
+      />
     </.editor_shell>
     """
   end
@@ -176,6 +185,28 @@ defmodule BlackboexWeb.ApiLive.Edit.InfoLive do
   @impl true
   def handle_event(event, params, socket) when event in @command_palette_events do
     Shared.handle_command_palette(event, params, socket)
+  end
+
+  # ── Confirm Dialog ────────────────────────────────────────────────────
+
+  @impl true
+  def handle_event("request_confirm", params, socket) do
+    confirm = build_confirm(params["action"], params)
+    {:noreply, assign(socket, confirm: confirm)}
+  end
+
+  @impl true
+  def handle_event("dismiss_confirm", _params, socket) do
+    {:noreply, assign(socket, confirm: nil)}
+  end
+
+  @impl true
+  def handle_event("execute_confirm", _params, socket) do
+    case socket.assigns.confirm do
+      nil -> {:noreply, socket}
+      %{event: event, meta: meta} ->
+        handle_event(event, meta, assign(socket, confirm: nil))
+    end
   end
 
   def handle_event("update_info", %{"name" => name, "description" => description}, socket) do
@@ -218,6 +249,19 @@ defmodule BlackboexWeb.ApiLive.Edit.InfoLive do
   end
 
   # ── Private ───────────────────────────────────────────────────────────
+
+  defp build_confirm("archive_api", _params) do
+    %{
+      title: "Archive this API?",
+      description: "Published APIs will be unpublished and the API will be archived. This cannot be undone.",
+      variant: :danger,
+      confirm_label: "Archive",
+      event: "archive_api",
+      meta: %{}
+    }
+  end
+
+  defp build_confirm(_, _), do: nil
 
   @spec shared_shell_assigns(map()) :: map()
   defp shared_shell_assigns(assigns) do

@@ -110,7 +110,9 @@ defmodule BlackboexWeb.BillingLive.Plans do
     ~H"""
     <div class="max-w-5xl mx-auto py-8">
       <.header>
-        Choose your plan
+        <span class="flex items-center gap-2">
+          <.icon name="hero-sparkles" class="size-5 text-amber-400" /> Choose your plan
+        </span>
         <:subtitle>Scale your API platform with the right plan</:subtitle>
       </.header>
 
@@ -120,7 +122,7 @@ defmodule BlackboexWeb.BillingLive.Plans do
             <div class="flex items-center justify-between mb-4">
               <h2 class="text-lg font-semibold">Current Plan: {@usage.plan}</h2>
               <.button navigate={~p"/billing/manage"} variant="default" size="sm">
-                Manage Subscription
+                <.icon name="hero-cog-6-tooth" class="mr-1.5 size-3.5 text-slate-400" /> Manage Subscription
               </.button>
             </div>
 
@@ -179,7 +181,7 @@ defmodule BlackboexWeb.BillingLive.Plans do
 
             <ul class="mt-6 space-y-2">
               <li :for={feature <- plan.features} class="flex items-center gap-2">
-                <.icon name="hero-check" class="size-4 text-success" />
+                <.icon name="hero-check" class="size-4 text-green-400" />
                 <span class="text-sm">{feature}</span>
               </li>
             </ul>
@@ -187,12 +189,12 @@ defmodule BlackboexWeb.BillingLive.Plans do
             <div class="flex gap-2 pt-2 mt-6">
               <%= if plan.id == @current_plan do %>
                 <.button variant="default" disabled class="w-full opacity-50 cursor-not-allowed">
-                  Current Plan
+                  <.icon name="hero-check-circle" class="mr-1.5 size-3.5 text-slate-400" /> Current Plan
                 </.button>
               <% else %>
                 <%= if plan.id == "free" do %>
                   <.button variant="default" disabled class="w-full opacity-50 cursor-not-allowed">
-                    Free
+                    <.icon name="hero-check-circle" class="mr-1.5 size-3.5 text-slate-400" /> Free
                   </.button>
                 <% else %>
                   <.button
@@ -205,7 +207,7 @@ defmodule BlackboexWeb.BillingLive.Plans do
                     <%= if @loading_plan == plan.id do %>
                       <.spinner class="size-4 mr-2" />
                     <% else %>
-                      Choose {plan.name}
+                      <.icon name="hero-arrow-right" class="mr-1.5 size-3.5 text-emerald-300" /> Choose {plan.name}
                     <% end %>
                   </.button>
                 <% end %>

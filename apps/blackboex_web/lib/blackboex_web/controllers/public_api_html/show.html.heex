@@ -12,7 +12,7 @@
   </p>
 
   <div class="bg-muted rounded-lg p-6 mb-8">
-    <h2 class="text-lg font-semibold text-foreground mb-3">Usage</h2>
+    <h2 class="flex items-center gap-2 text-lg font-semibold text-foreground mb-3"><.icon name="hero-code-bracket" class="size-4 text-blue-400" /> Usage</h2>
     <div class="bg-card rounded-md p-4">
       <code class="text-sm text-success whitespace-pre-wrap">
         curl -X {@api.method} "{@api_url}" \
@@ -29,19 +29,19 @@
       href={"/api/#{@org.slug}/#{@api.slug}/docs"}
       class="inline-flex items-center rounded-md bg-info/10 px-4 py-2 text-sm font-medium text-info-foreground hover:bg-info/10/80"
     >
-      API Documentation
+      <.icon name="hero-document-text-mini" class="mr-1 size-3.5" />API Documentation
     </a>
     <a
       href={"/api/#{@org.slug}/#{@api.slug}/openapi.json"}
       class="inline-flex items-center rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-accent"
     >
-      OpenAPI Spec (JSON)
+      <.icon name="hero-code-bracket-mini" class="mr-1 size-3.5" />OpenAPI Spec (JSON)
     </a>
   </div>
 
   <%= if @api.documentation_md do %>
     <div class="mb-8 bg-white rounded-lg border p-6">
-      <h2 class="text-lg font-semibold text-foreground mb-3">Documentation</h2>
+      <h2 class="flex items-center gap-2 text-lg font-semibold text-foreground mb-3"><.icon name="hero-book-open" class="size-4 text-violet-400" /> Documentation</h2>
       <pre class="text-sm text-muted-foreground whitespace-pre-wrap font-mono">{@api.documentation_md}</pre>
     </div>
   <% end %>

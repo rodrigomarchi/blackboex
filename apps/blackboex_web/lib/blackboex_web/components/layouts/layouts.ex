@@ -37,11 +37,11 @@ defmodule BlackboexWeb.Layouts do
 
         <%!-- Desktop nav --%>
         <nav class="ml-8 hidden items-center gap-1 md:flex">
-          <.nav_link navigate={~p"/dashboard"} icon="hero-home">Dashboard</.nav_link>
-          <.nav_link navigate={~p"/apis"} icon="hero-bolt">APIs</.nav_link>
-          <.nav_link navigate={~p"/flows"} icon="hero-arrow-path">Flows</.nav_link>
-          <.nav_link navigate={~p"/api-keys"} icon="hero-key">API Keys</.nav_link>
-          <.nav_link navigate={~p"/billing"} icon="hero-credit-card">Billing</.nav_link>
+          <.nav_link navigate={~p"/dashboard"} icon="hero-home" icon_class="size-4 text-sky-400">Dashboard</.nav_link>
+          <.nav_link navigate={~p"/apis"} icon="hero-bolt" icon_class="size-4 text-amber-400">APIs</.nav_link>
+          <.nav_link navigate={~p"/flows"} icon="hero-arrow-path" icon_class="size-4 text-violet-400">Flows</.nav_link>
+          <.nav_link navigate={~p"/api-keys"} icon="hero-key" icon_class="size-4 text-amber-400">API Keys</.nav_link>
+          <.nav_link navigate={~p"/billing"} icon="hero-credit-card" icon_class="size-4 text-emerald-400">Billing</.nav_link>
         </nav>
 
         <div class="flex-1" />
@@ -57,7 +57,7 @@ defmodule BlackboexWeb.Layouts do
               navigate={~p"/settings"}
               class="hidden text-sm font-medium text-muted-foreground hover:text-foreground md:inline"
             >
-              <.icon name="hero-cog-6-tooth" class="size-4" />
+              <.icon name="hero-cog-6-tooth" class="size-4 text-slate-400" />
             </.link>
             <.link
               href={~p"/users/log-out"}
@@ -84,12 +84,12 @@ defmodule BlackboexWeb.Layouts do
       <%!-- Mobile menu (hidden by default) --%>
       <div id="mobile-menu" class="hidden border-b bg-card px-4 py-3 md:hidden">
         <nav class="flex flex-col gap-1">
-          <.nav_link navigate={~p"/dashboard"} icon="hero-home">Dashboard</.nav_link>
-          <.nav_link navigate={~p"/apis"} icon="hero-bolt">APIs</.nav_link>
-          <.nav_link navigate={~p"/flows"} icon="hero-arrow-path">Flows</.nav_link>
-          <.nav_link navigate={~p"/api-keys"} icon="hero-key">API Keys</.nav_link>
-          <.nav_link navigate={~p"/billing"} icon="hero-credit-card">Billing</.nav_link>
-          <.nav_link navigate={~p"/settings"} icon="hero-cog-6-tooth">Settings</.nav_link>
+          <.nav_link navigate={~p"/dashboard"} icon="hero-home" icon_class="size-4 text-sky-400">Dashboard</.nav_link>
+          <.nav_link navigate={~p"/apis"} icon="hero-bolt" icon_class="size-4 text-amber-400">APIs</.nav_link>
+          <.nav_link navigate={~p"/flows"} icon="hero-arrow-path" icon_class="size-4 text-violet-400">Flows</.nav_link>
+          <.nav_link navigate={~p"/api-keys"} icon="hero-key" icon_class="size-4 text-amber-400">API Keys</.nav_link>
+          <.nav_link navigate={~p"/billing"} icon="hero-credit-card" icon_class="size-4 text-emerald-400">Billing</.nav_link>
+          <.nav_link navigate={~p"/settings"} icon="hero-cog-6-tooth" icon_class="size-4 text-slate-400">Settings</.nav_link>
         </nav>
         <%= if @current_scope && @current_scope.user do %>
           <div class="mt-3 border-t pt-3">
@@ -164,6 +164,7 @@ defmodule BlackboexWeb.Layouts do
 
   attr :navigate, :string, required: true
   attr :icon, :string, required: true
+  attr :icon_class, :string, default: "size-4"
   slot :inner_block, required: true
 
   defp nav_link(assigns) do
@@ -172,7 +173,7 @@ defmodule BlackboexWeb.Layouts do
       navigate={@navigate}
       class="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"
     >
-      <.icon name={@icon} class="size-4" />
+      <.icon name={@icon} class={@icon_class} />
       {render_slot(@inner_block)}
     </.link>
     """

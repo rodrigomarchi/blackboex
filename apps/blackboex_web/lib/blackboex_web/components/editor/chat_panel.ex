@@ -137,7 +137,7 @@ defmodule BlackboexWeb.Components.Editor.ChatPanel do
     ~H"""
     <div class="relative pb-2 pt-1">
       <div class="absolute -left-[9px] top-[7px] size-[13px] rounded-full border-2 bg-background flex items-center justify-center border-muted-foreground/50">
-        <.icon name="hero-chart-bar" class="size-2" />
+        <.icon name="hero-chart-bar" class="size-2 text-sky-400" />
       </div>
       <div class="rounded-md border bg-muted/20 px-3 py-2 ml-2 space-y-1.5">
         <%!-- Status row --%>
@@ -152,7 +152,7 @@ defmodule BlackboexWeb.Components.Editor.ChatPanel do
         </div>
         <%!-- Timing --%>
         <div class="flex items-center gap-1 text-[10px] text-muted-foreground">
-          <.icon name="hero-clock" class="size-3" />
+          <.icon name="hero-clock" class="size-3 text-amber-400" />
           <span>{format_timestamp(@run.started_at)}</span>
           <%= if @run.completed_at do %>
             <span>&rarr;</span>
@@ -165,19 +165,19 @@ defmodule BlackboexWeb.Components.Editor.ChatPanel do
         <%!-- Metrics row --%>
         <div class="flex items-center gap-3 text-[10px] text-muted-foreground">
           <span class="flex items-center gap-0.5">
-            <.icon name="hero-arrow-down-tray" class="size-2.5" />
+            <.icon name="hero-arrow-down-tray" class="size-2.5 text-blue-400" />
             {format_tokens(@run.input_tokens)} in
           </span>
           <span class="flex items-center gap-0.5">
-            <.icon name="hero-arrow-up-tray" class="size-2.5" />
+            <.icon name="hero-arrow-up-tray" class="size-2.5 text-emerald-400" />
             {format_tokens(@run.output_tokens)} out
           </span>
           <span class="flex items-center gap-0.5">
-            <.icon name="hero-currency-dollar" class="size-2.5" />
+            <.icon name="hero-currency-dollar" class="size-2.5 text-amber-400" />
             {format_cost(@run.cost_cents)}
           </span>
           <span class="flex items-center gap-0.5">
-            <.icon name="hero-queue-list" class="size-2.5" />
+            <.icon name="hero-queue-list" class="size-2.5 text-violet-400" />
             {to_string(@run.event_count || 0)} steps
           </span>
         </div>
@@ -218,7 +218,7 @@ defmodule BlackboexWeb.Components.Editor.ChatPanel do
         <div class="flex items-center gap-1.5 mb-1">
           <.icon
             name={if(@event.role == "user", do: "hero-user", else: "hero-sparkles")}
-            class="size-3 text-muted-foreground"
+            class={if(@event.role == "user", do: "size-3 text-blue-400", else: "size-3 text-violet-400")}
           />
           <span class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
             {if @event.role == "user", do: "You", else: "Agent"}
@@ -319,7 +319,7 @@ defmodule BlackboexWeb.Components.Editor.ChatPanel do
 
         <%!-- Timestamps --%>
         <div class="flex items-center gap-1 text-[10px] text-muted-foreground">
-          <.icon name="hero-clock" class="size-3" />
+          <.icon name="hero-clock" class="size-3 text-amber-400" />
           <span>{format_timestamp(@call[:timestamp])}</span>
           <%= if @result && @result[:timestamp] do %>
             <span>&rarr;</span>

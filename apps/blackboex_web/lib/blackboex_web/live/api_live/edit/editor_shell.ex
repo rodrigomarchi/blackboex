@@ -49,13 +49,14 @@ defmodule BlackboexWeb.ApiLive.Edit.EditorShell do
               :for={tab <- @tabs}
               navigate={"/apis/#{@api.id}/edit/#{tab.id}"}
               class={[
-                "px-3 py-1.5 text-xs font-medium border-b-2 transition-colors",
+                "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border-b-2 transition-colors",
                 if(tab.id == @active_tab,
                   do: "border-primary text-primary",
                   else: "border-transparent text-muted-foreground hover:text-foreground"
                 )
               ]}
             >
+              <.icon name={tab_icon(tab.id)} class={"size-3.5 #{tab_icon_color(tab.id)}"} />
               {tab.label}
               <span
                 :if={tab.id == "validation" && @validation_report}
@@ -90,4 +91,20 @@ defmodule BlackboexWeb.ApiLive.Edit.EditorShell do
     </div>
     """
   end
+
+  defp tab_icon("chat"), do: "hero-chat-bubble-left-right"
+  defp tab_icon("validation"), do: "hero-shield-check"
+  defp tab_icon("run"), do: "hero-play"
+  defp tab_icon("metrics"), do: "hero-chart-bar"
+  defp tab_icon("publish"), do: "hero-rocket-launch"
+  defp tab_icon("info"), do: "hero-information-circle"
+  defp tab_icon(_), do: "hero-squares-2x2"
+
+  defp tab_icon_color("chat"), do: "text-violet-400"
+  defp tab_icon_color("validation"), do: "text-teal-400"
+  defp tab_icon_color("run"), do: "text-green-400"
+  defp tab_icon_color("metrics"), do: "text-sky-400"
+  defp tab_icon_color("publish"), do: "text-emerald-400"
+  defp tab_icon_color("info"), do: "text-blue-400"
+  defp tab_icon_color(_), do: "text-muted-foreground"
 end

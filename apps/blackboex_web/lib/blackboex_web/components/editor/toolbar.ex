@@ -61,7 +61,7 @@ defmodule BlackboexWeb.Components.Editor.Toolbar do
         class="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-accent"
         title="Command Palette (⌘K)"
       >
-        <.icon name="hero-command-line" class="size-3.5" />
+        <.icon name="hero-command-line" class="size-3.5 text-violet-400" />
         <kbd class="hidden md:inline text-[10px] font-mono">⌘K</kbd>
       </button>
     </header>

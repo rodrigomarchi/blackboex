@@ -42,18 +42,18 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLive do
             <%= if @api.status == "compiled" do %>
               <button
                 phx-click="publish"
-                class="rounded-md bg-info px-3 py-1.5 text-xs font-medium text-info-foreground hover:bg-info/90"
+                class="inline-flex items-center rounded-md bg-info px-3 py-1.5 text-xs font-medium text-info-foreground hover:bg-info/90"
               >
-                Publish API
+                <.icon name="hero-rocket-launch" class="mr-1.5 size-3.5" /> Publish API
               </button>
             <% end %>
             <%= if @api.status == "published" do %>
               <button
                 phx-click="request_confirm"
                 phx-value-action="unpublish"
-                class="rounded-md border border-destructive px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10"
+                class="inline-flex items-center rounded-md border border-destructive px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10"
               >
-                Unpublish
+                <.icon name="hero-arrow-down-circle" class="mr-1.5 size-3.5" /> Unpublish
               </button>
             <% end %>
           </div>
@@ -63,9 +63,9 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLive do
             <code class="font-mono">/api/{@org.slug}/{@api.slug}</code>
             <button
               phx-click="copy_url"
-              class="text-primary hover:underline text-[10px]"
+              class="inline-flex items-center text-primary hover:underline text-[10px]"
             >
-              Copy
+              <.icon name="hero-clipboard-document-mini" class="mr-1 size-3 text-sky-400" />Copy
             </button>
             <%= if @api.status == "draft" do %>
               <span class="text-muted-foreground">(preview)</span>
@@ -75,7 +75,7 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLive do
           <%= if @api.status == "published" && @published_version do %>
             <div class="flex items-center gap-2 text-xs">
               <span class="inline-flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-success-foreground font-semibold">
-                <.icon name="hero-signal" class="size-3" /> LIVE
+                <.icon name="hero-signal" class="size-3 text-emerald-400" /> LIVE
               </span>
               <span>v{@published_version.version_number}</span>
               <span :if={@published_version.version_label} class="text-muted-foreground">
@@ -148,18 +148,18 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLive do
                     <button
                       phx-click="view_version"
                       phx-value-number={version.version_number}
-                      class="text-primary hover:underline"
+                      class="inline-flex items-center text-primary hover:underline"
                     >
-                      View
+                      <.icon name="hero-eye-mini" class="mr-1 size-3" />View
                     </button>
                     <%= if can_publish_version?(version, @published_version, @api.status) do %>
                       <button
                         phx-click="request_confirm"
                         phx-value-action="publish_version"
                         phx-value-number={version.version_number}
-                        class="text-info hover:underline font-medium"
+                        class="inline-flex items-center text-info hover:underline font-medium"
                       >
-                        Publish this version
+                        <.icon name="hero-rocket-launch-mini" class="mr-1 size-3" />Publish this version
                       </button>
                     <% end %>
                   </div>
@@ -176,7 +176,9 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLive do
             <div class="grid grid-cols-4 gap-3">
               <div class="rounded-lg border p-3 text-center">
                 <p class="text-xl font-bold">{@metrics.count_24h}</p>
-                <p class="text-[10px] text-muted-foreground">Total Calls</p>
+                <p class="flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
+                  <.icon name="hero-signal-mini" class="size-3.5 text-sky-400" /> Total Calls
+                </p>
               </div>
               <div class="rounded-lg border p-3 text-center">
                 <p class="text-xl font-bold">{@metrics.success_rate}%</p>
@@ -184,11 +186,15 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLive do
               </div>
               <div class="rounded-lg border p-3 text-center">
                 <p class="text-xl font-bold">{@metrics.avg_latency}ms</p>
-                <p class="text-[10px] text-muted-foreground">Avg Latency</p>
+                <p class="flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
+                  <.icon name="hero-clock-mini" class="size-3.5 text-amber-400" /> Avg Latency
+                </p>
               </div>
               <div class="rounded-lg border p-3 text-center">
                 <p class="text-xl font-bold">{@metrics[:error_count] || 0}</p>
-                <p class="text-[10px] text-muted-foreground">Errors</p>
+                <p class="flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
+                  <.icon name="hero-exclamation-circle-mini" class="size-3.5 text-red-400" /> Errors
+                </p>
               </div>
             </div>
           </div>
@@ -215,9 +221,9 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLive do
                 </div>
                 <button
                   type="submit"
-                  class="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+                  class="inline-flex items-center rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
                 >
-                  Save
+                  <.icon name="hero-check" class="mr-1.5 size-3.5" /> Save
                 </button>
               </div>
             </form>
@@ -232,9 +238,9 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLive do
                 </span>
                 <a
                   href="/api-keys"
-                  class="text-primary hover:underline text-xs font-medium"
+                  class="inline-flex items-center text-primary hover:underline text-xs font-medium"
                 >
-                  Manage Keys
+                  <.icon name="hero-key-mini" class="mr-1 size-3 text-amber-400" />Manage Keys
                 </a>
               </div>
               <%= if @keys_summary.active_keys != [] do %>
@@ -258,7 +264,7 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLive do
             <div class="space-y-2">
               <div class="flex items-center justify-between rounded border p-3">
                 <div class="flex items-center gap-2">
-                  <.icon name="hero-document-text" class="size-4 text-muted-foreground" />
+                  <.icon name="hero-document-text" class="size-4 text-blue-400" />
                   <span class="text-sm">Swagger UI</span>
                 </div>
                 <a
@@ -271,7 +277,7 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLive do
               </div>
               <div class="flex items-center justify-between rounded border p-3">
                 <div class="flex items-center gap-2">
-                  <.icon name="hero-code-bracket" class="size-4 text-muted-foreground" />
+                  <.icon name="hero-code-bracket" class="size-4 text-purple-400" />
                   <span class="text-sm">OpenAPI JSON</span>
                 </div>
                 <a

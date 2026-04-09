@@ -48,7 +48,9 @@ defmodule BlackboexWeb.BillingLive.Manage do
     ~H"""
     <div class="max-w-2xl mx-auto py-8">
       <.header>
-        Subscription Management
+        <span class="flex items-center gap-2">
+          <.icon name="hero-credit-card" class="size-5 text-emerald-400" /> Subscription Management
+        </span>
       </.header>
 
       <%= if @subscription do %>
@@ -85,10 +87,10 @@ defmodule BlackboexWeb.BillingLive.Manage do
                 <%= if @loading_portal do %>
                   <.spinner />
                 <% end %>
-                Manage Subscription
+                <.icon name="hero-arrow-top-right-on-square" class="mr-1.5 size-3.5 text-emerald-300" /> Manage Subscription
               </.button>
               <.button navigate={~p"/billing"} variant="default">
-                Change Plan
+                <.icon name="hero-arrows-up-down" class="mr-1.5 size-3.5 text-amber-400" /> Change Plan
               </.button>
             </div>
           </.card_content>
@@ -97,10 +99,12 @@ defmodule BlackboexWeb.BillingLive.Manage do
         <.empty_state
           title="No active subscription"
           description="You don't have an active subscription."
+          icon="hero-credit-card"
+          icon_class="text-emerald-400"
         >
           <:actions>
             <.button navigate={~p"/billing"} variant="primary">
-              View Plans
+              <.icon name="hero-sparkles" class="mr-1.5 size-3.5 text-amber-300" /> View Plans
             </.button>
           </:actions>
         </.empty_state>

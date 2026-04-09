@@ -24,7 +24,7 @@ defmodule BlackboexWeb.UserLive.Settings do
         spellcheck="false"
         required
       />
-      <.button variant="primary" phx-disable-with="Changing...">Change Email</.button>
+      <.button variant="primary" phx-disable-with="Changing..."><.icon name="hero-envelope" class="mr-1.5 size-3.5 text-blue-300" /> Change Email</.button>
     </.form>
 
     <div class="border-t my-6" />
@@ -61,7 +61,7 @@ defmodule BlackboexWeb.UserLive.Settings do
         spellcheck="false"
       />
       <.button variant="primary" phx-disable-with="Saving...">
-        Save Password
+        <.icon name="hero-lock-closed" class="mr-1.5 size-3.5 text-amber-300" /> Save Password
       </.button>
     </.form>
     """

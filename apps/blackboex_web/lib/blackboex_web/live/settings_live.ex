@@ -37,7 +37,11 @@ defmodule BlackboexWeb.SettingsLive do
   def render(assigns) do
     ~H"""
     <div class="py-8">
-      <.header>Settings</.header>
+      <.header>
+        <span class="flex items-center gap-2">
+          <.icon name="hero-cog-6-tooth" class="size-5 text-slate-400" /> Settings
+        </span>
+      </.header>
 
       <div class="border-b mb-6">
         <nav class="flex gap-1">
@@ -45,13 +49,14 @@ defmodule BlackboexWeb.SettingsLive do
             :for={tab <- tabs()}
             patch={~p"/settings?tab=#{tab}"}
             class={[
-              "px-4 py-2 text-sm font-medium border-b-2 -mb-px",
+              "flex items-center gap-1.5 px-4 py-2 text-sm font-medium border-b-2 -mb-px",
               if(@active_tab == tab,
                 do: "border-primary text-primary",
                 else: "border-transparent text-muted-foreground hover:text-foreground"
               )
             ]}
           >
+            <.icon name={tab_icon(tab)} class={"size-3.5 #{tab_icon_color(tab)}"} />
             {tab_label(tab)}
           </.link>
         </nav>
@@ -66,7 +71,7 @@ defmodule BlackboexWeb.SettingsLive do
     ~H"""
     <.card>
       <.card_content class="pt-6">
-        <h2 class="text-lg font-semibold">Profile</h2>
+        <h2 class="flex items-center gap-2 text-lg font-semibold"><.icon name="hero-user-circle" class="size-4 text-blue-400" /> Profile</h2>
 
         <div class="flex items-center gap-4 mb-6 mt-4">
           <.avatar class="h-12 w-12">
@@ -91,7 +96,7 @@ defmodule BlackboexWeb.SettingsLive do
 
         <div class="mt-4">
           <.button navigate={~p"/users/settings"} variant="default" size="sm">
-            Edit Email & Password
+            <.icon name="hero-pencil-square" class="mr-1.5 size-3.5 text-blue-400" /> Edit Email & Password
           </.button>
         </div>
       </.card_content>
@@ -103,7 +108,7 @@ defmodule BlackboexWeb.SettingsLive do
     ~H"""
     <.card>
       <.card_content class="pt-6">
-        <h2 class="text-lg font-semibold">Organization</h2>
+        <h2 class="flex items-center gap-2 text-lg font-semibold"><.icon name="hero-building-office-2" class="size-4 text-violet-400" /> Organization</h2>
         <p class="text-muted-foreground mt-4">No organization selected.</p>
       </.card_content>
     </.card>
@@ -114,7 +119,7 @@ defmodule BlackboexWeb.SettingsLive do
     ~H"""
     <.card>
       <.card_content class="pt-6">
-        <h2 class="text-lg font-semibold">Organization</h2>
+        <h2 class="flex items-center gap-2 text-lg font-semibold"><.icon name="hero-building-office-2" class="size-4 text-violet-400" /> Organization</h2>
         <div class="mt-4">
           <.description_list>
             <:item label="Name">{@current_scope.organization.name}</:item>
@@ -131,7 +136,7 @@ defmodule BlackboexWeb.SettingsLive do
         </div>
 
         <div :if={@members != []} class="mt-6">
-          <h3 class="font-semibold mb-2">Members</h3>
+          <h3 class="flex items-center gap-1.5 font-semibold mb-2"><.icon name="hero-user-group" class="size-4 text-blue-400" /> Members</h3>
           <div class="space-y-2">
             <div
               :for={member <- @members}
@@ -151,7 +156,7 @@ defmodule BlackboexWeb.SettingsLive do
     ~H"""
     <.card>
       <.card_content class="pt-6">
-        <h2 class="text-lg font-semibold">Billing</h2>
+        <h2 class="flex items-center gap-2 text-lg font-semibold"><.icon name="hero-credit-card" class="size-4 text-emerald-400" /> Billing</h2>
         <p class="text-muted-foreground mt-4">No organization selected.</p>
       </.card_content>
     </.card>
@@ -162,7 +167,7 @@ defmodule BlackboexWeb.SettingsLive do
     ~H"""
     <.card>
       <.card_content class="pt-6">
-        <h2 class="text-lg font-semibold">Billing</h2>
+        <h2 class="flex items-center gap-2 text-lg font-semibold"><.icon name="hero-credit-card" class="size-4 text-emerald-400" /> Billing</h2>
         <div class="mt-4">
           <.description_list>
             <:item label="Current Plan">
@@ -180,10 +185,10 @@ defmodule BlackboexWeb.SettingsLive do
 
         <div class="flex gap-2 mt-4">
           <.button navigate={~p"/billing"} variant="primary" size="sm">
-            View Plans
+            <.icon name="hero-sparkles" class="mr-1.5 size-3.5 text-amber-300" /> View Plans
           </.button>
           <.button navigate={~p"/billing/manage"} variant="default" size="sm">
-            Manage Subscription
+            <.icon name="hero-credit-card" class="mr-1.5 size-3.5 text-emerald-400" /> Manage Subscription
           </.button>
         </div>
       </.card_content>
@@ -195,14 +200,14 @@ defmodule BlackboexWeb.SettingsLive do
     ~H"""
     <.card>
       <.card_content class="pt-6">
-        <h2 class="text-lg font-semibold">Security & Audit</h2>
+        <h2 class="flex items-center gap-2 text-lg font-semibold"><.icon name="hero-shield-check" class="size-4 text-teal-400" /> Security & Audit</h2>
 
         <div :if={@audit_logs == []} class="mt-4 text-muted-foreground">
           No recent activity.
         </div>
 
         <div :if={@audit_logs != []} class="mt-4">
-          <h3 class="font-semibold mb-2">Recent Activity</h3>
+          <h3 class="flex items-center gap-1.5 font-semibold mb-2"><.icon name="hero-clock" class="size-4 text-amber-400" /> Recent Activity</h3>
           <div class="space-y-2">
             <div
               :for={log <- @audit_logs}
@@ -223,7 +228,7 @@ defmodule BlackboexWeb.SettingsLive do
 
         <div class="mt-6">
           <.button navigate={~p"/users/settings"} variant="default" size="sm">
-            Change Password
+            <.icon name="hero-lock-closed" class="mr-1.5 size-3.5 text-amber-400" /> Change Password
           </.button>
         </div>
       </.card_content>
@@ -267,6 +272,18 @@ defmodule BlackboexWeb.SettingsLive do
   defp load_tab_data(socket, _tab) do
     socket
   end
+
+  defp tab_icon("profile"), do: "hero-user-circle"
+  defp tab_icon("organization"), do: "hero-building-office-2"
+  defp tab_icon("billing"), do: "hero-credit-card"
+  defp tab_icon("security"), do: "hero-shield-check"
+  defp tab_icon(_), do: "hero-squares-2x2"
+
+  defp tab_icon_color("profile"), do: "text-blue-400"
+  defp tab_icon_color("organization"), do: "text-violet-400"
+  defp tab_icon_color("billing"), do: "text-emerald-400"
+  defp tab_icon_color("security"), do: "text-teal-400"
+  defp tab_icon_color(_), do: "text-muted-foreground"
 
   defp tab_label("profile"), do: "Profile"
   defp tab_label("organization"), do: "Organization"

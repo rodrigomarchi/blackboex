@@ -8,7 +8,6 @@ defmodule BlackboexWeb.ApiLive.Index do
 
   import BlackboexWeb.Components.Modal
   import BlackboexWeb.Components.Badge
-  import BlackboexWeb.Components.Card
   import BlackboexWeb.Components.Shared.EmptyState
 
   alias Blackboex.Apis
@@ -289,11 +288,13 @@ defmodule BlackboexWeb.ApiLive.Index do
     ~H"""
     <div class="space-y-6">
       <.header>
-        APIs
+        <span class="flex items-center gap-2">
+          <.icon name="hero-cube" class="size-5 text-blue-400" /> APIs
+        </span>
         <:subtitle>Manage and monitor your API endpoints</:subtitle>
         <:actions>
           <.button variant="primary" phx-click="open_create_modal">
-            <.icon name="hero-plus" class="mr-2 size-4" /> Create API
+            <.icon name="hero-plus" class="mr-2 size-4 text-emerald-300" /> Create API
           </.button>
         </:actions>
       </.header>
@@ -323,66 +324,77 @@ defmodule BlackboexWeb.ApiLive.Index do
           </:actions>
         </.empty_state>
       <% else %>
-        <div class="space-y-3">
-          <.card :for={row <- @api_rows} class="p-4">
-            <div class="flex items-start justify-between gap-4">
-              <div class="min-w-0 flex-1 space-y-1">
-                <div class="flex items-center gap-2">
-                  <.link
-                    navigate={~p"/apis/#{row.api.id}/edit"}
-                    class="font-semibold hover:underline truncate"
-                  >
-                    {row.api.name}
-                  </.link>
-                  <.badge class={api_status_classes(row.api.status)}>{row.api.status}</.badge>
-                  <.generation_badge
-                    :if={row.api.generation_status in ~w(pending generating validating)}
-                    status={row.api.generation_status}
-                  />
-                </div>
-
-                <p :if={row.api.description} class="text-sm text-muted-foreground truncate">
+        <.table id="apis" rows={@api_rows}>
+          <:col :let={row} label="API">
+            <div class="flex items-center gap-3">
+              <div class="flex size-8 items-center justify-center rounded-lg bg-blue-500/15">
+                <.icon name="hero-cube" class="size-4 text-blue-400" />
+              </div>
+              <div class="min-w-0">
+                <.link
+                  navigate={~p"/apis/#{row.api.id}/edit"}
+                  class="font-medium text-sm hover:underline truncate block"
+                >
+                  {row.api.name}
+                </.link>
+                <p :if={row.api.description} class="text-xs text-muted-foreground truncate max-w-xs">
                   {row.api.description}
                 </p>
-
-                <div class="flex items-center gap-3 text-xs text-muted-foreground">
-                  <span>{row.calls_24h} calls</span>
-                  <span>&middot;</span>
-                  <span>{format_latency(row.avg_latency)} avg</span>
-                  <span>&middot;</span>
-                  <span>{row.errors_24h} errors</span>
-                  <span>&middot;</span>
-                  <span>{Calendar.strftime(row.api.inserted_at, "%Y-%m-%d")}</span>
-                </div>
-
-                <%= if row.api.status == "published" do %>
-                  <div class="flex items-center gap-2 pt-1">
-                    <code class="rounded bg-muted px-1.5 py-0.5 text-xs font-mono">
-                      POST /api/{@org_slug}/{row.api.slug}
-                    </code>
-                  </div>
-                <% else %>
-                  <p class="text-xs italic text-muted-foreground pt-1">Not published</p>
-                <% end %>
-              </div>
-
-              <div class="flex items-center gap-2 shrink-0">
-                <.button variant="outline" size="sm" navigate={~p"/apis/#{row.api.id}/edit"}>
-                  Edit
-                </.button>
-                <.button
-                  variant="destructive"
-                  size="sm"
-                  phx-click="request_confirm"
-                  phx-value-action="delete"
-                  phx-value-id={row.api.id}
-                >
-                  Delete
-                </.button>
               </div>
             </div>
-          </.card>
-        </div>
+          </:col>
+          <:col :let={row} label="Status">
+            <div class="flex items-center gap-1.5">
+              <.badge class={api_status_classes(row.api.status)}>{row.api.status}</.badge>
+              <.generation_badge
+                :if={row.api.generation_status in ~w(pending generating validating)}
+                status={row.api.generation_status}
+              />
+            </div>
+          </:col>
+          <:col :let={row} label="Calls">
+            <div class="flex items-center gap-1.5">
+              <.icon name="hero-signal-mini" class="size-3.5 text-sky-400" />
+              <span class="text-xs font-mono">{row.calls_24h}</span>
+            </div>
+          </:col>
+          <:col :let={row} label="Avg Latency">
+            <div class="flex items-center gap-1.5">
+              <.icon name="hero-clock-mini" class="size-3.5 text-amber-400" />
+              <span class="text-xs font-mono">{format_latency(row.avg_latency)}</span>
+            </div>
+          </:col>
+          <:col :let={row} label="Errors">
+            <div class="flex items-center gap-1.5">
+              <.icon name="hero-exclamation-circle-mini" class={"size-3.5 #{if row.errors_24h > 0, do: "text-red-400", else: "text-muted-foreground/50"}"} />
+              <span class={"text-xs font-mono #{if row.errors_24h > 0, do: "text-red-400", else: ""}"}>{row.errors_24h}</span>
+            </div>
+          </:col>
+          <:col :let={row} label="Endpoint">
+            <%= if row.api.status == "published" do %>
+              <code class="rounded bg-muted px-1.5 py-0.5 text-[11px] font-mono text-emerald-500">
+                POST /{@org_slug}/{row.api.slug}
+              </code>
+            <% else %>
+              <span class="text-xs italic text-muted-foreground">—</span>
+            <% end %>
+          </:col>
+          <:action :let={row}>
+            <div class="flex items-center gap-2">
+              <.link navigate={~p"/apis/#{row.api.id}/edit"} class="inline-flex items-center text-xs text-primary hover:underline">
+                <.icon name="hero-pencil-square-mini" class="mr-1 size-3" /> Edit
+              </.link>
+              <button
+                phx-click="request_confirm"
+                phx-value-action="delete"
+                phx-value-id={row.api.id}
+                class="inline-flex items-center text-xs text-destructive hover:underline"
+              >
+                <.icon name="hero-trash-mini" class="mr-1 size-3" /> Delete
+              </button>
+            </div>
+          </:action>
+        </.table>
       <% end %>
 
       <%!-- Create API Modal --%>

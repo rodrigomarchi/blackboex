@@ -167,7 +167,7 @@ defmodule BlackboexWeb.FlowLive.ExecutionShow do
       <.card>
         <.card_header class="py-3 px-4">
           <.card_title class="flex items-center gap-2 text-sm">
-            <.icon name="hero-queue-list" class="size-4 text-muted-foreground" />
+            <.icon name="hero-queue-list" class="size-4 text-violet-400" />
             Node Timeline
           </.card_title>
         </.card_header>

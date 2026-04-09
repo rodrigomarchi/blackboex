@@ -11,7 +11,9 @@ defmodule BlackboexWeb.Components.Editor.ResponseViewer do
     ~H"""
     <div class="rounded-lg border bg-card text-card-foreground shadow-sm" id="response-viewer">
       <div class="flex items-center justify-between border-b px-4 py-2">
-        <h3 class="text-sm font-semibold">Response</h3>
+        <h3 class="flex items-center gap-1.5 text-sm font-semibold">
+          <.icon name="hero-arrow-down-on-square-mini" class="size-3.5 text-blue-400" /> Response
+        </h3>
         <%= if @response do %>
           <div class="flex items-center gap-2">
             <span class={[

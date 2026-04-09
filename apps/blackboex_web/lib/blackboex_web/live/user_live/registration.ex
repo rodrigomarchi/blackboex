@@ -33,7 +33,7 @@ defmodule BlackboexWeb.UserLive.Registration do
         />
 
         <.button phx-disable-with="Creating account..." class="w-full">
-          Create an account
+          <.icon name="hero-user-plus" class="mr-1.5 size-3.5 text-emerald-300" /> Create an account
         </.button>
       </.form>
     </div>

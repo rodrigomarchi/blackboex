@@ -15,6 +15,7 @@ defmodule BlackboexWeb.Components.Shared.EmptyState do
   import BlackboexWeb.Components.Icon
 
   attr :icon, :string, default: nil
+  attr :icon_class, :string, default: "text-muted-foreground/60"
   attr :title, :string, required: true
   attr :description, :string, default: nil
   attr :class, :string, default: nil
@@ -29,8 +30,8 @@ defmodule BlackboexWeb.Components.Shared.EmptyState do
         @class
       ])
     }>
-      <div :if={@icon} class="mb-4 text-muted-foreground">
-        <.icon name={@icon} class="size-12" />
+      <div :if={@icon} class="mb-4">
+        <.icon name={@icon} class={classes(["size-12", @icon_class])} />
       </div>
       <h3 class="text-lg font-semibold">{@title}</h3>
       <p :if={@description} class="mt-2 text-sm text-muted-foreground max-w-sm">

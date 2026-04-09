@@ -53,7 +53,7 @@ defmodule BlackboexWeb.Components.Editor.RequestBuilder do
             </svg>
             Sending...
           <% else %>
-            Send
+            <.icon name="hero-paper-airplane-mini" class="size-3.5 text-emerald-300" /> Send
           <% end %>
         </button>
       </div>

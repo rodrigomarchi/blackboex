@@ -82,14 +82,16 @@ defmodule BlackboexWeb.ApiLive.Edit.RunLive do
         <%!-- Test History --%>
         <div class="w-52 shrink-0 border-l pl-3 overflow-y-auto">
           <div class="flex items-center justify-between mb-2">
-            <h4 class="text-xs font-semibold text-muted-foreground uppercase">History</h4>
+            <h4 class="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase">
+              <.icon name="hero-clock-mini" class="size-3.5 text-amber-400" /> History
+            </h4>
             <button
               :if={@test_history != []}
               phx-click="request_confirm"
               phx-value-action="clear_history"
-              class="text-[10px] text-destructive hover:underline"
+              class="inline-flex items-center text-[10px] text-destructive hover:underline"
             >
-              Clear
+              <.icon name="hero-trash-mini" class="mr-1 size-3" /> Clear
             </button>
           </div>
 

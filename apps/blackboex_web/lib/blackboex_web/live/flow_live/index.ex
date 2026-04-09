@@ -8,7 +8,6 @@ defmodule BlackboexWeb.FlowLive.Index do
 
   import BlackboexWeb.Components.Modal
   import BlackboexWeb.Components.Badge
-  import BlackboexWeb.Components.Card
   import BlackboexWeb.Components.Shared.EmptyState
 
   alias Blackboex.Flows
@@ -200,11 +199,13 @@ defmodule BlackboexWeb.FlowLive.Index do
     ~H"""
     <div class="space-y-6">
       <.header>
-        Flows
+        <span class="flex items-center gap-2">
+          <.icon name="hero-arrow-path" class="size-5 text-violet-400" /> Flows
+        </span>
         <:subtitle>Build visual workflows by connecting nodes</:subtitle>
         <:actions>
           <.button variant="primary" phx-click="open_create_modal">
-            <.icon name="hero-plus" class="mr-2 size-4" /> Create Flow
+            <.icon name="hero-plus" class="mr-2 size-4 text-emerald-300" /> Create Flow
           </.button>
         </:actions>
       </.header>
@@ -234,46 +235,47 @@ defmodule BlackboexWeb.FlowLive.Index do
           </:actions>
         </.empty_state>
       <% else %>
-        <div class="space-y-3">
-          <.card :for={flow <- @flows} class="p-4">
-            <div class="flex items-start justify-between gap-4">
-              <div class="min-w-0 flex-1 space-y-1">
-                <div class="flex items-center gap-2">
-                  <.link
-                    navigate={~p"/flows/#{flow.id}/edit"}
-                    class="font-semibold hover:underline truncate"
-                  >
-                    {flow.name}
-                  </.link>
-                  <.badge class={flow_status_classes(flow.status)}>{flow.status}</.badge>
-                </div>
-
-                <p :if={flow.description} class="text-sm text-muted-foreground truncate">
+        <.table id="flows" rows={@flows}>
+          <:col :let={flow} label="Flow">
+            <div class="flex items-center gap-3">
+              <div class="flex size-8 items-center justify-center rounded-lg bg-violet-500/15">
+                <.icon name="hero-arrow-path" class="size-4 text-violet-400" />
+              </div>
+              <div class="min-w-0">
+                <.link
+                  navigate={~p"/flows/#{flow.id}/edit"}
+                  class="font-medium text-sm hover:underline truncate block"
+                >
+                  {flow.name}
+                </.link>
+                <p :if={flow.description} class="text-xs text-muted-foreground truncate max-w-xs">
                   {flow.description}
                 </p>
-
-                <div class="flex items-center gap-3 text-xs text-muted-foreground">
-                  <span>{Calendar.strftime(flow.inserted_at, "%Y-%m-%d")}</span>
-                </div>
-              </div>
-
-              <div class="flex items-center gap-2 shrink-0">
-                <.button variant="outline" size="sm" navigate={~p"/flows/#{flow.id}/edit"}>
-                  Edit
-                </.button>
-                <.button
-                  variant="destructive"
-                  size="sm"
-                  phx-click="request_confirm"
-                  phx-value-action="delete"
-                  phx-value-id={flow.id}
-                >
-                  Delete
-                </.button>
               </div>
             </div>
-          </.card>
-        </div>
+          </:col>
+          <:col :let={flow} label="Status">
+            <.badge class={flow_status_classes(flow.status)}>{flow.status}</.badge>
+          </:col>
+          <:col :let={flow} label="Created">
+            <span class="text-xs text-muted-foreground">{Calendar.strftime(flow.inserted_at, "%b %d, %Y")}</span>
+          </:col>
+          <:action :let={flow}>
+            <div class="flex items-center gap-2">
+              <.link navigate={~p"/flows/#{flow.id}/edit"} class="inline-flex items-center text-xs text-primary hover:underline">
+                <.icon name="hero-pencil-square-mini" class="mr-1 size-3" /> Edit
+              </.link>
+              <button
+                phx-click="request_confirm"
+                phx-value-action="delete"
+                phx-value-id={flow.id}
+                class="inline-flex items-center text-xs text-destructive hover:underline"
+              >
+                <.icon name="hero-trash-mini" class="mr-1 size-3" /> Delete
+              </button>
+            </div>
+          </:action>
+        </.table>
       <% end %>
 
       <.confirm_dialog
@@ -300,7 +302,7 @@ defmodule BlackboexWeb.FlowLive.Index do
             phx-value-mode="template"
             class={"px-4 py-2 text-sm font-medium border-b-2 -mb-px #{if @create_mode == :template, do: "border-primary text-primary", else: "border-transparent text-muted-foreground hover:text-foreground"}"}
           >
-            From Template
+            <.icon name="hero-squares-2x2" class="mr-1.5 size-4 inline" />From Template
           </button>
           <button
             type="button"
@@ -308,7 +310,7 @@ defmodule BlackboexWeb.FlowLive.Index do
             phx-value-mode="blank"
             class={"px-4 py-2 text-sm font-medium border-b-2 -mb-px #{if @create_mode == :blank, do: "border-primary text-primary", else: "border-transparent text-muted-foreground hover:text-foreground"}"}
           >
-            Blank Flow
+            <.icon name="hero-document-plus" class="mr-1.5 size-4 inline" />Blank Flow
           </button>
         </div>
 

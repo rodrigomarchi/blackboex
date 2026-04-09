@@ -52,7 +52,7 @@ defmodule BlackboexWeb.FlowLive.Executions do
           <span class="text-xs text-muted-foreground">{@flow.name}</span>
         </div>
         <div :if={@executions != []} class="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <.icon name="hero-bolt-mini" class="size-3.5" />
+          <.icon name="hero-bolt-mini" class="size-3.5 text-amber-400" />
           {length(@executions)} total runs
         </div>
       </header>
@@ -61,7 +61,7 @@ defmodule BlackboexWeb.FlowLive.Executions do
 
       <%= if @executions != [] do %>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <.stat_mini label="Total" value={@stats.total} icon="hero-play-circle" />
+          <.stat_mini label="Total" value={@stats.total} icon="hero-play-circle" color="text-blue-400" />
           <.stat_mini
             label="Completed"
             value={@stats.completed}
@@ -74,7 +74,7 @@ defmodule BlackboexWeb.FlowLive.Executions do
             icon="hero-x-circle"
             color="text-red-500"
           />
-          <.stat_mini label="Avg Duration" value={@stats.avg_duration} icon="hero-clock" />
+          <.stat_mini label="Avg Duration" value={@stats.avg_duration} icon="hero-clock" color="text-amber-400" />
         </div>
       <% end %>
 
@@ -92,22 +92,22 @@ defmodule BlackboexWeb.FlowLive.Executions do
                 <tr class="border-b bg-muted/30">
                   <th class="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     <span class="flex items-center gap-1.5">
-                      <.icon name="hero-signal-mini" class="size-3.5" /> Status
+                      <.icon name="hero-signal-mini" class="size-3.5 text-sky-400" /> Status
                     </span>
                   </th>
                   <th class="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     <span class="flex items-center gap-1.5">
-                      <.icon name="hero-finger-print-mini" class="size-3.5" /> Execution ID
+                      <.icon name="hero-finger-print-mini" class="size-3.5 text-violet-400" /> Execution ID
                     </span>
                   </th>
                   <th class="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     <span class="flex items-center gap-1.5">
-                      <.icon name="hero-clock-mini" class="size-3.5" /> Duration
+                      <.icon name="hero-clock-mini" class="size-3.5 text-amber-400" /> Duration
                     </span>
                   </th>
                   <th class="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     <span class="flex items-center gap-1.5">
-                      <.icon name="hero-calendar-mini" class="size-3.5" /> Started
+                      <.icon name="hero-calendar-mini" class="size-3.5 text-emerald-400" /> Started
                     </span>
                   </th>
                   <th class="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">

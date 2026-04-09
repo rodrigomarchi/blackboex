@@ -46,7 +46,9 @@ defmodule BlackboexWeb.ApiLive.Edit.InfoLive do
 
         <%!-- General --%>
         <div>
-          <h3 class="text-xs font-semibold text-muted-foreground uppercase mb-3">General</h3>
+          <h3 class="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase mb-3">
+            <.icon name="hero-cog-6-tooth" class="size-3.5 text-slate-400" /> General
+          </h3>
           <form phx-submit="update_info" class="space-y-3">
             <div>
               <label class="text-xs font-medium">Name</label>
@@ -87,34 +89,44 @@ defmodule BlackboexWeb.ApiLive.Edit.InfoLive do
             </div>
             <button
               type="submit"
-              class="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+              class="inline-flex items-center rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
             >
-              Save Changes
+              <.icon name="hero-check" class="mr-1.5 size-3.5" /> Save Changes
             </button>
           </form>
         </div>
 
         <%!-- Code Stats --%>
         <div>
-          <h3 class="text-xs font-semibold text-muted-foreground uppercase mb-3">Code Stats</h3>
+          <h3 class="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase mb-3">
+            <.icon name="hero-code-bracket" class="size-3.5 text-purple-400" /> Code Stats
+          </h3>
           <div class="grid grid-cols-4 gap-3">
             <div class="rounded-lg border p-3 text-center">
               <p class="text-xl font-bold">{@source_lines}</p>
-              <p class="text-[10px] text-muted-foreground">Source Lines</p>
+              <p class="flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
+                <.icon name="hero-code-bracket-mini" class="size-3.5 text-purple-400" /> Source Lines
+              </p>
             </div>
             <div class="rounded-lg border p-3 text-center">
               <p class="text-xl font-bold">{@test_lines}</p>
-              <p class="text-[10px] text-muted-foreground">Test Lines</p>
+              <p class="flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
+                <.icon name="hero-beaker-mini" class="size-3.5 text-green-400" /> Test Lines
+              </p>
             </div>
             <div class="rounded-lg border p-3 text-center">
               <p class="text-xl font-bold">{length(@versions)}</p>
-              <p class="text-[10px] text-muted-foreground">Versions</p>
+              <p class="flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
+                <.icon name="hero-clock-mini" class="size-3.5 text-amber-400" /> Versions
+              </p>
             </div>
             <div class="rounded-lg border p-3 text-center">
               <p class="text-xl font-bold">
                 {if @versions != [], do: "v#{hd(@versions).version_number}", else: "-"}
               </p>
-              <p class="text-[10px] text-muted-foreground">Latest</p>
+              <p class="flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
+                <.icon name="hero-tag-mini" class="size-3.5 text-blue-400" /> Latest
+              </p>
             </div>
           </div>
         </div>
@@ -122,8 +134,8 @@ defmodule BlackboexWeb.ApiLive.Edit.InfoLive do
         <%!-- Request/Response Schema --%>
         <%= if @api.param_schema || @api.example_request || @api.example_response do %>
           <div>
-            <h3 class="text-xs font-semibold text-muted-foreground uppercase mb-3">
-              Request/Response Schema
+            <h3 class="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase mb-3">
+              <.icon name="hero-document-text" class="size-3.5 text-blue-400" /> Request/Response Schema
             </h3>
             <div class="space-y-3">
               <%= if @api.param_schema do %>
@@ -152,7 +164,9 @@ defmodule BlackboexWeb.ApiLive.Edit.InfoLive do
 
         <%!-- Danger Zone --%>
         <div>
-          <h3 class="text-xs font-semibold text-muted-foreground uppercase mb-3">Danger Zone</h3>
+          <h3 class="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase mb-3">
+            <.icon name="hero-exclamation-triangle" class="size-3.5 text-red-400" /> Danger Zone
+          </h3>
           <div class="rounded-lg border border-destructive/30 p-4 flex items-center justify-between">
             <div>
               <p class="text-sm font-medium">Archive this API</p>
@@ -163,9 +177,9 @@ defmodule BlackboexWeb.ApiLive.Edit.InfoLive do
             <button
               phx-click="request_confirm"
               phx-value-action="archive_api"
-              class="rounded-md border border-destructive px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10"
+              class="inline-flex items-center rounded-md border border-destructive px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10"
             >
-              Archive API
+              <.icon name="hero-archive-box" class="mr-1.5 size-3.5" /> Archive API
             </button>
           </div>
         </div>

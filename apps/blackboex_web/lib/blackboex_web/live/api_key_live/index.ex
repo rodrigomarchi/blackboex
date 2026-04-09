@@ -33,11 +33,13 @@ defmodule BlackboexWeb.ApiKeyLive.Index do
     ~H"""
     <div class="space-y-6">
       <.header>
-        API Keys
+        <span class="flex items-center gap-2">
+          <.icon name="hero-key" class="size-5 text-amber-400" /> API Keys
+        </span>
         <:subtitle>Manage authentication keys across all your APIs</:subtitle>
         <:actions>
           <.button variant="primary" phx-click="toggle_create_modal">
-            <.icon name="hero-plus" class="mr-2 size-4" /> New Key
+            <.icon name="hero-plus" class="mr-2 size-4 text-emerald-300" /> New Key
           </.button>
         </:actions>
       </.header>
@@ -61,6 +63,7 @@ defmodule BlackboexWeb.ApiKeyLive.Index do
       <%= if @keys == [] do %>
         <.empty_state
           icon="hero-key"
+          icon_class="text-amber-400"
           title="No API keys yet"
           description="Create a key to authenticate API requests"
         />
@@ -91,8 +94,8 @@ defmodule BlackboexWeb.ApiKeyLive.Index do
             <span class="text-muted-foreground text-xs">{format_last_used(key.last_used_at)}</span>
           </:col>
           <:action :let={key}>
-            <.link navigate={~p"/api-keys/#{key.id}"} class="text-xs text-primary hover:underline">
-              Details
+            <.link navigate={~p"/api-keys/#{key.id}"} class="inline-flex items-center text-xs text-primary hover:underline">
+              <.icon name="hero-eye-mini" class="mr-1 size-3" /> Details
             </.link>
           </:action>
         </.table>
@@ -122,7 +125,7 @@ defmodule BlackboexWeb.ApiKeyLive.Index do
               Cancel
             </.button>
             <.button type="submit" variant="primary">
-              Create Key
+              <.icon name="hero-key" class="mr-1.5 size-3.5 text-amber-300" /> Create Key
             </.button>
           </div>
         </form>

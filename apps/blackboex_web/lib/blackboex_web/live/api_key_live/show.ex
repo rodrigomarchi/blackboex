@@ -67,7 +67,7 @@ defmodule BlackboexWeb.ApiKeyLive.Show do
               variant="default"
               size="sm"
             >
-              <.icon name="hero-arrow-path" class="mr-1.5 size-4" /> Rotate
+              <.icon name="hero-arrow-path" class="mr-1.5 size-4 text-amber-400" /> Rotate
             </.button>
             <.button
               :if={!@key.revoked_at}
@@ -76,7 +76,7 @@ defmodule BlackboexWeb.ApiKeyLive.Show do
               variant="destructive"
               size="sm"
             >
-              <.icon name="hero-x-circle" class="mr-1.5 size-4" /> Revoke
+              <.icon name="hero-x-circle" class="mr-1.5 size-4 text-red-400" /> Revoke
             </.button>
           </div>
         </:actions>
@@ -98,7 +98,9 @@ defmodule BlackboexWeb.ApiKeyLive.Show do
       <%!-- Metrics --%>
       <div class="space-y-4">
         <div class="flex items-center justify-between">
-          <h2 class="text-lg font-semibold">Usage</h2>
+          <h2 class="flex items-center gap-2 text-lg font-semibold">
+            <.icon name="hero-chart-bar" class="size-4 text-sky-400" /> Usage
+          </h2>
           <div class="flex gap-1 rounded-lg border p-0.5">
             <.button
               :for={p <- ~w(24h 7d 30d)}
@@ -127,7 +129,9 @@ defmodule BlackboexWeb.ApiKeyLive.Show do
       <%!-- Details --%>
       <.card>
         <.card_content class="pt-6">
-          <h2 class="text-lg font-semibold mb-4">Details</h2>
+          <h2 class="flex items-center gap-2 text-lg font-semibold mb-4">
+            <.icon name="hero-information-circle" class="size-4 text-blue-400" /> Details
+          </h2>
           <.description_list>
             <:item label="Key Prefix">
               <span class="font-mono">{@key.key_prefix}</span>

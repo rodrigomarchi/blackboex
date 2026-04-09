@@ -27,10 +27,10 @@ defmodule BlackboexWeb.UserLive.Confirmation do
           phx-disable-with="Confirming..."
           class="w-full"
         >
-          Confirm and stay logged in
+          <.icon name="hero-shield-check" class="mr-1.5 size-3.5 text-emerald-300" /> Confirm and stay logged in
         </.button>
         <.button phx-disable-with="Confirming..." class="w-full mt-2">
-          Confirm and log in only this time
+          <.icon name="hero-arrow-right-end-on-rectangle" class="mr-1.5 size-3.5 text-sky-300" /> Confirm and log in only this time
         </.button>
       </.form>
 
@@ -46,7 +46,7 @@ defmodule BlackboexWeb.UserLive.Confirmation do
         <input type="hidden" name={@form[:token].name} value={@form[:token].value} />
         <%= if @current_scope do %>
           <.button phx-disable-with="Logging in..." class="w-full">
-            Log in
+            <.icon name="hero-arrow-right-end-on-rectangle" class="mr-1.5 size-3.5 text-amber-300" /> Log in
           </.button>
         <% else %>
           <.button
@@ -55,10 +55,10 @@ defmodule BlackboexWeb.UserLive.Confirmation do
             phx-disable-with="Logging in..."
             class="w-full"
           >
-            Keep me logged in on this device
+            <.icon name="hero-device-phone-mobile" class="mr-1.5 size-3.5 text-emerald-300" /> Keep me logged in on this device
           </.button>
           <.button phx-disable-with="Logging in..." class="w-full mt-2">
-            Log me in only this time
+            <.icon name="hero-arrow-right-end-on-rectangle" class="mr-1.5 size-3.5 text-sky-300" /> Log me in only this time
           </.button>
         <% end %>
       </.form>

@@ -61,7 +61,9 @@ defmodule BlackboexWeb.DashboardLive do
     ~H"""
     <div class="space-y-6">
       <.header>
-        Dashboard
+        <span class="flex items-center gap-2">
+          <.icon name="hero-home" class="size-5 text-sky-400" /> Dashboard
+        </span>
         <:subtitle>Overview of your workspace</:subtitle>
         <:actions>
           <div class="flex gap-1">
@@ -82,42 +84,56 @@ defmodule BlackboexWeb.DashboardLive do
         <.empty_state
           title="Welcome to BlackBoex"
           description="Transform natural language into production-ready Elixir APIs. Create your first API to get started."
+          icon="hero-rocket-launch"
+          icon_class="text-violet-400"
         >
           <:actions>
             <.button navigate={~p"/apis/new"} variant="primary">
-              Create your first API
+              <.icon name="hero-plus" class="mr-1.5 size-3.5 text-emerald-300" /> Create your first API
             </.button>
           </:actions>
         </.empty_state>
       <% else %>
         <%!-- Row 1: Stat cards --%>
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          <.stat_card label="Total APIs" value={format_number(@summary.total_apis)} />
+          <.stat_card label="Total APIs" value={format_number(@summary.total_apis)} icon="hero-cube-mini" icon_class="text-blue-400" />
           <.stat_card
             label={"Calls (#{period_label(@period)})"}
             value={format_number(period_total_calls(@metrics))}
+            icon="hero-signal-mini"
+            icon_class="text-sky-400"
           />
           <.stat_card
             label={"Errors (#{period_label(@period)})"}
             value={format_number(period_total_errors(@metrics))}
+            icon="hero-exclamation-circle-mini"
+            icon_class="text-red-400"
           />
           <.stat_card
             label={"Avg Latency (#{period_label(@period)})"}
             value={format_latency(period_avg_latency(@metrics))}
+            icon="hero-clock-mini"
+            icon_class="text-amber-400"
           />
-          <.stat_card label="LLM Gens" value={format_number(period_total_gens(@llm_usage))} />
+          <.stat_card label="LLM Gens" value={format_number(period_total_gens(@llm_usage))} icon="hero-sparkles-mini" icon_class="text-violet-400" />
         </div>
 
         <%!-- Row 2: API Calls + Errors charts --%>
         <div class="grid gap-4 lg:grid-cols-2">
           <.card>
             <.card_content class="p-4">
-              <.bar_chart data={@metrics.calls_series} title="API Calls" />
+              <p class="flex items-center gap-1.5 text-sm font-medium text-muted-foreground mb-3">
+                <.icon name="hero-signal-mini" class="size-3.5 text-sky-400" /> API Calls
+              </p>
+              <.bar_chart data={@metrics.calls_series} />
             </.card_content>
           </.card>
           <.card>
             <.card_content class="p-4">
-              <.bar_chart data={@metrics.errors_series} title="Errors" color="var(--color-chart-2)" />
+              <p class="flex items-center gap-1.5 text-sm font-medium text-muted-foreground mb-3">
+                <.icon name="hero-exclamation-circle-mini" class="size-3.5 text-red-400" /> Errors
+              </p>
+              <.bar_chart data={@metrics.errors_series} color="var(--color-chart-2)" />
             </.card_content>
           </.card>
         </div>
@@ -126,12 +142,17 @@ defmodule BlackboexWeb.DashboardLive do
         <div class="grid gap-4 lg:grid-cols-2">
           <.card>
             <.card_content class="p-4">
-              <.line_chart data={@metrics.latency_avg_series} title="Avg Latency (ms)" />
+              <p class="flex items-center gap-1.5 text-sm font-medium text-muted-foreground mb-3">
+                <.icon name="hero-clock-mini" class="size-3.5 text-amber-400" /> Avg Latency (ms)
+              </p>
+              <.line_chart data={@metrics.latency_avg_series} />
             </.card_content>
           </.card>
           <.card>
             <.card_content class="p-4">
-              <p class="text-sm font-medium text-muted-foreground mb-4">LLM Usage</p>
+              <p class="flex items-center gap-1.5 text-sm font-medium text-muted-foreground mb-4">
+                <.icon name="hero-sparkles-mini" class="size-3.5 text-violet-400" /> LLM Usage
+              </p>
               <div class="space-y-3">
                 <.progress_bar
                   label="Generations"
@@ -140,15 +161,21 @@ defmodule BlackboexWeb.DashboardLive do
                   percentage={llm_gens_pct(@usage)}
                 />
                 <div class="flex justify-between text-sm py-2 border-t">
-                  <span class="text-muted-foreground">Tokens In</span>
+                  <span class="flex items-center gap-1.5 text-muted-foreground">
+                    <.icon name="hero-arrow-down-tray-mini" class="size-3.5 text-blue-400" /> Tokens In
+                  </span>
                   <span class="font-medium">{format_tokens(@llm_usage.tokens_in_total)}</span>
                 </div>
                 <div class="flex justify-between text-sm py-2 border-t">
-                  <span class="text-muted-foreground">Tokens Out</span>
+                  <span class="flex items-center gap-1.5 text-muted-foreground">
+                    <.icon name="hero-arrow-up-tray-mini" class="size-3.5 text-emerald-400" /> Tokens Out
+                  </span>
                   <span class="font-medium">{format_tokens(@llm_usage.tokens_out_total)}</span>
                 </div>
                 <div class="flex justify-between text-sm py-2 border-t">
-                  <span class="text-muted-foreground">LLM Cost</span>
+                  <span class="flex items-center gap-1.5 text-muted-foreground">
+                    <.icon name="hero-currency-dollar-mini" class="size-3.5 text-amber-400" /> LLM Cost
+                  </span>
                   <span class="font-medium">
                     ${Float.round(@llm_usage.cost_total_cents / 100, 2)}
                   </span>
@@ -162,7 +189,9 @@ defmodule BlackboexWeb.DashboardLive do
         <div class="grid gap-4 lg:grid-cols-2">
           <.card>
             <.card_content class="p-4">
-              <p class="text-sm font-medium text-muted-foreground mb-3">Top APIs by Calls</p>
+              <p class="flex items-center gap-1.5 text-sm font-medium text-muted-foreground mb-3">
+                <.icon name="hero-arrow-trending-up-mini" class="size-3.5 text-sky-400" /> Top APIs by Calls
+              </p>
               <.table id="top-apis" rows={Enum.with_index(@metrics.top_apis, 1)}>
                 <:col :let={{_api, idx}} label="#">{idx}</:col>
                 <:col :let={{api, _idx}} label="Name">{api.name}</:col>
@@ -173,7 +202,9 @@ defmodule BlackboexWeb.DashboardLive do
           </.card>
           <.card>
             <.card_content class="p-4">
-              <p class="text-sm font-medium text-muted-foreground mb-3">Recent Activity</p>
+              <p class="flex items-center gap-1.5 text-sm font-medium text-muted-foreground mb-3">
+                <.icon name="hero-clock-mini" class="size-3.5 text-amber-400" /> Recent Activity
+              </p>
               <div :if={@recent_activity == []} class="py-4 text-center text-sm text-muted-foreground">
                 No recent activity
               </div>

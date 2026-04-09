@@ -43,8 +43,8 @@ defmodule BlackboexWeb.Components.Flash do
         @kind == :info && "border-border bg-background text-foreground",
         @kind == :error && "border-destructive/50 bg-destructive text-destructive-foreground"
       ]}>
-        <.icon :if={@kind == :info} name="hero-information-circle" class="size-5 shrink-0 mt-0.5" />
-        <.icon :if={@kind == :error} name="hero-exclamation-circle" class="size-5 shrink-0 mt-0.5" />
+        <.icon :if={@kind == :info} name="hero-information-circle" class="size-5 shrink-0 mt-0.5 text-blue-400" />
+        <.icon :if={@kind == :error} name="hero-exclamation-circle" class="size-5 shrink-0 mt-0.5 text-red-400" />
         <div class="flex-1 text-wrap">
           <p :if={@title} class="font-semibold">{@title}</p>
           <p>{msg}</p>

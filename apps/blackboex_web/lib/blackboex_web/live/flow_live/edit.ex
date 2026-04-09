@@ -676,7 +676,7 @@ defmodule BlackboexWeb.FlowLive.Edit do
             <%= if @saving do %>
               <.icon name="hero-arrow-path" class="mr-1.5 size-4 animate-spin" /> Saving...
             <% else %>
-              <.icon name="hero-arrow-down-tray" class="mr-1.5 size-4" /> Save
+              <.icon name="hero-arrow-down-tray" class="mr-1.5 size-4 text-emerald-300" /> Save
             <% end %>
           </.button>
         </div>
@@ -735,7 +735,7 @@ defmodule BlackboexWeb.FlowLive.Edit do
           >
             <div class="flex items-center justify-between border-b px-5 py-3">
               <div class="flex items-center gap-2">
-                <.icon name="hero-code-bracket" class="size-5 text-muted-foreground" />
+                <.icon name="hero-code-bracket" class="size-5 text-violet-400" />
                 <h2 class="text-sm font-semibold">Flow Definition (JSON)</h2>
               </div>
               <div class="flex items-center gap-1.5">
@@ -748,7 +748,7 @@ defmodule BlackboexWeb.FlowLive.Edit do
                     )
                   }
                 >
-                  <.icon name="hero-clipboard-document" class="mr-1.5 size-4" /> Copy
+                  <.icon name="hero-clipboard-document" class="mr-1.5 size-4 text-sky-400" /> Copy
                 </.button>
                 <.button
                   variant="outline"
@@ -762,7 +762,7 @@ defmodule BlackboexWeb.FlowLive.Edit do
                     )
                   }
                 >
-                  <.icon name="hero-arrow-down-tray" class="mr-1.5 size-4" /> Download
+                  <.icon name="hero-arrow-down-tray" class="mr-1.5 size-4 text-emerald-400" /> Download
                 </.button>
                 <button
                   phx-click="close_json_modal"
@@ -830,7 +830,7 @@ defmodule BlackboexWeb.FlowLive.Edit do
                 <%= if @running do %>
                   <.icon name="hero-arrow-path" class="mr-1.5 size-4 animate-spin" /> Running...
                 <% else %>
-                  <.icon name="hero-play" class="mr-1.5 size-4" /> Execute
+                  <.icon name="hero-play" class="mr-1.5 size-4 text-green-400" /> Execute
                 <% end %>
               </.button>
 

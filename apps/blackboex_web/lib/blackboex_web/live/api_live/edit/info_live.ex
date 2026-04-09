@@ -135,26 +135,57 @@ defmodule BlackboexWeb.ApiLive.Edit.InfoLive do
         <%= if @api.param_schema || @api.example_request || @api.example_response do %>
           <div>
             <h3 class="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase mb-3">
-              <.icon name="hero-document-text" class="size-3.5 text-blue-400" /> Request/Response Schema
+              <.icon name="hero-document-text" class="size-3.5 text-blue-400" />
+              Request/Response Schema
             </h3>
             <div class="space-y-3">
               <%= if @api.param_schema do %>
                 <div>
                   <span class="text-xs font-medium">Param Schema</span>
-                  <pre class="mt-1 rounded-md bg-muted p-3 text-xs font-mono overflow-x-auto"><code>{format_json(@api.param_schema)}</code></pre>
+                  <div
+                    id="info-param-schema"
+                    phx-hook="CodeEditor"
+                    data-language="json"
+                    data-readonly="true"
+                    data-minimal="true"
+                    data-value={format_json(@api.param_schema)}
+                    class="mt-1 rounded-md overflow-hidden border [&_.cm-editor]:max-h-60"
+                    phx-update="ignore"
+                  >
+                  </div>
                 </div>
               <% end %>
               <div class="grid grid-cols-2 gap-3">
                 <%= if @api.example_request do %>
                   <div>
                     <span class="text-xs font-medium">Example Request</span>
-                    <pre class="mt-1 rounded-md bg-muted p-3 text-xs font-mono overflow-x-auto"><code>{format_json(@api.example_request)}</code></pre>
+                    <div
+                      id="info-example-request"
+                      phx-hook="CodeEditor"
+                      data-language="json"
+                      data-readonly="true"
+                      data-minimal="true"
+                      data-value={format_json(@api.example_request)}
+                      class="mt-1 rounded-md overflow-hidden border [&_.cm-editor]:max-h-60"
+                      phx-update="ignore"
+                    >
+                    </div>
                   </div>
                 <% end %>
                 <%= if @api.example_response do %>
                   <div>
                     <span class="text-xs font-medium">Example Response</span>
-                    <pre class="mt-1 rounded-md bg-muted p-3 text-xs font-mono overflow-x-auto"><code>{format_json(@api.example_response)}</code></pre>
+                    <div
+                      id="info-example-response"
+                      phx-hook="CodeEditor"
+                      data-language="json"
+                      data-readonly="true"
+                      data-minimal="true"
+                      data-value={format_json(@api.example_response)}
+                      class="mt-1 rounded-md overflow-hidden border [&_.cm-editor]:max-h-60"
+                      phx-update="ignore"
+                    >
+                    </div>
                   </div>
                 <% end %>
               </div>
@@ -217,7 +248,9 @@ defmodule BlackboexWeb.ApiLive.Edit.InfoLive do
   @impl true
   def handle_event("execute_confirm", _params, socket) do
     case socket.assigns.confirm do
-      nil -> {:noreply, socket}
+      nil ->
+        {:noreply, socket}
+
       %{event: event, meta: meta} ->
         handle_event(event, meta, assign(socket, confirm: nil))
     end
@@ -267,7 +300,8 @@ defmodule BlackboexWeb.ApiLive.Edit.InfoLive do
   defp build_confirm("archive_api", _params) do
     %{
       title: "Archive this API?",
-      description: "Published APIs will be unpublished and the API will be archived. This cannot be undone.",
+      description:
+        "Published APIs will be unpublished and the API will be archived. This cannot be undone.",
       variant: :danger,
       confirm_label: "Archive",
       event: "archive_api",

@@ -59,7 +59,16 @@ defmodule BlackboexWeb.Admin.TestRequestLive do
           assigns = Phoenix.Component.assign(assigns, :text, text)
 
           ~H"""
-          <pre class="text-xs whitespace-pre-wrap max-h-96 overflow-auto"><%= @text %></pre>
+          <div
+            id="admin-req-headers"
+            phx-hook="CodeEditor"
+            data-language="json"
+            data-readonly="true"
+            data-minimal="true"
+            data-value={@text}
+            class="rounded-md overflow-hidden border [&_.cm-editor]:max-h-96"
+            phx-update="ignore"
+          />
           """
         end
       },
@@ -83,7 +92,16 @@ defmodule BlackboexWeb.Admin.TestRequestLive do
           assigns = Phoenix.Component.assign(assigns, :text, text)
 
           ~H"""
-          <pre class="text-xs whitespace-pre-wrap max-h-96 overflow-auto"><%= @text %></pre>
+          <div
+            id="admin-resp-headers"
+            phx-hook="CodeEditor"
+            data-language="json"
+            data-readonly="true"
+            data-minimal="true"
+            data-value={@text}
+            class="rounded-md overflow-hidden border [&_.cm-editor]:max-h-96"
+            phx-update="ignore"
+          />
           """
         end
       },

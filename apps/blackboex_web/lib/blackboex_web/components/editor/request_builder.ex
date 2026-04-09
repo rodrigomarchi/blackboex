@@ -161,16 +161,22 @@ defmodule BlackboexWeb.Components.Editor.RequestBuilder do
   defp render_request_tab(%{active_tab: "body"} = assigns) do
     ~H"""
     <div class="space-y-2">
-      <textarea
-        name="test_body_json"
-        rows="6"
-        phx-change="update_test_body"
+      <div
+        id="request-body-editor"
+        phx-hook="CodeEditor"
+        data-language="json"
+        data-readonly="false"
+        data-minimal="true"
+        data-event="update_test_body"
+        data-field="test_body_json"
+        data-value={@body_json}
         class={[
-          "w-full rounded-md border bg-background px-2 py-1 text-xs font-mono",
+          "rounded-md overflow-hidden border [&_.cm-editor]:min-h-[8rem]",
           if(@body_error, do: "border-destructive", else: "")
         ]}
-        placeholder="{}"
-      >{@body_json}</textarea>
+        phx-update="ignore"
+      >
+      </div>
       <%= if @body_error do %>
         <p class="text-xs text-destructive">{@body_error}</p>
       <% end %>

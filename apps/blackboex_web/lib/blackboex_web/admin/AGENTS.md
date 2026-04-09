@@ -149,7 +149,16 @@ metadata: %{
     text = if is_map(value) and value != %{}, do: Jason.encode!(value, pretty: true), else: "—"
     assigns = Phoenix.Component.assign(assigns, :text, text)
     ~H"""
-    <pre class="text-xs whitespace-pre-wrap max-h-96 overflow-auto"><%= @text %></pre>
+    <div
+      id="admin-metadata"
+      phx-hook="CodeEditor"
+      data-language="json"
+      data-readonly="true"
+      data-minimal="true"
+      data-value={@text}
+      class="rounded-md overflow-hidden border [&_.cm-editor]:max-h-96"
+      phx-update="ignore"
+    />
     """
   end
 }
@@ -353,7 +362,7 @@ Even resources documented as "Read-only" wire up `admin_changeset/3`. This is re
 The `:audit_context` pipeline plug is in the admin pipeline, but ExAudit row-level tracking only covers schemas explicitly tracked (Subscription, Api, ApiKey, Organization). Admin edits to other resources (e.g., toggling `is_platform_admin` on a user) are not tracked in the `versions` table. Use `AuditLog` for manual audit entries if needed.
 
 ### JSONB fields must use custom `render:` — not `Backpex.Fields.Map`
-There is no `Backpex.Fields.Map` in use. All JSONB columns (`param_schema`, `metadata`, `patch`, `results`, `value`) use `Backpex.Fields.Text` with a `render:` function that calls `Jason.encode!/2` or `inspect/2` to produce a readable `<pre>` block. Always gate these on `only: [:show]` and `readonly: true` to avoid Backpex trying to render a map value in a text input.
+There is no `Backpex.Fields.Map` in use. All JSONB columns (`param_schema`, `metadata`, `patch`, `results`, `value`) use `Backpex.Fields.Text` with a `render:` function that calls `Jason.encode!/2` or `inspect/2` and displays via the `CodeEditor` hook (`phx-hook="CodeEditor"` with `data-readonly="true"` and `data-minimal="true"`). Always gate these on `only: [:show]` and `readonly: true` to avoid Backpex trying to render a map value in a text input.
 
 ### Security-sensitive fields use custom render to suppress display
 `UserTokenLive` renders the `token` binary as `[binary token — hidden for security]` rather than exposing the raw token bytes. Follow this pattern for any field containing secrets, hashed values, or raw binary data.

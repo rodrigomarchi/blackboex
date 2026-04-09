@@ -178,7 +178,9 @@ defmodule BlackboexWeb.FlowLive.Edit do
   @impl true
   def handle_event("execute_confirm", _params, socket) do
     case socket.assigns.confirm do
-      nil -> {:noreply, socket}
+      nil ->
+        {:noreply, socket}
+
       %{event: event, meta: meta} ->
         handle_event(event, meta, assign(socket, confirm: nil))
     end
@@ -632,8 +634,7 @@ defmodule BlackboexWeb.FlowLive.Edit do
           <h1 class="text-sm font-semibold truncate max-w-xs">{@flow.name}</h1>
           <%= if @flow.status == "active" do %>
             <span class="inline-flex items-center gap-1.5 rounded-full bg-green-500/15 px-2.5 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">
-              <span class="size-1.5 rounded-full bg-green-500 animate-pulse" />
-              active
+              <span class="size-1.5 rounded-full bg-green-500 animate-pulse" /> active
             </span>
             <button
               phx-click="deactivate_flow"
@@ -643,8 +644,7 @@ defmodule BlackboexWeb.FlowLive.Edit do
             </button>
           <% else %>
             <span class="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
-              <span class="size-1.5 rounded-full bg-gray-400" />
-              draft
+              <span class="size-1.5 rounded-full bg-gray-400" /> draft
             </span>
             <button
               phx-click="activate_flow"
@@ -785,7 +785,8 @@ defmodule BlackboexWeb.FlowLive.Edit do
                     )
                   }
                 >
-                  <.icon name="hero-arrow-down-tray" class="mr-1.5 size-4 text-emerald-400" /> Download
+                  <.icon name="hero-arrow-down-tray" class="mr-1.5 size-4 text-emerald-400" />
+                  Download
                 </.button>
                 <button
                   phx-click="close_json_modal"
@@ -860,7 +861,17 @@ defmodule BlackboexWeb.FlowLive.Edit do
               <%= if @run_error do %>
                 <div class="rounded-lg border border-destructive/50 bg-destructive/5 p-3">
                   <p class="text-xs font-medium text-destructive">Error</p>
-                  <pre class="mt-1 text-xs text-destructive/80 whitespace-pre-wrap"><%= @run_error %></pre>
+                  <div
+                    id="flow-run-error"
+                    phx-hook="CodeEditor"
+                    data-language="json"
+                    data-readonly="true"
+                    data-minimal="true"
+                    data-value={@run_error}
+                    class="mt-1 rounded overflow-hidden [&_.cm-editor]:max-h-40"
+                    phx-update="ignore"
+                  >
+                  </div>
                 </div>
               <% end %>
 
@@ -872,7 +883,17 @@ defmodule BlackboexWeb.FlowLive.Edit do
                       {@run_result[:duration_ms]}ms
                     </span>
                   </div>
-                  <pre class="text-xs font-mono leading-relaxed text-foreground whitespace-pre-wrap"><%= Jason.encode!(@run_result[:output], pretty: true) %></pre>
+                  <div
+                    id="flow-run-result"
+                    phx-hook="CodeEditor"
+                    data-language="json"
+                    data-readonly="true"
+                    data-minimal="true"
+                    data-value={Jason.encode!(@run_result[:output], pretty: true)}
+                    class="rounded overflow-hidden [&_.cm-editor]:max-h-60"
+                    phx-update="ignore"
+                  >
+                  </div>
                 </div>
               <% end %>
             </div>
@@ -894,7 +915,8 @@ defmodule BlackboexWeb.FlowLive.Edit do
   defp build_confirm("regenerate_token", _params) do
     %{
       title: "Regenerate webhook token?",
-      description: "The current webhook URL will immediately stop working. Any integrations using it will need to be updated.",
+      description:
+        "The current webhook URL will immediately stop working. Any integrations using it will need to be updated.",
       variant: :warning,
       confirm_label: "Regenerate",
       event: "regenerate_token",
@@ -907,14 +929,6 @@ defmodule BlackboexWeb.FlowLive.Edit do
   defp webhook_url(flow) do
     BlackboexWeb.Endpoint.url() <> "/webhook/#{flow.webhook_token}"
   end
-
-  defp status_badge_classes("active"),
-    do: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-
-  defp status_badge_classes("archived"),
-    do: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200"
-
-  defp status_badge_classes(_), do: "bg-muted text-muted-foreground"
 
   # ── Properties drawer ────────────────────────────────────────────────────
 
@@ -1270,7 +1284,9 @@ defmodule BlackboexWeb.FlowLive.Edit do
           icon_color="text-blue-400"
         />
         <div>
-          <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5"><.icon name="hero-document-text" class="size-3.5 text-emerald-400" /> Body Template</label>
+          <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
+            <.icon name="hero-document-text" class="size-3.5 text-emerald-400" /> Body Template
+          </label>
           <div
             id={"code-editor-#{@node_id}-body_template"}
             phx-hook="CodeEditor"
@@ -1426,7 +1442,9 @@ defmodule BlackboexWeb.FlowLive.Edit do
       />
 
       <div>
-        <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5"><.icon name="hero-squares-2x2" class="size-3.5 text-indigo-400" /> Sub-Flow</label>
+        <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
+          <.icon name="hero-squares-2x2" class="size-3.5 text-indigo-400" /> Sub-Flow
+        </label>
         <select
           phx-change="select_sub_flow"
           name="flow_id"
@@ -1565,7 +1583,9 @@ defmodule BlackboexWeb.FlowLive.Edit do
       </div>
 
       <div :if={@tab == "code"}>
-        <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5"><.icon name="hero-code-bracket" class="size-3.5 text-purple-400" /> Body Code</label>
+        <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
+          <.icon name="hero-code-bracket" class="size-3.5 text-purple-400" /> Body Code
+        </label>
         <div
           id={"code-editor-#{@node_id}-body_code"}
           phx-hook="CodeEditor"
@@ -1618,7 +1638,9 @@ defmodule BlackboexWeb.FlowLive.Edit do
         icon_color="text-emerald-400"
       />
       <div>
-        <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5"><.icon name="hero-link" class="size-3.5 text-blue-400" /> Callback URL</label>
+        <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
+          <.icon name="hero-link" class="size-3.5 text-blue-400" /> Callback URL
+        </label>
         <p class="rounded-lg border bg-muted/50 px-3 py-2 text-xs text-muted-foreground font-mono">
           POST /webhook/:token/resume/{@data["event_type"] || "<event_type>"}
         </p>

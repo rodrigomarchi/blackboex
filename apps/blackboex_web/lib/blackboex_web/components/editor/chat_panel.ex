@@ -218,7 +218,9 @@ defmodule BlackboexWeb.Components.Editor.ChatPanel do
         <div class="flex items-center gap-1.5 mb-1">
           <.icon
             name={if(@event.role == "user", do: "hero-user", else: "hero-sparkles")}
-            class={if(@event.role == "user", do: "size-3 text-blue-400", else: "size-3 text-violet-400")}
+            class={
+              if(@event.role == "user", do: "size-3 text-blue-400", else: "size-3 text-violet-400")
+            }
           />
           <span class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
             {if @event.role == "user", do: "You", else: "Agent"}
@@ -498,10 +500,20 @@ defmodule BlackboexWeb.Components.Editor.ChatPanel do
               </span>
             <% end %>
           </div>
-          <pre class={[
-            "whitespace-pre-wrap font-mono text-[11px] leading-relaxed max-h-[400px] overflow-y-auto",
-            if(!@success, do: "text-destructive", else: "text-foreground")
-          ]}><code>{@content}</code></pre>
+          <div
+            id={"chat-code-block-#{System.unique_integer([:positive])}"}
+            phx-hook="CodeEditor"
+            data-language="json"
+            data-readonly="true"
+            data-minimal="true"
+            data-value={@content}
+            class={[
+              "rounded overflow-hidden [&_.cm-editor]:max-h-[400px]",
+              if(!@success, do: "[&_.cm-editor_.cm-content]:text-destructive", else: "")
+            ]}
+            phx-update="ignore"
+          >
+          </div>
         </div>
       <% end %>
     <% end %>

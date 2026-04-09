@@ -64,7 +64,16 @@ defmodule BlackboexWeb.Admin.VersionLive do
           assigns = Phoenix.Component.assign(assigns, :text, text)
 
           ~H"""
-          <pre class="text-xs whitespace-pre-wrap"><%= @text %></pre>
+          <div
+            id="admin-version-patch"
+            phx-hook="CodeEditor"
+            data-language="json"
+            data-readonly="true"
+            data-minimal="true"
+            data-value={@text}
+            class="rounded-md overflow-hidden border [&_.cm-editor]:max-h-96"
+            phx-update="ignore"
+          />
           """
         end
       }

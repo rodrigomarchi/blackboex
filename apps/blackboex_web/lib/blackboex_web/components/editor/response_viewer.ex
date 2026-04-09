@@ -103,7 +103,17 @@ defmodule BlackboexWeb.Components.Editor.ResponseViewer do
 
   defp render_response_content(%{response_tab: "body"} = assigns) do
     ~H"""
-    <pre class="overflow-x-auto rounded bg-muted p-3 text-xs font-mono max-h-80 overflow-y-auto"><code>{format_body(@response.body)}</code></pre>
+    <div
+      id="response-body-viewer"
+      phx-hook="CodeEditor"
+      data-language="json"
+      data-readonly="true"
+      data-minimal="true"
+      data-value={format_body(@response.body)}
+      class="rounded overflow-hidden border [&_.cm-editor]:max-h-80"
+      phx-update="ignore"
+    >
+    </div>
     """
   end
 

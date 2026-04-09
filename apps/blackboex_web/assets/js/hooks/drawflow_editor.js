@@ -62,6 +62,40 @@ export function buildNodeHTML(type, outputs) {
   </div>`
 }
 
+function updateOutputLabels(editor, nodeId) {
+  const node = editor.getNodeFromId(nodeId)
+  if (!node || node.class !== "condition") return
+
+  const el = document.querySelector(`#node-${nodeId}`)
+  if (!el) return
+
+  const branchLabels = (node.data && node.data.branch_labels) || {}
+  const outputs = el.querySelectorAll(".output")
+
+  outputs.forEach((output, index) => {
+    // Remove existing label if any
+    const existing = output.querySelector(".df-output-label")
+    if (existing) existing.remove()
+
+    const label = branchLabels[String(index)]
+    const text = label ? `${index}: ${label}` : String(index)
+
+    const labelEl = document.createElement("span")
+    labelEl.className = "df-output-label"
+    labelEl.textContent = text
+    output.appendChild(labelEl)
+  })
+}
+
+function updateAllOutputLabels(editor) {
+  const data = editor.export()
+  const homeModule = data.drawflow?.Home?.data
+  if (!homeModule) return
+  for (const nodeId of Object.keys(homeModule)) {
+    updateOutputLabels(editor, nodeId)
+  }
+}
+
 function updateConditionLabel(editor, nodeId) {
   const count = countOutputs(editor, nodeId)
   const el = document.querySelector(`#node-${nodeId}`)
@@ -101,6 +135,9 @@ const DrawflowEditor = {
       }
     }
 
+    // Render output labels on condition nodes after import
+    setTimeout(() => updateAllOutputLabels(this.editor), 100)
+
     // ── Node selection → push to LiveView for properties drawer ──
     this.editor.on("nodeSelected", (nodeId) => {
       const node = this.editor.getNodeFromId(nodeId)
@@ -139,6 +176,11 @@ const DrawflowEditor = {
           const el = document.querySelector(`#node-${id} .df-node-label`)
           if (el) el.textContent = data.name
         }
+
+        // Update output labels if branch_labels changed
+        if (data.branch_labels) {
+          updateOutputLabels(this.editor, id)
+        }
       }
     })
 
@@ -156,6 +198,7 @@ const DrawflowEditor = {
         if (addBtn) {
           this.editor.addNodeOutput(nodeId)
           updateConditionLabel(this.editor, nodeId)
+          updateOutputLabels(this.editor, nodeId)
         }
 
         if (removeBtn) {
@@ -163,6 +206,7 @@ const DrawflowEditor = {
           if (outputs > 1) {
             this.editor.removeNodeOutput(nodeId, `output_${outputs}`)
             updateConditionLabel(this.editor, nodeId)
+            updateOutputLabels(this.editor, nodeId)
           }
         }
       }

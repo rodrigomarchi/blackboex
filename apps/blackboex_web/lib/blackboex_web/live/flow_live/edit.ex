@@ -511,7 +511,15 @@ defmodule BlackboexWeb.FlowLive.Edit do
               </div>
             </div>
             <div class="flex-1 overflow-auto p-5">
-              <pre class="text-xs font-mono leading-relaxed text-foreground whitespace-pre-wrap"><%= @json_preview %></pre>
+              <div
+                id="code-editor-json-preview"
+                phx-hook="CodeEditor"
+                data-language="json"
+                data-readonly="true"
+                data-value={@json_preview}
+                class="w-full rounded-lg overflow-hidden"
+                style="min-height: 200px;"
+              />
             </div>
           </div>
         </div>
@@ -541,11 +549,16 @@ defmodule BlackboexWeb.FlowLive.Edit do
                 <label class="block text-xs font-medium text-muted-foreground mb-1.5">
                   Input (JSON)
                 </label>
-                <textarea
-                  phx-blur="update_run_input"
-                  rows="6"
-                  class="w-full rounded-lg border bg-background px-3 py-2 font-mono text-xs leading-relaxed focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                ><%= @run_input %></textarea>
+                <div
+                  id="code-editor-run-input"
+                  phx-hook="CodeEditor"
+                  phx-update="ignore"
+                  data-language="json"
+                  data-event="update_run_input"
+                  data-value={@run_input}
+                  class="w-full rounded-lg border overflow-hidden"
+                  style="min-height: 120px;"
+                />
               </div>
               <.button
                 variant="primary"
@@ -631,7 +644,7 @@ defmodule BlackboexWeb.FlowLive.Edit do
 
       <%!-- Drawer body --%>
       <div class="flex-1 overflow-y-auto p-4 space-y-4">
-        <.node_properties type={@node.type} data={@node.data} />
+        <.node_properties type={@node.type} data={@node.data} node_id={@node.id} />
       </div>
     </aside>
     """
@@ -641,6 +654,7 @@ defmodule BlackboexWeb.FlowLive.Edit do
 
   attr :type, :string, required: true
   attr :data, :map, required: true
+  attr :node_id, :string, required: true
 
   defp node_properties(%{type: "start"} = assigns) do
     ~H"""
@@ -699,13 +713,17 @@ defmodule BlackboexWeb.FlowLive.Edit do
       />
       <div>
         <label class="block text-xs font-medium text-muted-foreground mb-1.5">Code</label>
-        <textarea
-          phx-blur="update_node_data"
-          phx-value-field="code"
-          rows="12"
-          placeholder={"# Access input with `input`\n# Return a value\n\ninput\n|> Map.get(\"data\")\n|> String.upcase()"}
-          class="w-full rounded-lg border bg-background px-3 py-2 font-mono text-xs leading-relaxed focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-        >{@data["code"] || ""}</textarea>
+        <div
+          id={"code-editor-#{@node_id}-code"}
+          phx-hook="CodeEditor"
+          phx-update="ignore"
+          data-language="elixir"
+          data-event="update_node_data"
+          data-field="code"
+          data-value={@data["code"] || ""}
+          class="w-full rounded-lg border overflow-hidden"
+          style="min-height: 240px;"
+        />
       </div>
       <.prop_field
         label="Timeout (ms)"
@@ -736,13 +754,17 @@ defmodule BlackboexWeb.FlowLive.Edit do
       />
       <div>
         <label class="block text-xs font-medium text-muted-foreground mb-1.5">Expression</label>
-        <textarea
-          phx-blur="update_node_data"
-          phx-value-field="expression"
-          rows="6"
-          placeholder={"# Return branch index (0-based)\n# e.g. 0 for first output, 1 for second\n\ncond do\n  input[\"status\"] == \"ok\" -> 0\n  input[\"status\"] == \"error\" -> 1\n  true -> 2\nend"}
-          class="w-full rounded-lg border bg-background px-3 py-2 font-mono text-xs leading-relaxed focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-        >{@data["expression"] || ""}</textarea>
+        <div
+          id={"code-editor-#{@node_id}-expression"}
+          phx-hook="CodeEditor"
+          phx-update="ignore"
+          data-language="elixir"
+          data-event="update_node_data"
+          data-field="expression"
+          data-value={@data["expression"] || ""}
+          class="w-full rounded-lg border overflow-hidden"
+          style="min-height: 120px;"
+        />
       </div>
       <div>
         <label class="block text-xs font-medium text-muted-foreground mb-1.5">Branch Labels</label>
@@ -755,7 +777,7 @@ defmodule BlackboexWeb.FlowLive.Edit do
           rows="4"
           placeholder="Success\nError\nDefault"
           class="w-full rounded-lg border bg-background px-3 py-2 text-xs leading-relaxed focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-        >{@data["branch_labels"] || ""}</textarea>
+        ><%= format_branch_labels(@data["branch_labels"]) %></textarea>
       </div>
     </div>
     """
@@ -805,6 +827,15 @@ defmodule BlackboexWeb.FlowLive.Edit do
   end
 
   # ── Reusable property field components ───────────────────────────────────
+
+  defp format_branch_labels(labels) when is_map(labels) do
+    labels
+    |> Enum.sort_by(fn {k, _v} -> String.to_integer(k) end)
+    |> Enum.map_join("\n", fn {_k, v} -> v end)
+  end
+
+  defp format_branch_labels(labels) when is_binary(labels), do: labels
+  defp format_branch_labels(_), do: ""
 
   attr :label, :string, required: true
   attr :field, :string, required: true

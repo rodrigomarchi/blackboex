@@ -26,6 +26,7 @@ import {hooks as colocatedHooks} from "phoenix-colocated/blackboex_web"
 import { Hooks as BackpexHooks } from "backpex"
 import topbar from "../vendor/topbar"
 import DrawflowEditor from "./hooks/drawflow_editor"
+import CodeEditor from "./hooks/code_editor"
 
 // Keyboard shortcuts hook for the API editor page
 const KeyboardShortcuts = {
@@ -212,7 +213,7 @@ const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks, KeyboardShortcuts, AutoFocus, ChatAutoScroll, EditorAutoScroll, CommandPaletteNav, DrawflowEditor, ...BackpexHooks},
+  hooks: {...colocatedHooks, KeyboardShortcuts, AutoFocus, ChatAutoScroll, EditorAutoScroll, CommandPaletteNav, DrawflowEditor, CodeEditor, ...BackpexHooks},
 })
 
 // Show progress bar on live navigation and form submits

@@ -64,11 +64,11 @@ function countOutputs(editor, nodeId) {
   return node ? Object.keys(node.outputs).length : 0
 }
 
-export function buildNodeHTML(type, outputs) {
+export function buildNodeHTML(type, outputs, data) {
   const cfg = nodeConfig[type]
   if (!cfg) return `<div class="df-node"><strong>${type}</strong></div>`
 
-  const subtitle = type === "condition" ? `${outputs} branches` : cfg.subtitle
+  const name = (data && data.name) || cfg.label
 
   const controls = type === "condition"
     ? `<div class="df-node-controls">
@@ -84,8 +84,7 @@ export function buildNodeHTML(type, outputs) {
         ${cfg.icon}
       </div>
       <div class="df-node-text">
-        <div class="df-node-label">${cfg.label}</div>
-        <div class="df-node-subtitle">${subtitle}</div>
+        <div class="df-node-label">${name}</div>
       </div>
     </div>
     ${controls}
@@ -201,11 +200,10 @@ const DrawflowEditor = {
         // Merge data into node
         node.data = { ...node.data, ...data }
 
-        // Update the node label if name was changed
-        if (data.name) {
-          const el = document.querySelector(`#node-${id} .df-node-label`)
-          if (el) el.textContent = data.name
-        }
+        // Update the node label when name changes
+        const cfg = nodeConfig[node.class] || {}
+        const labelEl = document.querySelector(`#node-${id} .df-node-label`)
+        if (labelEl) labelEl.textContent = node.data.name || cfg.label || node.class
 
         // Update output labels if branch_labels changed
         if (data.branch_labels) {
@@ -250,7 +248,7 @@ const DrawflowEditor = {
       const outputs = parseInt(e.dataTransfer.getData("node-outputs") || "1")
 
       if (type) {
-        const html = buildNodeHTML(type, outputs)
+        const html = buildNodeHTML(type, outputs, {})
         const rect = this.el.getBoundingClientRect()
         const x = (e.clientX - rect.left - this.editor.precanvas.getBoundingClientRect().left + this.editor.canvas_x) / this.editor.zoom
         const y = (e.clientY - rect.top - this.editor.precanvas.getBoundingClientRect().top + this.editor.canvas_y) / this.editor.zoom

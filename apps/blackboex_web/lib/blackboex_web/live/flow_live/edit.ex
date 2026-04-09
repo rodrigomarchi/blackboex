@@ -155,7 +155,8 @@ defmodule BlackboexWeb.FlowLive.Edit do
            run_result: nil,
            run_error: nil,
            running: false,
-           run_task_ref: nil
+           run_task_ref: nil,
+           drawer_expanded: false
          )}
     end
   end
@@ -256,7 +257,12 @@ defmodule BlackboexWeb.FlowLive.Edit do
 
   @impl true
   def handle_event("close_drawer", _params, socket) do
-    {:noreply, assign(socket, selected_node: nil)}
+    {:noreply, assign(socket, selected_node: nil, drawer_expanded: false)}
+  end
+
+  @impl true
+  def handle_event("toggle_drawer_expand", _params, socket) do
+    {:noreply, assign(socket, drawer_expanded: !socket.assigns.drawer_expanded)}
   end
 
   # ── Properties tab ──────────────────────────────────────────────────────
@@ -673,31 +679,20 @@ defmodule BlackboexWeb.FlowLive.Edit do
 
       <%!-- Editor area --%>
       <div class="flex flex-1 overflow-hidden">
-        <%!-- Node palette sidebar --%>
-        <aside class="flex w-56 shrink-0 flex-col border-r bg-card">
-          <div class="border-b px-3 py-2">
-            <h2 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Nodes
-            </h2>
-          </div>
-          <div class="flex-1 overflow-y-auto p-2 space-y-3">
-            <.node_group
-              label="Flow Control"
-              nodes={Enum.filter(@node_types, &(&1.group == "flow"))}
-            />
-            <.node_group label="Logic" nodes={Enum.filter(@node_types, &(&1.group == "logic"))} />
-            <.node_group
-              label="Integration"
-              nodes={Enum.filter(@node_types, &(&1.group == "integration"))}
-            />
-            <.node_group
-              label="Control"
-              nodes={Enum.filter(@node_types, &(&1.group == "control"))}
-            />
-            <.node_group
-              label="Composition"
-              nodes={Enum.filter(@node_types, &(&1.group == "composition"))}
-            />
+        <%!-- Node palette sidebar (icon-only) --%>
+        <aside class="flex w-14 shrink-0 flex-col items-center border-r bg-card py-2 gap-1 overflow-y-auto">
+          <div
+            :for={node <- @node_types}
+            draggable="true"
+            data-node-type={node.type}
+            data-node-label={node.label}
+            data-node-inputs={node.inputs}
+            data-node-outputs={node.outputs}
+            title={node.label}
+            class="flex size-9 cursor-grab items-center justify-center rounded-lg border border-transparent hover:border-primary/50 hover:shadow-sm active:cursor-grabbing transition-all"
+            style={"color: #{node.color}"}
+          >
+            <.icon name={node.icon} class="size-5" />
           </div>
         </aside>
 
@@ -716,6 +711,7 @@ defmodule BlackboexWeb.FlowLive.Edit do
         <.properties_drawer
           node={@selected_node}
           tab={@properties_tab}
+          expanded={@drawer_expanded}
           state_variables={get_state_variables(@flow, @selected_node)}
           org_flows={@org_flows}
           sub_flow_schema={@sub_flow_schema}
@@ -778,8 +774,7 @@ defmodule BlackboexWeb.FlowLive.Edit do
                 data-language="json"
                 data-readonly="true"
                 data-value={@json_preview}
-                class="w-full rounded-lg overflow-hidden"
-                style="min-height: 200px;"
+                class="w-full h-full rounded-lg overflow-hidden"
               />
             </div>
           </div>
@@ -818,7 +813,7 @@ defmodule BlackboexWeb.FlowLive.Edit do
                   data-event="update_run_input"
                   data-value={@run_input}
                   class="w-full rounded-lg border overflow-hidden"
-                  style="min-height: 120px;"
+                  style="height: 120px;"
                 />
               </div>
               <.button
@@ -876,6 +871,7 @@ defmodule BlackboexWeb.FlowLive.Edit do
 
   attr :node, :map, default: nil
   attr :tab, :string, default: "settings"
+  attr :expanded, :boolean, default: false
   attr :state_variables, :list, default: []
   attr :org_flows, :list, default: []
   attr :sub_flow_schema, :list, default: []
@@ -886,8 +882,12 @@ defmodule BlackboexWeb.FlowLive.Edit do
   end
 
   defp properties_drawer(assigns) do
+    width_class = if assigns.expanded, do: "w-[70vw]", else: "w-96"
+
+    assigns = assign(assigns, width_class: width_class)
+
     ~H"""
-    <aside class="flex w-80 shrink-0 flex-col border-l bg-card animate-in slide-in-from-right duration-200">
+    <aside class={"flex shrink-0 flex-col border-l bg-card animate-in slide-in-from-right duration-200 #{@width_class} transition-[width] ease-in-out"}>
       <%!-- Drawer header --%>
       <div class="flex items-center justify-between border-b px-4 py-3">
         <div class="flex items-center gap-2">
@@ -899,12 +899,24 @@ defmodule BlackboexWeb.FlowLive.Edit do
           </div>
           <span class="text-sm font-semibold">{@node.label}</span>
         </div>
-        <button
-          phx-click="close_drawer"
-          class="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
-        >
-          <.icon name="hero-x-mark" class="size-4" />
-        </button>
+        <div class="flex items-center gap-1">
+          <button
+            phx-click="toggle_drawer_expand"
+            class="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+            title={if @expanded, do: "Collapse", else: "Expand"}
+          >
+            <.icon
+              name={if @expanded, do: "hero-arrows-pointing-in", else: "hero-arrows-pointing-out"}
+              class="size-4"
+            />
+          </button>
+          <button
+            phx-click="close_drawer"
+            class="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+          >
+            <.icon name="hero-x-mark" class="size-4" />
+          </button>
+        </div>
       </div>
 
       <%!-- Drawer body --%>
@@ -1027,7 +1039,7 @@ defmodule BlackboexWeb.FlowLive.Edit do
           data-field="code"
           data-value={@data["code"] || ""}
           class="w-full rounded-lg border overflow-hidden"
-          style="min-height: 240px;"
+          style="height: 240px;"
         />
       </div>
       <.prop_field
@@ -1068,7 +1080,7 @@ defmodule BlackboexWeb.FlowLive.Edit do
           data-field="expression"
           data-value={@data["expression"] || ""}
           class="w-full rounded-lg border overflow-hidden"
-          style="min-height: 120px;"
+          style="height: 120px;"
         />
       </div>
       <div>
@@ -1399,7 +1411,7 @@ defmodule BlackboexWeb.FlowLive.Edit do
           data-field="body_code"
           data-value={@data["body_code"] || ""}
           class="w-full rounded-lg border overflow-hidden"
-          style="min-height: 200px;"
+          style="height: 200px;"
         />
       </div>
     </div>
@@ -1549,45 +1561,6 @@ defmodule BlackboexWeb.FlowLive.Edit do
       >
         {label}
       </button>
-    </div>
-    """
-  end
-
-  # ── Node palette component ──────────────────────────────────────────────
-
-  attr :label, :string, required: true
-  attr :nodes, :list, required: true
-
-  defp node_group(assigns) do
-    ~H"""
-    <div>
-      <div class="px-1 pb-1.5">
-        <span class="text-[0.65rem] font-semibold uppercase tracking-wider text-muted-foreground">
-          {@label}
-        </span>
-      </div>
-      <div class="space-y-1.5">
-        <div
-          :for={node <- @nodes}
-          draggable="true"
-          data-node-type={node.type}
-          data-node-label={node.label}
-          data-node-inputs={node.inputs}
-          data-node-outputs={node.outputs}
-          class="flex cursor-grab items-center gap-2.5 rounded-lg border bg-background p-2.5 hover:border-primary/50 hover:shadow-sm active:cursor-grabbing transition-all"
-        >
-          <div
-            class="flex size-8 shrink-0 items-center justify-center rounded-lg"
-            style={"background: #{node.color}15; color: #{node.color}"}
-          >
-            <.icon name={node.icon} class="size-4" />
-          </div>
-          <div class="min-w-0">
-            <div class="text-sm font-medium leading-tight">{node.label}</div>
-            <div class="text-xs text-muted-foreground leading-tight">{node.subtitle}</div>
-          </div>
-        </div>
-      </div>
     </div>
     """
   end

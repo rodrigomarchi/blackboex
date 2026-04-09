@@ -161,7 +161,7 @@ export function blackboexToDrawflow(blackboex, buildHTML) {
       outputs[key] = { connections: conns }
     }
 
-    const html = buildHTML ? buildHTML(node.type, outputCount) : `<div>${node.type}</div>`
+    const html = buildHTML ? buildHTML(node.type, outputCount, node.data) : `<div>${node.type}</div>`
 
     data[numericId] = {
       id: parseInt(numericId, 10),

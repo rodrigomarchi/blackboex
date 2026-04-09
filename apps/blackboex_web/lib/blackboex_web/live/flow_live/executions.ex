@@ -36,28 +36,28 @@ defmodule BlackboexWeb.FlowLive.Executions do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="space-y-6">
-      <div class="flex items-center justify-between">
+    <div class="flex h-screen flex-col overflow-hidden">
+      <header class="flex h-12 shrink-0 items-center justify-between border-b bg-card px-4">
         <div class="flex items-center gap-3">
-          <.link navigate={~p"/flows"} class="shrink-0">
+          <.link navigate={~p"/"} class="text-foreground hover:text-foreground/80">
             <.logo_icon class="size-7" />
           </.link>
-          <div class="h-6 w-px bg-border" />
           <.link
             navigate={~p"/flows/#{@flow.id}/edit"}
-            class="inline-flex items-center justify-center rounded-md border border-border bg-card p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            class="text-muted-foreground hover:text-foreground"
           >
-            <.icon name="hero-arrow-left" class="size-4" />
+            <.icon name="hero-arrow-left" class="size-5" />
           </.link>
-          <div>
-            <h1 class="text-lg font-semibold">Executions</h1>
-            <p class="text-sm text-muted-foreground">{@flow.name}</p>
-          </div>
+          <h1 class="text-sm font-semibold">Executions</h1>
+          <span class="text-xs text-muted-foreground">{@flow.name}</span>
         </div>
-        <div :if={@executions != []} class="text-xs text-muted-foreground">
+        <div :if={@executions != []} class="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <.icon name="hero-bolt-mini" class="size-3.5" />
           {length(@executions)} total runs
         </div>
-      </div>
+      </header>
+
+      <div class="flex-1 overflow-y-auto p-6 space-y-6">
 
       <%= if @executions != [] do %>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -91,16 +91,24 @@ defmodule BlackboexWeb.FlowLive.Executions do
               <thead>
                 <tr class="border-b bg-muted/30">
                   <th class="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Status
+                    <span class="flex items-center gap-1.5">
+                      <.icon name="hero-signal-mini" class="size-3.5" /> Status
+                    </span>
                   </th>
                   <th class="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Execution ID
+                    <span class="flex items-center gap-1.5">
+                      <.icon name="hero-finger-print-mini" class="size-3.5" /> Execution ID
+                    </span>
                   </th>
                   <th class="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Duration
+                    <span class="flex items-center gap-1.5">
+                      <.icon name="hero-clock-mini" class="size-3.5" /> Duration
+                    </span>
                   </th>
                   <th class="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Started
+                    <span class="flex items-center gap-1.5">
+                      <.icon name="hero-calendar-mini" class="size-3.5" /> Started
+                    </span>
                   </th>
                   <th class="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   </th>
@@ -113,17 +121,9 @@ defmodule BlackboexWeb.FlowLive.Executions do
                   phx-click={JS.navigate(~p"/flows/#{@flow.id}/executions/#{exec.id}")}
                 >
                   <td class="px-4 py-2.5">
-                    <div class="flex items-center gap-2">
-                      <div class={"size-2 rounded-full #{status_dot(exec.status)}"} />
-                      <span class={"text-xs font-medium #{status_text(exec.status)}"}>
-                        {exec.status}
-                      </span>
-                      <span
-                        :if={exec.status == "halted"}
-                        class="inline-flex items-center gap-0.5 text-[10px] text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 rounded-full"
-                      >
-                        <.icon name="hero-pause-circle-mini" class="size-3" /> waiting
-                      </span>
+                    <div class={"inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium #{status_badge(exec.status)}"}>
+                      <.icon name={status_icon(exec.status)} class="size-3.5" />
+                      {exec.status}
                     </div>
                   </td>
                   <td class="px-4 py-2.5">
@@ -149,6 +149,7 @@ defmodule BlackboexWeb.FlowLive.Executions do
           </.card_content>
         </.card>
       <% end %>
+      </div>
     </div>
     """
   end
@@ -188,17 +189,17 @@ defmodule BlackboexWeb.FlowLive.Executions do
     %{total: total, completed: completed, failed: failed, avg_duration: avg}
   end
 
-  defp status_dot("completed"), do: "bg-green-500"
-  defp status_dot("failed"), do: "bg-red-500"
-  defp status_dot("running"), do: "bg-blue-500 animate-pulse"
-  defp status_dot("halted"), do: "bg-amber-500"
-  defp status_dot(_), do: "bg-gray-400"
+  defp status_badge("completed"), do: "bg-green-500/15 text-green-700 dark:text-green-400"
+  defp status_badge("failed"), do: "bg-red-500/15 text-red-700 dark:text-red-400"
+  defp status_badge("running"), do: "bg-blue-500/15 text-blue-700 dark:text-blue-400"
+  defp status_badge("halted"), do: "bg-amber-500/15 text-amber-700 dark:text-amber-400"
+  defp status_badge(_), do: "bg-muted text-muted-foreground"
 
-  defp status_text("completed"), do: "text-green-700 dark:text-green-400"
-  defp status_text("failed"), do: "text-red-700 dark:text-red-400"
-  defp status_text("running"), do: "text-blue-700 dark:text-blue-400"
-  defp status_text("halted"), do: "text-amber-700 dark:text-amber-400"
-  defp status_text(_), do: "text-muted-foreground"
+  defp status_icon("completed"), do: "hero-check-circle-mini"
+  defp status_icon("failed"), do: "hero-x-circle-mini"
+  defp status_icon("running"), do: "hero-arrow-path-mini"
+  defp status_icon("halted"), do: "hero-pause-circle-mini"
+  defp status_icon(_), do: "hero-question-mark-circle-mini"
 
   defp short_id(id) when is_binary(id), do: String.slice(id, 0, 8)
   defp short_id(_), do: "—"

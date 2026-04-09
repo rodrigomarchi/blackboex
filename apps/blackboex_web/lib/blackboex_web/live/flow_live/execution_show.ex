@@ -45,61 +45,51 @@ defmodule BlackboexWeb.FlowLive.ExecutionShow do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="space-y-5">
-      <%!-- Header --%>
-      <div class="flex items-center justify-between">
+    <div class="flex h-screen flex-col overflow-hidden">
+      <header class="flex h-12 shrink-0 items-center border-b bg-card px-4">
         <div class="flex items-center gap-3">
-          <.link navigate={~p"/flows"} class="shrink-0">
+          <.link navigate={~p"/"} class="text-foreground hover:text-foreground/80">
             <.logo_icon class="size-7" />
           </.link>
-          <div class="h-6 w-px bg-border" />
           <.link
             navigate={~p"/flows/#{@flow.id}/executions"}
-            class="inline-flex items-center justify-center rounded-md border border-border bg-card p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            class="text-muted-foreground hover:text-foreground"
           >
-            <.icon name="hero-arrow-left" class="size-4" />
+            <.icon name="hero-arrow-left" class="size-5" />
           </.link>
-          <div>
-            <div class="flex items-center gap-2">
-              <h1 class="text-lg font-semibold">Execution</h1>
-              <span class="text-xs font-mono text-muted-foreground">
-                {short_id(@execution.id)}
-              </span>
-            </div>
-            <p class="text-sm text-muted-foreground">{@flow.name}</p>
-          </div>
+          <h1 class="text-sm font-semibold">Execution</h1>
+          <span class="text-xs font-mono text-muted-foreground">
+            {short_id(@execution.id)}
+          </span>
+          <span class="text-xs text-muted-foreground">{@flow.name}</span>
         </div>
-      </div>
+      </header>
+
+      <div class="flex-1 overflow-y-auto p-6 space-y-5">
 
       <%!-- Summary bar --%>
-      <.card>
-        <.card_content class="py-3 px-4">
-          <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
-            <div class="flex items-center gap-2">
-              <div class={"size-2 rounded-full #{status_dot(@execution.status)}"} />
-              <span class={"font-medium #{status_text(@execution.status)}"}>
-                {@execution.status}
-              </span>
-            </div>
-            <div class="flex items-center gap-1.5 text-muted-foreground">
-              <.icon name="hero-clock-mini" class="size-3.5" />
-              <span class="font-mono">{format_duration(@execution.duration_ms)}</span>
-            </div>
-            <div class="flex items-center gap-1.5 text-muted-foreground">
-              <.icon name="hero-play-mini" class="size-3.5" />
-              <span>{format_time(@execution.inserted_at)}</span>
-            </div>
-            <div class="flex items-center gap-1.5 text-muted-foreground">
-              <.icon name="hero-stop-mini" class="size-3.5" />
-              <span>{format_time(@execution.finished_at)}</span>
-            </div>
-            <div class="flex items-center gap-1.5 text-muted-foreground">
-              <.icon name="hero-squares-2x2-mini" class="size-3.5" />
-              <span>{length(@node_executions)} nodes</span>
-            </div>
-          </div>
-        </.card_content>
-      </.card>
+      <div class="flex flex-wrap items-center gap-3 text-sm">
+        <div class={"inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium #{status_badge(@execution.status)}"}>
+          <.icon name={status_icon(@execution.status)} class="size-3.5" />
+          {@execution.status}
+        </div>
+        <div class="flex items-center gap-1.5 rounded-lg border bg-card px-3 py-1.5 text-muted-foreground">
+          <.icon name="hero-clock-mini" class="size-3.5" />
+          <span class="text-xs font-mono">{format_duration(@execution.duration_ms)}</span>
+        </div>
+        <div class="flex items-center gap-1.5 rounded-lg border bg-card px-3 py-1.5 text-muted-foreground">
+          <.icon name="hero-play-mini" class="size-3.5 text-green-500" />
+          <span class="text-xs">{format_time(@execution.inserted_at)}</span>
+        </div>
+        <div class="flex items-center gap-1.5 rounded-lg border bg-card px-3 py-1.5 text-muted-foreground">
+          <.icon name="hero-stop-mini" class="size-3.5 text-red-400" />
+          <span class="text-xs">{format_time(@execution.finished_at)}</span>
+        </div>
+        <div class="flex items-center gap-1.5 rounded-lg border bg-card px-3 py-1.5 text-muted-foreground">
+          <.icon name="hero-squares-2x2-mini" class="size-3.5 text-blue-400" />
+          <span class="text-xs">{length(@node_executions)} nodes</span>
+        </div>
+      </div>
 
       <%!-- Error banner --%>
       <div
@@ -129,34 +119,88 @@ defmodule BlackboexWeb.FlowLive.ExecutionShow do
         </div>
       </div>
 
+      <%!-- Input / Output --%>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <.card>
+          <.card_header class="py-2.5 px-4">
+            <.card_title class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <.icon name="hero-arrow-down-on-square-mini" class="size-3.5 text-blue-400" />
+              Input
+            </.card_title>
+          </.card_header>
+          <.card_content class="pt-0 px-4 pb-3">
+            <div
+              id="exec-input-json"
+              phx-hook="CodeEditor"
+              phx-update="ignore"
+              data-language="json"
+              data-readonly="true"
+              data-value={format_json(@execution.input)}
+              class="w-full rounded-lg border overflow-hidden"
+              style="max-height: 240px;"
+            />
+          </.card_content>
+        </.card>
+        <.card>
+          <.card_header class="py-2.5 px-4">
+            <.card_title class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <.icon name="hero-arrow-up-on-square-mini" class="size-3.5 text-green-400" />
+              Output
+            </.card_title>
+          </.card_header>
+          <.card_content class="pt-0 px-4 pb-3">
+            <div
+              id="exec-output-json"
+              phx-hook="CodeEditor"
+              phx-update="ignore"
+              data-language="json"
+              data-readonly="true"
+              data-value={format_json(@execution.output)}
+              class="w-full rounded-lg border overflow-hidden"
+              style="max-height: 240px;"
+            />
+          </.card_content>
+        </.card>
+      </div>
+
       <%!-- Node Timeline — compact table --%>
       <.card>
         <.card_header class="py-3 px-4">
-          <.card_title class="text-sm">Node Timeline</.card_title>
+          <.card_title class="flex items-center gap-2 text-sm">
+            <.icon name="hero-queue-list" class="size-4 text-muted-foreground" />
+            Node Timeline
+          </.card_title>
         </.card_header>
         <.card_content class="p-0">
           <div class="divide-y">
             <div :for={ne <- @node_executions}>
+              <% meta = node_icon(ne.node_type) %>
               <button
                 type="button"
-                class={"w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-muted/30 transition-colors #{if @expanded_node == ne.node_id, do: "bg-muted/20", else: ""}"}
+                class={"w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-muted/30 transition-colors #{if @expanded_node == ne.node_id, do: "bg-muted/20", else: ""}"}
                 phx-click="toggle_node"
                 phx-value-node-id={ne.node_id}
               >
-                <%!-- Timeline dot + connector --%>
-                <div class="flex flex-col items-center shrink-0">
-                  <div class={"size-2 rounded-full #{status_dot(ne.status)}"} />
+                <div
+                  class="flex items-center justify-center size-7 rounded-lg shrink-0"
+                  style={"background: #{meta.color}20; color: #{meta.color};"}
+                >
+                  <.icon name={meta.icon} class="size-4" />
                 </div>
-                <%!-- Node info --%>
                 <div class="flex-1 min-w-0 flex items-center gap-2">
                   <span class="text-sm font-medium">{ne.node_id}</span>
-                  <span class="text-[11px] text-muted-foreground px-1.5 py-0.5 rounded bg-muted/50">
-                    {ne.node_type}
+                  <span
+                    class="text-[11px] px-1.5 py-0.5 rounded font-medium"
+                    style={"background: #{meta.color}15; color: #{meta.color};"}
+                  >
+                    {meta.label}
                   </span>
                 </div>
-                <%!-- Right side: status + duration --%>
-                <span class={"text-xs #{status_text(ne.status)}"}>{ne.status}</span>
-                <span class="text-xs font-mono text-muted-foreground w-12 text-right">
+                <div class="flex items-center gap-1.5">
+                  <div class={"size-1.5 rounded-full #{status_dot(ne.status)}"} />
+                  <span class={"text-xs #{status_text(ne.status)}"}>{ne.status}</span>
+                </div>
+                <span class="text-xs font-mono text-muted-foreground w-14 text-right">
                   {format_duration(ne.duration_ms)}
                 </span>
                 <.icon
@@ -168,7 +212,6 @@ defmodule BlackboexWeb.FlowLive.ExecutionShow do
                   class="size-3.5 text-muted-foreground/50 shrink-0"
                 />
               </button>
-              <%!-- Expanded details --%>
               <div
                 :if={@expanded_node == ne.node_id}
                 class="px-4 pb-3 pt-1 pl-10 bg-muted/10 space-y-2"
@@ -181,7 +224,16 @@ defmodule BlackboexWeb.FlowLive.ExecutionShow do
                 </div>
                 <div :if={ne.output} class="text-xs">
                   <span class="text-muted-foreground font-medium">Output:</span>
-                  <pre class="mt-1 font-mono bg-muted/40 rounded px-2 py-1.5 overflow-auto max-h-32 whitespace-pre-wrap">{format_json(ne.output)}</pre>
+                  <div
+                    id={"node-output-#{ne.node_id}"}
+                    phx-hook="CodeEditor"
+                    phx-update="ignore"
+                    data-language="json"
+                    data-readonly="true"
+                    data-value={format_json(ne.output)}
+                    class="mt-1 w-full rounded-lg border overflow-hidden"
+                    style="max-height: 160px;"
+                  />
                 </div>
                 <div class="flex gap-4 text-[11px] text-muted-foreground">
                   <span :if={ne.started_at}>Started: {format_time(ne.started_at)}</span>
@@ -192,33 +244,36 @@ defmodule BlackboexWeb.FlowLive.ExecutionShow do
           </div>
         </.card_content>
       </.card>
-
-      <%!-- Input / Output --%>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <.card>
-          <.card_header class="py-2.5 px-4">
-            <.card_title class="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              Input
-            </.card_title>
-          </.card_header>
-          <.card_content class="pt-0 px-4 pb-3">
-            <pre class="text-xs font-mono bg-muted/30 rounded-md p-3 overflow-auto max-h-48 whitespace-pre-wrap border">{format_json(@execution.input)}</pre>
-          </.card_content>
-        </.card>
-        <.card>
-          <.card_header class="py-2.5 px-4">
-            <.card_title class="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              Output
-            </.card_title>
-          </.card_header>
-          <.card_content class="pt-0 px-4 pb-3">
-            <pre class="text-xs font-mono bg-muted/30 rounded-md p-3 overflow-auto max-h-48 whitespace-pre-wrap border">{format_json(@execution.output)}</pre>
-          </.card_content>
-        </.card>
       </div>
     </div>
     """
   end
+
+  @node_type_meta %{
+    "start" => %{icon: "hero-play", color: "#10b981", label: "Start"},
+    "elixir_code" => %{icon: "hero-code-bracket", color: "#8b5cf6", label: "Elixir Code"},
+    "condition" => %{icon: "hero-arrows-right-left", color: "#3b82f6", label: "Condition"},
+    "end" => %{icon: "hero-stop", color: "#6b7280", label: "End"},
+    "http_request" => %{icon: "hero-globe-alt", color: "#f97316", label: "HTTP Request"},
+    "delay" => %{icon: "hero-clock", color: "#eab308", label: "Delay"},
+    "webhook_wait" => %{icon: "hero-arrow-path", color: "#ec4899", label: "Webhook Wait"},
+    "sub_flow" => %{icon: "hero-squares-2x2", color: "#6366f1", label: "Sub-Flow"},
+    "for_each" => %{icon: "hero-arrow-path-rounded-square", color: "#14b8a6", label: "For Each"}
+  }
+
+  defp node_icon(type), do: Map.get(@node_type_meta, type, %{icon: "hero-cube", color: "#6b7280", label: type})
+
+  defp status_badge("completed"), do: "bg-green-500/15 text-green-700 dark:text-green-400"
+  defp status_badge("failed"), do: "bg-red-500/15 text-red-700 dark:text-red-400"
+  defp status_badge("running"), do: "bg-blue-500/15 text-blue-700 dark:text-blue-400"
+  defp status_badge("halted"), do: "bg-amber-500/15 text-amber-700 dark:text-amber-400"
+  defp status_badge(_), do: "bg-muted text-muted-foreground"
+
+  defp status_icon("completed"), do: "hero-check-circle-mini"
+  defp status_icon("failed"), do: "hero-x-circle-mini"
+  defp status_icon("running"), do: "hero-arrow-path-mini"
+  defp status_icon("halted"), do: "hero-pause-circle-mini"
+  defp status_icon(_), do: "hero-question-mark-circle-mini"
 
   defp status_dot("completed"), do: "bg-green-500"
   defp status_dot("failed"), do: "bg-red-500"

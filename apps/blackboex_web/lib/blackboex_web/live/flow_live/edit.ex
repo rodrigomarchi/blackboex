@@ -600,37 +600,42 @@ defmodule BlackboexWeb.FlowLive.Edit do
       <%!-- Top bar --%>
       <header class="flex h-12 shrink-0 items-center justify-between border-b bg-card px-4">
         <div class="flex items-center gap-3">
+          <.link navigate={~p"/"} class="text-foreground hover:text-foreground/80">
+            <.logo_icon class="size-7" />
+          </.link>
           <.link navigate={~p"/flows"} class="text-muted-foreground hover:text-foreground">
             <.icon name="hero-arrow-left" class="size-5" />
           </.link>
           <h1 class="text-sm font-semibold truncate max-w-xs">{@flow.name}</h1>
-          <span class={"rounded px-2 py-0.5 text-xs #{status_badge_classes(@flow.status)}"}>
-            {@flow.status}
-          </span>
           <%= if @flow.status == "active" do %>
-            <.button
-              variant="outline"
-              size="sm"
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-green-500/15 px-2.5 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">
+              <span class="size-1.5 rounded-full bg-green-500 animate-pulse" />
+              active
+            </span>
+            <button
               phx-click="deactivate_flow"
-              class="text-orange-600 border-orange-300 hover:bg-orange-50 dark:hover:bg-orange-950"
+              class="inline-flex items-center gap-1 rounded-full bg-muted/50 px-2.5 py-1 text-xs text-muted-foreground hover:bg-orange-500/15 hover:text-orange-500 transition-colors"
             >
-              <.icon name="hero-pause" class="mr-1 size-3.5" /> Deactivate
-            </.button>
+              <.icon name="hero-pause-circle-mini" class="size-3.5" /> Pause
+            </button>
           <% else %>
-            <.button
-              variant="outline"
-              size="sm"
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+              <span class="size-1.5 rounded-full bg-gray-400" />
+              draft
+            </span>
+            <button
               phx-click="activate_flow"
-              class="text-green-600 border-green-300 hover:bg-green-50 dark:hover:bg-green-950"
+              class="inline-flex items-center gap-1 rounded-full bg-green-500/15 px-2.5 py-1 text-xs text-green-600 dark:text-green-400 hover:bg-green-500/25 transition-colors"
             >
-              <.icon name="hero-bolt" class="mr-1 size-3.5" /> Activate
-            </.button>
+              <.icon name="hero-bolt-mini" class="size-3.5" /> Activate
+            </button>
           <% end %>
         </div>
 
         <div class="flex items-center gap-2">
           <%!-- Webhook URL --%>
           <div class="hidden md:flex items-center gap-1 rounded border bg-muted/50 px-2 py-1">
+            <.icon name="hero-link-mini" class="size-3.5 text-emerald-400 shrink-0" />
             <span class="text-[0.65rem] text-muted-foreground font-mono truncate max-w-[200px]">
               /webhook/{String.slice(@flow.webhook_token, 0..7)}...
             </span>
@@ -639,7 +644,7 @@ defmodule BlackboexWeb.FlowLive.Edit do
               class="p-0.5 text-muted-foreground hover:text-foreground"
               title="Copy webhook URL"
             >
-              <.icon name="hero-clipboard-document" class="size-3.5" />
+              <.icon name="hero-clipboard-document" class="size-3.5 text-sky-400" />
             </button>
             <button
               phx-click="regenerate_token"
@@ -647,20 +652,20 @@ defmodule BlackboexWeb.FlowLive.Edit do
               title="Regenerate token"
               data-confirm="Regenerate webhook token? The old URL will stop working."
             >
-              <.icon name="hero-arrow-path" class="size-3.5" />
+              <.icon name="hero-arrow-path" class="size-3.5 text-amber-400" />
             </button>
           </div>
 
           <span :if={@saved} class="text-xs text-green-600 dark:text-green-400">Saved</span>
 
           <.button variant="outline" size="sm" navigate={~p"/flows/#{@flow.id}/executions"}>
-            <.icon name="hero-clock" class="mr-1.5 size-4" /> History
+            <.icon name="hero-clock" class="mr-1.5 size-4 text-sky-400" /> History
           </.button>
           <.button variant="outline" size="sm" phx-click="open_run_modal">
-            <.icon name="hero-play" class="mr-1.5 size-4" /> Run
+            <.icon name="hero-play" class="mr-1.5 size-4 text-green-400" /> Run
           </.button>
           <.button variant="outline" size="sm" phx-click="request_json_preview">
-            <.icon name="hero-code-bracket" class="mr-1.5 size-4" /> JSON
+            <.icon name="hero-code-bracket" class="mr-1.5 size-4 text-violet-400" /> JSON
           </.button>
           <.button
             variant="primary"
@@ -963,6 +968,8 @@ defmodule BlackboexWeb.FlowLive.Edit do
           field="name"
           value={@data["name"] || "Start"}
           placeholder="Start"
+          icon="hero-tag"
+          icon_color="text-violet-400"
         />
         <.prop_field
           label="Description"
@@ -970,12 +977,16 @@ defmodule BlackboexWeb.FlowLive.Edit do
           value={@data["description"] || ""}
           placeholder="Describe what triggers this flow"
           type="textarea"
+          icon="hero-chat-bubble-bottom-center-text"
+          icon_color="text-sky-400"
         />
         <.prop_select
           label="Execution Mode"
           field="execution_mode"
           value={@data["execution_mode"] || "sync"}
           options={[{"Sync (request/response)", "sync"}, {"Async (polling)", "async"}]}
+          icon="hero-bolt"
+          icon_color="text-amber-400"
         />
         <.prop_field
           label="Timeout (ms)"
@@ -983,12 +994,16 @@ defmodule BlackboexWeb.FlowLive.Edit do
           value={@data["timeout_ms"] || "30000"}
           placeholder="30000"
           type="number"
+          icon="hero-clock"
+          icon_color="text-orange-400"
         />
         <.prop_select
           label="Trigger Type"
           field="trigger_type"
           value={@data["trigger_type"] || "webhook"}
           options={[{"Webhook", "webhook"}, {"Manual", "manual"}, {"Schedule", "schedule"}]}
+          icon="hero-signal"
+          icon_color="text-green-400"
         />
       </div>
 
@@ -1020,6 +1035,8 @@ defmodule BlackboexWeb.FlowLive.Edit do
         field="name"
         value={@data["name"] || "Elixir Code"}
         placeholder="Elixir Code"
+        icon="hero-tag"
+        icon_color="text-violet-400"
       />
       <.prop_field
         label="Description"
@@ -1027,9 +1044,13 @@ defmodule BlackboexWeb.FlowLive.Edit do
         value={@data["description"] || ""}
         placeholder="What does this step do?"
         type="textarea"
+        icon="hero-chat-bubble-bottom-center-text"
+        icon_color="text-sky-400"
       />
       <div>
-        <label class="block text-xs font-medium text-muted-foreground mb-1.5">Code</label>
+        <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
+          <.icon name="hero-code-bracket" class="size-3.5 text-purple-400" /> Code
+        </label>
         <div
           id={"code-editor-#{@node_id}-code"}
           phx-hook="CodeEditor"
@@ -1048,6 +1069,8 @@ defmodule BlackboexWeb.FlowLive.Edit do
         value={@data["timeout_ms"] || "5000"}
         placeholder="5000"
         type="number"
+        icon="hero-clock"
+        icon_color="text-orange-400"
       />
     </div>
     """
@@ -1061,6 +1084,8 @@ defmodule BlackboexWeb.FlowLive.Edit do
         field="name"
         value={@data["name"] || "Condition"}
         placeholder="Condition"
+        icon="hero-tag"
+        icon_color="text-violet-400"
       />
       <.prop_field
         label="Description"
@@ -1068,9 +1093,13 @@ defmodule BlackboexWeb.FlowLive.Edit do
         value={@data["description"] || ""}
         placeholder="Describe the branching logic"
         type="textarea"
+        icon="hero-chat-bubble-bottom-center-text"
+        icon_color="text-sky-400"
       />
       <div>
-        <label class="block text-xs font-medium text-muted-foreground mb-1.5">Expression</label>
+        <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
+          <.icon name="hero-code-bracket" class="size-3.5 text-blue-400" /> Expression
+        </label>
         <div
           id={"code-editor-#{@node_id}-expression"}
           phx-hook="CodeEditor"
@@ -1084,7 +1113,9 @@ defmodule BlackboexWeb.FlowLive.Edit do
         />
       </div>
       <div>
-        <label class="block text-xs font-medium text-muted-foreground mb-1.5">Branch Labels</label>
+        <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
+          <.icon name="hero-tag" class="size-3.5 text-teal-400" /> Branch Labels
+        </label>
         <p class="text-xs text-muted-foreground mb-2">
           Name each output branch (one per line)
         </p>
@@ -1114,6 +1145,8 @@ defmodule BlackboexWeb.FlowLive.Edit do
           field="name"
           value={@data["name"] || "End"}
           placeholder="End"
+          icon="hero-tag"
+          icon_color="text-violet-400"
         />
         <.prop_field
           label="Description"
@@ -1121,6 +1154,8 @@ defmodule BlackboexWeb.FlowLive.Edit do
           value={@data["description"] || ""}
           placeholder="Describe how the flow ends"
           type="textarea"
+          icon="hero-chat-bubble-bottom-center-text"
+          icon_color="text-sky-400"
         />
         <.prop_select
           label="Output Mode"
@@ -1131,6 +1166,8 @@ defmodule BlackboexWeb.FlowLive.Edit do
             {"Accumulate All", "accumulate"},
             {"Discard", "discard"}
           ]}
+          icon="hero-arrow-down-tray"
+          icon_color="text-emerald-400"
         />
       </div>
 
@@ -1159,7 +1196,13 @@ defmodule BlackboexWeb.FlowLive.Edit do
       />
 
       <div :if={@tab == "settings"} class="space-y-4">
-        <.prop_field label="Node Name" field="name" value={@data["name"] || "HTTP Request"} />
+        <.prop_field
+          label="Node Name"
+          field="name"
+          value={@data["name"] || "HTTP Request"}
+          icon="hero-tag"
+          icon_color="text-violet-400"
+        />
         <.prop_select
           label="Method"
           field="method"
@@ -1171,15 +1214,19 @@ defmodule BlackboexWeb.FlowLive.Edit do
             {"PATCH", "PATCH"},
             {"DELETE", "DELETE"}
           ]}
+          icon="hero-command-line"
+          icon_color="text-amber-400"
         />
         <.prop_field
           label="URL"
           field="url"
           value={@data["url"] || ""}
           placeholder="https://api.example.com/{{state.path}}"
+          icon="hero-link"
+          icon_color="text-blue-400"
         />
         <div>
-          <label class="block text-xs font-medium text-muted-foreground mb-1.5">Body Template</label>
+          <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5"><.icon name="hero-document-text" class="size-3.5 text-emerald-400" /> Body Template</label>
           <div
             id={"code-editor-#{@node_id}-body_template"}
             phx-hook="CodeEditor"
@@ -1205,6 +1252,8 @@ defmodule BlackboexWeb.FlowLive.Edit do
             {"Basic Auth", "basic"},
             {"API Key", "api_key"}
           ]}
+          icon="hero-lock-closed"
+          icon_color="text-rose-400"
         />
         <.prop_field
           :if={@data["auth_type"] == "bearer"}
@@ -1212,18 +1261,24 @@ defmodule BlackboexWeb.FlowLive.Edit do
           field="auth_token"
           value={get_in(@data, ["auth_config", "token"]) || ""}
           placeholder="Bearer token"
+          icon="hero-key"
+          icon_color="text-amber-400"
         />
         <.prop_field
           :if={@data["auth_type"] == "basic"}
           label="Username"
           field="auth_username"
           value={get_in(@data, ["auth_config", "username"]) || ""}
+          icon="hero-user"
+          icon_color="text-sky-400"
         />
         <.prop_field
           :if={@data["auth_type"] == "basic"}
           label="Password"
           field="auth_password"
           value={get_in(@data, ["auth_config", "password"]) || ""}
+          icon="hero-lock-closed"
+          icon_color="text-rose-400"
         />
         <.prop_field
           :if={@data["auth_type"] == "api_key"}
@@ -1231,12 +1286,16 @@ defmodule BlackboexWeb.FlowLive.Edit do
           field="auth_key_name"
           value={get_in(@data, ["auth_config", "key_name"]) || ""}
           placeholder="X-API-Key"
+          icon="hero-key"
+          icon_color="text-amber-400"
         />
         <.prop_field
           :if={@data["auth_type"] == "api_key"}
           label="Key Value"
           field="auth_key_value"
           value={get_in(@data, ["auth_config", "key_value"]) || ""}
+          icon="hero-lock-closed"
+          icon_color="text-rose-400"
         />
       </div>
 
@@ -1246,18 +1305,24 @@ defmodule BlackboexWeb.FlowLive.Edit do
           field="timeout_ms"
           value={@data["timeout_ms"] || "10000"}
           type="number"
+          icon="hero-clock"
+          icon_color="text-orange-400"
         />
         <.prop_field
           label="Max Retries"
           field="max_retries"
           value={@data["max_retries"] || "3"}
           type="number"
+          icon="hero-arrow-path"
+          icon_color="text-cyan-400"
         />
         <.prop_field
           label="Expected Status Codes"
           field="expected_status"
           value={format_status_codes(@data["expected_status"])}
           placeholder="200, 201"
+          icon="hero-check-badge"
+          icon_color="text-green-400"
         />
       </div>
     </div>
@@ -1267,13 +1332,21 @@ defmodule BlackboexWeb.FlowLive.Edit do
   defp node_properties(%{type: "delay"} = assigns) do
     ~H"""
     <div class="space-y-4">
-      <.prop_field label="Node Name" field="name" value={@data["name"] || "Delay"} />
+      <.prop_field
+        label="Node Name"
+        field="name"
+        value={@data["name"] || "Delay"}
+        icon="hero-tag"
+        icon_color="text-violet-400"
+      />
       <.prop_field
         label="Duration (ms)"
         field="duration_ms"
         value={@data["duration_ms"] || "1000"}
         placeholder="1000"
         type="number"
+        icon="hero-clock"
+        icon_color="text-amber-400"
       />
       <.prop_field
         label="Max Duration (ms)"
@@ -1281,6 +1354,8 @@ defmodule BlackboexWeb.FlowLive.Edit do
         value={@data["max_duration_ms"] || "60000"}
         placeholder="60000"
         type="number"
+        icon="hero-clock"
+        icon_color="text-orange-400"
       />
       <.prop_field
         label="Description"
@@ -1288,6 +1363,8 @@ defmodule BlackboexWeb.FlowLive.Edit do
         value={@data["description"] || ""}
         placeholder="Why is this delay needed?"
         type="textarea"
+        icon="hero-chat-bubble-bottom-center-text"
+        icon_color="text-sky-400"
       />
     </div>
     """
@@ -1296,10 +1373,16 @@ defmodule BlackboexWeb.FlowLive.Edit do
   defp node_properties(%{type: "sub_flow"} = assigns) do
     ~H"""
     <div class="space-y-4">
-      <.prop_field label="Node Name" field="name" value={@data["name"] || "Sub-Flow"} />
+      <.prop_field
+        label="Node Name"
+        field="name"
+        value={@data["name"] || "Sub-Flow"}
+        icon="hero-tag"
+        icon_color="text-violet-400"
+      />
 
       <div>
-        <label class="block text-xs font-medium text-muted-foreground mb-1.5">Sub-Flow</label>
+        <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5"><.icon name="hero-squares-2x2" class="size-3.5 text-indigo-400" /> Sub-Flow</label>
         <select
           phx-change="select_sub_flow"
           name="flow_id"
@@ -1318,8 +1401,8 @@ defmodule BlackboexWeb.FlowLive.Edit do
 
       <%= if @data["flow_id"] && @data["flow_id"] != "" do %>
         <div>
-          <label class="block text-xs font-medium text-muted-foreground mb-2">
-            Input Mapping
+          <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-2">
+            <.icon name="hero-arrows-right-left" class="size-3.5 text-teal-400" /> Input Mapping
           </label>
           <p class="text-xs text-muted-foreground mb-3">
             Map parent flow state/input to sub-flow payload fields
@@ -1365,6 +1448,8 @@ defmodule BlackboexWeb.FlowLive.Edit do
         value={@data["timeout_ms"] || "30000"}
         placeholder="30000"
         type="number"
+        icon="hero-clock"
+        icon_color="text-orange-400"
       />
     </div>
     """
@@ -1376,10 +1461,16 @@ defmodule BlackboexWeb.FlowLive.Edit do
       <.properties_tabs tabs={[{"Settings", "settings"}, {"Code", "code"}]} active={@tab} />
 
       <div :if={@tab == "settings"} class="space-y-4">
-        <.prop_field label="Node Name" field="name" value={@data["name"] || "For Each"} />
+        <.prop_field
+          label="Node Name"
+          field="name"
+          value={@data["name"] || "For Each"}
+          icon="hero-tag"
+          icon_color="text-violet-400"
+        />
         <div>
-          <label class="block text-xs font-medium text-muted-foreground mb-1.5">
-            Source Expression
+          <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
+            <.icon name="hero-funnel" class="size-3.5 text-teal-400" /> Source Expression
           </label>
           <div
             id={"code-editor-#{@node_id}-source_expression"}
@@ -1398,12 +1489,16 @@ defmodule BlackboexWeb.FlowLive.Edit do
           field="item_variable"
           value={@data["item_variable"] || "item"}
           placeholder="item"
+          icon="hero-variable"
+          icon_color="text-purple-400"
         />
         <.prop_field
           label="Accumulator Key"
           field="accumulator"
           value={@data["accumulator"] || "results"}
           placeholder="results"
+          icon="hero-archive-box"
+          icon_color="text-amber-400"
         />
         <.prop_field
           label="Batch Size"
@@ -1411,6 +1506,8 @@ defmodule BlackboexWeb.FlowLive.Edit do
           value={@data["batch_size"] || "10"}
           placeholder="10"
           type="number"
+          icon="hero-squares-2x2"
+          icon_color="text-indigo-400"
         />
         <.prop_field
           label="Timeout per Item (ms)"
@@ -1418,11 +1515,13 @@ defmodule BlackboexWeb.FlowLive.Edit do
           value={@data["timeout_ms"] || "5000"}
           placeholder="5000"
           type="number"
+          icon="hero-clock"
+          icon_color="text-orange-400"
         />
       </div>
 
       <div :if={@tab == "code"}>
-        <label class="block text-xs font-medium text-muted-foreground mb-1.5">Body Code</label>
+        <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5"><.icon name="hero-code-bracket" class="size-3.5 text-purple-400" /> Body Code</label>
         <div
           id={"code-editor-#{@node_id}-body_code"}
           phx-hook="CodeEditor"
@@ -1442,12 +1541,20 @@ defmodule BlackboexWeb.FlowLive.Edit do
   defp node_properties(%{type: "webhook_wait"} = assigns) do
     ~H"""
     <div class="space-y-4">
-      <.prop_field label="Node Name" field="name" value={@data["name"] || "Webhook Wait"} />
+      <.prop_field
+        label="Node Name"
+        field="name"
+        value={@data["name"] || "Webhook Wait"}
+        icon="hero-tag"
+        icon_color="text-violet-400"
+      />
       <.prop_field
         label="Event Type"
         field="event_type"
         value={@data["event_type"] || ""}
         placeholder="e.g. approval, payment.confirmed"
+        icon="hero-bell-alert"
+        icon_color="text-pink-400"
       />
       <.prop_field
         label="Timeout (ms)"
@@ -1455,15 +1562,19 @@ defmodule BlackboexWeb.FlowLive.Edit do
         value={@data["timeout_ms"] || "3600000"}
         placeholder="3600000"
         type="number"
+        icon="hero-clock"
+        icon_color="text-orange-400"
       />
       <.prop_field
         label="Resume Path"
         field="resume_path"
         value={@data["resume_path"] || ""}
         placeholder="e.g. data.approved"
+        icon="hero-arrow-right-circle"
+        icon_color="text-emerald-400"
       />
       <div>
-        <label class="block text-xs font-medium text-muted-foreground mb-1.5">Callback URL</label>
+        <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5"><.icon name="hero-link" class="size-3.5 text-blue-400" /> Callback URL</label>
         <p class="rounded-lg border bg-muted/50 px-3 py-2 text-xs text-muted-foreground font-mono">
           POST /webhook/:token/resume/{@data["event_type"] || "<event_type>"}
         </p>
@@ -1504,11 +1615,16 @@ defmodule BlackboexWeb.FlowLive.Edit do
   attr :value, :string, default: ""
   attr :placeholder, :string, default: ""
   attr :type, :string, default: "text"
+  attr :icon, :string, default: nil
+  attr :icon_color, :string, default: "text-blue-400"
 
   defp prop_field(%{type: "textarea"} = assigns) do
     ~H"""
     <div>
-      <label class="block text-xs font-medium text-muted-foreground mb-1.5">{@label}</label>
+      <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
+        <.icon :if={@icon} name={@icon} class={"size-3.5 #{@icon_color}"} />
+        {@label}
+      </label>
       <textarea
         phx-blur="update_node_data"
         phx-value-field={@field}
@@ -1523,7 +1639,10 @@ defmodule BlackboexWeb.FlowLive.Edit do
   defp prop_field(assigns) do
     ~H"""
     <div>
-      <label class="block text-xs font-medium text-muted-foreground mb-1.5">{@label}</label>
+      <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
+        <.icon :if={@icon} name={@icon} class={"size-3.5 #{@icon_color}"} />
+        {@label}
+      </label>
       <input
         type={@type}
         phx-blur="update_node_data"
@@ -1540,11 +1659,16 @@ defmodule BlackboexWeb.FlowLive.Edit do
   attr :field, :string, required: true
   attr :value, :string, default: ""
   attr :options, :list, required: true
+  attr :icon, :string, default: nil
+  attr :icon_color, :string, default: "text-blue-400"
 
   defp prop_select(assigns) do
     ~H"""
     <div>
-      <label class="block text-xs font-medium text-muted-foreground mb-1.5">{@label}</label>
+      <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
+        <.icon :if={@icon} name={@icon} class={"size-3.5 #{@icon_color}"} />
+        {@label}
+      </label>
       <select
         phx-change="update_node_data"
         phx-value-field={@field}

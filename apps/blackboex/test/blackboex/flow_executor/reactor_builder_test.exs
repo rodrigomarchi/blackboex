@@ -149,6 +149,147 @@ defmodule Blackboex.FlowExecutor.ReactorBuilderTest do
                Reactor.run(reactor, %{payload: %{"ok" => true}}, %{shared_state: %{}})
     end
 
+    test "passes payload_schema and state_schema to start step via options" do
+      flow =
+        put_in(@linear_flow["nodes"], [
+          %{
+            "id" => "n1",
+            "type" => "start",
+            "position" => %{"x" => 0, "y" => 0},
+            "data" => %{
+              "payload_schema" => [
+                %{
+                  "name" => "name",
+                  "type" => "string",
+                  "required" => true,
+                  "constraints" => %{"min_length" => 1}
+                }
+              ],
+              "state_schema" => [
+                %{"name" => "greeting", "type" => "string", "initial_value" => ""}
+              ]
+            }
+          },
+          %{
+            "id" => "n2",
+            "type" => "elixir_code",
+            "position" => %{"x" => 200, "y" => 0},
+            "data" => %{
+              "code" => ~S|{input, Map.put(state, "greeting", "Hello, " <> input["name"] <> "!")}|
+            }
+          },
+          %{
+            "id" => "n3",
+            "type" => "end",
+            "position" => %{"x" => 400, "y" => 0},
+            "data" => %{}
+          }
+        ])
+
+      {:ok, parsed} = DefinitionParser.parse(flow)
+      {:ok, reactor} = ReactorBuilder.build(parsed)
+
+      # Valid payload passes validation and initializes state
+      assert {:ok, result} =
+               Reactor.run(reactor, %{payload: %{"name" => "Ana"}}, %{shared_state: %{}})
+
+      assert result.state["greeting"] == "Hello, Ana!"
+    end
+
+    test "start step rejects invalid payload via schema" do
+      flow =
+        put_in(@linear_flow["nodes"], [
+          %{
+            "id" => "n1",
+            "type" => "start",
+            "position" => %{"x" => 0, "y" => 0},
+            "data" => %{
+              "payload_schema" => [
+                %{"name" => "name", "type" => "string", "required" => true, "constraints" => %{}}
+              ]
+            }
+          },
+          %{
+            "id" => "n2",
+            "type" => "elixir_code",
+            "position" => %{"x" => 200, "y" => 0},
+            "data" => %{"code" => "input"}
+          },
+          %{
+            "id" => "n3",
+            "type" => "end",
+            "position" => %{"x" => 400, "y" => 0},
+            "data" => %{}
+          }
+        ])
+
+      {:ok, parsed} = DefinitionParser.parse(flow)
+      {:ok, reactor} = ReactorBuilder.build(parsed)
+
+      # Missing required field — should fail
+      assert {:error, _reason} =
+               Reactor.run(reactor, %{payload: %{}}, %{shared_state: %{}})
+    end
+
+    test "passes response_schema and response_mapping to end step via options" do
+      flow =
+        put_in(@linear_flow["nodes"], [
+          %{
+            "id" => "n1",
+            "type" => "start",
+            "position" => %{"x" => 0, "y" => 0},
+            "data" => %{
+              "state_schema" => [
+                %{"name" => "result", "type" => "string", "initial_value" => ""}
+              ]
+            }
+          },
+          %{
+            "id" => "n2",
+            "type" => "elixir_code",
+            "position" => %{"x" => 200, "y" => 0},
+            "data" => %{
+              "code" => ~s[{input, Map.put(state, "result", "done")}]
+            }
+          },
+          %{
+            "id" => "n3",
+            "type" => "end",
+            "position" => %{"x" => 400, "y" => 0},
+            "data" => %{
+              "response_schema" => [
+                %{
+                  "name" => "status",
+                  "type" => "string",
+                  "required" => true,
+                  "constraints" => %{}
+                }
+              ],
+              "response_mapping" => [
+                %{"response_field" => "status", "state_variable" => "result"}
+              ]
+            }
+          }
+        ])
+
+      {:ok, parsed} = DefinitionParser.parse(flow)
+      {:ok, reactor} = ReactorBuilder.build(parsed)
+
+      assert {:ok, result} =
+               Reactor.run(reactor, %{payload: %{}}, %{shared_state: %{}})
+
+      assert result.output == %{"status" => "done"}
+    end
+
+    test "omits schema options when not present in node data" do
+      # Use default @linear_flow which has no schemas — should work as before
+      {:ok, parsed} = DefinitionParser.parse(@linear_flow)
+      {:ok, reactor} = ReactorBuilder.build(parsed)
+
+      assert {:ok, result} = Reactor.run(reactor, %{payload: "hello"}, %{shared_state: %{}})
+      assert %{output: "HELLO", state: %{}} = result
+    end
+
     test "error in code node propagates" do
       flow =
         put_in(@linear_flow["nodes"], [

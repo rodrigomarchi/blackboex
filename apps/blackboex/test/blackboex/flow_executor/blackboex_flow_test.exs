@@ -193,6 +193,302 @@ defmodule Blackboex.FlowExecutor.BlackboexFlowTest do
     end
   end
 
+  describe "validate/1 — schema fields in node data" do
+    test "accepts start node with valid payload_schema" do
+      flow =
+        put_in(@valid_flow["nodes"], [
+          %{
+            "id" => "n1",
+            "type" => "start",
+            "position" => %{"x" => 0, "y" => 0},
+            "data" => %{
+              "payload_schema" => [
+                %{"name" => "name", "type" => "string", "required" => true, "constraints" => %{}}
+              ]
+            }
+          },
+          %{"id" => "n2", "type" => "end", "position" => %{"x" => 100, "y" => 0}, "data" => %{}}
+        ])
+
+      flow = %{flow | "edges" => []}
+      assert :ok = BlackboexFlow.validate(flow)
+    end
+
+    test "accepts start node with valid state_schema" do
+      flow =
+        put_in(@valid_flow["nodes"], [
+          %{
+            "id" => "n1",
+            "type" => "start",
+            "position" => %{"x" => 0, "y" => 0},
+            "data" => %{
+              "state_schema" => [
+                %{
+                  "name" => "counter",
+                  "type" => "integer",
+                  "required" => true,
+                  "constraints" => %{},
+                  "initial_value" => 0
+                }
+              ]
+            }
+          },
+          %{"id" => "n2", "type" => "end", "position" => %{"x" => 100, "y" => 0}, "data" => %{}}
+        ])
+
+      flow = %{flow | "edges" => []}
+      assert :ok = BlackboexFlow.validate(flow)
+    end
+
+    test "accepts start node with both payload_schema and state_schema" do
+      flow =
+        put_in(@valid_flow["nodes"], [
+          %{
+            "id" => "n1",
+            "type" => "start",
+            "position" => %{"x" => 0, "y" => 0},
+            "data" => %{
+              "payload_schema" => [
+                %{"name" => "name", "type" => "string", "required" => true, "constraints" => %{}}
+              ],
+              "state_schema" => [
+                %{
+                  "name" => "count",
+                  "type" => "integer",
+                  "required" => false,
+                  "constraints" => %{},
+                  "initial_value" => 0
+                }
+              ]
+            }
+          },
+          %{"id" => "n2", "type" => "end", "position" => %{"x" => 100, "y" => 0}, "data" => %{}}
+        ])
+
+      flow = %{flow | "edges" => []}
+      assert :ok = BlackboexFlow.validate(flow)
+    end
+
+    test "accepts start node without any schema (backward compatible)" do
+      assert :ok = BlackboexFlow.validate(@valid_flow)
+    end
+
+    test "rejects start node with malformed payload_schema" do
+      flow =
+        put_in(@valid_flow["nodes"], [
+          %{
+            "id" => "n1",
+            "type" => "start",
+            "position" => %{"x" => 0, "y" => 0},
+            "data" => %{
+              "payload_schema" => [
+                %{
+                  "name" => "x",
+                  "type" => "invalid_type",
+                  "required" => true,
+                  "constraints" => %{}
+                }
+              ]
+            }
+          },
+          %{"id" => "n2", "type" => "end", "position" => %{"x" => 100, "y" => 0}, "data" => %{}}
+        ])
+
+      flow = %{flow | "edges" => []}
+      assert {:error, msg} = BlackboexFlow.validate(flow)
+      assert msg =~ "payload_schema"
+    end
+
+    test "rejects start node with malformed state_schema" do
+      flow =
+        put_in(@valid_flow["nodes"], [
+          %{
+            "id" => "n1",
+            "type" => "start",
+            "position" => %{"x" => 0, "y" => 0},
+            "data" => %{
+              "state_schema" => [
+                %{"name" => "", "type" => "string", "required" => false, "constraints" => %{}}
+              ]
+            }
+          },
+          %{"id" => "n2", "type" => "end", "position" => %{"x" => 100, "y" => 0}, "data" => %{}}
+        ])
+
+      flow = %{flow | "edges" => []}
+      assert {:error, msg} = BlackboexFlow.validate(flow)
+      assert msg =~ "state_schema"
+    end
+
+    test "accepts end node with valid response_schema and response_mapping" do
+      flow =
+        put_in(@valid_flow["nodes"], [
+          %{"id" => "n1", "type" => "start", "position" => %{"x" => 0, "y" => 0}, "data" => %{}},
+          %{
+            "id" => "n2",
+            "type" => "end",
+            "position" => %{"x" => 100, "y" => 0},
+            "data" => %{
+              "response_schema" => [
+                %{
+                  "name" => "total",
+                  "type" => "integer",
+                  "required" => true,
+                  "constraints" => %{}
+                }
+              ],
+              "response_mapping" => [
+                %{"response_field" => "total", "state_variable" => "counter"}
+              ]
+            }
+          }
+        ])
+
+      flow = %{flow | "edges" => []}
+      assert :ok = BlackboexFlow.validate(flow)
+    end
+
+    test "accepts end node without response_schema (backward compatible)" do
+      assert :ok = BlackboexFlow.validate(@valid_flow)
+    end
+
+    test "rejects end node with response_mapping referencing non-existent response field" do
+      flow =
+        put_in(@valid_flow["nodes"], [
+          %{"id" => "n1", "type" => "start", "position" => %{"x" => 0, "y" => 0}, "data" => %{}},
+          %{
+            "id" => "n2",
+            "type" => "end",
+            "position" => %{"x" => 100, "y" => 0},
+            "data" => %{
+              "response_schema" => [
+                %{
+                  "name" => "total",
+                  "type" => "integer",
+                  "required" => true,
+                  "constraints" => %{}
+                }
+              ],
+              "response_mapping" => [
+                %{"response_field" => "nonexistent", "state_variable" => "counter"}
+              ]
+            }
+          }
+        ])
+
+      flow = %{flow | "edges" => []}
+      assert {:error, msg} = BlackboexFlow.validate(flow)
+      assert msg =~ "nonexistent"
+    end
+
+    test "rejects end node with duplicate response_field in mapping" do
+      flow =
+        put_in(@valid_flow["nodes"], [
+          %{"id" => "n1", "type" => "start", "position" => %{"x" => 0, "y" => 0}, "data" => %{}},
+          %{
+            "id" => "n2",
+            "type" => "end",
+            "position" => %{"x" => 100, "y" => 0},
+            "data" => %{
+              "response_schema" => [
+                %{
+                  "name" => "total",
+                  "type" => "integer",
+                  "required" => true,
+                  "constraints" => %{}
+                }
+              ],
+              "response_mapping" => [
+                %{"response_field" => "total", "state_variable" => "a"},
+                %{"response_field" => "total", "state_variable" => "b"}
+              ]
+            }
+          }
+        ])
+
+      flow = %{flow | "edges" => []}
+      assert {:error, msg} = BlackboexFlow.validate(flow)
+      assert msg =~ "duplicate"
+    end
+
+    test "rejects end node with response_mapping but no response_schema" do
+      flow =
+        put_in(@valid_flow["nodes"], [
+          %{"id" => "n1", "type" => "start", "position" => %{"x" => 0, "y" => 0}, "data" => %{}},
+          %{
+            "id" => "n2",
+            "type" => "end",
+            "position" => %{"x" => 100, "y" => 0},
+            "data" => %{
+              "response_mapping" => [
+                %{"response_field" => "total", "state_variable" => "counter"}
+              ]
+            }
+          }
+        ])
+
+      flow = %{flow | "edges" => []}
+      assert {:error, msg} = BlackboexFlow.validate(flow)
+      assert msg =~ "response_schema"
+    end
+
+    test "full flow with start schemas + end mapping validates successfully" do
+      flow =
+        put_in(@valid_flow["nodes"], [
+          %{
+            "id" => "n1",
+            "type" => "start",
+            "position" => %{"x" => 0, "y" => 0},
+            "data" => %{
+              "payload_schema" => [
+                %{
+                  "name" => "name",
+                  "type" => "string",
+                  "required" => true,
+                  "constraints" => %{"min_length" => 1}
+                }
+              ],
+              "state_schema" => [
+                %{
+                  "name" => "greeting",
+                  "type" => "string",
+                  "required" => false,
+                  "constraints" => %{},
+                  "initial_value" => ""
+                }
+              ]
+            }
+          },
+          %{
+            "id" => "n2",
+            "type" => "elixir_code",
+            "position" => %{"x" => 200, "y" => 0},
+            "data" => %{"name" => "Greet", "code" => "{input, state}"}
+          },
+          %{
+            "id" => "n3",
+            "type" => "end",
+            "position" => %{"x" => 400, "y" => 0},
+            "data" => %{
+              "response_schema" => [
+                %{
+                  "name" => "message",
+                  "type" => "string",
+                  "required" => true,
+                  "constraints" => %{}
+                }
+              ],
+              "response_mapping" => [
+                %{"response_field" => "message", "state_variable" => "greeting"}
+              ]
+            }
+          }
+        ])
+
+      assert :ok = BlackboexFlow.validate(flow)
+    end
+  end
+
   describe "current_version/0" do
     test "returns 1.0" do
       assert "1.0" = BlackboexFlow.current_version()

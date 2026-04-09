@@ -35,11 +35,8 @@ defmodule Blackboex.FlowExecutor.TemplateE2eTest do
     end
   end
 
-  # Helper to extract the actual flow output from the Reactor result.
-  # EndNode wraps in %{output: <value>, state: <state>} with atom keys.
-  defp flow_output(result) do
-    result.output[:output] || result.output["output"]
-  end
+  # execute_sync now returns the unwrapped output directly.
+  defp flow_output(result), do: result.output
 
   describe "sync execution — email route" do
     test "routes to email when email is provided", %{flow: flow} do
@@ -280,10 +277,9 @@ defmodule Blackboex.FlowExecutor.TemplateE2eTest do
       # Verify execution completed
       execution = FlowExecutions.get_execution(result.execution_id)
       assert execution.status == "completed"
-      # Output is stored as the Reactor result (EndNode output with atom keys)
-      output = execution.output[:output] || execution.output["output"]
-      assert output["channel"] == "email"
-      assert output["message"] == "Hello, Worker Test!"
+      # Output is now stored unwrapped — the mapped response or pass-through value
+      assert execution.output["channel"] == "email"
+      assert execution.output["message"] == "Hello, Worker Test!"
       assert execution.duration_ms >= 0
     end
 

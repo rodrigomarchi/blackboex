@@ -46,22 +46,65 @@ defmodule Blackboex.Flows.Templates.HelloWorld do
         "data" => %{
           "name" => "Start",
           "execution_mode" => "sync",
-          "timeout" => 30_000
+          "timeout" => 30_000,
+          "payload_schema" => [
+            %{
+              "name" => "name",
+              "type" => "string",
+              "required" => true,
+              "constraints" => %{"min_length" => 1}
+            },
+            %{"name" => "email", "type" => "string", "required" => false, "constraints" => %{}},
+            %{"name" => "phone", "type" => "string", "required" => false, "constraints" => %{}}
+          ],
+          "state_schema" => [
+            %{
+              "name" => "greeting",
+              "type" => "string",
+              "required" => false,
+              "constraints" => %{},
+              "initial_value" => ""
+            },
+            %{
+              "name" => "contact_type",
+              "type" => "string",
+              "required" => false,
+              "constraints" => %{},
+              "initial_value" => "none"
+            },
+            %{
+              "name" => "email",
+              "type" => "string",
+              "required" => false,
+              "constraints" => %{},
+              "initial_value" => nil
+            },
+            %{
+              "name" => "phone",
+              "type" => "string",
+              "required" => false,
+              "constraints" => %{},
+              "initial_value" => nil
+            },
+            %{
+              "name" => "delivered_via",
+              "type" => "string",
+              "required" => false,
+              "constraints" => %{},
+              "initial_value" => ""
+            }
+          ]
         }
       },
 
-      # ── Validate Input ──
+      # ── Prepare Input (payload already validated by schema) ──
       %{
         "id" => "n2",
         "type" => "elixir_code",
         "position" => %{"x" => 250, "y" => 250},
         "data" => %{
-          "name" => "Validate Input",
+          "name" => "Prepare Input",
           "code" => ~S"""
-          if is_nil(input["name"]) or input["name"] == "" do
-            raise "name is required"
-          end
-
           {input, state}
           """
         }
@@ -183,13 +226,37 @@ defmodule Blackboex.Flows.Templates.HelloWorld do
         "id" => "n8",
         "type" => "end",
         "position" => %{"x" => 1150, "y" => 100},
-        "data" => %{"name" => "End (Email)"}
+        "data" => %{
+          "name" => "End (Email)",
+          "response_schema" => [
+            %{"name" => "channel", "type" => "string", "required" => true, "constraints" => %{}},
+            %{"name" => "to", "type" => "string", "required" => true, "constraints" => %{}},
+            %{"name" => "message", "type" => "string", "required" => true, "constraints" => %{}}
+          ],
+          "response_mapping" => [
+            %{"response_field" => "channel", "state_variable" => "delivered_via"},
+            %{"response_field" => "to", "state_variable" => "email"},
+            %{"response_field" => "message", "state_variable" => "greeting"}
+          ]
+        }
       },
       %{
         "id" => "n9",
         "type" => "end",
         "position" => %{"x" => 1150, "y" => 300},
-        "data" => %{"name" => "End (Phone)"}
+        "data" => %{
+          "name" => "End (Phone)",
+          "response_schema" => [
+            %{"name" => "channel", "type" => "string", "required" => true, "constraints" => %{}},
+            %{"name" => "to", "type" => "string", "required" => true, "constraints" => %{}},
+            %{"name" => "message", "type" => "string", "required" => true, "constraints" => %{}}
+          ],
+          "response_mapping" => [
+            %{"response_field" => "channel", "state_variable" => "delivered_via"},
+            %{"response_field" => "to", "state_variable" => "phone"},
+            %{"response_field" => "message", "state_variable" => "greeting"}
+          ]
+        }
       },
       %{
         "id" => "n10",

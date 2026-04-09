@@ -21,6 +21,8 @@ defmodule Blackboex.FlowExecutor.BlackboexFlow do
       }
   """
 
+  alias Blackboex.FlowExecutor.SchemaValidator
+
   @current_version "1.0"
   @valid_node_types ~w(start elixir_code condition end)
   @node_id_format ~r/^n\d+$/
@@ -37,7 +39,8 @@ defmodule Blackboex.FlowExecutor.BlackboexFlow do
          :ok <- validate_no_self_loops(definition),
          :ok <- validate_no_duplicate_edges(definition),
          :ok <- validate_source_ports(definition),
-         :ok <- validate_no_fan_in(definition) do
+         :ok <- validate_no_fan_in(definition),
+         :ok <- validate_node_schemas(definition) do
       :ok
     end
   end
@@ -221,6 +224,93 @@ defmodule Blackboex.FlowExecutor.BlackboexFlow do
       [dup | _] ->
         {:error,
          "node #{elem(dup, 0)} port #{elem(dup, 1)}: multiple incoming edges (fan-in not supported)"}
+    end
+  end
+
+  # ── Node schema validation ──────────────────────────────────
+
+  defp validate_node_schemas(%{"nodes" => nodes}) do
+    Enum.reduce_while(nodes, :ok, fn node, :ok ->
+      case validate_single_node_schema(node) do
+        :ok -> {:cont, :ok}
+        error -> {:halt, error}
+      end
+    end)
+  end
+
+  defp validate_single_node_schema(%{"id" => id, "type" => "start", "data" => data}) do
+    with :ok <- validate_optional_schema(data, "payload_schema", id),
+         :ok <- validate_optional_schema(data, "state_schema", id) do
+      :ok
+    end
+  end
+
+  defp validate_single_node_schema(%{"id" => id, "type" => "end", "data" => data}) do
+    with :ok <- validate_optional_schema(data, "response_schema", id),
+         :ok <- validate_response_mapping(data, id) do
+      :ok
+    end
+  end
+
+  defp validate_single_node_schema(_node), do: :ok
+
+  defp validate_optional_schema(data, key, node_id) do
+    case Map.get(data, key) do
+      nil ->
+        :ok
+
+      [] ->
+        :ok
+
+      schema when is_list(schema) ->
+        case SchemaValidator.validate_schema_definition(schema) do
+          :ok ->
+            :ok
+
+          {:error, errors} ->
+            {:error, "node #{node_id}: invalid #{key} — #{Enum.join(errors, "; ")}"}
+        end
+
+      _ ->
+        {:error, "node #{node_id}: #{key} must be a list"}
+    end
+  end
+
+  defp validate_response_mapping(data, node_id) do
+    mapping = Map.get(data, "response_mapping")
+    response_schema = Map.get(data, "response_schema")
+
+    cond do
+      is_nil(mapping) or mapping == [] ->
+        :ok
+
+      is_nil(response_schema) or response_schema == [] ->
+        {:error, "node #{node_id}: response_mapping requires response_schema to be defined"}
+
+      is_list(mapping) ->
+        validate_mapping_fields(mapping, response_schema, node_id)
+
+      true ->
+        {:error, "node #{node_id}: response_mapping must be a list"}
+    end
+  end
+
+  defp validate_mapping_fields(mapping, response_schema, node_id) do
+    schema_field_names = MapSet.new(response_schema, & &1["name"])
+    response_fields = Enum.map(mapping, & &1["response_field"])
+    duplicates = response_fields -- Enum.uniq(response_fields)
+
+    if duplicates != [] do
+      {:error,
+       "node #{node_id}: duplicate response_field in mapping: #{Enum.join(Enum.uniq(duplicates), ", ")}"}
+    else
+      case Enum.find(response_fields, &(&1 not in schema_field_names)) do
+        nil ->
+          :ok
+
+        missing ->
+          {:error, "node #{node_id}: response_mapping references non-existent field '#{missing}'"}
+      end
     end
   end
 end

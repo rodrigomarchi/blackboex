@@ -39,7 +39,10 @@ defmodule BlackboexWeb.FlowWebhookController do
         |> json(%{output: output, execution_id: exec_id, duration_ms: dur})
 
       {:error, %{error: error_msg, execution_id: exec_id}} ->
-        conn |> put_status(500) |> json(%{error: error_msg, execution_id: exec_id})
+        status =
+          if String.starts_with?(error_msg, "Payload validation failed"), do: 422, else: 500
+
+        conn |> put_status(status) |> json(%{error: error_msg, execution_id: exec_id})
 
       {:error, reason} ->
         Logger.warning("Flow sync execution failed: #{inspect(reason)}")

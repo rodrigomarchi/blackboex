@@ -12,6 +12,8 @@ defmodule BlackboexWeb.FlowLive.Edit do
   alias Blackboex.Flows
   alias Blackboex.Policy
 
+  import BlackboexWeb.FlowLive.Components.SchemaBuilder
+
   @node_types [
     %{
       type: "start",
@@ -78,6 +80,7 @@ defmodule BlackboexWeb.FlowLive.Edit do
            saving: false,
            saved: false,
            selected_node: nil,
+           properties_tab: "settings",
            show_json_modal: false,
            json_preview: "",
            show_run_modal: false,
@@ -148,7 +151,8 @@ defmodule BlackboexWeb.FlowLive.Edit do
          label: node_meta[:label] || type,
          icon: node_meta[:icon] || "hero-cube",
          color: node_meta[:color] || "#6b7280"
-       }
+       },
+       properties_tab: "settings"
      )}
   end
 
@@ -177,6 +181,78 @@ defmodule BlackboexWeb.FlowLive.Edit do
   @impl true
   def handle_event("close_drawer", _params, socket) do
     {:noreply, assign(socket, selected_node: nil)}
+  end
+
+  # ── Properties tab ──────────────────────────────────────────────────────
+
+  @impl true
+  def handle_event("set_properties_tab", %{"tab" => tab}, socket) do
+    {:noreply, assign(socket, properties_tab: tab)}
+  end
+
+  # ── Schema builder events ───────────────────────────────────────────────
+
+  @impl true
+  def handle_event("schema_add_field", %{"schema-id" => schema_id, "path" => path}, socket) do
+    new_field = %{"name" => "", "type" => "string", "required" => false, "constraints" => %{}}
+    update_schema_at_path(socket, schema_id, path, fn fields -> fields ++ [new_field] end)
+  end
+
+  @impl true
+  def handle_event("schema_remove_field", %{"schema-id" => schema_id, "path" => path}, socket) do
+    {parent_path, index} = split_path(path)
+
+    update_schema_at_path(socket, schema_id, parent_path, fn fields ->
+      List.delete_at(fields, index)
+    end)
+  end
+
+  @impl true
+  def handle_event(
+        "schema_update_field",
+        %{"schema-id" => schema_id, "path" => path, "prop" => prop, "value" => value},
+        socket
+      ) do
+    {parent_path, index} = split_path(path)
+
+    update_schema_at_path(socket, schema_id, parent_path, fn fields ->
+      List.update_at(fields, index, &update_field_prop(&1, prop, value))
+    end)
+  end
+
+  @impl true
+  def handle_event(
+        "schema_update_constraint",
+        %{"schema-id" => schema_id, "path" => path, "prop" => prop, "value" => value},
+        socket
+      ) do
+    {parent_path, index} = split_path(path)
+
+    update_schema_at_path(socket, schema_id, parent_path, fn fields ->
+      List.update_at(fields, index, &update_field_constraint(&1, prop, value))
+    end)
+  end
+
+  @impl true
+  def handle_event(
+        "schema_update_mapping",
+        %{"response-field" => response_field, "value" => state_var},
+        socket
+      ) do
+    case socket.assigns.selected_node do
+      nil ->
+        {:noreply, socket}
+
+      node ->
+        mapping = upsert_mapping(node.data["response_mapping"] || [], response_field, state_var)
+        updated_data = Map.put(node.data, "response_mapping", mapping)
+        updated_node = %{node | data: updated_data}
+
+        {:noreply,
+         socket
+         |> assign(selected_node: updated_node)
+         |> push_event("set_node_data", %{id: node.id, data: updated_data})}
+    end
   end
 
   # ── JSON preview ─────────────────────────────────────────────────────────
@@ -458,7 +534,11 @@ defmodule BlackboexWeb.FlowLive.Edit do
         </div>
 
         <%!-- Properties drawer --%>
-        <.properties_drawer node={@selected_node} />
+        <.properties_drawer
+          node={@selected_node}
+          tab={@properties_tab}
+          state_variables={get_state_variables(@flow, @selected_node)}
+        />
       </div>
 
       <%!-- JSON Preview Modal --%>
@@ -614,6 +694,8 @@ defmodule BlackboexWeb.FlowLive.Edit do
   # ── Properties drawer ────────────────────────────────────────────────────
 
   attr :node, :map, default: nil
+  attr :tab, :string, default: "settings"
+  attr :state_variables, :list, default: []
 
   defp properties_drawer(%{node: nil} = assigns) do
     ~H"""
@@ -644,7 +726,13 @@ defmodule BlackboexWeb.FlowLive.Edit do
 
       <%!-- Drawer body --%>
       <div class="flex-1 overflow-y-auto p-4 space-y-4">
-        <.node_properties type={@node.type} data={@node.data} node_id={@node.id} />
+        <.node_properties
+          type={@node.type}
+          data={@node.data}
+          node_id={@node.id}
+          tab={@tab}
+          state_variables={@state_variables}
+        />
       </div>
     </aside>
     """
@@ -655,42 +743,72 @@ defmodule BlackboexWeb.FlowLive.Edit do
   attr :type, :string, required: true
   attr :data, :map, required: true
   attr :node_id, :string, required: true
+  attr :tab, :string, default: "settings"
+  attr :state_variables, :list, default: []
 
   defp node_properties(%{type: "start"} = assigns) do
     ~H"""
     <div class="space-y-4">
-      <.prop_field
-        label="Node Name"
-        field="name"
-        value={@data["name"] || "Start"}
-        placeholder="Start"
+      <.properties_tabs
+        tabs={[
+          {"Settings", "settings"},
+          {"Payload Schema", "payload_schema"},
+          {"State Schema", "state_schema"}
+        ]}
+        active={@tab}
       />
-      <.prop_field
-        label="Description"
-        field="description"
-        value={@data["description"] || ""}
-        placeholder="Describe what triggers this flow"
-        type="textarea"
-      />
-      <.prop_select
-        label="Execution Mode"
-        field="execution_mode"
-        value={@data["execution_mode"] || "sync"}
-        options={[{"Sync (request/response)", "sync"}, {"Async (polling)", "async"}]}
-      />
-      <.prop_field
-        label="Timeout (ms)"
-        field="timeout_ms"
-        value={@data["timeout_ms"] || "30000"}
-        placeholder="30000"
-        type="number"
-      />
-      <.prop_select
-        label="Trigger Type"
-        field="trigger_type"
-        value={@data["trigger_type"] || "webhook"}
-        options={[{"Webhook", "webhook"}, {"Manual", "manual"}, {"Schedule", "schedule"}]}
-      />
+
+      <div :if={@tab == "settings"} class="space-y-4">
+        <.prop_field
+          label="Node Name"
+          field="name"
+          value={@data["name"] || "Start"}
+          placeholder="Start"
+        />
+        <.prop_field
+          label="Description"
+          field="description"
+          value={@data["description"] || ""}
+          placeholder="Describe what triggers this flow"
+          type="textarea"
+        />
+        <.prop_select
+          label="Execution Mode"
+          field="execution_mode"
+          value={@data["execution_mode"] || "sync"}
+          options={[{"Sync (request/response)", "sync"}, {"Async (polling)", "async"}]}
+        />
+        <.prop_field
+          label="Timeout (ms)"
+          field="timeout_ms"
+          value={@data["timeout_ms"] || "30000"}
+          placeholder="30000"
+          type="number"
+        />
+        <.prop_select
+          label="Trigger Type"
+          field="trigger_type"
+          value={@data["trigger_type"] || "webhook"}
+          options={[{"Webhook", "webhook"}, {"Manual", "manual"}, {"Schedule", "schedule"}]}
+        />
+      </div>
+
+      <div :if={@tab == "payload_schema"}>
+        <.schema_builder
+          schema_id="payload_schema"
+          fields={@data["payload_schema"] || []}
+          label="Payload Fields"
+        />
+      </div>
+
+      <div :if={@tab == "state_schema"}>
+        <.schema_builder
+          schema_id="state_schema"
+          fields={@data["state_schema"] || []}
+          show_initial_value={true}
+          label="State Variables"
+        />
+      </div>
     </div>
     """
   end
@@ -786,29 +904,49 @@ defmodule BlackboexWeb.FlowLive.Edit do
   defp node_properties(%{type: "end"} = assigns) do
     ~H"""
     <div class="space-y-4">
-      <.prop_field
-        label="Node Name"
-        field="name"
-        value={@data["name"] || "End"}
-        placeholder="End"
+      <.properties_tabs
+        tabs={[{"Settings", "settings"}, {"Response Schema", "response_schema"}]}
+        active={@tab}
       />
-      <.prop_field
-        label="Description"
-        field="description"
-        value={@data["description"] || ""}
-        placeholder="Describe how the flow ends"
-        type="textarea"
-      />
-      <.prop_select
-        label="Output Mode"
-        field="output_mode"
-        value={@data["output_mode"] || "last_value"}
-        options={[
-          {"Last Value", "last_value"},
-          {"Accumulate All", "accumulate"},
-          {"Discard", "discard"}
-        ]}
-      />
+
+      <div :if={@tab == "settings"} class="space-y-4">
+        <.prop_field
+          label="Node Name"
+          field="name"
+          value={@data["name"] || "End"}
+          placeholder="End"
+        />
+        <.prop_field
+          label="Description"
+          field="description"
+          value={@data["description"] || ""}
+          placeholder="Describe how the flow ends"
+          type="textarea"
+        />
+        <.prop_select
+          label="Output Mode"
+          field="output_mode"
+          value={@data["output_mode"] || "last_value"}
+          options={[
+            {"Last Value", "last_value"},
+            {"Accumulate All", "accumulate"},
+            {"Discard", "discard"}
+          ]}
+        />
+      </div>
+
+      <div :if={@tab == "response_schema"} class="space-y-4">
+        <.schema_builder
+          schema_id="response_schema"
+          fields={@data["response_schema"] || []}
+          label="Response Fields"
+        />
+        <.response_mapping
+          mapping={@data["response_mapping"] || []}
+          response_schema={@data["response_schema"] || []}
+          state_variables={@state_variables}
+        />
+      </div>
     </div>
     """
   end
@@ -896,6 +1034,34 @@ defmodule BlackboexWeb.FlowLive.Edit do
     """
   end
 
+  # ── Properties tab bar ───────────────────────────────────────────────────
+
+  attr :tabs, :list, required: true
+  attr :active, :string, required: true
+
+  defp properties_tabs(assigns) do
+    ~H"""
+    <div class="flex border-b -mx-4 px-4">
+      <button
+        :for={{label, id} <- @tabs}
+        type="button"
+        phx-click="set_properties_tab"
+        phx-value-tab={id}
+        class={[
+          "px-3 py-2 text-xs font-medium border-b-2 -mb-px transition-colors",
+          if(id == @active,
+            do: "border-primary text-foreground",
+            else:
+              "border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/50"
+          )
+        ]}
+      >
+        {label}
+      </button>
+    </div>
+    """
+  end
+
   # ── Node palette component ──────────────────────────────────────────────
 
   attr :label, :string, required: true
@@ -933,5 +1099,195 @@ defmodule BlackboexWeb.FlowLive.Edit do
       </div>
     </div>
     """
+  end
+
+  # ── Schema builder helpers ──────────────────────────────────────────────
+
+  defp update_schema_at_path(socket, schema_id, path, update_fn) do
+    case socket.assigns.selected_node do
+      nil ->
+        {:noreply, socket}
+
+      node ->
+        schema = node.data[schema_id] || []
+        updated_schema = apply_at_path(schema, path, update_fn)
+        updated_data = Map.put(node.data, schema_id, updated_schema)
+        updated_node = %{node | data: updated_data}
+
+        {:noreply,
+         socket
+         |> assign(selected_node: updated_node)
+         |> push_event("set_node_data", %{id: node.id, data: updated_data})}
+    end
+  end
+
+  # Navigate into nested fields/item_fields via dot-separated path
+  defp apply_at_path(fields, "", update_fn), do: update_fn.(fields)
+
+  defp apply_at_path(fields, path, update_fn) do
+    segments = String.split(path, ".")
+
+    do_apply_at_path(fields, segments, update_fn)
+  end
+
+  defp do_apply_at_path(fields, [], update_fn), do: update_fn.(fields)
+
+  defp do_apply_at_path(fields, [segment | rest], update_fn) when is_list(fields) do
+    case Integer.parse(segment) do
+      {index, ""} ->
+        List.update_at(fields, index, fn field ->
+          do_apply_at_path(field, rest, update_fn)
+        end)
+
+      _ ->
+        # It's a key like "fields" or "constraints" — navigate into the map
+        fields
+    end
+  end
+
+  defp do_apply_at_path(%{} = map, [key | rest], update_fn) do
+    current = Map.get(map, key, [])
+    Map.put(map, key, do_apply_at_path(current, rest, update_fn))
+  end
+
+  defp do_apply_at_path(other, _segments, _update_fn), do: other
+
+  defp split_path(path) do
+    parts = String.split(path, ".")
+    index = parts |> List.last() |> String.to_integer()
+    parent = parts |> Enum.drop(-1) |> Enum.join(".")
+    {parent, index}
+  end
+
+  defp update_field_prop(field, prop, value) do
+    parsed_value = parse_field_prop(prop, value, field)
+    field = Map.put(field, prop, parsed_value)
+
+    if prop == "type" do
+      field
+      |> Map.put("constraints", default_constraints(parsed_value))
+      |> maybe_remove_fields(parsed_value)
+    else
+      field
+    end
+  end
+
+  defp update_field_constraint(field, prop, value) do
+    constraints = field["constraints"] || %{}
+    parsed = parse_constraint_value(prop, value)
+
+    constraints =
+      if parsed == nil or parsed == "" do
+        Map.delete(constraints, prop)
+      else
+        Map.put(constraints, prop, parsed)
+      end
+
+    Map.put(field, "constraints", constraints)
+  end
+
+  defp upsert_mapping(mapping, response_field, "") do
+    Enum.reject(mapping, &(&1["response_field"] == response_field))
+  end
+
+  defp upsert_mapping(mapping, response_field, state_var) do
+    entry = %{"response_field" => response_field, "state_variable" => state_var}
+
+    case Enum.find_index(mapping, &(&1["response_field"] == response_field)) do
+      nil -> mapping ++ [entry]
+      idx -> List.replace_at(mapping, idx, entry)
+    end
+  end
+
+  defp parse_field_prop("required", "true", _field), do: true
+  defp parse_field_prop("required", "false", _field), do: false
+
+  defp parse_field_prop("initial_value", value, %{"type" => "integer"}) do
+    case Integer.parse(value) do
+      {n, ""} -> n
+      _ -> nil
+    end
+  end
+
+  defp parse_field_prop("initial_value", value, %{"type" => "float"}) do
+    case Float.parse(value) do
+      {n, ""} -> n
+      _ -> nil
+    end
+  end
+
+  defp parse_field_prop("initial_value", "true", %{"type" => "boolean"}), do: true
+  defp parse_field_prop("initial_value", "false", %{"type" => "boolean"}), do: false
+
+  defp parse_field_prop("initial_value", value, %{"type" => type})
+       when type in ["array", "object"] do
+    case Jason.decode(value) do
+      {:ok, decoded} -> decoded
+      _ -> nil
+    end
+  end
+
+  defp parse_field_prop(_prop, value, _field), do: value
+
+  defp parse_constraint_value(prop, value)
+       when prop in ~w(min_length max_length min_items max_items) do
+    case Integer.parse(value) do
+      {n, ""} -> n
+      _ -> nil
+    end
+  end
+
+  defp parse_constraint_value(prop, value) when prop in ~w(min max) do
+    case Float.parse(value) do
+      {n, ""} -> n
+      _ -> nil
+    end
+  end
+
+  defp parse_constraint_value("enum", value) when is_binary(value) do
+    value
+    |> String.split(",")
+    |> Enum.map(&String.trim/1)
+    |> Enum.reject(&(&1 == ""))
+  end
+
+  defp parse_constraint_value(_prop, value), do: value
+
+  defp default_constraints("array"), do: %{"item_type" => "string"}
+  defp default_constraints(_), do: %{}
+
+  defp maybe_remove_fields(field, type) when type in ~w(string integer float boolean array) do
+    Map.delete(field, "fields")
+  end
+
+  defp maybe_remove_fields(field, _type), do: field
+
+  defp get_state_variables(flow, selected_node) do
+    # Prefer live editor state from selected start node, fall back to saved definition
+    case selected_node do
+      %{type: "start", data: %{"state_schema" => schema}} when is_list(schema) ->
+        extract_variable_names(schema)
+
+      _ ->
+        extract_state_variables_from_definition(flow.definition)
+    end
+  end
+
+  defp extract_state_variables_from_definition(%{"nodes" => nodes}) when is_list(nodes) do
+    nodes
+    |> Enum.find(&(&1["type"] == "start"))
+    |> case do
+      %{"data" => %{"state_schema" => schema}} when is_list(schema) ->
+        extract_variable_names(schema)
+
+      _ ->
+        []
+    end
+  end
+
+  defp extract_state_variables_from_definition(_), do: []
+
+  defp extract_variable_names(schema) do
+    schema |> Enum.map(& &1["name"]) |> Enum.filter(&is_binary/1)
   end
 end

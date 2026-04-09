@@ -41,9 +41,11 @@ defmodule Blackboex.Workers.FlowExecutionWorker do
     case FlowExecutor.run(flow, execution.input, execution.id) do
       {:ok, result} ->
         # Reload to get started_at set by middleware
+        # Extract output from EndNode result (%{output: X, state: Y})
+        output = extract_output(result)
         execution = FlowExecutions.get_execution(execution.id)
         duration_ms = compute_duration(execution)
-        FlowExecutions.complete_execution(execution, result, duration_ms)
+        FlowExecutions.complete_execution(execution, wrap_for_db(output), duration_ms)
         :ok
 
       {:error, reason} ->
@@ -53,6 +55,12 @@ defmodule Blackboex.Workers.FlowExecutionWorker do
         {:error, error_msg}
     end
   end
+
+  defp extract_output(%{output: output}), do: output
+  defp extract_output(result), do: result
+
+  defp wrap_for_db(output) when is_map(output), do: output
+  defp wrap_for_db(output), do: %{"value" => output}
 
   defp compute_duration(%{started_at: %DateTime{} = started}) do
     DateTime.diff(DateTime.utc_now(), started, :millisecond)

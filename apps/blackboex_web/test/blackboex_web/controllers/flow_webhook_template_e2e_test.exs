@@ -31,13 +31,15 @@ defmodule BlackboexWeb.FlowWebhookTemplateE2eTest do
       assert resp["execution_id"]
       assert resp["duration_ms"] >= 0
 
+      # Output is the mapped response from End (Email) node
+      # response_mapping: delivered_via→channel, email→to, greeting→message
       output = resp["output"]
-      assert output["output"]["channel"] == "email"
-      assert output["output"]["to"] == "joao@test.com"
-      assert output["output"]["message"] == "Hello, João!"
+      assert output["channel"] == "email"
+      assert output["to"] == "joao@test.com"
+      assert output["message"] == "Hello, João!"
     end
 
-    test "phone route returns 200 with correct output", %{flow: flow} do
+    test "phone route returns 200 with mapped response", %{flow: flow} do
       conn =
         build_conn()
         |> put_req_header("content-type", "application/json")
@@ -47,31 +49,34 @@ defmodule BlackboexWeb.FlowWebhookTemplateE2eTest do
         })
 
       resp = json_response(conn, 200)
+      # Output is the mapped response from End (Phone) node
       output = resp["output"]
-      assert output["output"]["channel"] == "phone"
-      assert output["output"]["to"] == "11999887766"
-      assert output["output"]["message"] == "Hello, Maria!"
+      assert output["channel"] == "phone"
+      assert output["to"] == "11999887766"
+      assert output["message"] == "Hello, Maria!"
     end
 
-    test "no contact returns 200 with error in output", %{flow: flow} do
+    test "no contact returns 200 with error in output (pass-through, no mapping)", %{flow: flow} do
       conn =
         build_conn()
         |> put_req_header("content-type", "application/json")
         |> post("/webhook/#{flow.webhook_token}", %{"name" => "Ana"})
 
       resp = json_response(conn, 200)
+      # End (Error) has no response_mapping — pass-through from elixir_code output
       output = resp["output"]
-      assert output["output"]["error"] == "no contact info provided"
+      assert output["error"] == "no contact info provided"
     end
 
-    test "missing name returns 500 with validation error", %{flow: flow} do
+    test "missing name returns 422 with schema validation error", %{flow: flow} do
       conn =
         build_conn()
         |> put_req_header("content-type", "application/json")
         |> post("/webhook/#{flow.webhook_token}", %{"phone" => "123"})
 
-      resp = json_response(conn, 500)
-      assert resp["error"] =~ "name is required"
+      resp = json_response(conn, 422)
+      assert resp["error"] =~ "Payload validation failed"
+      assert resp["error"] =~ "name"
       assert resp["execution_id"]
     end
 

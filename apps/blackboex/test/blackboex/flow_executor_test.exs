@@ -104,7 +104,7 @@ defmodule Blackboex.FlowExecutorTest do
       flow = create_flow_with_definition(user, org, @linear_definition)
 
       assert {:ok, result} = FlowExecutor.execute_sync(flow, %{"name" => "hello"})
-      assert %{output: %{output: "HELLO"}, execution_id: exec_id, duration_ms: dur} = result
+      assert %{output: "HELLO", execution_id: exec_id, duration_ms: dur} = result
       assert is_binary(exec_id)
       assert is_integer(dur)
 
@@ -190,9 +190,10 @@ defmodule Blackboex.FlowExecutorTest do
       flow = create_flow_with_definition(user, org, definition)
 
       assert {:ok, result} = FlowExecutor.execute_sync(flow, %{"value" => "data"})
-      assert %{output: %{output: %{"value" => "data"}, state: final_state}} = result
-      assert final_state["step1"] == true
-      assert final_state["step2"] == true
+      assert %{output: %{"value" => "data"}, execution_id: exec_id} = result
+      execution = FlowExecutions.get_execution(exec_id)
+      assert execution.shared_state["step1"] == true
+      assert execution.shared_state["step2"] == true
     end
   end
 

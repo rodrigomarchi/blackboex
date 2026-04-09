@@ -61,15 +61,15 @@ defmodule Blackboex.FlowExecutor.E2eTest do
 
       assert result.execution_id
       assert result.duration_ms >= 0
-      assert result.output.output == "RODRIGO"
+      assert result.output == "RODRIGO"
 
       # Verify FlowExecution in DB
       exec = FlowExecutions.get_execution(result.execution_id)
       assert exec.status == "completed"
       assert exec.duration_ms > 0
       assert exec.input == %{"name" => "rodrigo"}
-      # DB output is JSON-serialized (string keys)
-      assert exec.output["output"] == "RODRIGO"
+      # Non-map outputs are wrapped as %{"value" => output} for DB storage
+      assert exec.output == %{"value" => "RODRIGO"}
 
       # Verify NodeExecution records (start, elixir_code, end)
       assert length(exec.node_executions) == 3
@@ -133,8 +133,10 @@ defmodule Blackboex.FlowExecutor.E2eTest do
       flow = set_definition!(flow, definition)
       assert {:ok, result} = FlowExecutor.execute_sync(flow, %{"hello" => "world"})
 
-      assert result.output.state["s1"] == true
-      assert result.output.state["s2"] == true
+      # State is persisted in the FlowExecution shared_state
+      exec = FlowExecutions.get_execution(result.execution_id)
+      assert exec.shared_state["s1"] == true
+      assert exec.shared_state["s2"] == true
     end
 
     test "error in code node creates failed execution", %{flow: flow} do
@@ -244,7 +246,7 @@ defmodule Blackboex.FlowExecutor.E2eTest do
       assert {:ok, result} = FlowExecutor.execute_sync(flow, %{"x" => 5})
 
       # The return is from n5 (first end node). Branch 0 was taken, so output is "positive".
-      assert result.output.output == "positive"
+      assert result.output == "positive"
 
       exec = FlowExecutions.get_execution(result.execution_id)
       assert exec.status == "completed"
@@ -285,8 +287,7 @@ defmodule Blackboex.FlowExecutor.E2eTest do
       flow = set_definition!(flow, definition)
       assert {:ok, result} = FlowExecutor.execute_sync(flow, %{})
 
-      assert result.output.output == %{}
-      assert result.output.state == %{}
+      assert result.output == %{}
 
       exec = FlowExecutions.get_execution(result.execution_id)
       assert exec.status == "completed"

@@ -69,10 +69,12 @@ defmodule Blackboex.FlowExecutor.ReactorBuilder do
   end
 
   defp add_node_step(reactor, %ParsedNode{type: :start} = node, _parsed_flow) do
+    schema_opts = start_schema_options(node.data)
+
     Builder.add_step(
       reactor,
       step_name(node.id),
-      Start,
+      {Start, schema_opts},
       [Argument.from_input(:payload, :payload)],
       async?: false
     )
@@ -105,10 +107,12 @@ defmodule Blackboex.FlowExecutor.ReactorBuilder do
   end
 
   defp add_node_step(reactor, %ParsedNode{type: :end} = node, parsed_flow) do
+    schema_opts = end_schema_options(node.data)
+
     Builder.add_step(
       reactor,
       step_name(node.id),
-      EndNode,
+      {EndNode, schema_opts},
       [build_input_argument(node, parsed_flow)],
       async?: false
     )
@@ -234,4 +238,22 @@ defmodule Blackboex.FlowExecutor.ReactorBuilder do
 
     do_topo_sort(rest ++ new_queue_items, new_in_degree, adjacency, node_map, [node | result])
   end
+
+  # ── Schema options helpers ──
+
+  defp start_schema_options(data) do
+    opts = []
+    opts = maybe_add_opt(opts, :payload_schema, data["payload_schema"])
+    maybe_add_opt(opts, :state_schema, data["state_schema"])
+  end
+
+  defp end_schema_options(data) do
+    opts = []
+    opts = maybe_add_opt(opts, :response_schema, data["response_schema"])
+    maybe_add_opt(opts, :response_mapping, data["response_mapping"])
+  end
+
+  defp maybe_add_opt(opts, _key, nil), do: opts
+  defp maybe_add_opt(opts, _key, []), do: opts
+  defp maybe_add_opt(opts, key, value), do: Keyword.put(opts, key, value)
 end

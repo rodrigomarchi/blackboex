@@ -107,4 +107,110 @@ defmodule Blackboex.Flows.TemplatesTest do
       assert condition_edges == [0, 1, 2]
     end
   end
+
+  describe "hello_world template — schema features" do
+    setup do
+      %{template: Templates.get("hello_world")}
+    end
+
+    test "start node has payload_schema with name (required), email, phone", %{template: t} do
+      start = Enum.find(t.definition["nodes"], &(&1["type"] == "start"))
+      schema = start["data"]["payload_schema"]
+
+      assert is_list(schema)
+      assert length(schema) == 3
+
+      names = Enum.map(schema, & &1["name"])
+      assert "name" in names
+      assert "email" in names
+      assert "phone" in names
+
+      name_field = Enum.find(schema, &(&1["name"] == "name"))
+      assert name_field["required"] == true
+      assert name_field["type"] == "string"
+      assert name_field["constraints"]["min_length"] == 1
+    end
+
+    test "start node has state_schema with 5 variables", %{template: t} do
+      start = Enum.find(t.definition["nodes"], &(&1["type"] == "start"))
+      schema = start["data"]["state_schema"]
+
+      assert is_list(schema)
+      assert length(schema) == 5
+
+      names = Enum.map(schema, & &1["name"])
+      assert "greeting" in names
+      assert "contact_type" in names
+      assert "email" in names
+      assert "phone" in names
+      assert "delivered_via" in names
+    end
+
+    test "state_schema fields have initial values", %{template: t} do
+      start = Enum.find(t.definition["nodes"], &(&1["type"] == "start"))
+      schema = start["data"]["state_schema"]
+
+      greeting = Enum.find(schema, &(&1["name"] == "greeting"))
+      assert greeting["initial_value"] == ""
+
+      contact_type = Enum.find(schema, &(&1["name"] == "contact_type"))
+      assert contact_type["initial_value"] == "none"
+
+      delivered_via = Enum.find(schema, &(&1["name"] == "delivered_via"))
+      assert delivered_via["initial_value"] == ""
+    end
+
+    test "end (email) node has response_schema and response_mapping", %{template: t} do
+      end_email = Enum.find(t.definition["nodes"], &(&1["id"] == "n8"))
+      schema = end_email["data"]["response_schema"]
+      mapping = end_email["data"]["response_mapping"]
+
+      assert is_list(schema)
+      assert length(schema) == 3
+      assert Enum.map(schema, & &1["name"]) == ["channel", "to", "message"]
+
+      assert is_list(mapping)
+      assert length(mapping) == 3
+    end
+
+    test "end (phone) node has response_schema and response_mapping", %{template: t} do
+      end_phone = Enum.find(t.definition["nodes"], &(&1["id"] == "n9"))
+      schema = end_phone["data"]["response_schema"]
+      mapping = end_phone["data"]["response_mapping"]
+
+      assert is_list(schema)
+      assert length(schema) == 3
+      assert is_list(mapping)
+      assert length(mapping) == 3
+    end
+
+    test "end (error) node has no response_schema (pass-through)", %{template: t} do
+      end_error = Enum.find(t.definition["nodes"], &(&1["id"] == "n10"))
+      refute Map.has_key?(end_error["data"], "response_schema")
+      refute Map.has_key?(end_error["data"], "response_mapping")
+    end
+
+    test "response_mapping fields reference existing state_schema variable names", %{template: t} do
+      start = Enum.find(t.definition["nodes"], &(&1["type"] == "start"))
+      state_names = MapSet.new(start["data"]["state_schema"], & &1["name"])
+
+      for node <- t.definition["nodes"],
+          node["type"] == "end",
+          mapping = node["data"]["response_mapping"],
+          is_list(mapping),
+          entry <- mapping do
+        assert entry["state_variable"] in state_names,
+               "End node #{node["id"]}: state_variable '#{entry["state_variable"]}' not in state_schema"
+      end
+    end
+
+    test "definition still passes BlackboexFlow.validate/1 with schemas", %{template: t} do
+      assert :ok = BlackboexFlow.validate(t.definition)
+    end
+
+    test "definition still passes DefinitionParser.parse/1 with schemas", %{template: t} do
+      assert {:ok, parsed} = DefinitionParser.parse(t.definition)
+      assert parsed.start_node.type == :start
+    end
+  end
 end

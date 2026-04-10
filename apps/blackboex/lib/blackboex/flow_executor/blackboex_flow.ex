@@ -24,7 +24,7 @@ defmodule Blackboex.FlowExecutor.BlackboexFlow do
   alias Blackboex.FlowExecutor.SchemaValidator
 
   @current_version "1.0"
-  @valid_node_types ~w(start elixir_code condition end http_request delay sub_flow for_each webhook_wait)
+  @valid_node_types ~w(start elixir_code condition end http_request delay sub_flow for_each webhook_wait fail debug)
   @node_id_format ~r/^n\d+$/
 
   @spec current_version() :: String.t()
@@ -40,7 +40,8 @@ defmodule Blackboex.FlowExecutor.BlackboexFlow do
          :ok <- validate_no_duplicate_edges(definition),
          :ok <- validate_source_ports(definition),
          :ok <- validate_no_fan_in(definition),
-         :ok <- validate_node_schemas(definition) do
+         :ok <- validate_node_schemas(definition),
+         :ok <- validate_skip_conditions(definition) do
       :ok
     end
   end
@@ -192,6 +193,8 @@ defmodule Blackboex.FlowExecutor.BlackboexFlow do
     "start" => 1,
     "elixir_code" => 1,
     "end" => 0,
+    "fail" => 0,
+    "debug" => 1,
     "sub_flow" => 1,
     "http_request" => 1,
     "delay" => 1,
@@ -236,6 +239,20 @@ defmodule Blackboex.FlowExecutor.BlackboexFlow do
     end
   end
 
+  # ── skip_condition validation ────────────────────────────────
+
+  defp validate_skip_conditions(%{"nodes" => nodes}) do
+    Enum.reduce_while(nodes, :ok, fn node, :ok ->
+      skip_cond = get_in(node, ["data", "skip_condition"])
+
+      if not is_nil(skip_cond) and not is_binary(skip_cond) do
+        {:halt, {:error, "node #{node["id"]}: skip_condition must be a string"}}
+      else
+        {:cont, :ok}
+      end
+    end)
+  end
+
   # ── Node schema validation ──────────────────────────────────
 
   defp validate_node_schemas(%{"nodes" => nodes}) do
@@ -270,7 +287,8 @@ defmodule Blackboex.FlowExecutor.BlackboexFlow do
          :ok <- validate_optional_non_negative_integer(data, "max_retries", id),
          :ok <- validate_optional_enum(data, "auth_type", ~w(none bearer basic api_key), id),
          :ok <- validate_optional_map(data, "auth_config", id),
-         :ok <- validate_optional_integer_list(data, "expected_status", id) do
+         :ok <- validate_optional_integer_list(data, "expected_status", id),
+         :ok <- validate_optional_map(data, "undo_config", id) do
       :ok
     end
   end
@@ -293,6 +311,14 @@ defmodule Blackboex.FlowExecutor.BlackboexFlow do
     end
   end
 
+  defp validate_single_node_schema(%{"id" => id, "type" => "debug", "data" => data}) do
+    with :ok <- validate_optional_string(data, "expression", id),
+         :ok <- validate_optional_enum(data, "log_level", ~w(debug info warning), id),
+         :ok <- validate_optional_identifier(data, "state_key", id) do
+      :ok
+    end
+  end
+
   defp validate_single_node_schema(%{"id" => id, "type" => "webhook_wait", "data" => data}) do
     with :ok <- validate_required_string(data, "event_type", id),
          :ok <- validate_optional_positive_integer(data, "timeout_ms", id),
@@ -304,6 +330,21 @@ defmodule Blackboex.FlowExecutor.BlackboexFlow do
   defp validate_single_node_schema(%{"id" => id, "type" => "sub_flow", "data" => data}) do
     with :ok <- validate_optional_string(data, "flow_id", id),
          :ok <- validate_optional_map(data, "input_mapping", id),
+         :ok <- validate_optional_positive_integer(data, "timeout_ms", id) do
+      :ok
+    end
+  end
+
+  defp validate_single_node_schema(%{"id" => id, "type" => "fail", "data" => data}) do
+    with :ok <- validate_required_string(data, "message", id),
+         :ok <- validate_optional_boolean(data, "include_state", id) do
+      :ok
+    end
+  end
+
+  defp validate_single_node_schema(%{"id" => id, "type" => "elixir_code", "data" => data}) do
+    with :ok <- validate_optional_string(data, "code", id),
+         :ok <- validate_optional_string(data, "undo_code", id),
          :ok <- validate_optional_positive_integer(data, "timeout_ms", id) do
       :ok
     end
@@ -413,6 +454,14 @@ defmodule Blackboex.FlowExecutor.BlackboexFlow do
 
       _ ->
         {:error, "node #{node_id}: #{key} must be a string"}
+    end
+  end
+
+  defp validate_optional_boolean(data, key, node_id) do
+    case Map.get(data, key) do
+      nil -> :ok
+      val when is_boolean(val) -> :ok
+      _ -> {:error, "node #{node_id}: #{key} must be a boolean"}
     end
   end
 

@@ -66,7 +66,7 @@ defmodule BlackboexWeb.FlowWebhookControllerTest do
       assert resp["status_url"] =~ "/api/v1/executions/"
     end
 
-    test "returns 500 with error when code raises", %{flow: flow} do
+    test "returns 422 with error when code raises", %{flow: flow} do
       flow = set_flow_active_with_bad_code(flow)
 
       conn =
@@ -74,7 +74,7 @@ defmodule BlackboexWeb.FlowWebhookControllerTest do
         |> put_req_header("content-type", "application/json")
         |> post("/webhook/#{flow.webhook_token}", %{"name" => "test"})
 
-      resp = json_response(conn, 500)
+      resp = json_response(conn, 422)
       assert resp["error"]
       assert resp["execution_id"]
     end

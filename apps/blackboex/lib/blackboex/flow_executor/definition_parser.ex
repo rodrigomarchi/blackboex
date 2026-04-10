@@ -11,7 +11,7 @@ defmodule Blackboex.FlowExecutor.DefinitionParser do
   # See https://github.com/jeremyjh/dialyxir/issues
   @dialyzer [:no_opaque]
 
-  @known_types ~w(start elixir_code condition end http_request delay sub_flow for_each webhook_wait)a
+  @known_types ~w(start elixir_code condition end http_request delay sub_flow for_each webhook_wait fail debug)a
 
   @spec parse(map()) :: {:ok, ParsedFlow.t()} | {:error, term()}
   def parse(definition) when is_map(definition) do

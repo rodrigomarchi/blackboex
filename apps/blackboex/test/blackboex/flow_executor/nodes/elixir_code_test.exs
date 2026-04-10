@@ -63,4 +63,36 @@ defmodule Blackboex.FlowExecutor.Nodes.ElixirCodeTest do
       assert {:ok, %{output: %{}, state: %{}}} = ElixirCode.run(args, %{}, opts)
     end
   end
+
+  describe "undo/4" do
+    test "returns :ok when no undo_code provided" do
+      value = %{output: "result", state: %{}}
+      args = %{prev_result: %{output: "input", state: %{}}}
+
+      assert :ok = ElixirCode.undo(value, args, %{}, [])
+    end
+
+    test "executes undo_code with result binding" do
+      value = %{output: "created_thing", state: %{}}
+      args = %{prev_result: %{output: "input", state: %{"id" => "123"}}}
+      opts = [undo_code: ~s|{input, state["id"], result}|, timeout_ms: 5_000]
+
+      assert :ok = ElixirCode.undo(value, args, %{}, opts)
+    end
+
+    test "swallows errors in undo_code (best-effort)" do
+      value = %{output: "x", state: %{}}
+      args = %{prev_result: %{output: "input", state: %{}}}
+      opts = [undo_code: ~s|raise "undo failed"|, timeout_ms: 5_000]
+
+      assert :ok = ElixirCode.undo(value, args, %{}, opts)
+    end
+
+    test "returns :ok for empty undo_code" do
+      value = %{output: "x", state: %{}}
+      args = %{prev_result: %{output: "input", state: %{}}}
+
+      assert :ok = ElixirCode.undo(value, args, %{}, undo_code: "")
+    end
+  end
 end

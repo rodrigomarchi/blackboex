@@ -27,7 +27,7 @@ defmodule Blackboex.Flows.Templates.BatchProcessor do
       name: "Batch Processor",
       description:
         "Fetches posts from a REST API, processes each with for_each — real-world iteration over HTTP data",
-      category: "Getting Started",
+      category: "Data Processing",
       icon: "hero-queue-list",
       definition: definition()
     }

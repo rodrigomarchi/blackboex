@@ -56,6 +56,18 @@ const nodeConfig = {
     icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="df-node-icon"><path d="M3.196 12.87l-.825.483a.75.75 0 0 0 .762 1.294l.825-.484a3.978 3.978 0 0 0 2.08 1.088l-.076.95a.75.75 0 1 0 1.496.12l.076-.95c.796-.087 1.524-.4 2.11-.878l.669.614a.75.75 0 0 0 1.016-1.105l-.669-.613a4.001 4.001 0 0 0 .95-2.187h.87a.75.75 0 0 0 0-1.5h-.87a4.002 4.002 0 0 0-.95-2.187l.669-.613A.75.75 0 0 0 10.68 5.99l-.669.613a3.98 3.98 0 0 0-2.11-.878l-.076-.95A.75.75 0 1 0 6.33 4.894l.076.95a3.978 3.978 0 0 0-2.08 1.088l-.825-.484a.75.75 0 0 0-.762 1.294l.825.484A3.987 3.987 0 0 0 3 10c0 1.073.421 2.048 1.108 2.766L3.196 12.87Z" /></svg>`,
     label: "Webhook Wait",
     subtitle: "Pause for event"
+  },
+  fail: {
+    color: "#ef4444",
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="df-node-icon"><path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z" clip-rule="evenodd" /></svg>`,
+    label: "Fail",
+    subtitle: "Error exit"
+  },
+  debug: {
+    color: "#a855f7",
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="df-node-icon"><path fill-rule="evenodd" d="M4.5 2A2.5 2.5 0 0 0 2 4.5v3.879a2.5 2.5 0 0 0 .732 1.767l7.5 7.5a2.5 2.5 0 0 0 3.536 0l3.878-3.878a2.5 2.5 0 0 0 0-3.536l-7.5-7.5A2.5 2.5 0 0 0 8.38 2H4.5ZM5 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clip-rule="evenodd" /></svg>`,
+    label: "Debug",
+    subtitle: "Inspect data"
   }
 }
 

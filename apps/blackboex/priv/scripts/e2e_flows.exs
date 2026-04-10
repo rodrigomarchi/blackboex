@@ -48,6 +48,9 @@ defmodule E2E.Flows do
           run_rest_api_crud(user, org),
           run_api_status_checker(user, org),
           run_approval_workflow(user, org),
+          run_advanced_features(user, org),
+          run_lead_scoring(user, org),
+          run_webhook_processor(user, org),
           run_stress_test(hw_flow)
         ])
 
@@ -607,7 +610,231 @@ defmodule E2E.Flows do
   end
 
   # ════════════════════════════════════════════════════════════════
-  # Phase 11: Stress Test — concurrent webhook requests
+  # Phase 11: Advanced Features (debug + fail + skip_condition)
+  # ════════════════════════════════════════════════════════════════
+
+  defp run_advanced_features(user, org) do
+    IO.puts(cyan("\n▸ Phase 11: Advanced Features (debug, fail, skip_condition)"))
+    flow = create_and_activate_template("advanced_features", "E2E AdvFeatures", user, org)
+
+    [
+      run_test("AdvFeat: valid data → success path", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{"name" => "Rodrigo", "email" => "r@test.com"})
+        assert_status!(resp, 200)
+        output = resp.body["output"]
+        assert_eq!(output["greeting"], "Hello, RODRIGO!", "greeting")
+        assert_eq!(output["processed"], true, "processed")
+        :ok
+      end),
+      run_test("AdvFeat: strict mode without email → fail node", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{"name" => "Test", "strict_mode" => true})
+        assert_status!(resp, 422)
+        assert_contains!(resp.body["error"], "Validation failed", "error message")
+        assert_contains!(resp.body["error"], "email required in strict mode", "mentions email")
+        :ok
+      end),
+      run_test("AdvFeat: skip_validation=true bypasses validation", fn ->
+        # strict_mode=true + no email, but skip_validation=true → skips → success
+        {:ok, resp} = webhook_post(flow.webhook_token, %{
+          "name" => "Skip",
+          "strict_mode" => true,
+          "skip_validation" => true
+        })
+        assert_status!(resp, 200)
+        output = resp.body["output"]
+        assert_eq!(output["greeting"], "Hello, SKIP!", "greeting")
+        :ok
+      end),
+      run_test("AdvFeat: debug node stores data in shared_state", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{"name" => "DebugMe", "email" => "d@test.com"})
+        assert_status!(resp, 200)
+        exec = Blackboex.FlowExecutions.get_execution(resp.body["execution_id"])
+        state = exec.shared_state
+        assert_present!(state["debug_input"], "debug_input in state")
+        assert_eq!(state["debug_input"]["name"], "DebugMe", "debug captured name")
+        :ok
+      end),
+      run_test("AdvFeat: execution has debug + condition + end node records", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{"name" => "NodeCheck"})
+        assert_status!(resp, 200)
+        exec = Blackboex.FlowExecutions.get_execution(resp.body["execution_id"])
+        node_types = Enum.map(exec.node_executions, & &1.node_type) |> MapSet.new()
+        assert_present!(MapSet.member?(node_types, "debug") && true || nil, "debug node executed")
+        assert_present!(MapSet.member?(node_types, "condition") && true || nil, "condition node executed")
+        :ok
+      end)
+    ]
+  end
+
+  # ════════════════════════════════════════════════════════════════
+  # Phase 12: Lead Scoring (CRM qualification pipeline)
+  # ════════════════════════════════════════════════════════════════
+
+  defp run_lead_scoring(user, org) do
+    IO.puts(cyan("\n▸ Phase 12: Lead Scoring (debug + scoring + fail)"))
+    flow = create_and_activate_template("lead_scoring", "E2E LeadScore", user, org)
+
+    [
+      run_test("Lead: qualified (email+company+budget) → success", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{
+          "name" => "Alice",
+          "email" => "alice@bigcorp.com",
+          "company" => "BigCorp",
+          "budget" => 5000
+        })
+        assert_status!(resp, 200)
+        output = resp.body["output"]
+        assert_eq!(output["status"], "qualified", "status")
+        assert_eq!(output["name"], "Alice", "name")
+        assert_eq!(output["email"], "alice@bigcorp.com", "email")
+        :ok
+      end),
+      run_test("Lead: score=100 in shared_state", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{
+          "name" => "ScoreCheck",
+          "email" => "sc@co.com",
+          "company" => "Co",
+          "budget" => 2000
+        })
+        assert_status!(resp, 200)
+        exec = Blackboex.FlowExecutions.get_execution(resp.body["execution_id"])
+        # email(+20) + company(+30) + budget>1000(+50) = 100
+        assert_eq!(exec.shared_state["score"], 100, "score")
+        assert_eq!(exec.shared_state["qualified"], true, "qualified")
+        assert_eq!(exec.shared_state["enriched"], true, "enriched")
+        :ok
+      end),
+      run_test("Lead: unqualified (email only, score=20) → fail", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{
+          "name" => "Charlie",
+          "email" => "charlie@test.com"
+        })
+        assert_status!(resp, 422)
+        assert_contains!(resp.body["error"], "not qualified", "error mentions not qualified")
+        :ok
+      end),
+      run_test("Lead: debug stores lead data", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{
+          "name" => "DebugLead",
+          "email" => "dl@test.com",
+          "company" => "TestCo",
+          "budget" => 9999
+        })
+        assert_status!(resp, 200)
+        exec = Blackboex.FlowExecutions.get_execution(resp.body["execution_id"])
+        assert_present!(exec.shared_state["debug_lead"], "debug_lead in state")
+        assert_eq!(exec.shared_state["debug_lead"]["name"], "DebugLead", "debug captured name")
+        assert_eq!(exec.shared_state["debug_lead"]["company"], "TestCo", "debug captured company")
+        :ok
+      end),
+      run_test("Lead: skip_scoring bypasses scoring → success", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{
+          "name" => "SkipScore",
+          "email" => "ss@test.com",
+          "skip_scoring" => true
+        })
+        assert_status!(resp, 200)
+        # Skipped scoring → condition sees nil qualified → branch 0 (success)
+        assert_present!(resp.body["output"], "has output")
+        :ok
+      end),
+      run_test("Lead: no email, no company, no budget → score=0 → fail", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{"name" => "NoInfo"})
+        assert_status!(resp, 422)
+        assert_contains!(resp.body["error"], "not qualified", "error mentions not qualified")
+        :ok
+      end)
+    ]
+  end
+
+  # ════════════════════════════════════════════════════════════════
+  # Phase 13: Webhook Processor (event routing + delay + fail)
+  # ════════════════════════════════════════════════════════════════
+
+  defp run_webhook_processor(user, org) do
+    IO.puts(cyan("\n▸ Phase 13: Webhook Processor (3-way branch + delay + fail)"))
+    flow = create_and_activate_template("webhook_processor", "E2E WebhookProc", user, org)
+
+    [
+      run_test("Webhook: order.created → order processed", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{
+          "event_type" => "order.created",
+          "payload" => %{"id" => "ORD-001", "amount" => 99.90},
+          "timestamp" => "2026-04-10T12:00:00Z"
+        })
+        assert_status!(resp, 200)
+        output = resp.body["output"]
+        assert_eq!(output["action"], "order_processed", "action")
+        assert_eq!(output["order_id"], "ORD-001", "order_id")
+        :ok
+      end),
+      run_test("Webhook: payment.received → payment processed", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{
+          "event_type" => "payment.received",
+          "payload" => %{"id" => "PAY-001"},
+          "timestamp" => "2026-04-10T12:00:00Z"
+        })
+        assert_status!(resp, 200)
+        output = resp.body["output"]
+        assert_eq!(output["action"], "payment_processed", "action")
+        assert_eq!(output["payment_id"], "PAY-001", "payment_id")
+        assert_eq!(output["status"], "confirmed", "status")
+        :ok
+      end),
+      run_test("Webhook: unknown event → fail node", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{
+          "event_type" => "invoice.voided",
+          "timestamp" => "2026-04-10T12:00:00Z"
+        })
+        assert_status!(resp, 422)
+        assert_contains!(resp.body["error"], "Unsupported event type", "error message")
+        :ok
+      end),
+      run_test("Webhook: test event skips validation → order path", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{
+          "event_type" => "test",
+          "payload" => %{"id" => "TEST-001"}
+        })
+        assert_status!(resp, 200)
+        output = resp.body["output"]
+        assert_eq!(output["action"], "order_processed", "action")
+        :ok
+      end),
+      run_test("Webhook: debug stores event info", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{
+          "event_type" => "order.created",
+          "payload" => %{"id" => "DBG-001"},
+          "timestamp" => "2026-04-10"
+        })
+        assert_status!(resp, 200)
+        exec = Blackboex.FlowExecutions.get_execution(resp.body["execution_id"])
+        assert_present!(exec.shared_state["debug_event"], "debug_event in state")
+        assert_eq!(exec.shared_state["debug_event"]["type"], "order.created", "debug event type")
+        :ok
+      end),
+      run_test("Webhook: order path includes delay node", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{
+          "event_type" => "order.created",
+          "payload" => %{"id" => "DLY-001"}
+        })
+        assert_status!(resp, 200)
+        exec = Blackboex.FlowExecutions.get_execution(resp.body["execution_id"])
+        node_types = Enum.map(exec.node_executions, & &1.node_type)
+        assert_present!(Enum.find(node_types, &(&1 == "delay")), "delay node executed")
+        :ok
+      end),
+      run_test("Webhook: missing event_type → schema validation error", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{"payload" => %{"id" => "1"}})
+        assert_status!(resp, 422)
+        assert_contains!(resp.body["error"], "Payload validation failed", "error")
+        assert_contains!(resp.body["error"], "event_type", "mentions event_type")
+        :ok
+      end)
+    ]
+  end
+
+  # ════════════════════════════════════════════════════════════════
+  # Phase 14: Stress Test — concurrent webhook requests
   # ════════════════════════════════════════════════════════════════
 
   @stress_concurrency 50

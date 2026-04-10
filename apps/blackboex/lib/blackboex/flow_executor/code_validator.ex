@@ -31,10 +31,19 @@ defmodule Blackboex.FlowExecutor.CodeValidator do
   @spec validate_node_code(Blackboex.FlowExecutor.ParsedNode.t()) ::
           [{String.t(), String.t(), String.t()}]
   defp validate_node_code(%{id: id, type: :elixir_code, data: data}) do
-    case validate(data["code"]) do
-      :ok -> []
-      {:error, reason} -> [{id, "code", reason}]
-    end
+    code_errors =
+      case validate(data["code"]) do
+        :ok -> []
+        {:error, reason} -> [{id, "code", reason}]
+      end
+
+    undo_errors =
+      case validate(data["undo_code"]) do
+        :ok -> []
+        {:error, reason} -> [{id, "undo_code", reason}]
+      end
+
+    code_errors ++ undo_errors ++ validate_skip_condition(data, id)
   end
 
   defp validate_node_code(%{id: id, type: :condition, data: data}) do
@@ -42,6 +51,16 @@ defmodule Blackboex.FlowExecutor.CodeValidator do
       :ok -> []
       {:error, reason} -> [{id, "expression", reason}]
     end
+  end
+
+  defp validate_node_code(%{id: id, type: :fail, data: data}) do
+    message_errors =
+      case validate(data["message"]) do
+        :ok -> []
+        {:error, reason} -> [{id, "message", reason}]
+      end
+
+    message_errors ++ validate_skip_condition(data, id)
   end
 
   defp validate_node_code(%{id: id, type: :for_each, data: data}) do
@@ -57,16 +76,54 @@ defmodule Blackboex.FlowExecutor.CodeValidator do
         {:error, reason} -> [{id, "body_code", reason}]
       end
 
-    source_errors ++ body_errors
+    source_errors ++ body_errors ++ validate_skip_condition(data, id)
   end
 
   defp validate_node_code(%{id: id, type: :sub_flow, data: data}) do
-    data
-    |> Map.get("input_mapping", %{})
-    |> validate_mapping_expressions(id)
+    mapping_errors =
+      data
+      |> Map.get("input_mapping", %{})
+      |> validate_mapping_expressions(id)
+
+    mapping_errors ++ validate_skip_condition(data, id)
+  end
+
+  defp validate_node_code(%{id: id, type: :debug, data: data}) do
+    expression_errors =
+      case validate(data["expression"]) do
+        :ok -> []
+        {:error, reason} -> [{id, "expression", reason}]
+      end
+
+    expression_errors ++ validate_skip_condition(data, id)
+  end
+
+  defp validate_node_code(%{id: id, type: type, data: data})
+       when type in [:http_request, :delay, :webhook_wait] do
+    validate_skip_condition(data, id)
   end
 
   defp validate_node_code(_node), do: []
+
+  @spec validate_skip_condition(map(), String.t()) :: [{String.t(), String.t(), String.t()}]
+  defp validate_skip_condition(data, id) do
+    case Map.get(data, "skip_condition") do
+      nil ->
+        []
+
+      "" ->
+        []
+
+      expr when is_binary(expr) ->
+        case validate(expr) do
+          :ok -> []
+          {:error, reason} -> [{id, "skip_condition", reason}]
+        end
+
+      _ ->
+        []
+    end
+  end
 
   @spec validate_mapping_expressions(map(), String.t()) :: [{String.t(), String.t(), String.t()}]
   defp validate_mapping_expressions(mapping, _id) when not is_map(mapping), do: []

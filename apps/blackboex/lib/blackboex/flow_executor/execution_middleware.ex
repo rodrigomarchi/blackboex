@@ -49,6 +49,19 @@ defmodule Blackboex.FlowExecutor.ExecutionMiddleware do
   end
 
   @impl true
+  @spec get_process_context() :: any()
+  def get_process_context do
+    Process.get(:otel_ctx)
+  end
+
+  @impl true
+  @spec set_process_context(any()) :: :ok
+  def set_process_context(otel_ctx) do
+    Process.put(:otel_ctx, otel_ctx)
+    :ok
+  end
+
+  @impl true
   @spec event(Reactor.Middleware.step_event(), Reactor.Step.t(), Reactor.context()) :: :ok
   def event({:run_start, _arguments}, step, context) do
     handle_node_start(context, step)

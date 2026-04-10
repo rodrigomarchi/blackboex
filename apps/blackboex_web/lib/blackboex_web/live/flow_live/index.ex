@@ -31,9 +31,10 @@ defmodule BlackboexWeb.FlowLive.Index do
        search: "",
        page_title: "Flows",
        show_create_modal: false,
-       create_mode: :blank,
+       create_mode: :template,
        selected_template: nil,
-       templates: Templates.list(),
+       template_categories: Templates.list_by_category(),
+       active_category: get_first_category(),
        create_form: to_form(%{"name" => "", "description" => ""}),
        create_error: nil,
        confirm: nil
@@ -112,8 +113,9 @@ defmodule BlackboexWeb.FlowLive.Index do
     {:noreply,
      assign(socket,
        show_create_modal: true,
-       create_mode: :blank,
+       create_mode: :template,
        selected_template: nil,
+       active_category: get_first_category(),
        create_form: to_form(%{"name" => "", "description" => ""}),
        create_error: nil
      )}
@@ -131,6 +133,11 @@ defmodule BlackboexWeb.FlowLive.Index do
 
   def handle_event("set_create_mode", %{"mode" => "template"}, socket) do
     {:noreply, assign(socket, create_mode: :template, create_error: nil)}
+  end
+
+  @impl true
+  def handle_event("set_active_category", %{"category" => cat}, socket) do
+    {:noreply, assign(socket, active_category: cat, selected_template: nil)}
   end
 
   @impl true
@@ -301,48 +308,107 @@ defmodule BlackboexWeb.FlowLive.Index do
           </div>
         <% end %>
 
-        <%!-- Mode Tabs --%>
-        <div class="mb-4 flex border-b border-border">
+        <%!-- Mode Toggle --%>
+        <div class="flex gap-1 rounded-lg bg-muted p-1 mb-4">
           <button
             type="button"
             phx-click="set_create_mode"
             phx-value-mode="template"
-            class={"px-4 py-2 text-sm font-medium border-b-2 -mb-px #{if @create_mode == :template, do: "border-primary text-primary", else: "border-transparent text-muted-foreground hover:text-foreground"}"}
+            class={[
+              "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+              if(@create_mode == :template,
+                do: "bg-background text-foreground shadow-sm",
+                else: "text-muted-foreground hover:text-foreground"
+              )
+            ]}
           >
-            <.icon name="hero-squares-2x2" class="mr-1.5 size-4 inline" />From Template
+            <.icon name="hero-squares-2x2" class="mr-1.5 size-4 inline" /> From template
           </button>
           <button
             type="button"
             phx-click="set_create_mode"
             phx-value-mode="blank"
-            class={"px-4 py-2 text-sm font-medium border-b-2 -mb-px #{if @create_mode == :blank, do: "border-primary text-primary", else: "border-transparent text-muted-foreground hover:text-foreground"}"}
+            class={[
+              "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+              if(@create_mode == :blank,
+                do: "bg-background text-foreground shadow-sm",
+                else: "text-muted-foreground hover:text-foreground"
+              )
+            ]}
           >
-            <.icon name="hero-document-plus" class="mr-1.5 size-4 inline" />Blank Flow
+            <.icon name="hero-document-plus" class="mr-1.5 size-4 inline" /> Blank flow
           </button>
         </div>
 
         <%!-- Template Picker --%>
-        <div :if={@create_mode == :template} class="mb-4">
-          <div class="grid grid-cols-1 gap-3">
-            <button
-              :for={t <- @templates}
-              type="button"
-              phx-click="select_template"
-              phx-value-id={t.id}
-              class={"flex items-start gap-3 rounded-lg border p-3 text-left transition-colors #{if @selected_template && @selected_template.id == t.id, do: "border-primary bg-primary/5 ring-1 ring-primary", else: "border-border hover:border-muted-foreground/50"}"}
-            >
-              <div class="flex size-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-                <.icon name={t.icon} class="size-5" />
-              </div>
-              <div class="min-w-0">
-                <div class="font-medium text-sm">{t.name}</div>
-                <div class="text-xs text-muted-foreground mt-0.5">{t.description}</div>
-                <div class="text-xs text-muted-foreground/70 mt-1">
-                  {length(t.definition["nodes"])} nodes
-                </div>
-              </div>
-            </button>
+        <div :if={@create_mode == :template} class="mb-4 space-y-3">
+          <%!-- Category Pills --%>
+          <div class="flex gap-1 flex-wrap">
+            <%= for {cat, _templates} <- @template_categories do %>
+              <button
+                type="button"
+                phx-click="set_active_category"
+                phx-value-category={cat}
+                class={[
+                  "rounded-full px-3 py-1 text-xs font-medium transition-colors border",
+                  if(@active_category == cat,
+                    do: "bg-primary text-primary-foreground border-primary",
+                    else:
+                      "bg-background text-muted-foreground border-border hover:border-primary/50 hover:text-foreground"
+                  )
+                ]}
+              >
+                {cat}
+              </button>
+            <% end %>
           </div>
+
+          <%!-- Template Grid --%>
+          <div class="max-h-52 overflow-y-auto -mx-1 px-1">
+            <div class="grid grid-cols-2 gap-2">
+              <%= for {cat, templates} <- @template_categories, cat == @active_category, template <- templates do %>
+                <button
+                  type="button"
+                  phx-click="select_template"
+                  phx-value-id={template.id}
+                  class={[
+                    "flex items-start gap-2 rounded-lg border p-2.5 text-left transition-colors hover:border-primary/50",
+                    if(@selected_template && @selected_template.id == template.id,
+                      do: "border-primary bg-primary/5 ring-1 ring-primary",
+                      else: "border-border bg-background"
+                    )
+                  ]}
+                >
+                  <div class="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary mt-0.5">
+                    <.icon name={template.icon} class="size-4" />
+                  </div>
+                  <div class="min-w-0">
+                    <p class="text-xs font-medium leading-snug">{template.name}</p>
+                    <p class="text-xs text-muted-foreground line-clamp-2 leading-snug mt-0.5">
+                      {template.description}
+                    </p>
+                    <p class="text-xs text-muted-foreground/60 mt-1">
+                      {length(template.definition["nodes"])} nodes
+                    </p>
+                  </div>
+                </button>
+              <% end %>
+            </div>
+          </div>
+
+          <%!-- Helper text --%>
+          <p :if={is_nil(@selected_template)} class="text-xs text-muted-foreground">
+            Select a template above, or switch to
+            <button
+              type="button"
+              phx-click="set_create_mode"
+              phx-value-mode="blank"
+              class="underline hover:text-foreground"
+            >
+              blank flow
+            </button>
+            to start from scratch.
+          </p>
         </div>
 
         <form phx-submit="create_flow" class="space-y-4">
@@ -386,6 +452,13 @@ defmodule BlackboexWeb.FlowLive.Index do
   end
 
   # ── Helpers ──────────────────────────────────────────────────────────────
+
+  defp get_first_category do
+    case Templates.list_by_category() do
+      [{cat, _} | _] -> cat
+      [] -> nil
+    end
+  end
 
   defp build_confirm("delete", params) do
     %{

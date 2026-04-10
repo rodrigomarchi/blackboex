@@ -23,7 +23,7 @@ defmodule Blackboex.Flows.Templates.ApprovalWorkflow do
       name: "Approval Workflow",
       description:
         "Conditionally halts for human approval via webhook_wait — tests halt/resume lifecycle",
-      category: "Getting Started",
+      category: "Advanced",
       icon: "hero-shield-check",
       definition: definition()
     }

@@ -104,6 +104,26 @@ defmodule BlackboexWeb.FlowLive.Edit do
       inputs: 1,
       outputs: 1,
       group: "composition"
+    },
+    %{
+      type: "fail",
+      label: "Fail",
+      subtitle: "Error exit",
+      icon: "hero-x-circle",
+      color: "#ef4444",
+      inputs: 1,
+      outputs: 0,
+      group: "control"
+    },
+    %{
+      type: "debug",
+      label: "Debug",
+      subtitle: "Inspect data",
+      icon: "hero-bug-ant",
+      color: "#a855f7",
+      inputs: 1,
+      outputs: 1,
+      group: "logic"
     }
   ]
 
@@ -116,6 +136,12 @@ defmodule BlackboexWeb.FlowLive.Edit do
     "auth_password" => {"auth_config", "password"},
     "auth_key_name" => {"auth_config", "key_name"},
     "auth_key_value" => {"auth_config", "key_value"}
+  }
+
+  # Maps synthetic undo form fields to nested undo_config keys
+  @undo_field_map %{
+    "undo_method" => {"undo_config", "method"},
+    "undo_url" => {"undo_config", "url"}
   }
 
   @impl true
@@ -556,15 +582,20 @@ defmodule BlackboexWeb.FlowLive.Edit do
   # ── Private helpers for handle_event ─────────────────────────────────────
 
   defp apply_field_update(data, field, value) do
-    case Map.get(@auth_field_map, field) do
+    nested_map = Map.merge(@auth_field_map, @undo_field_map)
+
+    case Map.get(nested_map, field) do
       {parent_key, nested_key} ->
         parent = Map.get(data, parent_key, %{})
         Map.put(data, parent_key, Map.put(parent, nested_key, value))
 
       nil ->
-        Map.put(data, field, value)
+        Map.put(data, field, coerce_field_value(field, value))
     end
   end
+
+  defp coerce_field_value("include_state", value), do: value == "true"
+  defp coerce_field_value(_field, value), do: value
 
   defp extract_payload_schema("", _socket), do: []
   defp extract_payload_schema(nil, _socket), do: []
@@ -1130,6 +1161,46 @@ defmodule BlackboexWeb.FlowLive.Edit do
         icon="hero-clock"
         icon_color="text-orange-400"
       />
+      <div class="border-t pt-4 mt-4">
+        <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
+          <.icon name="hero-funnel" class="size-3.5 text-yellow-400" /> Skip Condition
+        </label>
+        <p class="text-xs text-muted-foreground mb-1.5">
+          Skip this node when expression is true
+        </p>
+        <div
+          id={"code-editor-#{@node_id}-skip_condition"}
+          phx-hook="CodeEditor"
+          phx-update="ignore"
+          data-language="elixir"
+          data-event="update_node_data"
+          data-field="skip_condition"
+          data-value={@data["skip_condition"] || ""}
+          class="w-full rounded-lg border overflow-hidden"
+          style="height: 60px;"
+        />
+      </div>
+      <div class="border-t pt-4 mt-4">
+        <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
+          <.icon name="hero-arrow-uturn-left" class="size-3.5 text-rose-400" /> Undo Code
+        </label>
+        <p class="text-xs text-muted-foreground mb-1.5">
+          Rollback code if a downstream step fails. Has
+          <code class="text-xs bg-muted px-1 rounded">result</code>
+          binding.
+        </p>
+        <div
+          id={"code-editor-#{@node_id}-undo_code"}
+          phx-hook="CodeEditor"
+          phx-update="ignore"
+          data-language="elixir"
+          data-event="update_node_data"
+          data-field="undo_code"
+          data-value={@data["undo_code"] || ""}
+          class="w-full rounded-lg border overflow-hidden"
+          style="height: 100px;"
+        />
+      </div>
     </div>
     """
   end
@@ -1384,6 +1455,57 @@ defmodule BlackboexWeb.FlowLive.Edit do
           icon="hero-check-badge"
           icon_color="text-green-400"
         />
+        <div class="border-t pt-4 mt-4">
+          <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
+            <.icon name="hero-funnel" class="size-3.5 text-yellow-400" /> Skip Condition
+          </label>
+          <p class="text-xs text-muted-foreground mb-1.5">
+            Skip this node when expression is true
+          </p>
+          <div
+            id={"code-editor-#{@node_id}-skip_condition"}
+            phx-hook="CodeEditor"
+            phx-update="ignore"
+            data-language="elixir"
+            data-event="update_node_data"
+            data-field="skip_condition"
+            data-value={@data["skip_condition"] || ""}
+            class="w-full rounded-lg border overflow-hidden"
+            style="height: 60px;"
+          />
+        </div>
+        <div class="border-t pt-4 mt-4">
+          <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
+            <.icon name="hero-arrow-uturn-left" class="size-3.5 text-rose-400" /> Undo Request
+          </label>
+          <p class="text-xs text-muted-foreground mb-1.5">
+            HTTP request to undo this action if a downstream step fails
+          </p>
+          <.prop_select
+            label="Undo Method"
+            field="undo_method"
+            value={get_in(@data, ["undo_config", "method"]) || ""}
+            options={[
+              {"None", ""},
+              {"DELETE", "DELETE"},
+              {"POST", "POST"},
+              {"PUT", "PUT"},
+              {"PATCH", "PATCH"}
+            ]}
+            icon="hero-arrows-right-left"
+            icon_color="text-rose-400"
+          />
+          <div class="mt-2">
+            <.prop_field
+              label="Undo URL"
+              field="undo_url"
+              value={get_in(@data, ["undo_config", "url"]) || ""}
+              placeholder="https://api.example.com/resource/{{state.id}}"
+              icon="hero-link"
+              icon_color="text-rose-400"
+            />
+          </div>
+        </div>
       </div>
     </div>
     """
@@ -1426,6 +1548,25 @@ defmodule BlackboexWeb.FlowLive.Edit do
         icon="hero-chat-bubble-bottom-center-text"
         icon_color="text-sky-400"
       />
+      <div class="border-t pt-4 mt-4">
+        <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
+          <.icon name="hero-funnel" class="size-3.5 text-yellow-400" /> Skip Condition
+        </label>
+        <p class="text-xs text-muted-foreground mb-1.5">
+          Skip this node when expression is true
+        </p>
+        <div
+          id={"code-editor-#{@node_id}-skip_condition"}
+          phx-hook="CodeEditor"
+          phx-update="ignore"
+          data-language="elixir"
+          data-event="update_node_data"
+          data-field="skip_condition"
+          data-value={@data["skip_condition"] || ""}
+          class="w-full rounded-lg border overflow-hidden"
+          style="height: 60px;"
+        />
+      </div>
     </div>
     """
   end
@@ -1513,6 +1654,25 @@ defmodule BlackboexWeb.FlowLive.Edit do
         icon="hero-clock"
         icon_color="text-orange-400"
       />
+      <div class="border-t pt-4 mt-4">
+        <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
+          <.icon name="hero-funnel" class="size-3.5 text-yellow-400" /> Skip Condition
+        </label>
+        <p class="text-xs text-muted-foreground mb-1.5">
+          Skip this node when expression is true
+        </p>
+        <div
+          id={"code-editor-#{@node_id}-skip_condition"}
+          phx-hook="CodeEditor"
+          phx-update="ignore"
+          data-language="elixir"
+          data-event="update_node_data"
+          data-field="skip_condition"
+          data-value={@data["skip_condition"] || ""}
+          class="w-full rounded-lg border overflow-hidden"
+          style="height: 60px;"
+        />
+      </div>
     </div>
     """
   end
@@ -1580,6 +1740,25 @@ defmodule BlackboexWeb.FlowLive.Edit do
           icon="hero-clock"
           icon_color="text-orange-400"
         />
+        <div class="border-t pt-4 mt-4">
+          <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
+            <.icon name="hero-funnel" class="size-3.5 text-yellow-400" /> Skip Condition
+          </label>
+          <p class="text-xs text-muted-foreground mb-1.5">
+            Skip this node when expression is true
+          </p>
+          <div
+            id={"code-editor-#{@node_id}-skip_condition"}
+            phx-hook="CodeEditor"
+            phx-update="ignore"
+            data-language="elixir"
+            data-event="update_node_data"
+            data-field="skip_condition"
+            data-value={@data["skip_condition"] || ""}
+            class="w-full rounded-lg border overflow-hidden"
+            style="height: 60px;"
+          />
+        </div>
       </div>
 
       <div :if={@tab == "code"}>
@@ -1645,6 +1824,128 @@ defmodule BlackboexWeb.FlowLive.Edit do
           POST /webhook/:token/resume/{@data["event_type"] || "<event_type>"}
         </p>
       </div>
+      <div class="border-t pt-4 mt-4">
+        <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
+          <.icon name="hero-funnel" class="size-3.5 text-yellow-400" /> Skip Condition
+        </label>
+        <p class="text-xs text-muted-foreground mb-1.5">
+          Skip this node when expression is true
+        </p>
+        <div
+          id={"code-editor-#{@node_id}-skip_condition"}
+          phx-hook="CodeEditor"
+          phx-update="ignore"
+          data-language="elixir"
+          data-event="update_node_data"
+          data-field="skip_condition"
+          data-value={@data["skip_condition"] || ""}
+          class="w-full rounded-lg border overflow-hidden"
+          style="height: 60px;"
+        />
+      </div>
+    </div>
+    """
+  end
+
+  defp node_properties(%{type: "fail"} = assigns) do
+    ~H"""
+    <div class="space-y-4">
+      <.prop_field
+        label="Node Name"
+        field="name"
+        value={@data["name"] || "Fail"}
+        placeholder="Fail"
+        icon="hero-tag"
+        icon_color="text-violet-400"
+      />
+      <.prop_field
+        label="Description"
+        field="description"
+        value={@data["description"] || ""}
+        placeholder="When does this error occur?"
+        type="textarea"
+        icon="hero-chat-bubble-bottom-center-text"
+        icon_color="text-sky-400"
+      />
+      <div>
+        <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
+          <.icon name="hero-exclamation-triangle" class="size-3.5 text-red-400" /> Error Message
+        </label>
+        <p class="text-xs text-muted-foreground mb-1.5">
+          Elixir expression with <code class="text-xs bg-muted px-1 rounded">input</code>
+          and <code class="text-xs bg-muted px-1 rounded">state</code>
+          bindings
+        </p>
+        <div
+          id={"code-editor-#{@node_id}-message"}
+          phx-hook="CodeEditor"
+          phx-update="ignore"
+          data-language="elixir"
+          data-event="update_node_data"
+          data-field="message"
+          data-value={@data["message"] || ~S|"Error: #{input["reason"]}"|}
+          class="w-full rounded-lg border overflow-hidden"
+          style="height: 100px;"
+        />
+      </div>
+      <.prop_select
+        label="Include State"
+        field="include_state"
+        value={to_string(@data["include_state"] || false)}
+        options={[{"No", "false"}, {"Yes", "true"}]}
+        icon="hero-document-text"
+        icon_color="text-amber-400"
+      />
+    </div>
+    """
+  end
+
+  defp node_properties(%{type: "debug"} = assigns) do
+    ~H"""
+    <div class="space-y-4">
+      <.prop_field
+        label="Node Name"
+        field="name"
+        value={@data["name"] || "Debug"}
+        placeholder="Debug"
+        icon="hero-tag"
+        icon_color="text-violet-400"
+      />
+      <div>
+        <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
+          <.icon name="hero-bug-ant" class="size-3.5 text-purple-400" /> Expression
+        </label>
+        <p class="text-xs text-muted-foreground mb-1.5">
+          Elixir expression to inspect. Leave empty to log the input.
+        </p>
+        <div
+          id={"code-editor-#{@node_id}-expression"}
+          phx-hook="CodeEditor"
+          phx-update="ignore"
+          data-language="elixir"
+          data-event="update_node_data"
+          data-field="expression"
+          data-value={@data["expression"] || ""}
+          class="w-full rounded-lg border overflow-hidden"
+          style="height: 100px;"
+        />
+      </div>
+      <.prop_select
+        label="Log Level"
+        field="log_level"
+        value={@data["log_level"] || "info"}
+        options={[{"Debug", "debug"}, {"Info", "info"}, {"Warning", "warning"}]}
+        icon="hero-signal"
+        icon_color="text-cyan-400"
+      />
+      <.prop_field
+        label="State Key"
+        field="state_key"
+        value={@data["state_key"] || "debug"}
+        placeholder="debug"
+        icon="hero-key"
+        icon_color="text-emerald-400"
+      />
     </div>
     """
   end

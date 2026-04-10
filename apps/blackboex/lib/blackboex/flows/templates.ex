@@ -16,7 +16,10 @@ defmodule Blackboex.Flows.Templates do
         }
 
   @category_order [
-    "Getting Started"
+    "Getting Started",
+    "Data Processing",
+    "Integrations",
+    "Advanced"
   ]
 
   @templates [
@@ -29,7 +32,10 @@ defmodule Blackboex.Flows.Templates do
     Blackboex.Flows.Templates.HttpEnrichment.template(),
     Blackboex.Flows.Templates.ApprovalWorkflow.template(),
     Blackboex.Flows.Templates.RestApiCrud.template(),
-    Blackboex.Flows.Templates.ApiStatusChecker.template()
+    Blackboex.Flows.Templates.ApiStatusChecker.template(),
+    Blackboex.Flows.Templates.AdvancedFeatures.template(),
+    Blackboex.Flows.Templates.LeadScoring.template(),
+    Blackboex.Flows.Templates.WebhookProcessor.template()
   ]
 
   @doc "Returns all available flow templates."

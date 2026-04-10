@@ -324,4 +324,39 @@ defmodule Blackboex.FlowExecutor.Nodes.HttpRequestTest do
       assert {:ok, _} = HttpRequest.run(args, %{}, opts)
     end
   end
+
+  # ---------------------------------------------------------------------------
+  # undo/4
+  # ---------------------------------------------------------------------------
+
+  describe "undo/4" do
+    test "returns :ok when no undo_config provided" do
+      args = %{prev_result: %{output: %{}, state: %{}}}
+
+      assert :ok = HttpRequest.undo(%{}, args, %{}, [])
+    end
+
+    test "returns :ok for empty undo_config" do
+      args = %{prev_result: %{output: %{}, state: %{}}}
+
+      assert :ok = HttpRequest.undo(%{}, args, %{}, undo_config: %{})
+    end
+
+    test "makes undo HTTP request when config provided" do
+      Req.Test.stub(:undo_test, fn conn ->
+        assert conn.method == "DELETE"
+        Plug.Conn.send_resp(conn, 204, "")
+      end)
+
+      args = %{prev_result: %{output: %{}, state: %{}}}
+
+      opts = [
+        undo_config: %{"method" => "DELETE", "url" => "http://example.com/resource/123"},
+        plug: {Req.Test, :undo_test},
+        retry: false
+      ]
+
+      assert :ok = HttpRequest.undo(%{}, args, %{}, opts)
+    end
+  end
 end

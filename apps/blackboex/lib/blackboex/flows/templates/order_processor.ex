@@ -24,7 +24,7 @@ defmodule Blackboex.Flows.Templates.OrderProcessor do
       name: "Order Processor",
       description:
         "A 3-way branching flow that routes orders by priority — tests multi-branch conditions with business logic",
-      category: "Getting Started",
+      category: "Integrations",
       icon: "hero-shopping-cart",
       definition: definition()
     }

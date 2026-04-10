@@ -24,7 +24,7 @@ defmodule Blackboex.Flows.Templates.ApiStatusChecker do
       name: "API Status Checker",
       description:
         "Checks an HTTP endpoint with configurable method/headers and reports health status",
-      category: "Getting Started",
+      category: "Integrations",
       icon: "hero-signal",
       definition: definition()
     }

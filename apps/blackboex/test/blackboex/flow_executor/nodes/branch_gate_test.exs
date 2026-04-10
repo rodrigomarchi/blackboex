@@ -119,4 +119,30 @@ defmodule Blackboex.FlowExecutor.Nodes.BranchGateTest do
       assert result == :now
     end
   end
+
+  # ── undo/4 — delegation ────────────────────────────────────
+
+  describe "undo/4" do
+    test "delegates undo to inner impl when impl exports undo/4" do
+      # ElixirCode has undo/4
+      value = %{output: "result", state: %{}}
+      args = %{prev_result: %{output: "input", state: %{}}}
+
+      opts = [
+        impl: Blackboex.FlowExecutor.Nodes.ElixirCode,
+        impl_options: [undo_code: ~s|{input, state, result}|, timeout_ms: 5_000]
+      ]
+
+      assert :ok = BranchGate.undo(value, args, %{}, opts)
+    end
+
+    test "returns :ok when impl does not export undo/4" do
+      # Start node has no undo/4
+      value = %{output: "result", state: %{}}
+      args = %{prev_result: %{output: "input", state: %{}}}
+      opts = [impl: Blackboex.FlowExecutor.Nodes.Start, impl_options: []]
+
+      assert :ok = BranchGate.undo(value, args, %{}, opts)
+    end
+  end
 end

@@ -79,6 +79,22 @@ defmodule Blackboex.FlowExecutor.Nodes.HttpRequest do
   end
 
   @impl true
+  @spec undo(any(), Reactor.inputs(), Reactor.context(), keyword()) :: :ok | {:error, any()}
+  def undo(_value, arguments, _context, options) do
+    case Keyword.get(options, :undo_config) do
+      nil ->
+        :ok
+
+      config when is_map(config) and map_size(config) > 0 ->
+        {input, state} = Helpers.extract_input_and_state(arguments)
+        execute_undo_request(config, input, state, options)
+
+      _ ->
+        :ok
+    end
+  end
+
+  @impl true
   @spec compensate(any(), Reactor.inputs(), Reactor.context(), keyword()) :: :ok | :retry
   def compensate(reason, _arguments, _context, _options) do
     case reason do
@@ -94,6 +110,35 @@ defmodule Blackboex.FlowExecutor.Nodes.HttpRequest do
     retry_count = Map.get(context, :current_try, 0)
     base = min(round(:math.pow(2, retry_count) * 500), 15_000)
     base + :rand.uniform(500)
+  end
+
+  # ---------------------------------------------------------------------------
+  # Private — undo
+  # ---------------------------------------------------------------------------
+
+  @spec execute_undo_request(map(), any(), map(), keyword()) :: :ok
+  defp execute_undo_request(config, input, state, options) do
+    method =
+      config
+      |> Map.get("method", "DELETE")
+      |> String.downcase()
+      |> String.to_existing_atom()
+
+    url = config |> Map.get("url", "") |> interpolate_url(input, state)
+
+    req_opts =
+      [
+        method: method,
+        url: url,
+        headers: [],
+        receive_timeout: Keyword.get(options, :timeout_ms, 10_000)
+      ]
+      |> maybe_put_plug(options)
+
+    case Req.request(req_opts) do
+      {:ok, _response} -> :ok
+      {:error, _reason} -> :ok
+    end
   end
 
   # ---------------------------------------------------------------------------

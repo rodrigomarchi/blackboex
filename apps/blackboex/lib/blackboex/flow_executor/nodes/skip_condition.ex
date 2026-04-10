@@ -1,18 +1,17 @@
-defmodule Blackboex.FlowExecutor.Nodes.BranchGate do
+defmodule Blackboex.FlowExecutor.Nodes.SkipCondition do
   @moduledoc """
-  Reactor step that acts as a gate for condition branches.
+  Reactor step wrapper that conditionally skips a node.
 
-  When a node is directly downstream of a Condition node, it is wrapped in a
-  BranchGate step. The BranchGate checks whether the incoming input is the
-  branch-skipped sentinel. If so, it returns the sentinel immediately without
-  running the real node logic. If not, it delegates to the real node implementation.
-
-  This centralises all `__branch_skipped__` handling in one place, keeping
-  individual node implementations free of sentinel awareness.
+  When the skip_condition expression evaluates to true, the node is skipped
+  and input passes through unchanged. Otherwise, delegates to the real
+  node implementation.
 
   Options (required):
+    - `:skip_expression` — Elixir expression string; evaluated with `input` and `state` bindings
     - `:impl` — the real node step module (e.g. `ElixirCode`, `EndNode`)
     - `:impl_options` — keyword list of options forwarded to the impl's `run/3`
+
+  Errors in the skip expression default to not skipping (safe failure mode).
   """
 
   use Reactor.Step
@@ -22,13 +21,15 @@ defmodule Blackboex.FlowExecutor.Nodes.BranchGate do
   @impl true
   @spec run(Reactor.inputs(), Reactor.context(), keyword()) :: {:ok, map()} | {:error, any()}
   def run(arguments, context, options) do
+    skip_expression = Keyword.fetch!(options, :skip_expression)
     impl = Keyword.fetch!(options, :impl)
     impl_options = Keyword.get(options, :impl_options, [])
+    timeout_ms = Keyword.get(options, :timeout_ms, 5_000)
 
     {input, state} = Helpers.extract_input_and_state(arguments)
 
-    if input == :__branch_skipped__ do
-      {:ok, %{output: :__branch_skipped__, state: state}}
+    if should_skip?(skip_expression, input, state, timeout_ms) do
+      {:ok, Helpers.wrap_output(input, state)}
     else
       impl.run(arguments, context, impl_options)
     end
@@ -70,6 +71,25 @@ defmodule Blackboex.FlowExecutor.Nodes.BranchGate do
       impl.undo(value, arguments, context, impl_options)
     else
       :ok
+    end
+  end
+
+  @spec should_skip?(String.t(), any(), map(), pos_integer()) :: boolean()
+  defp should_skip?(expression, input, state, timeout_ms) do
+    case Helpers.execute_with_timeout(
+           fn ->
+             try do
+               bindings = [input: input, state: state]
+               {result, _} = Code.eval_string(expression, bindings)
+               {:ok, result == true}
+             rescue
+               _ -> {:ok, false}
+             end
+           end,
+           timeout_ms
+         ) do
+      {:ok, skip?} -> skip?
+      {:error, _} -> false
     end
   end
 end

@@ -22,7 +22,7 @@ defmodule Blackboex.Flows.Templates.DataPipeline do
       name: "Data Pipeline",
       description:
         "A multi-stage pipeline that parses, enriches, and aggregates records — tests deep state mutation chains",
-      category: "Getting Started",
+      category: "Data Processing",
       icon: "hero-funnel",
       definition: definition()
     }

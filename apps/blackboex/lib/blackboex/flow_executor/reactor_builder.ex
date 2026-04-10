@@ -26,11 +26,14 @@ defmodule Blackboex.FlowExecutor.ReactorBuilder do
   alias Blackboex.FlowExecutor.Nodes.{
     BranchGate,
     Condition,
+    Debug,
     Delay,
     ElixirCode,
     EndNode,
+    Fail,
     ForEach,
     HttpRequest,
+    SkipCondition,
     Start,
     SubFlow,
     WebhookWait
@@ -148,7 +151,8 @@ defmodule Blackboex.FlowExecutor.ReactorBuilder do
        ) do
     code = node.data["code"] || ""
     timeout_ms = parse_timeout(node.data["timeout_ms"], 5_000)
-    impl_opts = [code: code, timeout_ms: timeout_ms]
+    undo_code = Map.get(node.data, "undo_code")
+    impl_opts = [code: code, timeout_ms: timeout_ms] |> maybe_add_opt(:undo_code, undo_code)
 
     {impl, opts} =
       if MapSet.member?(condition_reachable, node.id) do
@@ -156,6 +160,8 @@ defmodule Blackboex.FlowExecutor.ReactorBuilder do
       else
         {ElixirCode, impl_opts}
       end
+
+    {impl, opts} = maybe_wrap_skip_condition({impl, opts}, node)
 
     Builder.add_step(
       reactor,
@@ -204,6 +210,8 @@ defmodule Blackboex.FlowExecutor.ReactorBuilder do
         {SubFlow, impl_opts}
       end
 
+    {impl, opts} = maybe_wrap_skip_condition({impl, opts}, node)
+
     Builder.add_step(
       reactor,
       step_name(node.id),
@@ -220,6 +228,8 @@ defmodule Blackboex.FlowExecutor.ReactorBuilder do
          condition_reachable,
          async?
        ) do
+    undo_config = Map.get(node.data, "undo_config")
+
     impl_opts =
       [
         method: Map.get(node.data, "method", "GET"),
@@ -232,6 +242,7 @@ defmodule Blackboex.FlowExecutor.ReactorBuilder do
         auth_config: Map.get(node.data, "auth_config", %{}),
         expected_status: Map.get(node.data, "expected_status", [200, 201])
       ]
+      |> maybe_add_opt(:undo_config, undo_config)
       |> maybe_add_test_plug(node.data)
 
     {impl, opts} =
@@ -240,6 +251,8 @@ defmodule Blackboex.FlowExecutor.ReactorBuilder do
       else
         {HttpRequest, impl_opts}
       end
+
+    {impl, opts} = maybe_wrap_skip_condition({impl, opts}, node)
 
     Builder.add_step(
       reactor,
@@ -268,6 +281,8 @@ defmodule Blackboex.FlowExecutor.ReactorBuilder do
       else
         {Delay, impl_opts}
       end
+
+    {impl, opts} = maybe_wrap_skip_condition({impl, opts}, node)
 
     Builder.add_step(
       reactor,
@@ -301,6 +316,8 @@ defmodule Blackboex.FlowExecutor.ReactorBuilder do
         {ForEach, impl_opts}
       end
 
+    {impl, opts} = maybe_wrap_skip_condition({impl, opts}, node)
+
     Builder.add_step(
       reactor,
       step_name(node.id),
@@ -329,6 +346,71 @@ defmodule Blackboex.FlowExecutor.ReactorBuilder do
       else
         {WebhookWait, impl_opts}
       end
+
+    {impl, opts} = maybe_wrap_skip_condition({impl, opts}, node)
+
+    Builder.add_step(
+      reactor,
+      step_name(node.id),
+      {impl, opts},
+      [build_input_argument(node, parsed_flow)],
+      async?: async?
+    )
+  end
+
+  defp add_node_step(
+         reactor,
+         %ParsedNode{type: :debug} = node,
+         parsed_flow,
+         condition_reachable,
+         async?
+       ) do
+    impl_opts = [
+      expression: Map.get(node.data, "expression"),
+      log_level: parse_log_level(node.data),
+      state_key: Map.get(node.data, "state_key", "debug"),
+      timeout_ms: parse_timeout(node.data["timeout_ms"], 5_000)
+    ]
+
+    {impl, opts} =
+      if MapSet.member?(condition_reachable, node.id) do
+        {BranchGate, [impl: Debug, impl_options: impl_opts]}
+      else
+        {Debug, impl_opts}
+      end
+
+    {impl, opts} = maybe_wrap_skip_condition({impl, opts}, node)
+
+    Builder.add_step(
+      reactor,
+      step_name(node.id),
+      {impl, opts},
+      [build_input_argument(node, parsed_flow)],
+      async?: async?
+    )
+  end
+
+  defp add_node_step(
+         reactor,
+         %ParsedNode{type: :fail} = node,
+         parsed_flow,
+         condition_reachable,
+         async?
+       ) do
+    impl_opts = [
+      message: Map.get(node.data, "message", ""),
+      include_state: Map.get(node.data, "include_state", false),
+      timeout_ms: parse_timeout(node.data["timeout_ms"], 5_000)
+    ]
+
+    {impl, opts} =
+      if MapSet.member?(condition_reachable, node.id) do
+        {BranchGate, [impl: Fail, impl_options: impl_opts]}
+      else
+        {Fail, impl_opts}
+      end
+
+    {impl, opts} = maybe_wrap_skip_condition({impl, opts}, node)
 
     Builder.add_step(
       reactor,
@@ -432,6 +514,10 @@ defmodule Blackboex.FlowExecutor.ReactorBuilder do
     String.to_atom("node_#{node_id}")
   end
 
+  defp parse_log_level(%{"log_level" => "debug"}), do: :debug
+  defp parse_log_level(%{"log_level" => "warning"}), do: :warning
+  defp parse_log_level(_), do: :info
+
   defp parse_timeout(val, _default) when is_integer(val) and val > 0, do: val
   defp parse_timeout(val, default) when is_binary(val), do: parse_timeout(to_int(val), default)
   defp parse_timeout(_val, default), do: default
@@ -503,6 +589,20 @@ defmodule Blackboex.FlowExecutor.ReactorBuilder do
   defp maybe_add_opt(opts, _key, nil), do: opts
   defp maybe_add_opt(opts, _key, []), do: opts
   defp maybe_add_opt(opts, key, value), do: Keyword.put(opts, key, value)
+
+  # Wraps {impl, opts} in SkipCondition when the node has a valid skip_condition.
+  # Order: impl → BranchGate (if condition-reachable) → SkipCondition (outermost).
+  @spec maybe_wrap_skip_condition({module(), keyword()}, ParsedNode.t()) ::
+          {module(), keyword()}
+  defp maybe_wrap_skip_condition(
+         {impl, opts},
+         %ParsedNode{data: %{"skip_condition" => skip_cond}}
+       )
+       when is_binary(skip_cond) and skip_cond != "" do
+    {SkipCondition, [impl: impl, impl_options: opts, skip_expression: skip_cond]}
+  end
+
+  defp maybe_wrap_skip_condition(pair, _node), do: pair
 
   # Allows injecting a Req.Test plug via node data for E2E testing.
   @spec maybe_add_test_plug(keyword(), map()) :: keyword()

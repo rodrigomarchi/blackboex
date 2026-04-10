@@ -25,7 +25,7 @@ defmodule Blackboex.Flows.Templates.RestApiCrud do
       name: "REST API CRUD",
       description:
         "Full CRUD cycle against JSONPlaceholder — tests POST with body, GET with interpolation, response parsing",
-      category: "Getting Started",
+      category: "Integrations",
       icon: "hero-arrow-path",
       definition: definition()
     }

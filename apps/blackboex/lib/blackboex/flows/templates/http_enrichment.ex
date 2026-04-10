@@ -23,7 +23,7 @@ defmodule Blackboex.Flows.Templates.HttpEnrichment do
       name: "HTTP Enrichment",
       description:
         "Calls an external HTTP API and extracts response data — tests http_request with interpolation",
-      category: "Getting Started",
+      category: "Integrations",
       icon: "hero-globe-alt",
       definition: definition()
     }

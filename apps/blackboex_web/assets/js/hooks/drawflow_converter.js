@@ -140,6 +140,10 @@ export function blackboexToDrawflow(blackboex, buildHTML) {
         inputCount = 1
         outputCount = 1
         break
+      case "fail":
+        inputCount = 1
+        outputCount = 0
+        break
       default:
         inputCount = 1
         outputCount = Math.max(1, nodeOutputMaxPort[node.id] || 1)

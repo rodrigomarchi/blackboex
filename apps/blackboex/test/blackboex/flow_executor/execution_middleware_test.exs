@@ -3,6 +3,7 @@ defmodule Blackboex.FlowExecutor.ExecutionMiddlewareTest do
 
   alias Blackboex.FlowExecutions
   alias Blackboex.FlowExecutor
+  alias Blackboex.FlowExecutor.ExecutionMiddleware
   alias Blackboex.Flows
 
   # Ensure node type atoms exist for DefinitionParser.safe_to_atom/1
@@ -139,6 +140,38 @@ defmodule Blackboex.FlowExecutor.ExecutionMiddlewareTest do
       assert_receive {:node_completed, %{node_id: _}}, 1_000
       execution_id = execution.id
       assert_receive {:flow_completed, %{execution_id: ^execution_id}}, 1_000
+    end
+  end
+
+  describe "process context propagation" do
+    test "get_process_context/0 returns current process context" do
+      # Set a known value in process dictionary under OTel key
+      Process.put(:otel_ctx, %{span_id: "test-span-123"})
+
+      context = ExecutionMiddleware.get_process_context()
+      assert context == %{span_id: "test-span-123"}
+    after
+      Process.delete(:otel_ctx)
+    end
+
+    test "get_process_context/0 returns nil when no context set" do
+      Process.delete(:otel_ctx)
+      context = ExecutionMiddleware.get_process_context()
+      assert is_nil(context)
+    end
+
+    test "set_process_context/1 restores context in process" do
+      otel_ctx = %{span_id: "restored-span", trace_id: "trace-456"}
+
+      :ok = ExecutionMiddleware.set_process_context(otel_ctx)
+      assert Process.get(:otel_ctx) == otel_ctx
+    after
+      Process.delete(:otel_ctx)
+    end
+
+    test "set_process_context/1 handles nil context" do
+      :ok = ExecutionMiddleware.set_process_context(nil)
+      assert Process.get(:otel_ctx) == nil
     end
   end
 

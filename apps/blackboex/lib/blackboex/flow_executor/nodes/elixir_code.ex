@@ -39,6 +39,23 @@ defmodule Blackboex.FlowExecutor.Nodes.ElixirCode do
   end
 
   @impl true
+  @spec undo(any(), Reactor.inputs(), Reactor.context(), keyword()) :: :ok | {:error, any()}
+  def undo(value, arguments, _context, options) do
+    case Keyword.get(options, :undo_code) do
+      nil ->
+        :ok
+
+      "" ->
+        :ok
+
+      undo_code ->
+        {input, state} = Helpers.extract_input_and_state(arguments)
+        timeout_ms = Keyword.get(options, :timeout_ms, 5_000)
+        execute_undo(undo_code, input, state, value, timeout_ms)
+    end
+  end
+
+  @impl true
   @spec compensate(any(), Reactor.inputs(), Reactor.context(), keyword()) :: :ok | :retry
   def compensate(reason, _arguments, _context, _options) do
     case reason do
@@ -53,6 +70,24 @@ defmodule Blackboex.FlowExecutor.Nodes.ElixirCode do
   def backoff(_reason, _arguments, context, _options) do
     retry_count = Map.get(context, :current_try, 0)
     min(round(:math.pow(2, retry_count) * 500), 10_000)
+  end
+
+  @spec execute_undo(String.t(), any(), map(), any(), pos_integer()) :: :ok
+  defp execute_undo(code, input, state, result, timeout_ms) do
+    Helpers.execute_with_timeout(
+      fn ->
+        try do
+          bindings = [input: input, state: state, result: result]
+          Code.eval_string(code, bindings)
+          {:ok, :ok}
+        rescue
+          _e -> {:ok, :ok}
+        end
+      end,
+      timeout_ms
+    )
+
+    :ok
   end
 
   defp normalize_result({output, new_state}, _old_state) when is_map(new_state) do

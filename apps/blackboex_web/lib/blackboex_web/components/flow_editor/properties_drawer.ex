@@ -39,22 +39,24 @@ defmodule BlackboexWeb.Components.FlowEditor.PropertiesDrawer do
           <span class="text-sm font-semibold">{@node.label}</span>
         </div>
         <div class="flex items-center gap-1">
-          <button
+          <.button
+            variant="ghost"
             phx-click="toggle_drawer_expand"
-            class="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+            class="h-auto w-auto rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
             title={if @expanded, do: "Collapse", else: "Expand"}
           >
             <.icon
               name={if @expanded, do: "hero-arrows-pointing-in", else: "hero-arrows-pointing-out"}
               class="size-4"
             />
-          </button>
-          <button
+          </.button>
+          <.button
+            variant="ghost"
             phx-click="close_drawer"
-            class="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+            class="h-auto w-auto rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
           >
             <.icon name="hero-x-mark" class="size-4" />
-          </button>
+          </.button>
         </div>
       </div>
 

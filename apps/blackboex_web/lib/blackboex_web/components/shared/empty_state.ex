@@ -13,6 +13,7 @@ defmodule BlackboexWeb.Components.Shared.EmptyState do
   use BlackboexWeb.Component
 
   import BlackboexWeb.Components.Icon
+  import BlackboexWeb.Components.UI.SectionHeading
 
   attr :icon, :string, default: nil
   attr :icon_class, :string, default: "text-muted-foreground/60"
@@ -33,7 +34,9 @@ defmodule BlackboexWeb.Components.Shared.EmptyState do
       <div :if={@icon} class="mb-4">
         <.icon name={@icon} class={classes(["size-12", @icon_class])} />
       </div>
-      <h3 class="text-lg font-semibold">{@title}</h3>
+      <.section_heading level="h3" class="!text-lg !font-semibold !text-foreground">
+        {@title}
+      </.section_heading>
       <p :if={@description} class="mt-2 text-sm text-muted-foreground max-w-sm">
         {@description}
       </p>

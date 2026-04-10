@@ -8,6 +8,7 @@ defmodule BlackboexWeb.ApiKeyLive.Show do
   import BlackboexWeb.Components.Card
   import BlackboexWeb.Components.Shared.StatCard
   import BlackboexWeb.Components.Shared.DescriptionList
+  import BlackboexWeb.Components.UI.SectionHeading
 
   alias Blackboex.Apis.Keys
   alias Blackboex.Policy
@@ -89,18 +90,27 @@ defmodule BlackboexWeb.ApiKeyLive.Show do
           <code class="block bg-accent text-accent-foreground p-2 rounded font-mono text-sm break-all select-all">
             {@plain_key_flash}
           </code>
-          <button phx-click="dismiss_flash" class="text-primary hover:underline text-xs">
+          <.button
+            phx-click="dismiss_flash"
+            variant="link"
+            size="sm"
+            class="text-primary hover:underline text-xs"
+          >
             Dismiss
-          </button>
+          </.button>
         </div>
       <% end %>
 
       <%!-- Metrics --%>
       <div class="space-y-4">
         <div class="flex items-center justify-between">
-          <h2 class="flex items-center gap-2 text-lg font-semibold">
-            <.icon name="hero-chart-bar" class="size-4 text-sky-400" /> Usage
-          </h2>
+          <.section_heading
+            icon="hero-chart-bar"
+            icon_class="size-4 text-sky-400"
+            heading_class="text-lg font-semibold gap-2"
+          >
+            Usage
+          </.section_heading>
           <div class="flex gap-1 rounded-lg border p-0.5">
             <.button
               :for={p <- ~w(24h 7d 30d)}
@@ -129,9 +139,14 @@ defmodule BlackboexWeb.ApiKeyLive.Show do
       <%!-- Details --%>
       <.card>
         <.card_content class="pt-6">
-          <h2 class="flex items-center gap-2 text-lg font-semibold mb-4">
-            <.icon name="hero-information-circle" class="size-4 text-blue-400" /> Details
-          </h2>
+          <.section_heading
+            icon="hero-information-circle"
+            icon_class="size-4 text-blue-400"
+            class="mb-4"
+            heading_class="text-lg font-semibold gap-2"
+          >
+            Details
+          </.section_heading>
           <.description_list>
             <:item label="Key Prefix">
               <span class="font-mono">{@key.key_prefix}</span>

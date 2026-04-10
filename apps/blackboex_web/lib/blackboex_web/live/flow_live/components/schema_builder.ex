@@ -8,6 +8,9 @@ defmodule BlackboexWeb.FlowLive.Components.SchemaBuilder do
 
   use BlackboexWeb, :html
 
+  import BlackboexWeb.Components.UI.FieldLabel
+  import BlackboexWeb.Components.UI.InlineSelect
+
   alias BlackboexWeb.FlowLive.Components.SchemaBuilder.FieldComponents
 
   import FieldComponents
@@ -38,16 +41,17 @@ defmodule BlackboexWeb.FlowLive.Components.SchemaBuilder do
     ~H"""
     <div class="space-y-1">
       <div class="flex items-center justify-between mb-1">
-        <label class="text-xs font-medium text-muted-foreground">{@label}</label>
-        <button
+        <.field_label class="mb-0">{@label}</.field_label>
+        <.button
           type="button"
+          variant="ghost"
           phx-click="schema_add_field"
           phx-value-schema-id={@schema_id}
           phx-value-path=""
-          class="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
+          class="h-auto w-auto inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
         >
           <.icon name="hero-plus-mini" class="size-3" /> Add
-        </button>
+        </.button>
       </div>
 
       <div :if={@fields == []} class="text-[10px] text-muted-foreground italic py-1.5 text-center">
@@ -81,26 +85,19 @@ defmodule BlackboexWeb.FlowLive.Components.SchemaBuilder do
 
     ~H"""
     <div :if={@response_schema != []} class="space-y-1 mt-2">
-      <label class="text-xs font-medium text-muted-foreground">Field → State Mapping</label>
+      <.field_label class="mb-0">Field → State Mapping</.field_label>
       <div :for={field <- @response_schema} class="flex items-center gap-1.5 py-0.5">
         <span class="text-[10px] font-mono text-muted-foreground min-w-[60px] truncate">
           {field["name"]}
         </span>
         <.icon name="hero-arrow-right-mini" class="size-2.5 text-muted-foreground/50 shrink-0" />
-        <select
+        <.inline_select
+          value={SchemaUtils.find_mapped_variable(@mapping, field["name"])}
+          options={[{"—", ""} | Enum.map(@state_variables, &{&1, &1})]}
           phx-change="schema_update_mapping"
           phx-value-response-field={field["name"]}
-          class="flex-1 rounded border-0 bg-transparent py-0 pl-0 pr-4 text-[10px] text-muted-foreground focus:outline-none focus:ring-0 cursor-pointer"
-        >
-          <option value="">—</option>
-          <option
-            :for={var <- @state_variables}
-            value={var}
-            selected={var == SchemaUtils.find_mapped_variable(@mapping, field["name"])}
-          >
-            {var}
-          </option>
-        </select>
+          class="flex-1 rounded-none border-0 bg-transparent py-0 pl-0 pr-4 text-[10px] text-muted-foreground cursor-pointer focus-visible:ring-0 focus-visible:ring-offset-0"
+        />
       </div>
     </div>
     """

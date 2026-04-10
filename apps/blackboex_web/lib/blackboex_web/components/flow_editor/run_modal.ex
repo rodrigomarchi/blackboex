@@ -5,6 +5,9 @@ defmodule BlackboexWeb.Components.FlowEditor.RunModal do
 
   use BlackboexWeb, :html
 
+  import BlackboexWeb.Components.UI.FieldLabel
+  import BlackboexWeb.Components.UI.SectionHeading
+
   attr :run_input, :string, required: true
   attr :running, :boolean, default: false
   attr :run_result, :any, default: nil
@@ -18,22 +21,20 @@ defmodule BlackboexWeb.Components.FlowEditor.RunModal do
         phx-click-away="close_run_modal"
       >
         <div class="flex items-center justify-between border-b px-5 py-3">
-          <div class="flex items-center gap-2">
-            <.icon name="hero-play" class="size-5 text-green-500" />
-            <h2 class="text-sm font-semibold">Test Run</h2>
-          </div>
-          <button
+          <.section_heading icon="hero-play" icon_class="size-5 text-green-500">
+            Test Run
+          </.section_heading>
+          <.button
+            variant="ghost"
             phx-click="close_run_modal"
-            class="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+            class="h-auto w-auto rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
           >
             <.icon name="hero-x-mark" class="size-5" />
-          </button>
+          </.button>
         </div>
         <div class="flex-1 overflow-auto p-5 space-y-4">
           <div>
-            <label class="block text-xs font-medium text-muted-foreground mb-1.5">
-              Input (JSON)
-            </label>
+            <.field_label>Input (JSON)</.field_label>
             <div
               id="code-editor-run-input"
               phx-hook="CodeEditor"

@@ -83,15 +83,18 @@ defmodule BlackboexWeb.Layouts do
           <% end %>
 
           <%!-- Mobile hamburger --%>
-          <button
-            class="inline-flex items-center justify-center rounded-md p-2 hover:bg-accent md:hidden"
+          <.button
+            type="button"
+            variant="ghost"
+            size="icon"
+            class="h-auto w-auto p-2 md:hidden"
             phx-click={toggle_mobile_menu()}
           >
             <span id="mobile-menu-open"><.icon name="hero-bars-3" class="size-5" /></span>
             <span id="mobile-menu-close" class="hidden">
               <.icon name="hero-x-mark" class="size-5" />
             </span>
-          </button>
+          </.button>
         </div>
       </header>
 
@@ -272,29 +275,38 @@ defmodule BlackboexWeb.Layouts do
     <div class="relative flex flex-row items-center border-2 border-border bg-muted rounded-full">
       <div class="absolute w-1/3 h-full rounded-full border border-border bg-background left-0 [[data-theme=light]_&]:left-1/3 [[data-theme=dark]_&]:left-2/3 transition-[left]" />
 
-      <button
-        class="flex p-2 cursor-pointer w-1/3"
+      <.button
+        type="button"
+        variant="ghost"
+        size="icon"
+        class="flex h-auto w-1/3 cursor-pointer rounded-none p-2"
         phx-click={JS.dispatch("phx:set-theme")}
         data-phx-theme="system"
       >
         <.icon name="hero-computer-desktop-micro" class="size-4 opacity-75 hover:opacity-100" />
-      </button>
+      </.button>
 
-      <button
-        class="flex p-2 cursor-pointer w-1/3"
+      <.button
+        type="button"
+        variant="ghost"
+        size="icon"
+        class="flex h-auto w-1/3 cursor-pointer rounded-none p-2"
         phx-click={JS.dispatch("phx:set-theme")}
         data-phx-theme="light"
       >
         <.icon name="hero-sun-micro" class="size-4 opacity-75 hover:opacity-100" />
-      </button>
+      </.button>
 
-      <button
-        class="flex p-2 cursor-pointer w-1/3"
+      <.button
+        type="button"
+        variant="ghost"
+        size="icon"
+        class="flex h-auto w-1/3 cursor-pointer rounded-none p-2"
         phx-click={JS.dispatch("phx:set-theme")}
         data-phx-theme="dark"
       >
         <.icon name="hero-moon-micro" class="size-4 opacity-75 hover:opacity-100" />
-      </button>
+      </.button>
     </div>
     """
   end

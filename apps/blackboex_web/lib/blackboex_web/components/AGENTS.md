@@ -39,6 +39,12 @@ Violation of this rule creates inconsistent UI, breaks dark mode, bypasses seman
 | User avatar | `<.avatar>` | `ui/avatar.ex` |
 | Virtual file tree | `<.file_tree>` | `editor/file_tree.ex` |
 | File editor display | `<.file_editor>` | `editor/file_editor.ex` |
+| Section title | `<.section_heading>` | `ui/section_heading.ex` |
+| Form-free label | `<.field_label>` | `ui/field_label.ex` |
+| Form-free input | `<.inline_input>` | `ui/inline_input.ex` |
+| Form-free select | `<.inline_select>` | `ui/inline_select.ex` |
+| Form-free textarea | `<.inline_textarea>` | `ui/inline_textarea.ex` |
+| Status dot | `<.status_dot>` | `ui/status_dot.ex` |
 
 ---
 
@@ -48,7 +54,7 @@ Violation of this rule creates inconsistent UI, breaks dark mode, bypasses seman
 `Icon`, `Button`, `Flash`/`flash_group`, `FormField` (`<.input>`), `Table`, `Header`, `Helpers`, `StatusHelpers`, `Logo`, `JS`
 
 **Explicit import required** (add to LiveView module):
-`Badge`, `Card`, `Modal`, `DropdownMenu`, `Tabs`, `Avatar`, `Separator`, `Label`, `Input` (raw), `Sheet`, `Sidebar`, `Tooltip`, `Spinner`, `Skeleton`, `Shared.Charts`, `Shared.StatCard`, `Shared.EmptyState`, `Shared.ProgressBar`, `Shared.DescriptionList`
+`Badge`, `Card`, `Modal`, `DropdownMenu`, `Tabs`, `Avatar`, `Separator`, `Label`, `Input` (raw), `Sheet`, `Sidebar`, `Tooltip`, `Spinner`, `Skeleton`, `SectionHeading`, `FieldLabel`, `InlineInput`, `InlineSelect`, `InlineTextarea`, `StatusDot`, `Shared.Charts`, `Shared.StatCard`, `Shared.EmptyState`, `Shared.ProgressBar`, `Shared.DescriptionList`
 
 All from `BlackboexWeb.Components.*`.
 
@@ -288,6 +294,131 @@ Module: `BlackboexWeb.Components.Label` — attrs: `class`, global `for`.
 
 ```heex
 <.label for="email">Email address</.label>
+```
+
+---
+
+#### `<.section_heading>`
+
+Module: `BlackboexWeb.Components.UI.SectionHeading`
+
+Semantic heading for in-page section titles. Replaces repeated `<h2>`/`<h3>` + icon + description patterns.
+
+| Attr | Type | Default | Description |
+|------|------|---------|-------------|
+| `level` | `:string` | `"h2"` | `h1`, `h2`, `h3` |
+| `icon` | `:string` | `nil` | Hero icon name |
+| `icon_class` | `:string` | `"size-4 text-muted-foreground"` | Icon CSS classes |
+| `class` | `:any` | `nil` | Wrapper div classes |
+| `heading_class` | `:any` | `nil` | Override heading element classes |
+
+Slot: `:inner_block` (required), `:description` (optional)
+
+```heex
+<.section_heading>Section Title</.section_heading>
+<.section_heading level="h3" icon="hero-cog-6-tooth">Settings</.section_heading>
+<.section_heading>
+  API Keys
+  <:description>Manage access tokens for this API.</:description>
+</.section_heading>
+```
+
+---
+
+#### `<.field_label>`
+
+Module: `BlackboexWeb.Components.UI.FieldLabel`
+
+Label with optional icon for form-free contexts (property panels, inline editors). Replaces the repeated `<label>` + icon pattern in flow editor.
+
+| Attr | Type | Default | Description |
+|------|------|---------|-------------|
+| `icon` | `:string` | `nil` | Hero icon name |
+| `icon_color` | `:string` | `"text-blue-400"` | Icon color class |
+| `class` | `:any` | `nil` | Additional classes |
+
+Slot: `:inner_block` (required)
+
+```heex
+<.field_label icon="hero-code-bracket" icon_color="text-purple-400">Code</.field_label>
+```
+
+---
+
+#### `<.inline_input>`
+
+Module: `BlackboexWeb.Components.UI.InlineInput`
+
+Minimal input without form wrapper. For use outside `<.form>` contexts (property panels, inline edits).
+
+| Attr | Type | Default | Description |
+|------|------|---------|-------------|
+| `type` | `:string` | `"text"` | `text`, `number`, `password` |
+| `value` | `:any` | `nil` | Current value |
+| `placeholder` | `:string` | `nil` | Placeholder text |
+| `class` | `:any` | `nil` | Additional classes |
+| `rest` | global | — | `phx-blur`, `phx-change`, `phx-value-*`, etc. |
+
+```heex
+<.inline_input value={@value} phx-blur="update_field" phx-value-field="name" />
+```
+
+---
+
+#### `<.inline_select>`
+
+Module: `BlackboexWeb.Components.UI.InlineSelect`
+
+Minimal select without form wrapper. For property panels and inline configuration.
+
+| Attr | Type | Default | Description |
+|------|------|---------|-------------|
+| `options` | `:list` | required | List of `{label, value}` tuples |
+| `value` | `:any` | `nil` | Currently selected value |
+| `name` | `:string` | `nil` | Input name |
+| `class` | `:any` | `nil` | Additional classes |
+| `rest` | global | — | `phx-change`, `phx-value-*`, etc. |
+
+```heex
+<.inline_select options={[{"GET", "GET"}, {"POST", "POST"}]} value={@method} phx-change="set_method" />
+```
+
+---
+
+#### `<.inline_textarea>`
+
+Module: `BlackboexWeb.Components.UI.InlineTextarea`
+
+Minimal textarea without form wrapper. For property panels and inline editors.
+
+| Attr | Type | Default | Description |
+|------|------|---------|-------------|
+| `value` | `:any` | `nil` | Current value |
+| `placeholder` | `:string` | `nil` | Placeholder text |
+| `class` | `:any` | `nil` | Additional classes |
+| `rest` | global | — | `phx-blur`, `phx-change`, `rows`, etc. |
+
+```heex
+<.inline_textarea value={@description} phx-blur="update_description" rows="3" />
+```
+
+---
+
+#### `<.status_dot>`
+
+Module: `BlackboexWeb.Components.UI.StatusDot`
+
+Colored dot + label for entity status. Replaces the repeated `<span>` with `rounded-full bg-*` pattern.
+
+| Attr | Type | Default | Description |
+|------|------|---------|-------------|
+| `status` | `:string` | required | Status key (e.g. `"active"`, `"draft"`, `"running"`, `"completed"`, `"failed"`) |
+
+Status colors are built-in: green (active/completed/success), yellow (draft/pending/running), red (failed/error/cancelled), blue (paused), gray (default).
+
+```heex
+<.status_dot status="active" />
+<.status_dot status="failed" />
 ```
 
 ---

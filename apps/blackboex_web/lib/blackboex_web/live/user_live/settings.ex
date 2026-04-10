@@ -40,12 +40,12 @@ defmodule BlackboexWeb.UserLive.Settings do
       phx-submit="update_password"
       phx-trigger-action={@trigger_submit}
     >
-      <input
-        name={@password_form[:email].name}
+      <.input
+        field={@password_form[:email]}
         type="hidden"
         id="hidden_user_email"
-        spellcheck="false"
         value={@current_email}
+        spellcheck="false"
       />
       <.input
         field={@password_form[:password]}

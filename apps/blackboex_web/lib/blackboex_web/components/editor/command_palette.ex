@@ -5,6 +5,8 @@ defmodule BlackboexWeb.Components.Editor.CommandPalette do
   """
   use BlackboexWeb, :html
 
+  import BlackboexWeb.Components.UI.InlineInput
+
   attr :open, :boolean, default: false
   attr :query, :string, default: ""
   attr :api, :map, required: true
@@ -25,31 +27,36 @@ defmodule BlackboexWeb.Components.Editor.CommandPalette do
 
       <%!-- Palette --%>
       <div class="relative z-10 w-full max-w-md rounded-lg border bg-card text-card-foreground shadow-2xl overflow-hidden">
-        <form phx-change="command_palette_search" phx-submit="command_palette_exec_first">
+        <.form
+          for={%{}}
+          as={:command}
+          phx-change="command_palette_search"
+          phx-submit="command_palette_exec_first"
+        >
           <div class="border-b px-3 py-2">
-            <input
+            <.inline_input
               id="command-palette-input"
-              type="text"
               name="command_query"
               value={@query}
               phx-debounce="50"
               placeholder="Search commands..."
-              class="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              class="w-full rounded-none border-0 px-0 py-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground"
               autofocus
               autocomplete="off"
               phx-hook="CommandPaletteNav"
             />
           </div>
-        </form>
+        </.form>
 
         <div class="max-h-80 overflow-y-auto py-1" id="command-palette-list">
-          <button
+          <.button
             :for={{cmd, idx} <- Enum.with_index(@filtered_commands)}
+            variant="ghost"
             phx-click="command_palette_exec"
             phx-value-event={cmd.event}
             data-cmd-index={idx}
             class={[
-              "flex w-full items-center justify-between px-3 py-2 text-sm text-left",
+              "h-auto rounded-none flex w-full items-center justify-between px-3 py-2 text-sm text-left",
               if(idx == @selected_index,
                 do: "bg-accent",
                 else: "hover:bg-accent"
@@ -60,7 +67,7 @@ defmodule BlackboexWeb.Components.Editor.CommandPalette do
             <kbd :if={cmd.shortcut} class="text-[10px] font-mono text-muted-foreground">
               {cmd.shortcut}
             </kbd>
-          </button>
+          </.button>
           <p
             :if={@filtered_commands == []}
             class="px-3 py-4 text-sm text-muted-foreground text-center"

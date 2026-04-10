@@ -20,7 +20,7 @@ defmodule BlackboexWeb.UserLive.Confirmation do
         action={~p"/users/log-in?_action=confirmed"}
         phx-trigger-action={@trigger_submit}
       >
-        <input type="hidden" name={@form[:token].name} value={@form[:token].value} />
+        <.input type="hidden" field={@form[:token]} />
         <.button
           name={@form[:remember_me].name}
           value="true"
@@ -45,7 +45,7 @@ defmodule BlackboexWeb.UserLive.Confirmation do
         action={~p"/users/log-in"}
         phx-trigger-action={@trigger_submit}
       >
-        <input type="hidden" name={@form[:token].name} value={@form[:token].value} />
+        <.input type="hidden" field={@form[:token]} />
         <%= if @current_scope do %>
           <.button phx-disable-with="Logging in..." class="w-full">
             <.icon name="hero-arrow-right-end-on-rectangle" class="mr-1.5 size-3.5 text-amber-300" />

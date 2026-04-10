@@ -39,6 +39,8 @@ defmodule BlackboexWeb.Components.Sheet do
   """
   use BlackboexWeb.Component
 
+  import BlackboexWeb.Components.Button
+
   attr :class, :string, default: "inline-block"
   slot :inner_block, required: true
 
@@ -133,9 +135,11 @@ defmodule BlackboexWeb.Components.Sheet do
           <%= if close_btn = render_slot(@custom_close_btn) do %>
             {close_btn}
           <% else %>
-            <button
+            <.button
               type="button"
-              class="ring-offset-background absolute top-4 right-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:ring-ring focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:pointer-events-none"
+              variant="ghost"
+              size="icon"
+              class="ring-offset-background absolute top-4 right-4 h-auto w-auto rounded-sm p-0 opacity-70 hover:bg-transparent hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
               phx-click={hide_sheet(@id, @side)}
             >
               <svg
@@ -150,7 +154,7 @@ defmodule BlackboexWeb.Components.Sheet do
               </svg>
 
               <span class="sr-only">Close</span>
-            </button>
+            </.button>
           <% end %>
         </div>
       </.focus_wrap>

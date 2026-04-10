@@ -10,6 +10,8 @@ defmodule BlackboexWeb.Components.Modal do
   """
   use BlackboexWeb.Component
 
+  import BlackboexWeb.Components.Button
+
   attr :show, :boolean, required: true
   attr :on_close, :string, required: true
   attr :title, :string, default: nil
@@ -39,9 +41,11 @@ defmodule BlackboexWeb.Components.Modal do
           <h2 :if={@title} class="text-lg font-semibold leading-none tracking-tight">
             {@title}
           </h2>
-          <button
+          <.button
             type="button"
-            class="ml-auto -mt-1 -mr-1 inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+            variant="ghost"
+            size="icon"
+            class="ml-auto -mt-1 -mr-1 h-8 w-8 text-muted-foreground"
             phx-click={@on_close}
             aria-label="Close"
           >
@@ -55,7 +59,7 @@ defmodule BlackboexWeb.Components.Modal do
             >
               <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
-          </button>
+          </.button>
         </div>
         {render_slot(@inner_block)}
       </div>

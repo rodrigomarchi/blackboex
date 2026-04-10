@@ -7,6 +7,7 @@ defmodule BlackboexWeb.ApiLive.Edit.MetricsLive do
 
   import Ecto.Query
   import BlackboexWeb.ApiLive.Edit.EditorShell
+  import BlackboexWeb.Components.UI.SectionHeading
 
   alias Blackboex.Apis.Analytics
   alias Blackboex.Apis.MetricRollup
@@ -35,22 +36,21 @@ defmodule BlackboexWeb.ApiLive.Edit.MetricsLive do
     <.editor_shell {shared_shell_assigns(assigns)} active_tab="metrics">
       <div class="p-6 overflow-y-auto h-full space-y-6">
         <div class="flex items-center justify-between">
-          <h2 class="text-sm font-semibold">Metrics</h2>
+          <.section_heading level="h2" class="gap-0">Metrics</.section_heading>
           <div class="flex gap-1">
-            <button
+            <.button
               :for={period <- ["24h", "7d", "30d"]}
               phx-click="change_metrics_period"
               phx-value-period={period}
+              variant={if @metrics_period == period, do: "primary", else: "ghost"}
+              size="sm"
               class={[
                 "px-3 py-1 rounded-md text-xs font-medium",
-                if(@metrics_period == period,
-                  do: "bg-primary text-primary-foreground",
-                  else: "bg-muted text-muted-foreground hover:bg-accent"
-                )
+                @metrics_period != period && "bg-muted text-muted-foreground hover:bg-accent"
               ]}
             >
               {period}
-            </button>
+            </.button>
           </div>
         </div>
 
@@ -118,7 +118,9 @@ defmodule BlackboexWeb.ApiLive.Edit.MetricsLive do
         <%!-- Recent Errors --%>
         <%= if @recent_errors != [] do %>
           <div class="space-y-3">
-            <h3 class="text-sm font-semibold">Recent Errors</h3>
+            <.section_heading level="h3" heading_class="text-sm font-semibold text-foreground">
+              Recent Errors
+            </.section_heading>
             <div class="rounded-lg border divide-y">
               <div
                 :for={error <- @recent_errors}

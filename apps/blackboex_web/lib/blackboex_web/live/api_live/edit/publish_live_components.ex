@@ -6,6 +6,9 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLiveComponents do
 
   use BlackboexWeb, :html
 
+  import BlackboexWeb.Components.UI.FieldLabel
+  import BlackboexWeb.Components.UI.SectionHeading
+
   import BlackboexWeb.ApiLive.Edit.Helpers, only: [time_ago: 1]
 
   import BlackboexWeb.ApiLive.Edit.PublishLiveHelpers,
@@ -37,34 +40,34 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLiveComponents do
             {@api.status}
           </span>
         </div>
-        <%= if @api.status == "compiled" do %>
-          <button
-            phx-click="publish"
-            class="inline-flex items-center rounded-md bg-info px-3 py-1.5 text-xs font-medium text-info-foreground hover:bg-info/90"
-          >
-            <.icon name="hero-rocket-launch" class="mr-1.5 size-3.5" /> Publish API
-          </button>
-        <% end %>
-        <%= if @api.status == "published" do %>
-          <button
-            phx-click="request_confirm"
-            phx-value-action="unpublish"
-            class="inline-flex items-center rounded-md border border-destructive px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10"
-          >
-            <.icon name="hero-arrow-down-circle" class="mr-1.5 size-3.5" /> Unpublish
-          </button>
-        <% end %>
+        <.button
+          :if={@api.status == "compiled"}
+          phx-click="publish"
+          class="h-auto inline-flex items-center rounded-md bg-info px-3 py-1.5 text-xs font-medium text-info-foreground hover:bg-info/90"
+        >
+          <.icon name="hero-rocket-launch" class="mr-1.5 size-3.5" /> Publish API
+        </.button>
+        <.button
+          :if={@api.status == "published"}
+          variant="outline"
+          phx-click="request_confirm"
+          phx-value-action="unpublish"
+          class="h-auto inline-flex items-center rounded-md border-destructive px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10"
+        >
+          <.icon name="hero-arrow-down-circle" class="mr-1.5 size-3.5" /> Unpublish
+        </.button>
       </div>
 
       <div class="flex items-center gap-2 text-xs">
         <span class="text-muted-foreground">URL</span>
         <code class="font-mono">/api/{@org.slug}/{@api.slug}</code>
-        <button
+        <.button
+          variant="ghost"
           phx-click="copy_url"
-          class="inline-flex items-center text-primary hover:underline text-[10px]"
+          class="h-auto w-auto p-0 inline-flex items-center text-primary hover:underline text-[10px] hover:bg-transparent"
         >
           <.icon name="hero-clipboard-document-mini" class="mr-1 size-3 text-sky-400" />Copy
-        </button>
+        </.button>
         <%= if @api.status == "draft" do %>
           <span class="text-muted-foreground">(preview)</span>
         <% end %>
@@ -98,7 +101,7 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLiveComponents do
   def version_timeline(assigns) do
     ~H"""
     <div>
-      <h3 class="text-xs font-semibold text-muted-foreground uppercase mb-3">Versions</h3>
+      <.section_heading level="h3" class="uppercase mb-3">Versions</.section_heading>
       <%= if @versions == [] do %>
         <p class="text-sm text-muted-foreground">
           No versions yet. Save to create the first version.
@@ -141,23 +144,24 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLiveComponents do
               </div>
 
               <div class="flex gap-2">
-                <button
+                <.button
+                  variant="ghost"
                   phx-click="view_version"
                   phx-value-number={version.version_number}
-                  class="inline-flex items-center text-primary hover:underline"
+                  class="h-auto w-auto p-0 inline-flex items-center text-primary hover:underline hover:bg-transparent"
                 >
                   <.icon name="hero-eye-mini" class="mr-1 size-3" />View
-                </button>
-                <%= if can_publish_version?(version, @published_version, @api_status) do %>
-                  <button
-                    phx-click="request_confirm"
-                    phx-value-action="publish_version"
-                    phx-value-number={version.version_number}
-                    class="inline-flex items-center text-info hover:underline font-medium"
-                  >
-                    <.icon name="hero-rocket-launch-mini" class="mr-1 size-3" />Publish this version
-                  </button>
-                <% end %>
+                </.button>
+                <.button
+                  :if={can_publish_version?(version, @published_version, @api_status)}
+                  variant="ghost"
+                  phx-click="request_confirm"
+                  phx-value-action="publish_version"
+                  phx-value-number={version.version_number}
+                  class="h-auto w-auto p-0 inline-flex items-center text-info hover:underline font-medium hover:bg-transparent"
+                >
+                  <.icon name="hero-rocket-launch-mini" class="mr-1 size-3" />Publish this version
+                </.button>
               </div>
             </div>
           <% end %>
@@ -175,7 +179,7 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLiveComponents do
   def metrics_grid(assigns) do
     ~H"""
     <div>
-      <h3 class="text-xs font-semibold text-muted-foreground uppercase mb-3">Metrics (24h)</h3>
+      <.section_heading level="h3" class="uppercase mb-3">Metrics (24h)</.section_heading>
       <div class="grid grid-cols-4 gap-3">
         <div class="rounded-lg border p-3 text-center">
           <p class="text-xl font-bold">{@metrics.count_24h}</p>
@@ -213,31 +217,31 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLiveComponents do
   def auth_section(assigns) do
     ~H"""
     <div>
-      <h3 class="text-xs font-semibold text-muted-foreground uppercase mb-3">Authentication</h3>
+      <.section_heading level="h3" class="uppercase mb-3">Authentication</.section_heading>
       <div class="rounded-lg border p-4 space-y-3">
-        <form phx-submit="save_publish_settings">
+        <.form for={%{}} as={:publish_settings} phx-submit="save_publish_settings">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
-              <input
+              <.input
                 type="checkbox"
                 id="requires_auth"
                 name="requires_auth"
-                value="true"
-                checked={@api.requires_auth}
+                value={@api.requires_auth}
                 class="rounded border"
               />
-              <label for="requires_auth" class="text-xs font-medium">
+              <.field_label for="requires_auth" class="mb-0">
                 Require API key
-              </label>
+              </.field_label>
             </div>
-            <button
+            <.button
               type="submit"
-              class="inline-flex items-center rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+              variant="primary"
+              class="h-auto inline-flex items-center rounded-md px-3 py-1.5 text-xs font-medium"
             >
               <.icon name="hero-check" class="mr-1.5 size-3.5" /> Save
-            </button>
+            </.button>
           </div>
-        </form>
+        </.form>
 
         <div class="border-t pt-3 space-y-2">
           <div class="flex items-center justify-between text-xs">
@@ -247,12 +251,12 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLiveComponents do
                 , {@keys_summary.revoked_count} revoked
               <% end %>
             </span>
-            <a
+            <.link
               href="/api-keys"
               class="inline-flex items-center text-primary hover:underline text-xs font-medium"
             >
               <.icon name="hero-key-mini" class="mr-1 size-3 text-amber-400" />Manage Keys
-            </a>
+            </.link>
           </div>
           <%= if @keys_summary.active_keys != [] do %>
             <div class="flex flex-wrap gap-1">
@@ -279,33 +283,33 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLiveComponents do
   def docs_section(assigns) do
     ~H"""
     <div>
-      <h3 class="text-xs font-semibold text-muted-foreground uppercase mb-3">Documentation</h3>
+      <.section_heading level="h3" class="uppercase mb-3">Documentation</.section_heading>
       <div class="space-y-2">
         <div class="flex items-center justify-between rounded border p-3">
           <div class="flex items-center gap-2">
             <.icon name="hero-document-text" class="size-4 text-blue-400" />
             <span class="text-sm">Swagger UI</span>
           </div>
-          <a
+          <.link
             href={"/api/#{@org.slug}/#{@api.slug}/docs"}
             target="_blank"
             class="text-xs text-primary hover:underline"
           >
             Open
-          </a>
+          </.link>
         </div>
         <div class="flex items-center justify-between rounded border p-3">
           <div class="flex items-center gap-2">
             <.icon name="hero-code-bracket" class="size-4 text-purple-400" />
             <span class="text-sm">OpenAPI JSON</span>
           </div>
-          <a
+          <.link
             href={"/api/#{@org.slug}/#{@api.slug}/openapi.json"}
             target="_blank"
             class="text-xs text-primary hover:underline"
           >
             Open
-          </a>
+          </.link>
         </div>
       </div>
     </div>

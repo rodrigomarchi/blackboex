@@ -6,6 +6,7 @@ defmodule BlackboexWeb.FlowLive.ExecutionShow do
   use BlackboexWeb, :live_view
 
   import BlackboexWeb.Components.Card
+  import BlackboexWeb.Components.UI.SectionHeading
 
   alias Blackboex.FlowExecutions
   alias Blackboex.Flows
@@ -57,7 +58,7 @@ defmodule BlackboexWeb.FlowLive.ExecutionShow do
           >
             <.icon name="hero-arrow-left" class="size-5" />
           </.link>
-          <h1 class="text-sm font-semibold">Execution</h1>
+          <.section_heading level="h2" class="gap-0">Execution</.section_heading>
           <span class="text-xs font-mono text-muted-foreground">
             {short_id(@execution.id)}
           </span>
@@ -184,9 +185,10 @@ defmodule BlackboexWeb.FlowLive.ExecutionShow do
             <div class="divide-y">
               <div :for={ne <- @node_executions}>
                 <% meta = node_icon(ne.node_type) %>
-                <button
+                <.button
                   type="button"
-                  class={"w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-muted/30 transition-colors #{if @expanded_node == ne.node_id, do: "bg-muted/20", else: ""}"}
+                  variant="ghost"
+                  class={"w-full h-auto justify-start rounded-none flex items-center gap-3 px-4 py-2.5 text-left hover:bg-muted/30 transition-colors #{if @expanded_node == ne.node_id, do: "bg-muted/20", else: ""}"}
                   phx-click="toggle_node"
                   phx-value-node-id={ne.node_id}
                 >
@@ -220,7 +222,7 @@ defmodule BlackboexWeb.FlowLive.ExecutionShow do
                     }
                     class="size-3.5 text-muted-foreground/50 shrink-0"
                   />
-                </button>
+                </.button>
                 <div
                   :if={@expanded_node == ne.node_id}
                   class="px-4 pb-3 pt-1 pl-10 bg-muted/10 space-y-2"

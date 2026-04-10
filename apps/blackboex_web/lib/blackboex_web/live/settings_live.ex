@@ -9,6 +9,7 @@ defmodule BlackboexWeb.SettingsLive do
   import BlackboexWeb.Components.Card
   import BlackboexWeb.Components.Avatar
   import BlackboexWeb.Components.Shared.DescriptionList
+  import BlackboexWeb.Components.UI.SectionHeading
 
   alias Blackboex.{Audit, Billing}
 
@@ -71,9 +72,13 @@ defmodule BlackboexWeb.SettingsLive do
     ~H"""
     <.card>
       <.card_content class="pt-6">
-        <h2 class="flex items-center gap-2 text-lg font-semibold">
-          <.icon name="hero-user-circle" class="size-4 text-blue-400" /> Profile
-        </h2>
+        <.section_heading
+          icon="hero-user-circle"
+          icon_class="size-4 text-blue-400"
+          heading_class="text-lg font-semibold gap-2"
+        >
+          Profile
+        </.section_heading>
 
         <div class="flex items-center gap-4 mb-6 mt-4">
           <.avatar class="h-12 w-12">
@@ -111,9 +116,13 @@ defmodule BlackboexWeb.SettingsLive do
     ~H"""
     <.card>
       <.card_content class="pt-6">
-        <h2 class="flex items-center gap-2 text-lg font-semibold">
-          <.icon name="hero-building-office-2" class="size-4 text-violet-400" /> Organization
-        </h2>
+        <.section_heading
+          icon="hero-building-office-2"
+          icon_class="size-4 text-violet-400"
+          heading_class="text-lg font-semibold gap-2"
+        >
+          Organization
+        </.section_heading>
         <p class="text-muted-foreground mt-4">No organization selected.</p>
       </.card_content>
     </.card>
@@ -124,9 +133,13 @@ defmodule BlackboexWeb.SettingsLive do
     ~H"""
     <.card>
       <.card_content class="pt-6">
-        <h2 class="flex items-center gap-2 text-lg font-semibold">
-          <.icon name="hero-building-office-2" class="size-4 text-violet-400" /> Organization
-        </h2>
+        <.section_heading
+          icon="hero-building-office-2"
+          icon_class="size-4 text-violet-400"
+          heading_class="text-lg font-semibold gap-2"
+        >
+          Organization
+        </.section_heading>
         <div class="mt-4">
           <.description_list>
             <:item label="Name">{@current_scope.organization.name}</:item>
@@ -143,9 +156,14 @@ defmodule BlackboexWeb.SettingsLive do
         </div>
 
         <div :if={@members != []} class="mt-6">
-          <h3 class="flex items-center gap-1.5 font-semibold mb-2">
-            <.icon name="hero-user-group" class="size-4 text-blue-400" /> Members
-          </h3>
+          <.section_heading
+            level="h3"
+            icon="hero-user-group"
+            icon_class="size-4 text-blue-400"
+            heading_class="font-semibold text-foreground mb-2"
+          >
+            Members
+          </.section_heading>
           <div class="space-y-2">
             <div
               :for={member <- @members}
@@ -165,9 +183,13 @@ defmodule BlackboexWeb.SettingsLive do
     ~H"""
     <.card>
       <.card_content class="pt-6">
-        <h2 class="flex items-center gap-2 text-lg font-semibold">
-          <.icon name="hero-credit-card" class="size-4 text-emerald-400" /> Billing
-        </h2>
+        <.section_heading
+          icon="hero-credit-card"
+          icon_class="size-4 text-emerald-400"
+          heading_class="text-lg font-semibold gap-2"
+        >
+          Billing
+        </.section_heading>
         <p class="text-muted-foreground mt-4">No organization selected.</p>
       </.card_content>
     </.card>
@@ -178,9 +200,13 @@ defmodule BlackboexWeb.SettingsLive do
     ~H"""
     <.card>
       <.card_content class="pt-6">
-        <h2 class="flex items-center gap-2 text-lg font-semibold">
-          <.icon name="hero-credit-card" class="size-4 text-emerald-400" /> Billing
-        </h2>
+        <.section_heading
+          icon="hero-credit-card"
+          icon_class="size-4 text-emerald-400"
+          heading_class="text-lg font-semibold gap-2"
+        >
+          Billing
+        </.section_heading>
         <div class="mt-4">
           <.description_list>
             <:item label="Current Plan">
@@ -214,18 +240,27 @@ defmodule BlackboexWeb.SettingsLive do
     ~H"""
     <.card>
       <.card_content class="pt-6">
-        <h2 class="flex items-center gap-2 text-lg font-semibold">
-          <.icon name="hero-shield-check" class="size-4 text-teal-400" /> Security & Audit
-        </h2>
+        <.section_heading
+          icon="hero-shield-check"
+          icon_class="size-4 text-teal-400"
+          heading_class="text-lg font-semibold gap-2"
+        >
+          Security & Audit
+        </.section_heading>
 
         <div :if={@audit_logs == []} class="mt-4 text-muted-foreground">
           No recent activity.
         </div>
 
         <div :if={@audit_logs != []} class="mt-4">
-          <h3 class="flex items-center gap-1.5 font-semibold mb-2">
-            <.icon name="hero-clock" class="size-4 text-amber-400" /> Recent Activity
-          </h3>
+          <.section_heading
+            level="h3"
+            icon="hero-clock"
+            icon_class="size-4 text-amber-400"
+            heading_class="font-semibold text-foreground mb-2"
+          >
+            Recent Activity
+          </.section_heading>
           <div class="space-y-2">
             <div
               :for={log <- @audit_logs}

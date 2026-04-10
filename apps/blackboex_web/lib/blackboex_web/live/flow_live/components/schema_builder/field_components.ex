@@ -3,6 +3,11 @@ defmodule BlackboexWeb.FlowLive.Components.SchemaBuilder.FieldComponents do
 
   use BlackboexWeb, :html
 
+  import BlackboexWeb.Components.UI.FieldLabel
+  import BlackboexWeb.Components.UI.InlineInput
+  import BlackboexWeb.Components.UI.InlineSelect
+  import BlackboexWeb.Components.UI.InlineTextarea
+
   alias Blackboex.Flows.SchemaUtils
 
   @type_options [
@@ -79,33 +84,31 @@ defmodule BlackboexWeb.FlowLive.Components.SchemaBuilder.FieldComponents do
         <.icon name={type_icon(@field_type)} class={"size-3.5 shrink-0 #{type_color(@field_type)}"} />
 
         <%!-- Field name --%>
-        <input
-          type="text"
+        <.inline_input
           value={@field["name"] || ""}
           placeholder="name"
           phx-blur="schema_update_field"
           phx-value-schema-id={@schema_id}
           phx-value-path={@field_path}
           phx-value-prop="name"
-          class="flex-1 min-w-0 bg-transparent px-1 py-0 text-xs border-0 focus:outline-none focus:ring-0 placeholder:text-muted-foreground/50"
+          class="flex-1 min-w-0 rounded-none border-0 bg-transparent px-1 py-0 text-xs focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground/50"
         />
 
         <%!-- Type select (compact) --%>
-        <select
+        <.inline_select
+          value={@field_type}
+          options={type_options()}
           phx-change="schema_update_field"
           phx-value-schema-id={@schema_id}
           phx-value-path={@field_path}
           phx-value-prop="type"
-          class="rounded border-0 bg-transparent py-0 pl-0 pr-4 text-[10px] font-medium text-muted-foreground focus:outline-none focus:ring-0 cursor-pointer"
-        >
-          <option :for={{label, val} <- type_options()} value={val} selected={val == @field_type}>
-            {label}
-          </option>
-        </select>
+          class="w-auto rounded-none border-0 bg-transparent py-0 pl-0 pr-4 text-[10px] font-medium text-muted-foreground cursor-pointer focus-visible:ring-0 focus-visible:ring-offset-0"
+        />
 
         <%!-- Required toggle (asterisk) --%>
-        <button
+        <.button
           type="button"
+          variant="ghost"
           phx-click="schema_update_field"
           phx-value-schema-id={@schema_id}
           phx-value-path={@field_path}
@@ -116,40 +119,42 @@ defmodule BlackboexWeb.FlowLive.Components.SchemaBuilder.FieldComponents do
               do: "Required (click to make optional)",
               else: "Optional (click to make required)"
           }
-          class={"rounded p-0.5 text-[10px] font-bold transition-colors " <>
+          class={"h-auto w-auto rounded p-0.5 text-[10px] font-bold transition-colors hover:bg-transparent " <>
             if(@field["required"] == true,
               do: "text-red-400 hover:text-red-300",
               else: "text-muted-foreground/30 hover:text-muted-foreground"
             )}
         >
           *
-        </button>
+        </.button>
 
         <%!-- Expand constraints (gear) --%>
-        <button
+        <.button
           :if={@field_type in ["string", "integer", "float", "array"] or @show_initial_value}
           type="button"
+          variant="ghost"
           phx-click={JS.toggle(to: "#constraints-#{@schema_id}-#{@field_path}")}
           title="Constraints"
-          class={"rounded p-0.5 transition-colors " <>
+          class={"h-auto w-auto rounded p-0.5 transition-colors hover:bg-transparent " <>
             if(@has_constraints,
               do: "text-primary hover:text-primary/80",
               else: "text-muted-foreground/40 hover:text-muted-foreground opacity-0 group-hover:opacity-100"
             )}
         >
           <.icon name="hero-adjustments-horizontal-mini" class="size-3" />
-        </button>
+        </.button>
 
         <%!-- Delete --%>
-        <button
+        <.button
           type="button"
+          variant="ghost"
           phx-click="schema_remove_field"
           phx-value-schema-id={@schema_id}
           phx-value-path={@field_path}
-          class="rounded p-0.5 text-muted-foreground/40 hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+          class="h-auto w-auto rounded p-0.5 text-muted-foreground/40 hover:text-destructive hover:bg-transparent opacity-0 group-hover:opacity-100 transition-opacity"
         >
           <.icon name="hero-x-mark-mini" class="size-3" />
-        </button>
+        </.button>
       </div>
 
       <%!-- Collapsible constraints panel --%>
@@ -298,21 +303,15 @@ defmodule BlackboexWeb.FlowLive.Components.SchemaBuilder.FieldComponents do
       <div class="flex gap-1.5">
         <div class="flex items-center gap-1">
           <span class="text-muted-foreground">items:</span>
-          <select
+          <.inline_select
+            value={@constraints["item_type"]}
+            options={item_type_options()}
             phx-change="schema_update_constraint"
             phx-value-schema-id={@schema_id}
             phx-value-path={@path}
             phx-value-prop="item_type"
-            class="rounded border-0 bg-background px-1 py-0 text-[10px] focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
-          >
-            <option
-              :for={{label, val} <- item_type_options()}
-              value={val}
-              selected={val == @constraints["item_type"]}
-            >
-              {label}
-            </option>
-          </select>
+            class="w-auto rounded border-0 bg-background px-1 py-0 text-[10px] cursor-pointer focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0"
+          />
         </div>
         <.inline_constraint
           label="min"
@@ -363,15 +362,16 @@ defmodule BlackboexWeb.FlowLive.Components.SchemaBuilder.FieldComponents do
         <span class="text-[10px] text-muted-foreground flex items-center gap-1">
           <.icon name="hero-cube-mini" class="size-2.5" /> fields
         </span>
-        <button
+        <.button
           type="button"
+          variant="ghost"
           phx-click="schema_add_field"
           phx-value-schema-id={@schema_id}
           phx-value-path={@path <> ".fields"}
-          class="inline-flex items-center gap-0.5 rounded px-1 py-0 text-[10px] text-muted-foreground hover:bg-accent hover:text-foreground"
+          class="h-auto w-auto inline-flex items-center gap-0.5 rounded px-1 py-0 text-[10px] text-muted-foreground hover:bg-accent hover:text-foreground"
         >
           <.icon name="hero-plus-mini" class="size-2.5" />
-        </button>
+        </.button>
       </div>
       <.schema_field_row
         :for={{nested, idx} <- Enum.with_index(@nested_fields)}
@@ -404,15 +404,16 @@ defmodule BlackboexWeb.FlowLive.Components.SchemaBuilder.FieldComponents do
         <span class="text-muted-foreground flex items-center gap-1">
           <.icon name="hero-cube-mini" class="size-2.5" /> item fields
         </span>
-        <button
+        <.button
           type="button"
+          variant="ghost"
           phx-click="schema_add_field"
           phx-value-schema-id={@schema_id}
           phx-value-path={@path <> ".constraints.item_fields"}
-          class="inline-flex items-center gap-0.5 rounded px-1 py-0 text-[10px] text-muted-foreground hover:bg-accent hover:text-foreground"
+          class="h-auto w-auto inline-flex items-center gap-0.5 rounded px-1 py-0 text-[10px] text-muted-foreground hover:bg-accent hover:text-foreground"
         >
           <.icon name="hero-plus-mini" class="size-2.5" />
-        </button>
+        </.button>
       </div>
       <.schema_field_row
         :for={{item_field, idx} <- Enum.with_index(@item_fields)}
@@ -437,7 +438,7 @@ defmodule BlackboexWeb.FlowLive.Components.SchemaBuilder.FieldComponents do
     ~H"""
     <div class="flex items-center gap-1.5">
       <span class="text-muted-foreground whitespace-nowrap">initial:</span>
-      <input
+      <.inline_input
         :if={@field["type"] in ["string", "integer", "float"]}
         type={if @field["type"] == "string", do: "text", else: "number"}
         value={SchemaUtils.format_initial_value(@field["initial_value"])}
@@ -446,13 +447,13 @@ defmodule BlackboexWeb.FlowLive.Components.SchemaBuilder.FieldComponents do
         phx-value-schema-id={@schema_id}
         phx-value-path={@path}
         phx-value-prop="initial_value"
-        class="flex-1 rounded border bg-background px-1.5 py-0 text-[10px] focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+        class="flex-1 rounded border bg-background px-1.5 py-0 text-[10px] focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0"
       />
-      <label
+      <.field_label
         :if={@field["type"] == "boolean"}
-        class="flex items-center gap-1 text-[10px] text-muted-foreground"
+        class="flex items-center gap-1 text-[10px] text-muted-foreground mb-0"
       >
-        <input
+        <.input
           type="checkbox"
           checked={@field["initial_value"] == true}
           phx-click="schema_update_field"
@@ -462,17 +463,18 @@ defmodule BlackboexWeb.FlowLive.Components.SchemaBuilder.FieldComponents do
           phx-value-value={to_string(@field["initial_value"] != true)}
           class="rounded border-muted-foreground size-3"
         /> {to_string(@field["initial_value"] || false)}
-      </label>
-      <textarea
+      </.field_label>
+      <.inline_textarea
         :if={@field["type"] in ["array", "object"]}
+        value={SchemaUtils.format_json_value(@field["initial_value"])}
+        rows="1"
+        placeholder={if @field["type"] == "array", do: "[]", else: "{}"}
         phx-blur="schema_update_field"
         phx-value-schema-id={@schema_id}
         phx-value-path={@path}
         phx-value-prop="initial_value"
-        rows="1"
-        placeholder={if @field["type"] == "array", do: "[]", else: "{}"}
-        class="flex-1 rounded border bg-background px-1.5 py-0 text-[10px] font-mono focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-      ><%= SchemaUtils.format_json_value(@field["initial_value"]) %></textarea>
+        class="flex-1 rounded border bg-background px-1.5 py-0 text-[10px] font-mono focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0"
+      />
     </div>
     """
   end
@@ -492,7 +494,7 @@ defmodule BlackboexWeb.FlowLive.Components.SchemaBuilder.FieldComponents do
     ~H"""
     <div class={"flex items-center gap-1 #{@class}"}>
       <span class="text-muted-foreground whitespace-nowrap">{@label}:</span>
-      <input
+      <.inline_input
         type={@type}
         value={@value || ""}
         placeholder={@placeholder}
@@ -500,7 +502,7 @@ defmodule BlackboexWeb.FlowLive.Components.SchemaBuilder.FieldComponents do
         phx-value-schema-id={@schema_id}
         phx-value-path={@path}
         phx-value-prop={@prop}
-        class="w-12 flex-1 rounded border bg-background px-1.5 py-0 text-[10px] focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+        class="w-12 flex-1 rounded border bg-background px-1.5 py-0 text-[10px] focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0"
       />
     </div>
     """

@@ -5,6 +5,7 @@ defmodule BlackboexWeb.Admin.DashboardLive do
   use BlackboexWeb, :live_view
 
   import Ecto.Query, warn: false
+  import BlackboexWeb.Components.UI.SectionHeading
 
   alias Blackboex.Repo
 
@@ -20,9 +21,13 @@ defmodule BlackboexWeb.Admin.DashboardLive do
     ~H"""
     <BlackboexWeb.Layouts.admin flash={@flash} current_url="/admin" live_resource={nil}>
       <div class="max-w-5xl mx-auto py-8">
-        <h1 class="text-2xl font-bold mb-8">Admin Dashboard</h1>
+        <div class="mb-8">
+          <.header>Admin Dashboard</.header>
+        </div>
 
-        <h2 class="text-lg font-semibold mb-4">Core</h2>
+        <.section_heading class="mb-4" heading_class="text-lg font-semibold">
+          Core
+        </.section_heading>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <.stat_card title="Users" value={@stats.users} icon="hero-users" href={~p"/admin/users"} />
           <.stat_card
@@ -53,7 +58,9 @@ defmodule BlackboexWeb.Admin.DashboardLive do
           />
         </div>
 
-        <h2 class="text-lg font-semibold mb-4">API Data</h2>
+        <.section_heading class="mb-4" heading_class="text-lg font-semibold">
+          API Data
+        </.section_heading>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <.stat_card
             title="API Keys"
@@ -93,7 +100,9 @@ defmodule BlackboexWeb.Admin.DashboardLive do
           />
         </div>
 
-        <h2 class="text-lg font-semibold mb-4">Billing</h2>
+        <.section_heading class="mb-4" heading_class="text-lg font-semibold">
+          Billing
+        </.section_heading>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <.stat_card
             title="Daily Usage"
@@ -115,7 +124,9 @@ defmodule BlackboexWeb.Admin.DashboardLive do
           />
         </div>
 
-        <h2 class="text-lg font-semibold mb-4">Testing</h2>
+        <.section_heading class="mb-4" heading_class="text-lg font-semibold">
+          Testing
+        </.section_heading>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <.stat_card
             title="Test Requests"
@@ -131,7 +142,9 @@ defmodule BlackboexWeb.Admin.DashboardLive do
           />
         </div>
 
-        <h2 class="text-lg font-semibold mb-4">LLM & Audit</h2>
+        <.section_heading class="mb-4" heading_class="text-lg font-semibold">
+          LLM & Audit
+        </.section_heading>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <.stat_card
             title="LLM Usage"

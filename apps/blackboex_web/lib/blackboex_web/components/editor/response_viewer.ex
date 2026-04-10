@@ -6,14 +6,21 @@ defmodule BlackboexWeb.Components.Editor.ResponseViewer do
 
   use BlackboexWeb, :live_component
 
+  import BlackboexWeb.Components.UI.SectionHeading
+
   @impl true
   def render(assigns) do
     ~H"""
     <div class="rounded-lg border bg-card text-card-foreground shadow-sm" id="response-viewer">
       <div class="flex items-center justify-between border-b px-4 py-2">
-        <h3 class="flex items-center gap-1.5 text-sm font-semibold">
-          <.icon name="hero-arrow-down-on-square-mini" class="size-3.5 text-blue-400" /> Response
-        </h3>
+        <.section_heading
+          level="h3"
+          icon="hero-arrow-down-on-square-mini"
+          icon_class="size-3.5 text-blue-400"
+          class="!text-sm !font-semibold !text-foreground"
+        >
+          Response
+        </.section_heading>
         <%= if @response do %>
           <div class="flex items-center gap-2">
             <span class={[
@@ -74,12 +81,13 @@ defmodule BlackboexWeb.Components.Editor.ResponseViewer do
           <% @response -> %>
             <div class="space-y-3">
               <div class="flex border-b">
-                <button
+                <.button
                   :for={tab <- ~w(body headers)}
+                  variant="ghost"
                   phx-click="switch_response_tab"
                   phx-value-tab={tab}
                   class={[
-                    "flex-1 px-3 py-2 text-xs font-medium border-b-2",
+                    "h-auto rounded-none flex-1 px-3 py-2 text-xs font-medium border-b-2 hover:bg-transparent",
                     if(tab == @response_tab,
                       do: "border-primary text-primary",
                       else: "border-transparent text-muted-foreground hover:text-foreground"
@@ -87,7 +95,7 @@ defmodule BlackboexWeb.Components.Editor.ResponseViewer do
                   ]}
                 >
                   {response_tab_label(tab)}
-                </button>
+                </.button>
               </div>
               {render_response_content(assigns)}
             </div>

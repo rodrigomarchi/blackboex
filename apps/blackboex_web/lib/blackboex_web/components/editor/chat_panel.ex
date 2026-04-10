@@ -7,6 +7,9 @@ defmodule BlackboexWeb.Components.Editor.ChatPanel do
 
   use BlackboexWeb, :live_component
 
+  import BlackboexWeb.Components.UI.InlineInput
+  import BlackboexWeb.Components.UI.SectionHeading
+
   import BlackboexWeb.Components.Editor.Chat.ChatMessage, only: [render_message_step: 1]
 
   import BlackboexWeb.Components.Editor.Chat.PipelineStatus,
@@ -40,16 +43,17 @@ defmodule BlackboexWeb.Components.Editor.ChatPanel do
     <div class="flex flex-col h-full overflow-hidden">
       <%!-- Header --%>
       <div class="flex items-center justify-between border-b px-4 py-2 shrink-0 bg-card">
-        <h2 class="text-sm font-semibold flex items-center gap-1.5">
-          <.icon name="hero-bolt" class="size-4 text-primary" /> Agent Timeline
-        </h2>
-        <button
+        <.section_heading icon="hero-bolt" icon_class="size-4 text-primary">
+          Agent Timeline
+        </.section_heading>
+        <.button
+          variant="ghost"
           phx-click="request_confirm"
           phx-value-action="clear_conversation"
-          class="text-xs text-muted-foreground hover:text-foreground"
+          class="h-auto w-auto p-0 text-xs text-muted-foreground hover:text-foreground hover:bg-transparent"
         >
           New conversation
-        </button>
+        </.button>
       </div>
 
       <%!-- Scrollable timeline area --%>
@@ -118,34 +122,35 @@ defmodule BlackboexWeb.Components.Editor.ChatPanel do
       <div class="border-t p-3 space-y-2 shrink-0 bg-card">
         <div class="flex flex-wrap gap-1">
           <%= for action <- quick_actions(@template_type) do %>
-            <button
+            <.button
               type="button"
+              variant="ghost"
               phx-click="quick_action"
               phx-value-text={action}
-              class="rounded-full border px-2 py-0.5 text-[11px] text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              class="h-auto w-auto rounded-full border px-2 py-0.5 text-[11px] text-muted-foreground hover:bg-accent hover:text-accent-foreground"
             >
               {action}
-            </button>
+            </.button>
           <% end %>
         </div>
-        <form phx-submit="send_chat" class="flex gap-2">
-          <input
-            type="text"
+        <.form for={%{}} as={:chat} phx-submit="send_chat" class="flex gap-2">
+          <.inline_input
             name="chat_input"
             value={@input}
             placeholder="Describe the changes..."
-            class="flex-1 rounded-md border bg-background px-3 py-2 text-sm"
+            class="flex-1 rounded-md"
             autocomplete="off"
             disabled={@loading}
           />
-          <button
+          <.button
             type="submit"
+            variant="primary"
             disabled={@loading}
-            class="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            class="rounded-md"
           >
             Send
-          </button>
-        </form>
+          </.button>
+        </.form>
       </div>
     </div>
     """
@@ -211,18 +216,19 @@ defmodule BlackboexWeb.Components.Editor.ChatPanel do
       <% end %>
 
       <div class="flex gap-2">
-        <button
+        <.button
           phx-click="accept_edit"
-          class="rounded-md bg-success px-3 py-1 text-xs font-medium text-success-foreground hover:bg-success/90 flex items-center gap-1"
+          class="h-auto rounded-md bg-success px-3 py-1 text-xs font-medium text-success-foreground hover:bg-success/90 flex items-center gap-1"
         >
           <.icon name="hero-check" class="size-3" /> Accept
-        </button>
-        <button
+        </.button>
+        <.button
+          variant="outline"
           phx-click="reject_edit"
-          class="rounded-md border border-destructive/50 px-3 py-1 text-xs font-medium text-destructive hover:bg-destructive/10 flex items-center gap-1"
+          class="h-auto rounded-md border border-destructive/50 bg-transparent px-3 py-1 text-xs font-medium text-destructive hover:bg-destructive/10 flex items-center gap-1"
         >
           <.icon name="hero-x-mark" class="size-3" /> Reject
-        </button>
+        </.button>
       </div>
     </div>
     """

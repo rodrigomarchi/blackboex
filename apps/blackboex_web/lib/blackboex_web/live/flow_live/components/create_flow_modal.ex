@@ -26,12 +26,13 @@ defmodule BlackboexWeb.FlowLive.Components.CreateFlowModal do
 
       <%!-- Mode Toggle --%>
       <div class="flex gap-1 rounded-lg bg-muted p-1 mb-4">
-        <button
+        <.button
           type="button"
+          variant="ghost"
           phx-click="set_create_mode"
           phx-value-mode="template"
           class={[
-            "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+            "h-auto flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors hover:bg-transparent",
             if(@create_mode == :template,
               do: "bg-background text-foreground shadow-sm",
               else: "text-muted-foreground hover:text-foreground"
@@ -39,13 +40,14 @@ defmodule BlackboexWeb.FlowLive.Components.CreateFlowModal do
           ]}
         >
           <.icon name="hero-squares-2x2" class="mr-1.5 size-4 inline" /> From template
-        </button>
-        <button
+        </.button>
+        <.button
           type="button"
+          variant="ghost"
           phx-click="set_create_mode"
           phx-value-mode="blank"
           class={[
-            "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+            "h-auto flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors hover:bg-transparent",
             if(@create_mode == :blank,
               do: "bg-background text-foreground shadow-sm",
               else: "text-muted-foreground hover:text-foreground"
@@ -53,7 +55,7 @@ defmodule BlackboexWeb.FlowLive.Components.CreateFlowModal do
           ]}
         >
           <.icon name="hero-document-plus" class="mr-1.5 size-4 inline" /> Blank flow
-        </button>
+        </.button>
       </div>
 
       <%!-- Template Picker --%>
@@ -61,12 +63,13 @@ defmodule BlackboexWeb.FlowLive.Components.CreateFlowModal do
         <%!-- Category Pills --%>
         <div class="flex gap-1 flex-wrap">
           <%= for {cat, _templates} <- @template_categories do %>
-            <button
+            <.button
               type="button"
+              variant="ghost"
               phx-click="set_active_category"
               phx-value-category={cat}
               class={[
-                "rounded-full px-3 py-1 text-xs font-medium transition-colors border",
+                "h-auto w-auto rounded-full px-3 py-1 text-xs font-medium transition-colors border hover:bg-transparent",
                 if(@active_category == cat,
                   do: "bg-primary text-primary-foreground border-primary",
                   else:
@@ -75,7 +78,7 @@ defmodule BlackboexWeb.FlowLive.Components.CreateFlowModal do
               ]}
             >
               {cat}
-            </button>
+            </.button>
           <% end %>
         </div>
 
@@ -83,12 +86,13 @@ defmodule BlackboexWeb.FlowLive.Components.CreateFlowModal do
         <div class="max-h-52 overflow-y-auto -mx-1 px-1">
           <div class="grid grid-cols-2 gap-2">
             <%= for {cat, templates} <- @template_categories, cat == @active_category, template <- templates do %>
-              <button
+              <.button
                 type="button"
+                variant="ghost"
                 phx-click="select_template"
                 phx-value-id={template.id}
                 class={[
-                  "flex items-start gap-2 rounded-lg border p-2.5 text-left transition-colors hover:border-primary/50",
+                  "h-auto w-auto justify-start flex items-start gap-2 rounded-lg border p-2.5 text-left transition-colors hover:border-primary/50 hover:bg-transparent",
                   if(@selected_template && @selected_template.id == template.id,
                     do: "border-primary bg-primary/5 ring-1 ring-primary",
                     else: "border-border bg-background"
@@ -107,7 +111,7 @@ defmodule BlackboexWeb.FlowLive.Components.CreateFlowModal do
                     {length(template.definition["nodes"])} nodes
                   </p>
                 </div>
-              </button>
+              </.button>
             <% end %>
           </div>
         </div>
@@ -115,19 +119,20 @@ defmodule BlackboexWeb.FlowLive.Components.CreateFlowModal do
         <%!-- Helper text --%>
         <p :if={is_nil(@selected_template)} class="text-xs text-muted-foreground">
           Select a template above, or switch to
-          <button
+          <.button
             type="button"
+            variant="ghost"
             phx-click="set_create_mode"
             phx-value-mode="blank"
-            class="underline hover:text-foreground"
+            class="h-auto w-auto p-0 underline hover:text-foreground hover:bg-transparent"
           >
             blank flow
-          </button>
+          </.button>
           to start from scratch.
         </p>
       </div>
 
-      <form phx-submit="create_flow" class="space-y-4">
+      <.form for={%{}} as={:flow} phx-submit="create_flow" class="space-y-4">
         <.input
           type="text"
           name="name"
@@ -161,7 +166,7 @@ defmodule BlackboexWeb.FlowLive.Components.CreateFlowModal do
             <.icon name="hero-arrow-right" class="mr-2 size-4" /> Create & Edit
           </.button>
         </div>
-      </form>
+      </.form>
     </.modal>
     """
   end

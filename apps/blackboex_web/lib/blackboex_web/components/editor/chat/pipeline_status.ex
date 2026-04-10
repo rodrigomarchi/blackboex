@@ -116,9 +116,10 @@ defmodule BlackboexWeb.Components.Editor.Chat.PipelineStatus do
       </div>
 
       <%!-- Clickable collapsed header --%>
-      <button
+      <.button
         type="button"
-        class="w-full text-left group ml-2"
+        variant="ghost"
+        class="h-auto w-full rounded-none px-0 py-0 text-left group ml-2 hover:bg-transparent"
         phx-click={
           JS.toggle(to: "##{@step_id}-detail")
           |> JS.toggle(to: "##{@step_id}-chev-r")
@@ -151,7 +152,7 @@ defmodule BlackboexWeb.Components.Editor.Chat.PipelineStatus do
             {if @result, do: @duration, else: "..."}
           </span>
         </div>
-      </button>
+      </.button>
 
       <%!-- Expandable detail panel — open when active, closed when complete --%>
       <div

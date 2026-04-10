@@ -2,6 +2,7 @@ defmodule BlackboexWeb.Components.Sidebar do
   @moduledoc false
   use BlackboexWeb.Component
 
+  import BlackboexWeb.Components.Button
   import BlackboexWeb.Components.Input
   import BlackboexWeb.Components.Separator
   import BlackboexWeb.Components.Sheet
@@ -190,15 +191,18 @@ defmodule BlackboexWeb.Components.Sidebar do
 
   def sidebar_rail(assigns) do
     ~H"""
-    <button
+    <.button
+      type="button"
+      variant="ghost"
+      size="icon"
       data-sidebar="rail"
       aria-label="Toggle Sidebar"
-      tab-index={-1}
+      tabindex="-1"
       onclick={exec_closest("phx-toggle-sidebar", ".sidebar-root")}
       title="Toggle Sidebar"
       class={
         classes([
-          "absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-all ease-linear after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] hover:after:bg-sidebar-border group-data-[side=left]:-right-4 group-data-[side=right]:left-0 sm:flex",
+          "absolute inset-y-0 z-20 hidden h-auto w-4 -translate-x-1/2 rounded-none p-0 transition-all ease-linear after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] hover:bg-transparent hover:after:bg-sidebar-border group-data-[side=left]:-right-4 group-data-[side=right]:left-0 sm:flex",
           "[[data-side=left]_&]:cursor-w-resize [[data-side=right]_&]:cursor-e-resize",
           "[[data-side=left][data-state=collapsed]_&]:cursor-e-resize [[data-side=right][data-state=collapsed]_&]:cursor-w-resize",
           "group-data-[collapsible=offcanvas]:translate-x-0 group-data-[collapsible=offcanvas]:after:left-full group-data-[collapsible=offcanvas]:hover:bg-sidebar",
@@ -208,7 +212,9 @@ defmodule BlackboexWeb.Components.Sidebar do
         ])
       }
       {@rest}
-    />
+    >
+      <span class="sr-only">Toggle Sidebar</span>
+    </.button>
     """
   end
 
@@ -450,11 +456,14 @@ defmodule BlackboexWeb.Components.Sidebar do
 
   def sidebar_menu_action(assigns) do
     ~H"""
-    <button
+    <.button
+      type="button"
+      variant="ghost"
+      size="icon"
       data-sidebar="menu-action"
       class={
         classes([
-          "absolute right-1 top-1.5 flex aspect-square w-5 items-center justify-center rounded-md p-0 text-sidebar-foreground outline-none ring-sidebar-ring transition-transform hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 peer-hover/menu-button:text-sidebar-accent-foreground [&>svg]:size-4 [&>svg]:shrink-0",
+          "absolute right-1 top-1.5 flex aspect-square h-auto w-5 items-center justify-center rounded-md p-0 text-sidebar-foreground outline-none ring-sidebar-ring transition-transform hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 peer-hover/menu-button:text-sidebar-accent-foreground [&>svg]:size-4 [&>svg]:shrink-0",
           "after:absolute after:-inset-2 after:md:hidden",
           "peer-data-[size=sm]/menu-button:top-1",
           "peer-data-[size=default]/menu-button:top-1.5",
@@ -468,7 +477,7 @@ defmodule BlackboexWeb.Components.Sidebar do
       {@rest}
     >
       {render_slot(@inner_block)}
-    </button>
+    </.button>
     """
   end
 

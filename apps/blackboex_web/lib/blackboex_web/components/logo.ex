@@ -56,7 +56,7 @@ defmodule BlackboexWeb.Logo do
 
   def logo_full(assigns) do
     ~H"""
-    <a href="/" class={"flex items-center gap-2 #{@class}"} {@rest}>
+    <.link href="/" class={"flex items-center gap-2 #{@class}"} {@rest}>
       <svg
         class="h-full w-auto shrink-0"
         viewBox="0 0 32 32"
@@ -74,7 +74,7 @@ defmodule BlackboexWeb.Logo do
       <span class="text-lg font-normal tracking-tight">
         Black<span class="font-bold">Boex</span>
       </span>
-    </a>
+    </.link>
     """
   end
 

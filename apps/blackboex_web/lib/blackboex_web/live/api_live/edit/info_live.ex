@@ -5,6 +5,10 @@ defmodule BlackboexWeb.ApiLive.Edit.InfoLive do
 
   import BlackboexWeb.ApiLive.Edit.EditorShell
   import BlackboexWeb.ApiLive.Edit.Helpers, only: [count_lines: 1, format_json: 1]
+  import BlackboexWeb.Components.UI.SectionHeading
+  import BlackboexWeb.Components.UI.InlineInput
+  import BlackboexWeb.Components.UI.InlineTextarea
+  import BlackboexWeb.Components.Label
 
   alias Blackboex.Apis
   alias BlackboexWeb.ApiLive.Edit.Shared
@@ -42,32 +46,39 @@ defmodule BlackboexWeb.ApiLive.Edit.InfoLive do
     ~H"""
     <.editor_shell {shared_shell_assigns(assigns)} active_tab="info">
       <div class="p-4 overflow-y-auto h-full max-w-3xl space-y-6">
-        <h2 class="text-sm font-semibold">API Information</h2>
+        <.section_heading level="h2" class="gap-0">API Information</.section_heading>
 
         <%!-- General --%>
         <div>
-          <h3 class="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase mb-3">
-            <.icon name="hero-cog-6-tooth" class="size-3.5 text-slate-400" /> General
-          </h3>
-          <form phx-submit="update_info" class="space-y-3">
+          <.section_heading
+            level="h3"
+            icon="hero-cog-6-tooth"
+            icon_class="size-3.5 text-slate-400"
+            class="mb-3"
+            heading_class="text-xs font-semibold text-muted-foreground uppercase"
+          >
+            General
+          </.section_heading>
+          <.form :let={_f} for={%{}} as={:info} phx-submit="update_info" class="space-y-3">
             <div>
-              <label class="text-xs font-medium">Name</label>
-              <input
+              <.label class="text-xs font-medium">Name</.label>
+              <.inline_input
                 type="text"
                 name="name"
                 value={@api.name}
                 maxlength="200"
-                class="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm"
+                class="mt-1 rounded-md px-3 py-2"
               />
             </div>
             <div>
-              <label class="text-xs font-medium">Description</label>
-              <textarea
+              <.label class="text-xs font-medium">Description</.label>
+              <.inline_textarea
                 name="description"
                 rows="3"
                 maxlength="10000"
-                class="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm"
-              >{@api.description}</textarea>
+                value={@api.description}
+                class="mt-1 rounded-md px-3 py-2"
+              />
             </div>
             <div class="grid grid-cols-2 gap-4 text-sm">
               <div>
@@ -87,20 +98,23 @@ defmodule BlackboexWeb.ApiLive.Edit.InfoLive do
                 <p>{Calendar.strftime(@api.updated_at, "%Y-%m-%d %H:%M")}</p>
               </div>
             </div>
-            <button
-              type="submit"
-              class="inline-flex items-center rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
-            >
+            <.button type="submit" variant="primary" size="sm">
               <.icon name="hero-check" class="mr-1.5 size-3.5" /> Save Changes
-            </button>
-          </form>
+            </.button>
+          </.form>
         </div>
 
         <%!-- Code Stats --%>
         <div>
-          <h3 class="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase mb-3">
-            <.icon name="hero-code-bracket" class="size-3.5 text-purple-400" /> Code Stats
-          </h3>
+          <.section_heading
+            level="h3"
+            icon="hero-code-bracket"
+            icon_class="size-3.5 text-purple-400"
+            class="mb-3"
+            heading_class="text-xs font-semibold text-muted-foreground uppercase"
+          >
+            Code Stats
+          </.section_heading>
           <div class="grid grid-cols-4 gap-3">
             <div class="rounded-lg border p-3 text-center">
               <p class="text-xl font-bold">{@source_lines}</p>
@@ -134,10 +148,15 @@ defmodule BlackboexWeb.ApiLive.Edit.InfoLive do
         <%!-- Request/Response Schema --%>
         <%= if @api.param_schema || @api.example_request || @api.example_response do %>
           <div>
-            <h3 class="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase mb-3">
-              <.icon name="hero-document-text" class="size-3.5 text-blue-400" />
+            <.section_heading
+              level="h3"
+              icon="hero-document-text"
+              icon_class="size-3.5 text-blue-400"
+              class="mb-3"
+              heading_class="text-xs font-semibold text-muted-foreground uppercase"
+            >
               Request/Response Schema
-            </h3>
+            </.section_heading>
             <div class="space-y-3">
               <%= if @api.param_schema do %>
                 <div>
@@ -195,9 +214,15 @@ defmodule BlackboexWeb.ApiLive.Edit.InfoLive do
 
         <%!-- Danger Zone --%>
         <div>
-          <h3 class="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase mb-3">
-            <.icon name="hero-exclamation-triangle" class="size-3.5 text-red-400" /> Danger Zone
-          </h3>
+          <.section_heading
+            level="h3"
+            icon="hero-exclamation-triangle"
+            icon_class="size-3.5 text-red-400"
+            class="mb-3"
+            heading_class="text-xs font-semibold text-muted-foreground uppercase"
+          >
+            Danger Zone
+          </.section_heading>
           <div class="rounded-lg border border-destructive/30 p-4 flex items-center justify-between">
             <div>
               <p class="text-sm font-medium">Archive this API</p>
@@ -205,13 +230,15 @@ defmodule BlackboexWeb.ApiLive.Edit.InfoLive do
                 Removes from active list. Published APIs will be unpublished first.
               </p>
             </div>
-            <button
+            <.button
               phx-click="request_confirm"
               phx-value-action="archive_api"
-              class="inline-flex items-center rounded-md border border-destructive px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10"
+              variant="outline"
+              size="sm"
+              class="border-destructive text-destructive hover:bg-destructive/10"
             >
               <.icon name="hero-archive-box" class="mr-1.5 size-3.5" /> Archive API
-            </button>
+            </.button>
           </div>
         </div>
       </div>

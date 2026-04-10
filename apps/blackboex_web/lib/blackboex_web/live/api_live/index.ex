@@ -301,7 +301,7 @@ defmodule BlackboexWeb.ApiLive.Index do
         </:actions>
       </.header>
 
-      <form phx-change="search" class="w-full">
+      <.form :let={_f} for={%{}} as={:search} phx-change="search" class="w-full">
         <.input
           type="text"
           name="search"
@@ -309,7 +309,7 @@ defmodule BlackboexWeb.ApiLive.Index do
           placeholder="Search APIs by name or description..."
           phx-debounce="300"
         />
-      </form>
+      </.form>
 
       <%= if @api_rows == [] do %>
         <.empty_state

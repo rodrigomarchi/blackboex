@@ -14,12 +14,13 @@ defmodule BlackboexWeb.Components.Editor.BottomPanel do
     ~H"""
     <div class="flex flex-col border-t bg-card" style="height: 35vh; min-height: 200px;">
       <div class="flex items-center border-b px-2 shrink-0">
-        <button
+        <.button
           :for={tab <- ~w(test validation versions)}
+          variant="ghost"
           phx-click="switch_bottom_tab"
           phx-value-tab={tab}
           class={[
-            "px-3 py-1.5 text-xs font-medium border-b-2 transition-colors",
+            "h-auto rounded-none px-3 py-1.5 text-xs font-medium border-b-2 transition-colors hover:bg-transparent",
             if(tab == @active_tab,
               do: "border-primary text-primary",
               else: "border-transparent text-muted-foreground hover:text-foreground"
@@ -39,17 +40,18 @@ defmodule BlackboexWeb.Components.Editor.BottomPanel do
           >
             {if @validation_report.overall == :pass, do: "✓", else: "!"}
           </span>
-        </button>
+        </.button>
 
         <div class="flex-1" />
 
-        <button
+        <.button
+          variant="ghost"
           phx-click="toggle_bottom_panel"
-          class="p-1 text-muted-foreground hover:text-foreground rounded hover:bg-accent"
+          class="h-auto w-auto p-1 text-muted-foreground hover:text-foreground rounded hover:bg-accent"
           title="Close"
         >
           <.icon name="hero-x-mark" class="size-3.5" />
-        </button>
+        </.button>
       </div>
 
       <div class="flex-1 overflow-auto p-3">

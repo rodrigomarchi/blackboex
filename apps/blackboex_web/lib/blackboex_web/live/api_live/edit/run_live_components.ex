@@ -18,25 +18,27 @@ defmodule BlackboexWeb.ApiLive.Edit.RunLiveComponents do
         <h4 class="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase">
           <.icon name="hero-clock-mini" class="size-3.5 text-amber-400" /> History
         </h4>
-        <button
+        <.button
           :if={@test_history != []}
+          variant="ghost"
           phx-click="request_confirm"
           phx-value-action="clear_history"
-          class="inline-flex items-center text-[10px] text-destructive hover:underline"
+          class="h-auto w-auto p-0 inline-flex items-center text-[10px] text-destructive hover:underline hover:bg-transparent"
         >
           <.icon name="hero-trash-mini" class="mr-1 size-3" /> Clear
-        </button>
+        </.button>
       </div>
 
       <div class="flex flex-wrap gap-1 mb-2">
-        <button
+        <.button
           :for={lang <- ~w(curl python javascript elixir ruby go)}
+          variant="outline"
           phx-click="copy_snippet"
           phx-value-language={lang}
-          class="rounded border px-1.5 py-0.5 text-[10px] hover:bg-accent"
+          class="h-auto w-auto rounded border px-1.5 py-0.5 text-[10px] hover:bg-accent"
         >
           {lang}
-        </button>
+        </.button>
       </div>
 
       <%= if @test_history == [] do %>

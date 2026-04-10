@@ -53,9 +53,14 @@ defmodule BlackboexWeb.ApiKeyLive.Index do
           <code class="block bg-accent text-accent-foreground p-2 rounded font-mono text-sm break-all select-all">
             {@plain_key_flash}
           </code>
-          <button phx-click="dismiss_flash" class="text-primary hover:underline text-xs">
+          <.button
+            phx-click="dismiss_flash"
+            variant="link"
+            size="sm"
+            class="text-primary hover:underline text-xs"
+          >
             Dismiss
-          </button>
+          </.button>
         </div>
       <% end %>
 
@@ -106,7 +111,7 @@ defmodule BlackboexWeb.ApiKeyLive.Index do
 
       <%!-- Create Modal --%>
       <.modal show={@show_create_modal} on_close="toggle_create_modal" title="Create API Key">
-        <form phx-submit="create_key" class="space-y-4">
+        <.form :let={_f} for={%{}} as={:key} phx-submit="create_key" class="space-y-4">
           <.input
             type="select"
             name="api_id"
@@ -131,7 +136,7 @@ defmodule BlackboexWeb.ApiKeyLive.Index do
               <.icon name="hero-key" class="mr-1.5 size-3.5 text-amber-300" /> Create Key
             </.button>
           </div>
-        </form>
+        </.form>
       </.modal>
     </div>
     """

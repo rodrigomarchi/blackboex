@@ -5,6 +5,8 @@ defmodule BlackboexWeb.Components.FlowEditor.JsonPreviewModal do
 
   use BlackboexWeb, :html
 
+  import BlackboexWeb.Components.UI.SectionHeading
+
   attr :flow, :map, required: true
   attr :json_preview, :string, required: true
 
@@ -19,10 +21,9 @@ defmodule BlackboexWeb.Components.FlowEditor.JsonPreviewModal do
         phx-click-away="close_json_modal"
       >
         <div class="flex items-center justify-between border-b px-5 py-3">
-          <div class="flex items-center gap-2">
-            <.icon name="hero-code-bracket" class="size-5 text-violet-400" />
-            <h2 class="text-sm font-semibold">Flow Definition (JSON)</h2>
-          </div>
+          <.section_heading icon="hero-code-bracket" icon_class="size-5 text-violet-400">
+            Flow Definition (JSON)
+          </.section_heading>
           <div class="flex items-center gap-1.5">
             <.button
               variant="outline"
@@ -49,12 +50,13 @@ defmodule BlackboexWeb.Components.FlowEditor.JsonPreviewModal do
             >
               <.icon name="hero-arrow-down-tray" class="mr-1.5 size-4 text-emerald-400" /> Download
             </.button>
-            <button
+            <.button
+              variant="ghost"
               phx-click="close_json_modal"
-              class="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+              class="h-auto w-auto rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
             >
               <.icon name="hero-x-mark" class="size-5" />
-            </button>
+            </.button>
           </div>
         </div>
         <div class="flex-1 overflow-auto p-5">

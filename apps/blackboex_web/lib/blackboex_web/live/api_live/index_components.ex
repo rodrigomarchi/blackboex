@@ -95,14 +95,15 @@ defmodule BlackboexWeb.ApiLive.IndexComponents do
           >
             <.icon name="hero-pencil-square-mini" class="mr-1 size-3" /> Edit
           </.link>
-          <button
+          <.button
+            variant="ghost"
             phx-click="request_confirm"
             phx-value-action="delete"
             phx-value-id={row.api.id}
-            class="inline-flex items-center text-xs text-destructive hover:underline"
+            class="h-auto w-auto p-0 inline-flex items-center text-xs text-destructive hover:underline hover:bg-transparent"
           >
             <.icon name="hero-trash-mini" class="mr-1 size-3" /> Delete
-          </button>
+          </.button>
         </div>
       </:action>
     </.table>
@@ -130,11 +131,12 @@ defmodule BlackboexWeb.ApiLive.IndexComponents do
 
       <%!-- Mode toggle --%>
       <div class="flex gap-1 rounded-lg bg-muted p-1 mb-4">
-        <button
+        <.button
           type="button"
+          variant="ghost"
           phx-click="switch_to_template"
           class={[
-            "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+            "h-auto flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors hover:bg-transparent",
             if(@creation_mode == :template,
               do: "bg-background text-foreground shadow-sm",
               else: "text-muted-foreground hover:text-foreground"
@@ -142,12 +144,13 @@ defmodule BlackboexWeb.ApiLive.IndexComponents do
           ]}
         >
           <.icon name="hero-squares-2x2" class="mr-1.5 size-4 inline" /> From template
-        </button>
-        <button
+        </.button>
+        <.button
           type="button"
+          variant="ghost"
           phx-click="switch_to_description"
           class={[
-            "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+            "h-auto flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors hover:bg-transparent",
             if(@creation_mode == :description,
               do: "bg-background text-foreground shadow-sm",
               else: "text-muted-foreground hover:text-foreground"
@@ -155,10 +158,10 @@ defmodule BlackboexWeb.ApiLive.IndexComponents do
           ]}
         >
           <.icon name="hero-sparkles" class="mr-1.5 size-4 inline" /> Describe from scratch
-        </button>
+        </.button>
       </div>
 
-      <form phx-submit="create_api" class="space-y-4">
+      <.form for={%{}} as={:api} phx-submit="create_api" class="space-y-4">
         <.input
           type="text"
           name="name"
@@ -178,12 +181,13 @@ defmodule BlackboexWeb.ApiLive.IndexComponents do
             <%!-- Category tabs --%>
             <div class="flex gap-1 flex-wrap">
               <%= for {cat, _templates} <- @template_categories do %>
-                <button
+                <.button
                   type="button"
+                  variant="ghost"
                   phx-click="set_active_category"
                   phx-value-category={cat}
                   class={[
-                    "rounded-full px-3 py-1 text-xs font-medium transition-colors border",
+                    "h-auto w-auto rounded-full px-3 py-1 text-xs font-medium transition-colors border hover:bg-transparent",
                     if(@active_category == cat,
                       do: "bg-primary text-primary-foreground border-primary",
                       else:
@@ -192,7 +196,7 @@ defmodule BlackboexWeb.ApiLive.IndexComponents do
                   ]}
                 >
                   {cat}
-                </button>
+                </.button>
               <% end %>
             </div>
 
@@ -200,12 +204,13 @@ defmodule BlackboexWeb.ApiLive.IndexComponents do
             <div class="max-h-52 overflow-y-auto -mx-1 px-1">
               <div class="grid grid-cols-2 gap-2">
                 <%= for {cat, templates} <- @template_categories, cat == @active_category, template <- templates do %>
-                  <button
+                  <.button
                     type="button"
+                    variant="ghost"
                     phx-click="select_template"
                     phx-value-id={template.id}
                     class={[
-                      "flex items-start gap-2 rounded-lg border p-2.5 text-left transition-colors hover:border-primary/50",
+                      "h-auto w-auto justify-start flex items-start gap-2 rounded-lg border p-2.5 text-left transition-colors hover:border-primary/50 hover:bg-transparent",
                       if(@selected_template && @selected_template.id == template.id,
                         do: "border-primary bg-primary/5 ring-1 ring-primary",
                         else: "border-border bg-background"
@@ -219,7 +224,7 @@ defmodule BlackboexWeb.ApiLive.IndexComponents do
                         {template.description}
                       </p>
                     </div>
-                  </button>
+                  </.button>
                 <% end %>
               </div>
             </div>
@@ -229,13 +234,14 @@ defmodule BlackboexWeb.ApiLive.IndexComponents do
               <div class="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-1">
                 <div class="flex items-center justify-between">
                   <p class="text-sm font-medium">{@selected_template.name}</p>
-                  <button
+                  <.button
                     type="button"
+                    variant="ghost"
                     phx-click="clear_template"
-                    class="text-muted-foreground hover:text-foreground"
+                    class="h-auto w-auto p-0 text-muted-foreground hover:text-foreground hover:bg-transparent"
                   >
                     <.icon name="hero-x-mark" class="size-4" />
-                  </button>
+                  </.button>
                 </div>
                 <p class="text-xs text-muted-foreground">{@selected_template.description}</p>
                 <div class="flex flex-wrap gap-1 pt-1">
@@ -256,13 +262,14 @@ defmodule BlackboexWeb.ApiLive.IndexComponents do
             <% else %>
               <p class="text-xs text-muted-foreground">
                 Select a template above, or
-                <button
+                <.button
                   type="button"
+                  variant="ghost"
                   phx-click="switch_to_description"
-                  class="underline hover:text-foreground"
+                  class="h-auto w-auto p-0 underline hover:text-foreground hover:bg-transparent"
                 >
                   describe from scratch
-                </button>
+                </.button>
                 to generate with AI.
               </p>
             <% end %>
@@ -286,9 +293,7 @@ defmodule BlackboexWeb.ApiLive.IndexComponents do
         <% end %>
 
         <%!-- Hidden description field in template mode so form submission works --%>
-        <%= if @creation_mode == :template do %>
-          <input type="hidden" name="description" value="" />
-        <% end %>
+        <.input :if={@creation_mode == :template} type="hidden" name="description" value="" />
 
         <div class="flex justify-end gap-3 pt-2">
           <.button type="button" variant="outline" phx-click="close_create_modal">
@@ -304,7 +309,7 @@ defmodule BlackboexWeb.ApiLive.IndexComponents do
             </.button>
           <% end %>
         </div>
-      </form>
+      </.form>
     </.modal>
     """
   end

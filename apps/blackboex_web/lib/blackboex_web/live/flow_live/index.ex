@@ -221,7 +221,7 @@ defmodule BlackboexWeb.FlowLive.Index do
         </:actions>
       </.header>
 
-      <form phx-change="search" class="w-full">
+      <.form :let={_f} for={%{}} as={:search} phx-change="search" class="w-full">
         <.input
           type="text"
           name="search"
@@ -229,7 +229,7 @@ defmodule BlackboexWeb.FlowLive.Index do
           placeholder="Search flows by name or description..."
           phx-debounce="300"
         />
-      </form>
+      </.form>
 
       <%= if @flows == [] do %>
         <.empty_state
@@ -281,14 +281,16 @@ defmodule BlackboexWeb.FlowLive.Index do
               >
                 <.icon name="hero-pencil-square-mini" class="mr-1 size-3" /> Edit
               </.link>
-              <button
+              <.button
                 phx-click="request_confirm"
                 phx-value-action="delete"
                 phx-value-id={flow.id}
+                variant="link"
+                size="sm"
                 class="inline-flex items-center text-xs text-destructive hover:underline"
               >
                 <.icon name="hero-trash-mini" class="mr-1 size-3" /> Delete
-              </button>
+              </.button>
             </div>
           </:action>
         </.table>

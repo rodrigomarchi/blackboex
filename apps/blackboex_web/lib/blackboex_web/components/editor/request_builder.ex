@@ -6,34 +6,36 @@ defmodule BlackboexWeb.Components.Editor.RequestBuilder do
 
   use BlackboexWeb, :live_component
 
+  import BlackboexWeb.Components.UI.FieldLabel
+  import BlackboexWeb.Components.UI.InlineInput
+  import BlackboexWeb.Components.UI.InlineSelect
+
   @impl true
   def render(assigns) do
     ~H"""
     <div class="space-y-3" id="request-builder">
       <div class="flex items-center gap-2">
-        <select
+        <.inline_select
           name="method"
+          value={@method}
+          options={Enum.map(~w(GET POST PUT PATCH DELETE), &{&1, &1})}
           phx-change="update_test_method"
-          class="rounded-md border bg-background px-2 py-1.5 text-sm font-semibold w-28"
-        >
-          <option :for={m <- ~w(GET POST PUT PATCH DELETE)} value={m} selected={m == @method}>
-            {m}
-          </option>
-        </select>
+          class="rounded-md px-2 py-1.5 font-semibold w-28"
+        />
 
-        <input
-          type="text"
+        <.inline_input
           name="url"
           value={@url}
           phx-change="update_test_url"
-          class="flex-1 rounded-md border bg-background px-3 py-1.5 text-sm font-mono"
+          class="flex-1 rounded-md px-3 py-1.5 font-mono"
           readonly
         />
 
-        <button
+        <.button
+          variant="primary"
           phx-click="send_request"
           disabled={@loading}
-          class="inline-flex items-center rounded-md bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          class="h-auto inline-flex items-center rounded-md px-4 py-1.5"
         >
           <%= if @loading do %>
             <svg
@@ -55,17 +57,18 @@ defmodule BlackboexWeb.Components.Editor.RequestBuilder do
           <% else %>
             <.icon name="hero-paper-airplane-mini" class="size-3.5 text-emerald-300" /> Send
           <% end %>
-        </button>
+        </.button>
       </div>
 
       <div class="rounded-lg border bg-card">
         <div class="flex border-b">
-          <button
+          <.button
             :for={tab <- ~w(params headers body auth)}
+            variant="ghost"
             phx-click="switch_request_tab"
             phx-value-tab={tab}
             class={[
-              "flex-1 px-3 py-2 text-xs font-medium border-b-2",
+              "h-auto rounded-none flex-1 px-3 py-2 text-xs font-medium border-b-2 hover:bg-transparent",
               if(tab == @active_tab,
                 do: "border-primary text-primary",
                 else: "border-transparent text-muted-foreground hover:text-foreground"
@@ -73,7 +76,7 @@ defmodule BlackboexWeb.Components.Editor.RequestBuilder do
             ]}
           >
             {tab_label(tab)}
-          </button>
+          </.button>
         </div>
 
         <div class="p-3">
@@ -88,35 +91,38 @@ defmodule BlackboexWeb.Components.Editor.RequestBuilder do
     ~H"""
     <div class="space-y-2">
       <div :for={param <- @params} class="flex items-center gap-2">
-        <input
-          type="text"
+        <.inline_input
           value={param.key}
           placeholder="Key"
           phx-change="update_param_key"
           phx-value-id={param.id}
           name="param_key"
-          class="flex-1 rounded-md border bg-background px-2 py-1 text-xs"
+          class="flex-1 rounded-md px-2 py-1 text-xs"
         />
-        <input
-          type="text"
+        <.inline_input
           value={param.value}
           placeholder="Value"
           phx-change="update_param_value"
           phx-value-id={param.id}
           name="param_value"
-          class="flex-1 rounded-md border bg-background px-2 py-1 text-xs"
+          class="flex-1 rounded-md px-2 py-1 text-xs"
         />
-        <button
+        <.button
+          variant="ghost"
           phx-click="remove_param"
           phx-value-id={param.id}
-          class="text-xs text-destructive hover:underline"
+          class="h-auto w-auto p-0 text-xs text-destructive hover:underline hover:bg-transparent"
         >
           ✕
-        </button>
+        </.button>
       </div>
-      <button phx-click="add_param" class="text-xs text-primary hover:underline">
+      <.button
+        variant="ghost"
+        phx-click="add_param"
+        class="h-auto w-auto p-0 text-xs text-primary hover:underline hover:bg-transparent"
+      >
         + Add param
-      </button>
+      </.button>
     </div>
     """
   end
@@ -125,35 +131,38 @@ defmodule BlackboexWeb.Components.Editor.RequestBuilder do
     ~H"""
     <div class="space-y-2">
       <div :for={header <- @headers} class="flex items-center gap-2">
-        <input
-          type="text"
+        <.inline_input
           value={header.key}
           placeholder="Key"
           phx-change="update_header_key"
           phx-value-id={header.id}
           name="header_key"
-          class="flex-1 rounded-md border bg-background px-2 py-1 text-xs"
+          class="flex-1 rounded-md px-2 py-1 text-xs"
         />
-        <input
-          type="text"
+        <.inline_input
           value={header.value}
           placeholder="Value"
           phx-change="update_header_value"
           phx-value-id={header.id}
           name="header_value"
-          class="flex-1 rounded-md border bg-background px-2 py-1 text-xs"
+          class="flex-1 rounded-md px-2 py-1 text-xs"
         />
-        <button
+        <.button
+          variant="ghost"
           phx-click="remove_header"
           phx-value-id={header.id}
-          class="text-xs text-destructive hover:underline"
+          class="h-auto w-auto p-0 text-xs text-destructive hover:underline hover:bg-transparent"
         >
           ✕
-        </button>
+        </.button>
       </div>
-      <button phx-click="add_header" class="text-xs text-primary hover:underline">
+      <.button
+        variant="ghost"
+        phx-click="add_header"
+        class="h-auto w-auto p-0 text-xs text-primary hover:underline hover:bg-transparent"
+      >
         + Add header
-      </button>
+      </.button>
     </div>
     """
   end
@@ -187,14 +196,13 @@ defmodule BlackboexWeb.Components.Editor.RequestBuilder do
   defp render_request_tab(%{active_tab: "auth"} = assigns) do
     ~H"""
     <div class="space-y-2">
-      <label class="text-xs text-muted-foreground">API Key</label>
-      <input
-        type="text"
+      <.field_label class="mb-0">API Key</.field_label>
+      <.inline_input
         name="test_api_key"
         value={@api_key}
         phx-change="update_test_api_key"
         placeholder="Enter API key"
-        class="w-full rounded-md border bg-background px-2 py-1 text-xs font-mono"
+        class="rounded-md px-2 py-1 text-xs font-mono"
       />
       <p class="text-xs text-muted-foreground">
         Sent as X-Api-Key header

@@ -7,6 +7,7 @@ defmodule BlackboexWeb.FlowLive.Executions do
 
   import BlackboexWeb.Components.Card
   import BlackboexWeb.Components.Shared.EmptyState
+  import BlackboexWeb.Components.UI.SectionHeading
 
   alias Blackboex.FlowExecutions
   alias Blackboex.Flows
@@ -48,7 +49,7 @@ defmodule BlackboexWeb.FlowLive.Executions do
           >
             <.icon name="hero-arrow-left" class="size-5" />
           </.link>
-          <h1 class="text-sm font-semibold">Executions</h1>
+          <.section_heading level="h2" class="gap-0">Executions</.section_heading>
           <span class="text-xs text-muted-foreground">{@flow.name}</span>
         </div>
         <div :if={@executions != []} class="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -96,66 +97,31 @@ defmodule BlackboexWeb.FlowLive.Executions do
         <% else %>
           <.card>
             <.card_content class="p-0">
-              <table class="w-full text-sm">
-                <thead>
-                  <tr class="border-b bg-muted/30">
-                    <th class="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      <span class="flex items-center gap-1.5">
-                        <.icon name="hero-signal-mini" class="size-3.5 text-sky-400" /> Status
-                      </span>
-                    </th>
-                    <th class="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      <span class="flex items-center gap-1.5">
-                        <.icon name="hero-finger-print-mini" class="size-3.5 text-violet-400" />
-                        Execution ID
-                      </span>
-                    </th>
-                    <th class="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      <span class="flex items-center gap-1.5">
-                        <.icon name="hero-clock-mini" class="size-3.5 text-amber-400" /> Duration
-                      </span>
-                    </th>
-                    <th class="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      <span class="flex items-center gap-1.5">
-                        <.icon name="hero-calendar-mini" class="size-3.5 text-emerald-400" /> Started
-                      </span>
-                    </th>
-                    <th class="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr
-                    :for={exec <- @executions}
-                    class="border-b last:border-0 hover:bg-muted/20 transition-colors cursor-pointer group"
-                    phx-click={JS.navigate(~p"/flows/#{@flow.id}/executions/#{exec.id}")}
-                  >
-                    <td class="px-4 py-2.5">
-                      <div class={"inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium #{status_badge(exec.status)}"}>
-                        <.icon name={status_icon(exec.status)} class="size-3.5" />
-                        {exec.status}
-                      </div>
-                    </td>
-                    <td class="px-4 py-2.5">
-                      <span class="text-xs font-mono text-muted-foreground">
-                        {short_id(exec.id)}
-                      </span>
-                    </td>
-                    <td class="px-4 py-2.5">
-                      <span class="text-xs font-mono">{format_duration(exec.duration_ms)}</span>
-                    </td>
-                    <td class="px-4 py-2.5 text-xs text-muted-foreground">
-                      {format_time(exec.inserted_at)}
-                    </td>
-                    <td class="px-4 py-2.5 text-right">
-                      <.icon
-                        name="hero-chevron-right-mini"
-                        class="size-4 text-muted-foreground/50 group-hover:text-foreground transition-colors"
-                      />
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+              <.table
+                id="flow-executions"
+                rows={@executions}
+                row_click={&JS.navigate(~p"/flows/#{@flow.id}/executions/#{&1.id}")}
+              >
+                <:col :let={exec} label="Status">
+                  <div class={"inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium #{status_badge(exec.status)}"}>
+                    <.icon name={status_icon(exec.status)} class="size-3.5" />
+                    {exec.status}
+                  </div>
+                </:col>
+                <:col :let={exec} label="Execution ID">
+                  <span class="text-xs font-mono text-muted-foreground">
+                    {short_id(exec.id)}
+                  </span>
+                </:col>
+                <:col :let={exec} label="Duration">
+                  <span class="text-xs font-mono">{format_duration(exec.duration_ms)}</span>
+                </:col>
+                <:col :let={exec} label="Started">
+                  <span class="text-xs text-muted-foreground">
+                    {format_time(exec.inserted_at)}
+                  </span>
+                </:col>
+              </.table>
             </.card_content>
           </.card>
         <% end %>

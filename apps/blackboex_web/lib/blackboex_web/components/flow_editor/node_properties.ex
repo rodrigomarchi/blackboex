@@ -9,6 +9,10 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
 
   use BlackboexWeb, :html
 
+  import BlackboexWeb.Components.UI.FieldLabel
+  import BlackboexWeb.Components.UI.InlineInput
+  import BlackboexWeb.Components.UI.InlineSelect
+  import BlackboexWeb.Components.UI.InlineTextarea
   import BlackboexWeb.FlowLive.Components.SchemaBuilder
 
   # ── Node-specific property forms ─────────────────────────────────────────
@@ -119,9 +123,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
         icon_color="text-sky-400"
       />
       <div>
-        <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
-          <.icon name="hero-code-bracket" class="size-3.5 text-purple-400" /> Code
-        </label>
+        <.field_label icon="hero-code-bracket" icon_color="text-purple-400">Code</.field_label>
         <div
           id={"code-editor-#{@node_id}-code"}
           phx-hook="CodeEditor"
@@ -144,9 +146,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
         icon_color="text-orange-400"
       />
       <div class="border-t pt-4 mt-4">
-        <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
-          <.icon name="hero-funnel" class="size-3.5 text-yellow-400" /> Skip Condition
-        </label>
+        <.field_label icon="hero-funnel" icon_color="text-yellow-400">Skip Condition</.field_label>
         <p class="text-xs text-muted-foreground mb-1.5">
           Skip this node when expression is true
         </p>
@@ -163,9 +163,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
         />
       </div>
       <div class="border-t pt-4 mt-4">
-        <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
-          <.icon name="hero-arrow-uturn-left" class="size-3.5 text-rose-400" /> Undo Code
-        </label>
+        <.field_label icon="hero-arrow-uturn-left" icon_color="text-rose-400">Undo Code</.field_label>
         <p class="text-xs text-muted-foreground mb-1.5">
           Rollback code if a downstream step fails. Has
           <code class="text-xs bg-muted px-1 rounded">result</code>
@@ -208,9 +206,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
         icon_color="text-sky-400"
       />
       <div>
-        <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
-          <.icon name="hero-code-bracket" class="size-3.5 text-blue-400" /> Expression
-        </label>
+        <.field_label icon="hero-code-bracket" icon_color="text-blue-400">Expression</.field_label>
         <div
           id={"code-editor-#{@node_id}-expression"}
           phx-hook="CodeEditor"
@@ -224,19 +220,18 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
         />
       </div>
       <div>
-        <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
-          <.icon name="hero-tag" class="size-3.5 text-teal-400" /> Branch Labels
-        </label>
+        <.field_label icon="hero-tag" icon_color="text-teal-400">Branch Labels</.field_label>
         <p class="text-xs text-muted-foreground mb-2">
           Name each output branch (one per line)
         </p>
-        <textarea
-          phx-blur="update_node_data"
-          phx-value-field="branch_labels"
+        <.inline_textarea
+          value={format_branch_labels(@data["branch_labels"])}
           rows="4"
           placeholder="Success\nError\nDefault"
-          class="w-full rounded-lg border bg-background px-3 py-2 text-xs leading-relaxed focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-        ><%= format_branch_labels(@data["branch_labels"]) %></textarea>
+          class="text-xs leading-relaxed"
+          phx-blur="update_node_data"
+          phx-value-field="branch_labels"
+        />
       </div>
     </div>
     """
@@ -337,9 +332,9 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
           icon_color="text-blue-400"
         />
         <div>
-          <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
-            <.icon name="hero-document-text" class="size-3.5 text-emerald-400" /> Body Template
-          </label>
+          <.field_label icon="hero-document-text" icon_color="text-emerald-400">
+            Body Template
+          </.field_label>
           <div
             id={"code-editor-#{@node_id}-body_template"}
             phx-hook="CodeEditor"
@@ -438,9 +433,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
           icon_color="text-green-400"
         />
         <div class="border-t pt-4 mt-4">
-          <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
-            <.icon name="hero-funnel" class="size-3.5 text-yellow-400" /> Skip Condition
-          </label>
+          <.field_label icon="hero-funnel" icon_color="text-yellow-400">Skip Condition</.field_label>
           <p class="text-xs text-muted-foreground mb-1.5">
             Skip this node when expression is true
           </p>
@@ -457,9 +450,9 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
           />
         </div>
         <div class="border-t pt-4 mt-4">
-          <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
-            <.icon name="hero-arrow-uturn-left" class="size-3.5 text-rose-400" /> Undo Request
-          </label>
+          <.field_label icon="hero-arrow-uturn-left" icon_color="text-rose-400">
+            Undo Request
+          </.field_label>
           <p class="text-xs text-muted-foreground mb-1.5">
             HTTP request to undo this action if a downstream step fails
           </p>
@@ -531,9 +524,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
         icon_color="text-sky-400"
       />
       <div class="border-t pt-4 mt-4">
-        <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
-          <.icon name="hero-funnel" class="size-3.5 text-yellow-400" /> Skip Condition
-        </label>
+        <.field_label icon="hero-funnel" icon_color="text-yellow-400">Skip Condition</.field_label>
         <p class="text-xs text-muted-foreground mb-1.5">
           Skip this node when expression is true
         </p>
@@ -565,30 +556,20 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
       />
 
       <div>
-        <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
-          <.icon name="hero-squares-2x2" class="size-3.5 text-indigo-400" /> Sub-Flow
-        </label>
-        <select
-          phx-change="select_sub_flow"
+        <.field_label icon="hero-squares-2x2" icon_color="text-indigo-400">Sub-Flow</.field_label>
+        <.inline_select
           name="flow_id"
-          class="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-        >
-          <option value="">Select a flow...</option>
-          <option
-            :for={flow <- @org_flows}
-            value={flow.id}
-            selected={flow.id == @data["flow_id"]}
-          >
-            {flow.name}
-          </option>
-        </select>
+          value={@data["flow_id"]}
+          options={[{"Select a flow...", ""} | Enum.map(@org_flows, &{&1.name, &1.id})]}
+          phx-change="select_sub_flow"
+        />
       </div>
 
       <%= if @data["flow_id"] && @data["flow_id"] != "" do %>
         <div>
-          <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-2">
-            <.icon name="hero-arrows-right-left" class="size-3.5 text-teal-400" /> Input Mapping
-          </label>
+          <.field_label icon="hero-arrows-right-left" icon_color="text-teal-400" class="mb-2">
+            Input Mapping
+          </.field_label>
           <p class="text-xs text-muted-foreground mb-3">
             Map parent flow state/input to sub-flow payload fields
           </p>
@@ -637,9 +618,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
         icon_color="text-orange-400"
       />
       <div class="border-t pt-4 mt-4">
-        <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
-          <.icon name="hero-funnel" class="size-3.5 text-yellow-400" /> Skip Condition
-        </label>
+        <.field_label icon="hero-funnel" icon_color="text-yellow-400">Skip Condition</.field_label>
         <p class="text-xs text-muted-foreground mb-1.5">
           Skip this node when expression is true
         </p>
@@ -673,9 +652,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
           icon_color="text-violet-400"
         />
         <div>
-          <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
-            <.icon name="hero-funnel" class="size-3.5 text-teal-400" /> Source Expression
-          </label>
+          <.field_label icon="hero-funnel" icon_color="text-teal-400">Source Expression</.field_label>
           <div
             id={"code-editor-#{@node_id}-source_expression"}
             phx-hook="CodeEditor"
@@ -723,9 +700,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
           icon_color="text-orange-400"
         />
         <div class="border-t pt-4 mt-4">
-          <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
-            <.icon name="hero-funnel" class="size-3.5 text-yellow-400" /> Skip Condition
-          </label>
+          <.field_label icon="hero-funnel" icon_color="text-yellow-400">Skip Condition</.field_label>
           <p class="text-xs text-muted-foreground mb-1.5">
             Skip this node when expression is true
           </p>
@@ -744,9 +719,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
       </div>
 
       <div :if={@tab == "code"}>
-        <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
-          <.icon name="hero-code-bracket" class="size-3.5 text-purple-400" /> Body Code
-        </label>
+        <.field_label icon="hero-code-bracket" icon_color="text-purple-400">Body Code</.field_label>
         <div
           id={"code-editor-#{@node_id}-body_code"}
           phx-hook="CodeEditor"
@@ -799,17 +772,13 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
         icon_color="text-emerald-400"
       />
       <div>
-        <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
-          <.icon name="hero-link" class="size-3.5 text-blue-400" /> Callback URL
-        </label>
+        <.field_label icon="hero-link" icon_color="text-blue-400">Callback URL</.field_label>
         <p class="rounded-lg border bg-muted/50 px-3 py-2 text-xs text-muted-foreground font-mono">
           POST /webhook/:token/resume/{@data["event_type"] || "<event_type>"}
         </p>
       </div>
       <div class="border-t pt-4 mt-4">
-        <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
-          <.icon name="hero-funnel" class="size-3.5 text-yellow-400" /> Skip Condition
-        </label>
+        <.field_label icon="hero-funnel" icon_color="text-yellow-400">Skip Condition</.field_label>
         <p class="text-xs text-muted-foreground mb-1.5">
           Skip this node when expression is true
         </p>
@@ -850,9 +819,9 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
         icon_color="text-sky-400"
       />
       <div>
-        <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
-          <.icon name="hero-exclamation-triangle" class="size-3.5 text-red-400" /> Error Message
-        </label>
+        <.field_label icon="hero-exclamation-triangle" icon_color="text-red-400">
+          Error Message
+        </.field_label>
         <p class="text-xs text-muted-foreground mb-1.5">
           Elixir expression with <code class="text-xs bg-muted px-1 rounded">input</code>
           and <code class="text-xs bg-muted px-1 rounded">state</code>
@@ -894,9 +863,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
         icon_color="text-violet-400"
       />
       <div>
-        <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
-          <.icon name="hero-bug-ant" class="size-3.5 text-purple-400" /> Expression
-        </label>
+        <.field_label icon="hero-bug-ant" icon_color="text-purple-400">Expression</.field_label>
         <p class="text-xs text-muted-foreground mb-1.5">
           Elixir expression to inspect. Leave empty to log the input.
         </p>
@@ -972,17 +939,14 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
   def prop_field(%{type: "textarea"} = assigns) do
     ~H"""
     <div>
-      <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
-        <.icon :if={@icon} name={@icon} class={"size-3.5 #{@icon_color}"} />
-        {@label}
-      </label>
-      <textarea
-        phx-blur="update_node_data"
-        phx-value-field={@field}
+      <.field_label icon={@icon} icon_color={@icon_color}>{@label}</.field_label>
+      <.inline_textarea
+        value={@value}
         rows="3"
         placeholder={@placeholder}
-        class="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-      >{@value}</textarea>
+        phx-blur="update_node_data"
+        phx-value-field={@field}
+      />
     </div>
     """
   end
@@ -990,17 +954,13 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
   def prop_field(assigns) do
     ~H"""
     <div>
-      <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
-        <.icon :if={@icon} name={@icon} class={"size-3.5 #{@icon_color}"} />
-        {@label}
-      </label>
-      <input
+      <.field_label icon={@icon} icon_color={@icon_color}>{@label}</.field_label>
+      <.inline_input
         type={@type}
-        phx-blur="update_node_data"
-        phx-value-field={@field}
         value={@value}
         placeholder={@placeholder}
-        class="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+        phx-blur="update_node_data"
+        phx-value-field={@field}
       />
     </div>
     """
@@ -1016,19 +976,13 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
   def prop_select(assigns) do
     ~H"""
     <div>
-      <label class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
-        <.icon :if={@icon} name={@icon} class={"size-3.5 #{@icon_color}"} />
-        {@label}
-      </label>
-      <select
+      <.field_label icon={@icon} icon_color={@icon_color}>{@label}</.field_label>
+      <.inline_select
+        options={@options}
+        value={@value}
         phx-change="update_node_data"
         phx-value-field={@field}
-        class="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-      >
-        <option :for={{label, val} <- @options} value={val} selected={val == @value}>
-          {label}
-        </option>
-      </select>
+      />
     </div>
     """
   end

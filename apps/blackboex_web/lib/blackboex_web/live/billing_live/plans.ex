@@ -7,6 +7,7 @@ defmodule BlackboexWeb.BillingLive.Plans do
   import BlackboexWeb.Components.Card
   import BlackboexWeb.Components.Spinner
   import BlackboexWeb.Components.Shared.ProgressBar
+  import BlackboexWeb.Components.UI.SectionHeading
 
   alias Blackboex.Billing
   alias Blackboex.Billing.Enforcement
@@ -120,14 +121,22 @@ defmodule BlackboexWeb.BillingLive.Plans do
         <.card>
           <.card_content class="pt-6">
             <div class="flex items-center justify-between mb-4">
-              <h2 class="text-lg font-semibold">Current Plan: {@usage.plan}</h2>
+              <.section_heading heading_class="text-lg font-semibold">
+                Current Plan: {@usage.plan}
+              </.section_heading>
               <.button navigate={~p"/billing/manage"} variant="default" size="sm">
                 <.icon name="hero-cog-6-tooth" class="mr-1.5 size-3.5 text-slate-400" />
                 Manage Subscription
               </.button>
             </div>
 
-            <h3 class="text-sm font-semibold text-muted-foreground mb-3">Usage this month</h3>
+            <.section_heading
+              level="h3"
+              class="mb-3"
+              heading_class="text-sm font-semibold text-muted-foreground"
+            >
+              Usage this month
+            </.section_heading>
             <div class="space-y-4">
               <.progress_bar
                 label="APIs"
@@ -174,7 +183,9 @@ defmodule BlackboexWeb.BillingLive.Plans do
           class={plan.id == @current_plan && "border-primary ring-2 ring-primary"}
         >
           <.card_content class="pt-6">
-            <h2 class="text-lg font-semibold">{plan.name}</h2>
+            <.section_heading heading_class="text-lg font-semibold">
+              {plan.name}
+            </.section_heading>
             <div class="mt-2">
               <span class="text-3xl font-bold">{plan.price}</span>
               <span class="text-muted-foreground">{plan.period}</span>

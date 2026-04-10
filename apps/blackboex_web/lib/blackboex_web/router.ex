@@ -162,6 +162,10 @@ defmodule BlackboexWeb.Router do
         {BlackboexWeb.Hooks.SetOrganization, :default}
       ] do
       live "/dashboard", DashboardLive, :index
+      live "/dashboard/apis", DashboardApisLive, :index
+      live "/dashboard/flows", DashboardFlowsLive, :index
+      live "/dashboard/usage", DashboardUsageLive, :index
+      live "/dashboard/llm", DashboardLlmLive, :index
       live "/apis", ApiLive.Index, :index
       live "/apis/new", ApiLive.New, :new
       live "/apis/:id", ApiLive.Show, :show

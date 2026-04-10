@@ -65,7 +65,8 @@ defmodule BlackboexWeb.ApiLive.PanelsTest do
       assert html =~ "History"
 
       {:ok, _lv, html} = live(conn, ~p"/apis/#{api.id}/edit/chat?org=#{org.id}")
-      assert html =~ "Code"
+      # Chat is the default tab — its label appears in the tab bar.
+      assert html =~ "Chat"
     end
 
     test "switching from chat to publish shows publish content", %{conn: conn, org: org, api: api} do

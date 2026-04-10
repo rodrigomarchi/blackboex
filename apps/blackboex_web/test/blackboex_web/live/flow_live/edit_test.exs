@@ -118,8 +118,10 @@ defmodule BlackboexWeb.FlowLive.EditTest do
 
       html = view |> element("button[phx-click='activate_flow']") |> render_click()
 
+      # After activation the header shows the "active" pill and swaps the
+      # Activate button for a Pause button (which fires deactivate_flow).
       assert html =~ "active"
-      assert html =~ "Deactivate"
+      assert html =~ "deactivate_flow"
     end
 
     test "deactivates an active flow", %{conn: conn, user: user} do
@@ -230,8 +232,11 @@ defmodule BlackboexWeb.FlowLive.EditTest do
       html =
         render_click(view, "schema_add_field", %{"schema-id" => "payload_schema", "path" => ""})
 
-      # Should render the new empty field with type selector
-      assert html =~ "field_name"
+      # The new empty field renders as an input row with placeholder="name"
+      # targeting the payload_schema. Before the click the fields list was
+      # empty, so this input only appears after schema_add_field runs.
+      assert html =~ ~s(placeholder="name")
+      assert html =~ ~s(phx-value-schema-id="payload_schema")
     end
 
     test "schema_remove_field removes field from schema", %{conn: conn, user: user} do
@@ -292,9 +297,11 @@ defmodule BlackboexWeb.FlowLive.EditTest do
           "value" => "integer"
         })
 
-      # Should show number constraints (Min, Max) instead of string constraints
-      assert html =~ "Min"
-      assert html =~ "Max"
+      # The type <select> rerenders with "integer" marked selected and the
+      # numeric constraints panel (label="min"/"max") now lives in the DOM.
+      assert html =~ ~s(<option value="integer" selected)
+      assert html =~ ~s(phx-value-prop="min")
+      assert html =~ ~s(phx-value-prop="max")
     end
 
     test "schema_update_constraint sets constraint value", %{conn: conn, user: user} do

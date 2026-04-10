@@ -517,8 +517,23 @@ defmodule BlackboexWeb.ApiLive.AgentChatTest do
   describe "LLM limit enforcement" do
     test "shows error when LLM generation limit is exceeded",
          %{conn: conn, org: org, api: api} do
-      # Exhaust the free plan limit (50 generations)
-      Enum.each(1..50, fn _ ->
+      # Tighten the free plan ceiling via the runtime override so this test
+      # only has to insert 3 usage events instead of hundreds to cross the
+      # threshold. This keeps the test fast without depending on whatever
+      # the product default happens to be.
+      original = Application.get_env(:blackboex, Blackboex.Billing.Enforcement, [])
+
+      Application.put_env(
+        :blackboex,
+        Blackboex.Billing.Enforcement,
+        free: %{max_llm_generations_per_month: 3}
+      )
+
+      on_exit(fn ->
+        Application.put_env(:blackboex, Blackboex.Billing.Enforcement, original)
+      end)
+
+      Enum.each(1..3, fn _ ->
         Blackboex.Billing.record_usage_event(%{
           organization_id: org.id,
           event_type: "llm_generation",

@@ -17,7 +17,16 @@ defmodule Blackboex.FlowExecutor.Nodes.Condition do
     expression = Keyword.fetch!(options, :expression)
     timeout_ms = Keyword.get(options, :timeout_ms, 5_000)
     {input, state} = Helpers.extract_input_and_state(arguments)
-    execute_with_timeout(expression, input, state, timeout_ms)
+
+    if input == :__branch_skipped__ do
+      # This condition sits on an already-skipped branch. Propagate the skip to
+      # every downstream port by returning a branch index that cannot match any
+      # edge's source_port (branch_gate/2 in ReactorBuilder treats a mismatch
+      # as :__branch_skipped__).
+      {:ok, %{branch: :__branch_skipped__, value: :__branch_skipped__, state: state}}
+    else
+      execute_with_timeout(expression, input, state, timeout_ms)
+    end
   end
 
   @impl true

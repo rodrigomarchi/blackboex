@@ -74,10 +74,11 @@ defmodule BlackboexWeb.ApiLive.IndexTest do
 
       {:ok, _view, html} = live(conn, ~p"/apis")
       assert html =~ "published-api"
-      assert html =~ "POST /api/"
+      # Endpoint column renders "POST /<org_slug>/<api_slug>" for published APIs.
+      assert html =~ "POST /#{org.slug}/published-api"
     end
 
-    test "shows 'Not published' for draft API", %{conn: conn, user: user} do
+    test "shows dash placeholder for draft API endpoint", %{conn: conn, user: user} do
       [org | _] = Blackboex.Organizations.list_user_organizations(user)
 
       {:ok, _api} =
@@ -89,7 +90,9 @@ defmodule BlackboexWeb.ApiLive.IndexTest do
         })
 
       {:ok, _view, html} = live(conn, ~p"/apis")
-      assert html =~ "Not published"
+      # Draft APIs render their endpoint column as an em-dash placeholder.
+      assert html =~ "Draft Only API"
+      assert html =~ ~s(<span class="text-xs italic text-muted-foreground">—</span>)
     end
   end
 

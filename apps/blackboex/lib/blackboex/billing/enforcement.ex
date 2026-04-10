@@ -19,9 +19,21 @@ defmodule Blackboex.Billing.Enforcement do
                plan: String.t()
              }}
 
-  @limits %{
-    free: %{max_apis: 100, max_invocations_per_day: 1_000, max_llm_generations_per_month: 50},
-    pro: %{max_apis: 50, max_invocations_per_day: 50_000, max_llm_generations_per_month: 500},
+  # Temporary relaxed defaults — these limits are intentionally above the
+  # final business values so local dev, QA, and automated tests don't hit
+  # the ceiling while the product is still in build-out. Tighten these
+  # before launch. Per-environment overrides are supported via:
+  #
+  #     config :blackboex, Blackboex.Billing.Enforcement,
+  #       free: %{max_apis: 10}
+  #
+  @default_limits %{
+    free: %{max_apis: 100, max_invocations_per_day: 10_000, max_llm_generations_per_month: 500},
+    pro: %{
+      max_apis: 500,
+      max_invocations_per_day: 500_000,
+      max_llm_generations_per_month: 5_000
+    },
     enterprise: %{
       max_apis: :unlimited,
       max_invocations_per_day: :unlimited,
@@ -30,6 +42,16 @@ defmodule Blackboex.Billing.Enforcement do
   }
 
   @plan_atom_map %{"free" => :free, "pro" => :pro, "enterprise" => :enterprise}
+
+  @spec limits() :: %{atom() => map()}
+  defp limits do
+    overrides = Application.get_env(:blackboex, __MODULE__, [])
+
+    Map.new(@default_limits, fn {plan, defaults} ->
+      plan_overrides = Keyword.get(overrides, plan, %{})
+      {plan, Map.merge(defaults, plan_overrides)}
+    end)
+  end
 
   @spec effective_plan(Organization.t()) :: atom()
   def effective_plan(%Organization{id: org_id}) do
@@ -45,7 +67,7 @@ defmodule Blackboex.Billing.Enforcement do
   @spec check_limit(Organization.t(), atom()) :: limit_check()
   def check_limit(%Organization{} = org, :create_api) do
     plan = effective_plan(org)
-    limits = Map.fetch!(@limits, plan)
+    limits = Map.fetch!(limits(), plan)
 
     case limits.max_apis do
       :unlimited ->
@@ -59,7 +81,7 @@ defmodule Blackboex.Billing.Enforcement do
 
   def check_limit(%Organization{} = org, :create_flow) do
     plan = effective_plan(org)
-    limits = Map.fetch!(@limits, plan)
+    limits = Map.fetch!(limits(), plan)
 
     case limits.max_apis do
       :unlimited ->
@@ -73,7 +95,7 @@ defmodule Blackboex.Billing.Enforcement do
 
   def check_limit(%Organization{} = org, :api_invocation) do
     plan = effective_plan(org)
-    limits = Map.fetch!(@limits, plan)
+    limits = Map.fetch!(limits(), plan)
 
     case limits.max_invocations_per_day do
       :unlimited ->
@@ -87,7 +109,7 @@ defmodule Blackboex.Billing.Enforcement do
 
   def check_limit(%Organization{} = org, :llm_generation) do
     plan = effective_plan(org)
-    limits = Map.fetch!(@limits, plan)
+    limits = Map.fetch!(limits(), plan)
 
     case limits.max_llm_generations_per_month do
       :unlimited ->
@@ -101,7 +123,7 @@ defmodule Blackboex.Billing.Enforcement do
 
   @spec get_limits(atom()) :: map()
   def get_limits(plan) do
-    Map.fetch!(@limits, plan)
+    Map.fetch!(limits(), plan)
   end
 
   @spec get_usage_details(Organization.t()) :: %{

@@ -65,5 +65,22 @@ defmodule Blackboex.FlowExecutor.Nodes.ConditionTest do
 
       assert {:error, _reason} = Condition.run(args, %{}, opts)
     end
+
+    test "propagates :__branch_skipped__ without evaluating the expression" do
+      # A condition node downstream of another condition's non-taken branch
+      # receives :__branch_skipped__ as input. It must not evaluate the
+      # expression (which would crash on `input["key"]`) — instead it should
+      # return a sentinel branch that no source_port can match, so every
+      # downstream edge propagates the skip.
+      args = %{prev_result: %{output: :__branch_skipped__, state: %{"keep" => "me"}}}
+      opts = [expression: ~s|if input["decision"] == "approved", do: 0, else: 1|]
+
+      assert {:ok,
+              %{
+                branch: :__branch_skipped__,
+                value: :__branch_skipped__,
+                state: %{"keep" => "me"}
+              }} = Condition.run(args, %{}, opts)
+    end
   end
 end

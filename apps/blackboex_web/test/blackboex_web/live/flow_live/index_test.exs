@@ -65,9 +65,10 @@ defmodule BlackboexWeb.FlowLive.IndexTest do
       {:ok, view, _html} = live(conn, ~p"/flows")
       assert render(view) =~ "Delete Me"
 
-      view
-      |> element("button[phx-click='delete'][phx-value-id='#{flow.id}']")
-      |> render_click()
+      # Delete is gated by a request_confirm modal in the UI. Fire the
+      # confirmed "delete" event directly so this test stays coupled to the
+      # real handler instead of the confirmation flow.
+      render_click(view, "delete", %{"id" => flow.id})
 
       refute render(view) =~ "Delete Me"
     end
@@ -75,11 +76,14 @@ defmodule BlackboexWeb.FlowLive.IndexTest do
     test "create modal has template and blank tabs", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/flows")
 
-      view |> element("header button[phx-click='open_create_modal']") |> render_click()
+      # Fire the open_create_modal event directly — the page has more than
+      # one "Create Flow" button (header + empty state) so an element
+      # selector can't uniquely target one.
+      render_click(view, "open_create_modal", %{})
 
       html = render(view)
-      assert html =~ "From Template"
-      assert html =~ "Blank Flow"
+      assert html =~ "From template"
+      assert html =~ "Blank flow"
     end
 
     test "template tab shows Hello World template", %{conn: conn} do

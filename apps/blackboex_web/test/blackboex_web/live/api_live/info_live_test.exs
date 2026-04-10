@@ -103,21 +103,21 @@ defmodule BlackboexWeb.ApiLive.Edit.InfoLiveTest do
   end
 
   describe "archive_api" do
+    # The UI funnels archive through a request_confirm modal, so we bypass the
+    # button click and fire the already-confirmed archive_api event directly.
+    # This still exercises the real handle_event path end-to-end.
+
     test "marks API as archived and redirects to /apis", %{conn: conn, org: org, api: api} do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/info?org=#{org.id}")
 
       assert {:error, {:live_redirect, %{to: "/apis"}}} =
-               lv
-               |> element(~s(button[phx-click="archive_api"]))
-               |> render_click()
+               render_click(lv, "archive_api", %{})
     end
 
     test "sets status to archived in database", %{conn: conn, org: org, api: api} do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/info?org=#{org.id}")
 
-      lv
-      |> element(~s(button[phx-click="archive_api"]))
-      |> render_click()
+      render_click(lv, "archive_api", %{})
 
       archived = Apis.get_api(org.id, api.id)
       assert archived.status == "archived"
@@ -126,12 +126,8 @@ defmodule BlackboexWeb.ApiLive.Edit.InfoLiveTest do
     test "shows info flash before redirect", %{conn: conn, org: org, api: api} do
       {:ok, lv, _html} = live(conn, ~p"/apis/#{api.id}/edit/info?org=#{org.id}")
 
-      result =
-        lv
-        |> element(~s(button[phx-click="archive_api"]))
-        |> render_click()
+      result = render_click(lv, "archive_api", %{})
 
-      # Either a redirect (live_redirect error) or html with flash
       case result do
         {:error, {:live_redirect, _}} ->
           assert true

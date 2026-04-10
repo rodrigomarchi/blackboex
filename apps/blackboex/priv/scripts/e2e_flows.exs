@@ -51,6 +51,14 @@ defmodule E2E.Flows do
           run_advanced_features(user, org),
           run_lead_scoring(user, org),
           run_webhook_processor(user, org),
+          run_stripe_payment_router(user, org),
+          run_support_ticket_router(user, org),
+          run_escalation_approval_new(user, org),
+          run_data_enrichment_chain(user, org),
+          run_incident_alert_pipeline(user, org),
+          run_customer_onboarding(user, org),
+          run_webhook_idempotent(user, org),
+          run_abandoned_cart_recovery(user, org),
           run_stress_test(hw_flow)
         ])
 
@@ -828,6 +836,462 @@ defmodule E2E.Flows do
         assert_status!(resp, 422)
         assert_contains!(resp.body["error"], "Payload validation failed", "error")
         assert_contains!(resp.body["error"], "event_type", "mentions event_type")
+        :ok
+      end)
+    ]
+  end
+
+  # ════════════════════════════════════════════════════════════════
+  # Phase 15: Stripe Payment Router
+  # ════════════════════════════════════════════════════════════════
+
+  defp run_stripe_payment_router(user, org) do
+    IO.puts(cyan("\n▸ Phase 15: Stripe Payment Router"))
+    flow = create_and_activate_template("stripe_payment_router", "E2E StripePayment", user, org)
+
+    [
+      run_test("Stripe: payment.succeeded → fulfill_order", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{
+          "event_type" => "payment.succeeded",
+          "payment_id" => "pi_e2e_001",
+          "amount" => 4999,
+          "customer_id" => "cus_e2e_001"
+        })
+        assert_status!(resp, 200)
+        output = resp.body["output"]
+        assert_eq!(output["status"], "succeeded", "status")
+        assert_eq!(output["action"], "fulfill_order", "action")
+        :ok
+      end),
+      run_test("Stripe: payment.failed → retry_payment", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{
+          "event_type" => "payment.failed",
+          "payment_id" => "pi_e2e_002",
+          "amount" => 1000,
+          "customer_id" => "cus_e2e_002"
+        })
+        assert_status!(resp, 200)
+        output = resp.body["output"]
+        assert_eq!(output["status"], "failed", "status")
+        assert_eq!(output["action"], "retry_payment", "action")
+        :ok
+      end),
+      run_test("Stripe: charge.disputed → create_case", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{
+          "event_type" => "charge.disputed",
+          "payment_id" => "pi_e2e_003",
+          "amount" => 5000,
+          "customer_id" => "cus_e2e_003"
+        })
+        assert_status!(resp, 200)
+        assert_eq!(resp.body["output"]["status"], "disputed", "status")
+        assert_eq!(resp.body["output"]["action"], "create_case", "action")
+        :ok
+      end),
+      run_test("Stripe: unknown event → fail", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{
+          "event_type" => "refund.created",
+          "payment_id" => "pi_e2e_004",
+          "amount" => 1,
+          "customer_id" => "cus_e2e_004"
+        })
+        assert_status!(resp, 422)
+        assert_contains!(resp.body["error"], "Unknown payment event", "error")
+        :ok
+      end),
+      run_test("Stripe: missing event_type → 422", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{
+          "payment_id" => "pi_e2e_005",
+          "amount" => 1,
+          "customer_id" => "cus_e2e_005"
+        })
+        assert_status!(resp, 422)
+        assert_contains!(resp.body["error"], "Payload validation failed", "error")
+        :ok
+      end)
+    ]
+  end
+
+  # ════════════════════════════════════════════════════════════════
+  # Phase 16: Support Ticket Router
+  # ════════════════════════════════════════════════════════════════
+
+  defp run_support_ticket_router(user, org) do
+    IO.puts(cyan("\n▸ Phase 16: Support Ticket Router"))
+    flow = create_and_activate_template("support_ticket_router", "E2E SupportTicket", user, org)
+
+    [
+      run_test("Support: critical bug → escalated", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{
+          "subject" => "App crash",
+          "body" => "Error 500 in production",
+          "sender_email" => "u@test.com",
+          "urgency" => "critical"
+        })
+        assert_status!(resp, 200)
+        output = resp.body["output"]
+        assert_eq!(output["category"], "engineering", "category")
+        assert_eq!(output["priority"], "critical", "priority")
+        assert_eq!(output["status"], "escalated", "status")
+        :ok
+      end),
+      run_test("Support: billing normal → queued", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{
+          "subject" => "Invoice question",
+          "body" => "Wrong charge on my account",
+          "sender_email" => "u@test.com",
+          "urgency" => "normal"
+        })
+        assert_status!(resp, 200)
+        assert_eq!(resp.body["output"]["category"], "billing", "category")
+        assert_eq!(resp.body["output"]["status"], "queued", "status")
+        :ok
+      end),
+      run_test("Support: low urgency → backlog", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{
+          "subject" => "How to",
+          "body" => "Question about features",
+          "sender_email" => "u@test.com",
+          "urgency" => "low"
+        })
+        assert_status!(resp, 200)
+        assert_eq!(resp.body["output"]["status"], "backlog", "status")
+        :ok
+      end),
+      run_test("Support: missing subject → 422", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{
+          "body" => "test",
+          "sender_email" => "u@test.com"
+        })
+        assert_status!(resp, 422)
+        assert_contains!(resp.body["error"], "Payload validation failed", "error")
+        :ok
+      end)
+    ]
+  end
+
+  # ════════════════════════════════════════════════════════════════
+  # Phase 17: Escalation Approval
+  # ════════════════════════════════════════════════════════════════
+
+  defp run_escalation_approval_new(user, org) do
+    IO.puts(cyan("\n▸ Phase 17: Escalation Approval"))
+    flow = create_and_activate_template("escalation_approval", "E2E Escalation", user, org)
+
+    [
+      run_test("Escalation: below threshold → auto_approved", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{
+          "request" => "Supplies",
+          "amount" => 50,
+          "requester" => "alice",
+          "auto_approve_below" => 100
+        })
+        assert_status!(resp, 200)
+        output = resp.body["output"]
+        assert_eq!(output["decision"], "auto_approved", "decision")
+        assert_eq!(output["auto_approved"], true, "auto_approved")
+        :ok
+      end),
+      run_test("Escalation: above threshold → halted", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{
+          "request" => "Big laptop",
+          "amount" => 5000,
+          "requester" => "bob",
+          "auto_approve_below" => 100
+        })
+        assert_status!(resp, 200)
+        assert_eq!(resp.body["status"], "halted", "status")
+        :ok
+      end),
+      run_test("Escalation: missing request → 422", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{
+          "amount" => 10,
+          "requester" => "carol"
+        })
+        assert_status!(resp, 422)
+        assert_contains!(resp.body["error"], "Payload validation failed", "error")
+        :ok
+      end)
+    ]
+  end
+
+  # ════════════════════════════════════════════════════════════════
+  # Phase 18: Data Enrichment Chain
+  # ════════════════════════════════════════════════════════════════
+
+  defp run_data_enrichment_chain(user, org) do
+    IO.puts(cyan("\n▸ Phase 18: Data Enrichment Chain"))
+    flow = create_and_activate_template("data_enrichment_chain", "E2E Enrichment", user, org)
+
+    [
+      run_test("Enrichment: primary source found", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{"email" => "alice@co.com"})
+        assert_status!(resp, 200)
+        output = resp.body["output"]
+        assert_eq!(output["source"], "primary", "source")
+        assert_eq!(output["confidence"], 90, "confidence")
+        assert_eq!(output["sources_tried"], 1, "sources_tried")
+        :ok
+      end),
+      run_test("Enrichment: fallback source", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{"email" => "fallback_user@co.com"})
+        assert_status!(resp, 200)
+        output = resp.body["output"]
+        assert_eq!(output["source"], "fallback", "source")
+        assert_eq!(output["confidence"], 60, "confidence")
+        assert_eq!(output["sources_tried"], 2, "sources_tried")
+        :ok
+      end),
+      run_test("Enrichment: missing email → 422", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{"name" => "X"})
+        assert_status!(resp, 422)
+        assert_contains!(resp.body["error"], "Payload validation failed", "error")
+        :ok
+      end)
+    ]
+  end
+
+  # ════════════════════════════════════════════════════════════════
+  # Phase 19: Incident Alert Pipeline
+  # ════════════════════════════════════════════════════════════════
+
+  defp run_incident_alert_pipeline(user, org) do
+    IO.puts(cyan("\n▸ Phase 19: Incident Alert Pipeline"))
+    flow = create_and_activate_template("incident_alert_pipeline", "E2E IncidentAlert", user, org)
+
+    [
+      run_test("Incident: critical → ticket + notify", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{
+          "alert_name" => "DB Down",
+          "severity" => "critical",
+          "source" => "prometheus"
+        })
+        assert_status!(resp, 200)
+        output = resp.body["output"]
+        assert_eq!(output["severity_level"], "critical", "severity_level")
+        assert_eq!(output["notification_sent"], true, "notification_sent")
+        :ok
+      end),
+      run_test("Incident: warning alert", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{
+          "alert_name" => "High CPU",
+          "severity" => "warning",
+          "source" => "datadog"
+        })
+        assert_status!(resp, 200)
+        assert_eq!(resp.body["output"]["severity_level"], "warning", "severity_level")
+        :ok
+      end),
+      run_test("Incident: info alert", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{
+          "alert_name" => "Deploy",
+          "severity" => "info",
+          "source" => "ci"
+        })
+        assert_status!(resp, 200)
+        assert_eq!(resp.body["output"]["severity_level"], "info", "severity_level")
+        :ok
+      end),
+      run_test("Incident: duplicate skipped", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{
+          "alert_name" => "DB Down",
+          "severity" => "critical",
+          "source" => "prometheus",
+          "fingerprint" => "dup_abc"
+        })
+        assert_status!(resp, 200)
+        assert_eq!(resp.body["output"]["is_duplicate"], true, "is_duplicate")
+        :ok
+      end),
+      run_test("Incident: missing alert_name → 422", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{
+          "severity" => "info",
+          "source" => "ci"
+        })
+        assert_status!(resp, 422)
+        assert_contains!(resp.body["error"], "Payload validation failed", "error")
+        :ok
+      end)
+    ]
+  end
+
+  # ════════════════════════════════════════════════════════════════
+  # Phase 20: Customer Onboarding
+  # ════════════════════════════════════════════════════════════════
+
+  defp run_customer_onboarding(user, org) do
+    IO.puts(cyan("\n▸ Phase 20: Customer Onboarding"))
+    flow = create_and_activate_template("customer_onboarding", "E2E Onboarding", user, org)
+
+    [
+      run_test("Onboarding: enterprise completes", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{
+          "customer_name" => "Alice",
+          "email" => "alice@co.com",
+          "plan" => "enterprise"
+        })
+        assert_status!(resp, 200)
+        output = resp.body["output"]
+        assert_eq!(output["is_active"], true, "is_active")
+        assert_eq!(output["onboarding_step"], "completed", "onboarding_step")
+        :ok
+      end),
+      run_test("Onboarding: free gets nudge", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{
+          "customer_name" => "Bob",
+          "email" => "bob@co.com",
+          "plan" => "free"
+        })
+        assert_status!(resp, 200)
+        output = resp.body["output"]
+        assert_eq!(output["nudge_sent"], true, "nudge_sent")
+        assert_eq!(output["onboarding_step"], "nudged", "onboarding_step")
+        :ok
+      end),
+      run_test("Onboarding: already_active short-circuit", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{
+          "customer_name" => "Carol",
+          "email" => "c@co.com",
+          "plan" => "free",
+          "already_active" => true
+        })
+        assert_status!(resp, 200)
+        assert_eq!(resp.body["output"]["is_active"], true, "is_active")
+        :ok
+      end),
+      run_test("Onboarding: missing customer_name → 422", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{
+          "email" => "x@co.com",
+          "plan" => "free"
+        })
+        assert_status!(resp, 422)
+        assert_contains!(resp.body["error"], "Payload validation failed", "error")
+        :ok
+      end)
+    ]
+  end
+
+  # ════════════════════════════════════════════════════════════════
+  # Phase 21: Webhook Idempotent
+  # ════════════════════════════════════════════════════════════════
+
+  defp run_webhook_idempotent(user, org) do
+    IO.puts(cyan("\n▸ Phase 21: Webhook Idempotent"))
+    flow = create_and_activate_template("webhook_idempotent", "E2E Idempotent", user, org)
+
+    [
+      run_test("Idempotent: valid + new → processed", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{
+          "event_id" => "evt_e2e_001",
+          "event_type" => "order.created",
+          "signature" => "valid_abc"
+        })
+        assert_status!(resp, 200)
+        output = resp.body["output"]
+        assert_eq!(output["signature_valid"], true, "signature_valid")
+        assert_eq!(output["is_duplicate"], false, "is_duplicate")
+        assert_contains!(output["processing_result"], "order.created", "processing_result")
+        :ok
+      end),
+      run_test("Idempotent: valid + duplicate → ack", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{
+          "event_id" => "dup_e2e_001",
+          "event_type" => "order.created",
+          "signature" => "valid_abc"
+        })
+        assert_status!(resp, 200)
+        assert_eq!(resp.body["output"]["is_duplicate"], true, "is_duplicate")
+        :ok
+      end),
+      run_test("Idempotent: invalid signature → fail", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{
+          "event_id" => "evt_e2e_002",
+          "event_type" => "order.created",
+          "signature" => "invalid_xyz"
+        })
+        assert_status!(resp, 422)
+        assert_contains!(resp.body["error"], "Invalid webhook signature", "error")
+        :ok
+      end),
+      run_test("Idempotent: no signature → valid", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{
+          "event_id" => "evt_e2e_003",
+          "event_type" => "test"
+        })
+        assert_status!(resp, 200)
+        assert_eq!(resp.body["output"]["signature_valid"], true, "signature_valid")
+        :ok
+      end),
+      run_test("Idempotent: missing event_id → 422", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{"event_type" => "test"})
+        assert_status!(resp, 422)
+        assert_contains!(resp.body["error"], "Payload validation failed", "error")
+        :ok
+      end)
+    ]
+  end
+
+  # ════════════════════════════════════════════════════════════════
+  # Phase 22: Abandoned Cart Recovery
+  # ════════════════════════════════════════════════════════════════
+
+  defp run_abandoned_cart_recovery(user, org) do
+    IO.puts(cyan("\n▸ Phase 22: Abandoned Cart Recovery"))
+    flow = create_and_activate_template("abandoned_cart_recovery", "E2E AbandonedCart", user, org)
+
+    [
+      run_test("Cart: large cart → 15% + full recovery", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{
+          "customer_name" => "Alice",
+          "customer_email" => "a@shop.com",
+          "cart_total" => 15_000
+        })
+        assert_status!(resp, 200)
+        output = resp.body["output"]
+        assert_eq!(output["discount_percent"], 15, "discount_percent")
+        assert_eq!(output["reminder_sent"], true, "reminder_sent")
+        assert_eq!(output["final_offer_sent"], true, "final_offer_sent")
+        :ok
+      end),
+      run_test("Cart: already purchased → skip", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{
+          "customer_name" => "Bob",
+          "customer_email" => "b@shop.com",
+          "cart_total" => 5000,
+          "already_purchased" => true
+        })
+        assert_status!(resp, 200)
+        assert_eq!(resp.body["output"]["recovered"], true, "recovered")
+        assert_eq!(resp.body["output"]["step"], "already_purchased", "step")
+        :ok
+      end),
+      run_test("Cart: medium cart → 10% discount", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{
+          "customer_name" => "Carol",
+          "customer_email" => "c@shop.com",
+          "cart_total" => 7500
+        })
+        assert_status!(resp, 200)
+        assert_eq!(resp.body["output"]["discount_percent"], 10, "discount_percent")
+        :ok
+      end),
+      run_test("Cart: small cart → 5% discount", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{
+          "customer_name" => "Dave",
+          "customer_email" => "d@shop.com",
+          "cart_total" => 2000
+        })
+        assert_status!(resp, 200)
+        assert_eq!(resp.body["output"]["discount_percent"], 5, "discount_percent")
+        :ok
+      end),
+      run_test("Cart: missing customer_name → 422", fn ->
+        {:ok, resp} = webhook_post(flow.webhook_token, %{
+          "customer_email" => "x@shop.com",
+          "cart_total" => 100
+        })
+        assert_status!(resp, 422)
+        assert_contains!(resp.body["error"], "Payload validation failed", "error")
         :ok
       end)
     ]

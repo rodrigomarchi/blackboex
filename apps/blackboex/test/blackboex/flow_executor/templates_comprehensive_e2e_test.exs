@@ -307,20 +307,22 @@ defmodule Blackboex.FlowExecutor.TemplatesComprehensiveE2eTest do
       definition = LeadScoring.definition()
 
       skip_nodes =
-        definition["nodes"]
-        |> Enum.filter(fn n -> n["type"] == "elixir_code" and n["data"]["skip_condition"] end)
+        Enum.filter(definition["nodes"], fn n ->
+          n["type"] == "elixir_code" and n["data"]["skip_condition"]
+        end)
 
-      assert length(skip_nodes) >= 1
+      refute skip_nodes == []
     end
 
     test "WebhookProcessor elixir_code node has skip_condition configured" do
       definition = WebhookProcessor.definition()
 
       skip_nodes =
-        definition["nodes"]
-        |> Enum.filter(fn n -> n["type"] == "elixir_code" and n["data"]["skip_condition"] end)
+        Enum.filter(definition["nodes"], fn n ->
+          n["type"] == "elixir_code" and n["data"]["skip_condition"]
+        end)
 
-      assert length(skip_nodes) >= 1
+      refute skip_nodes == []
     end
   end
 end

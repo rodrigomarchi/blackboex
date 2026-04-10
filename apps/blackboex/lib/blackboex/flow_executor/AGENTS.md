@@ -41,6 +41,8 @@ FlowExecutor (facade)
 
 Condition nodes output `%{branch: index, value: input, state: state}`. Downstream nodes are wrapped in `BranchGate` which checks for the `__branch_skipped__` sentinel. Non-matching branches get early return. The `Collector` step picks the first non-skipped result from multiple end nodes.
 
+**Condition-after-skipped-branch**: when a `condition` node sits transitively downstream of another condition's non-taken branch, it receives `:__branch_skipped__` as its input. `Nodes.Condition.run/3` detects this and short-circuits to `%{branch: :__branch_skipped__, value: :__branch_skipped__, state: state}` without evaluating the user's expression. Because no edge's `source_port` can equal `:__branch_skipped__`, the `branch_gate/2` transform in `ReactorBuilder` fans the skip out to every downstream port. Template authors never need to guard expressions against the sentinel.
+
 ## Async Execution
 
 - `config :blackboex, :flow_executor_async, false` in test.exs (Ecto sandbox safety)

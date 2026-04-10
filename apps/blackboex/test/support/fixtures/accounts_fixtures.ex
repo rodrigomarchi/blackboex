@@ -9,7 +9,17 @@ defmodule Blackboex.AccountsFixtures do
   alias Blackboex.Accounts
   alias Blackboex.Accounts.Scope
 
-  def unique_user_email, do: "user#{System.unique_integer([:positive])}@example.com"
+  def unique_user_email do
+    # `System.unique_integer/1` only guarantees uniqueness within the current
+    # BEAM lifetime. If a prior test process ever leaked a row out of the
+    # Ecto sandbox (rare but has happened here), a fresh BEAM will happily
+    # regenerate the same integer and collide with the residue. We also mix
+    # in a random suffix so every generated email is unique across runs
+    # regardless of any residual rows.
+    suffix = :crypto.strong_rand_bytes(4) |> Base.url_encode64(padding: false)
+    "user#{System.unique_integer([:positive])}-#{suffix}@example.com"
+  end
+
   def valid_user_password, do: "hello world!"
 
   def valid_user_attributes(attrs \\ %{}) do

@@ -657,8 +657,22 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouterTest do
 
       on_exit(fn -> Compiler.unload(module) end)
 
-      # Exhaust the free plan daily invocation limit (1000) by inserting usage events directly
-      Enum.each(1..1000, fn _ ->
+      # Tighten the free plan daily invocation ceiling via the runtime
+      # override so we only need to insert a handful of usage events to
+      # cross it, regardless of the product default.
+      original = Application.get_env(:blackboex, Blackboex.Billing.Enforcement, [])
+
+      Application.put_env(
+        :blackboex,
+        Blackboex.Billing.Enforcement,
+        free: %{max_invocations_per_day: 3}
+      )
+
+      on_exit(fn ->
+        Application.put_env(:blackboex, Blackboex.Billing.Enforcement, original)
+      end)
+
+      Enum.each(1..3, fn _ ->
         usage_event_fixture(%{organization_id: org.id, event_type: "api_invocation"})
       end)
 

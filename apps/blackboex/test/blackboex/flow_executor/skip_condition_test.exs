@@ -3,6 +3,7 @@ defmodule Blackboex.FlowExecutor.SkipConditionTest do
   use Blackboex.DataCase, async: true
 
   alias Blackboex.FlowExecutor
+  alias Blackboex.FlowExecutor.BlackboexFlow
   alias Blackboex.Flows
 
   # Ensure node type atoms exist for DefinitionParser.safe_to_atom/1
@@ -141,12 +142,12 @@ defmodule Blackboex.FlowExecutor.SkipConditionTest do
   describe "BlackboexFlow validation" do
     test "accepts valid skip_condition string" do
       definition = build_flow_with_skip(~s|input|, ~s|true|)
-      assert :ok = Blackboex.FlowExecutor.BlackboexFlow.validate(definition)
+      assert :ok = BlackboexFlow.validate(definition)
     end
 
     test "rejects non-string skip_condition" do
       definition = build_flow_with_skip(~s|input|, 123)
-      assert {:error, msg} = Blackboex.FlowExecutor.BlackboexFlow.validate(definition)
+      assert {:error, msg} = BlackboexFlow.validate(definition)
       assert msg =~ "skip_condition"
     end
   end

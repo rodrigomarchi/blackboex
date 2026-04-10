@@ -168,8 +168,9 @@ defmodule BlackboexWeb.ApiLive.PublishFlowTest do
 
       assert html =~ "Unpublish"
 
-      # Unpublish
-      lv |> element(~s(button[phx-click="unpublish"])) |> render_click()
+      # Unpublish — the button funnels through a request_confirm modal, so we
+      # fire the confirmed event directly to cover the real handle_event path.
+      render_click(lv, "unpublish", %{})
 
       # Verify API status changed back
       updated_api = Apis.get_api(org.id, api.id)

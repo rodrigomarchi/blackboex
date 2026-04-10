@@ -201,7 +201,7 @@ defmodule BlackboexWeb.ApiLive.Edit.RunLiveTest do
     test "clear button is hidden when history is empty", %{conn: conn, org: org, api: api} do
       {:ok, _lv, html} = live(conn, ~p"/apis/#{api.id}/edit/run?org=#{org.id}")
 
-      refute html =~ ~s(phx-click="clear_history")
+      refute html =~ ~s(phx-value-action="clear_history")
     end
 
     test "clear button is visible when history exists", %{
@@ -213,7 +213,7 @@ defmodule BlackboexWeb.ApiLive.Edit.RunLiveTest do
       insert_test_request(api, user)
 
       {:ok, _lv, html} = live(conn, ~p"/apis/#{api.id}/edit/run?org=#{org.id}")
-      assert html =~ ~s(phx-click="clear_history")
+      assert html =~ ~s(phx-value-action="clear_history")
     end
   end
 

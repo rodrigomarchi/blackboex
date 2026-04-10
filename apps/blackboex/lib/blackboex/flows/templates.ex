@@ -19,7 +19,15 @@ defmodule Blackboex.Flows.Templates do
     "Getting Started",
     "Data Processing",
     "Integrations",
-    "Advanced"
+    "Advanced",
+    "Payments & Billing",
+    "Customer Support",
+    "Business Operations",
+    "Data & Enrichment",
+    "DevOps & Monitoring",
+    "Customer Success",
+    "API Infrastructure",
+    "E-commerce"
   ]
 
   @templates [
@@ -35,7 +43,15 @@ defmodule Blackboex.Flows.Templates do
     Blackboex.Flows.Templates.ApiStatusChecker.template(),
     Blackboex.Flows.Templates.AdvancedFeatures.template(),
     Blackboex.Flows.Templates.LeadScoring.template(),
-    Blackboex.Flows.Templates.WebhookProcessor.template()
+    Blackboex.Flows.Templates.WebhookProcessor.template(),
+    Blackboex.Flows.Templates.StripePaymentRouter.template(),
+    Blackboex.Flows.Templates.SupportTicketRouter.template(),
+    Blackboex.Flows.Templates.EscalationApproval.template(),
+    Blackboex.Flows.Templates.DataEnrichmentChain.template(),
+    Blackboex.Flows.Templates.IncidentAlertPipeline.template(),
+    Blackboex.Flows.Templates.CustomerOnboarding.template(),
+    Blackboex.Flows.Templates.WebhookIdempotent.template(),
+    Blackboex.Flows.Templates.AbandonedCartRecovery.template()
   ]
 
   @doc "Returns all available flow templates."

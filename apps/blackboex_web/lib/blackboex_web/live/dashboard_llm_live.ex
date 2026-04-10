@@ -8,6 +8,7 @@ defmodule BlackboexWeb.DashboardLlmLive do
   import BlackboexWeb.Components.Shared.Charts
   import BlackboexWeb.Components.Shared.StatCard
   import BlackboexWeb.Components.Shared.DashboardNav
+  import BlackboexWeb.Components.Shared.DashboardHelpers
   import BlackboexWeb.Components.Card
 
   alias Blackboex.Apis.DashboardQueries
@@ -289,50 +290,6 @@ defmodule BlackboexWeb.DashboardLlmLive do
   end
 
   # -- Template helpers --
-
-  defp period_label("24h"), do: "today"
-  defp period_label("7d"), do: "7d"
-  defp period_label("30d"), do: "30d"
-  defp period_label(_), do: ""
-
-  @spec format_number(number() | nil) :: String.t()
-  defp format_number(nil), do: "0"
-
-  defp format_number(n) when is_integer(n) do
-    n
-    |> Integer.to_string()
-    |> String.graphemes()
-    |> Enum.reverse()
-    |> Enum.chunk_every(3)
-    |> Enum.map(&Enum.reverse/1)
-    |> Enum.reverse()
-    |> Enum.map_join(",", &Enum.join/1)
-  end
-
-  defp format_number(n) when is_float(n), do: format_number(trunc(n))
-
-  @spec format_cost(non_neg_integer() | nil) :: String.t()
-  defp format_cost(nil), do: "$0.00"
-  defp format_cost(0), do: "$0.00"
-  defp format_cost(cents) when is_integer(cents), do: "$#{Float.round(cents / 100, 2)}"
-
-  @spec format_tokens(non_neg_integer()) :: String.t()
-  defp format_tokens(0), do: "0"
-
-  defp format_tokens(n) when is_integer(n) and n >= 1_000_000,
-    do: "#{Float.round(n / 1_000_000, 1)}M"
-
-  defp format_tokens(n) when is_integer(n) and n >= 1_000, do: "#{Float.round(n / 1_000, 1)}K"
-  defp format_tokens(n) when is_integer(n), do: Integer.to_string(n)
-
-  @spec format_duration(Decimal.t() | float() | integer() | nil) :: String.t()
-  defp format_duration(nil), do: "-"
-
-  defp format_duration(%Decimal{} = ms), do: ms |> Decimal.to_float() |> format_duration()
-
-  defp format_duration(ms) when is_number(ms) and ms >= 1000, do: "#{Float.round(ms / 1000, 1)}s"
-  defp format_duration(ms) when is_float(ms), do: "#{Float.round(ms, 1)}ms"
-  defp format_duration(ms) when is_integer(ms), do: "#{ms}ms"
 
   @spec format_operation(String.t() | nil) :: String.t()
   defp format_operation(nil), do: "-"

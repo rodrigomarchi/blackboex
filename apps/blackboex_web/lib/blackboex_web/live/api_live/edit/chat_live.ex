@@ -13,6 +13,7 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
   alias Blackboex.Billing.Enforcement
   alias Blackboex.CodeGen.DiffEngine
   alias Blackboex.Conversations, as: AgentConversations
+  alias BlackboexWeb.ApiLive.Edit.ChatLiveHelpers, as: H
   alias BlackboexWeb.ApiLive.Edit.Shared
 
   @command_palette_events ~w(toggle_command_palette close_panels command_palette_search
@@ -130,7 +131,7 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
 
   @impl true
   def handle_event("request_confirm", params, socket) do
-    confirm = build_confirm(params["action"], params)
+    confirm = H.build_confirm(params["action"], params)
     {:noreply, assign(socket, confirm: confirm)}
   end
 
@@ -168,7 +169,7 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
 
   def handle_event("download_file", _params, socket) do
     content = socket.assigns.editor_live_content || get_selected_content(socket)
-    filename = filename_from_path(socket.assigns.selected_file)
+    filename = H.filename_from_path(socket.assigns.selected_file)
     {:noreply, push_event(socket, "download_file", %{content: content, filename: filename})}
   end
 
@@ -195,12 +196,6 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
         do_accept_edit(socket, proposed_code, proposed_test_code, instruction)
     end
   end
-
-  # Note: pending_edit is created by handle_agent_code_completed with fields:
-  # %{code, test_code, diff, test_diff, explanation, instruction, validation}
-  # The multi-file data is already saved to DB by Session.save_api_and_version
-  # before the completion event arrives, so do_accept_edit just needs to refresh
-  # from DB which it already does via Apis.list_files.
 
   def handle_event("reject_edit", _params, socket) do
     {:noreply, assign(socket, pending_edit: nil)}
@@ -252,9 +247,6 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
     Phoenix.PubSub.subscribe(Blackboex.PubSub, "run:#{run_id}")
     run = AgentConversations.get_run(run_id)
 
-    # Pre-set generating status and select handler file immediately.
-    # The first pipeline step (:generating_code) often fires before this
-    # subscription is active, causing a race condition where the event is lost.
     handler_file = Enum.find(socket.assigns.files, &(&1.path == "/src/handler.ex"))
 
     {:noreply,
@@ -283,10 +275,10 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
   def handle_info({:agent_action, %{tool: tool_name, args: args}}, socket) do
     now = DateTime.utc_now()
     seq = length(socket.assigns.agent_events)
-    normalized_args = normalize_tool_input(args)
+    normalized_args = H.normalize_tool_input(args)
     event = %{type: :tool_call, tool: tool_name, args: normalized_args, timestamp: now, id: seq}
 
-    status = agent_tool_to_status(tool_name)
+    status = H.agent_tool_to_status(tool_name)
 
     socket =
       socket
@@ -303,7 +295,7 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
   end
 
   def handle_info({:agent_action, %{tool: tool_name}}, socket) do
-    status = agent_tool_to_status(tool_name)
+    status = H.agent_tool_to_status(tool_name)
 
     {:noreply,
      socket
@@ -312,7 +304,7 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
   end
 
   def handle_info({:tool_started, %{tool: tool_name}}, socket) do
-    status = agent_tool_to_status(tool_name)
+    status = H.agent_tool_to_status(tool_name)
 
     {:noreply,
      socket
@@ -320,12 +312,9 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
      |> auto_select_file_for_step(status)}
   end
 
-  # CodePipeline step events (different from LangChain tool events)
   def handle_info({:step_started, %{step: step}}, socket) do
-    status = pipeline_step_to_status(step)
+    status = H.pipeline_step_to_status(step)
 
-    # Refresh files from DB when entering validation/fix phases
-    # so the editor shows generated code, not placeholders
     socket =
       if status in [:compiling, :formatting, :linting, :fixing] do
         refresh_files_from_db(socket)
@@ -341,7 +330,6 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
   end
 
   def handle_info({:step_completed, %{step: step} = payload}, socket) do
-    # Refresh files from DB after validation/fix steps complete
     socket =
       if step in [:compiling, :formatting, :linting, :fixing_compilation, :fixing_lint] do
         refresh_files_from_db(socket)
@@ -417,8 +405,8 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
         pipeline_status: nil,
         generation_status: refreshed_api.generation_status,
         versions: Apis.list_versions(refreshed_api.id),
-        validation_report: restore_validation_report(refreshed_api.validation_report),
-        test_summary: derive_test_summary(refreshed_api.validation_report),
+        validation_report: H.restore_validation_report(refreshed_api.validation_report),
+        test_summary: H.derive_test_summary(refreshed_api.validation_report),
         files: files,
         selected_file: selected_file
       )
@@ -439,10 +427,8 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
     end
   end
 
-  # Multi-file pipeline events: manifest ready, file focus changes
   def handle_info({:manifest_ready, %{manifest: manifest_files}}, socket)
       when is_list(manifest_files) do
-    # Placeholders already created in DB by Session — just reload
     files = Apis.list_files(socket.assigns.api.id)
 
     {:noreply,
@@ -453,12 +439,10 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
   end
 
   def handle_info({:file_started, %{path: path}}, socket) do
-    # Reset streaming state and switch editor focus to the file being generated
     api = socket.assigns.api
     files = Apis.list_files(api.id)
     file = Enum.find(files, &(&1.path == path))
 
-    # If file doesn't exist yet (placeholder wasn't created), create it now
     {files, file} =
       if is_nil(file) do
         case Apis.create_file(api, %{
@@ -471,7 +455,6 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
             {updated_files, new_file}
 
           _ ->
-            # Build a virtual struct for focus even if DB write fails
             virtual = %{path: path, content: "# Generating...\n", file_type: "source"}
             {files, virtual}
         end
@@ -490,7 +473,6 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
   end
 
   def handle_info({:file_completed, %{path: path}}, socket) do
-    # Reload files from DB — content was saved by the pipeline
     socket = refresh_files_from_db(socket)
     file = Enum.find(socket.assigns.files, &(&1.path == path))
 
@@ -546,20 +528,7 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
   def handle_info({:agent_message, _payload}, socket), do: {:noreply, socket}
   def handle_info({:agent_started, _payload}, socket), do: {:noreply, socket}
 
-  # ── Private Helpers ───────────────────────────────────────────────────
-
-  defp build_confirm("clear_conversation", _params) do
-    %{
-      title: "Clear conversation?",
-      description: "The chat history will be cleared. Your API code will not be affected.",
-      variant: :warning,
-      confirm_label: "Clear",
-      event: "clear_conversation",
-      meta: %{}
-    }
-  end
-
-  defp build_confirm(_, _), do: nil
+  # ── Private Helpers (socket-dependent) ───────────────────────────────
 
   defp shared_shell_assigns(assigns) do
     Map.take(assigns, [
@@ -589,7 +558,7 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
       [latest_run | _] ->
         events =
           AgentConversations.list_events(latest_run.id)
-          |> Enum.map(&event_to_display/1)
+          |> Enum.map(&H.event_to_display/1)
           |> Enum.reject(&is_nil/1)
 
         {events, latest_run}
@@ -675,101 +644,6 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
     end
   end
 
-  defp event_to_display(%{event_type: "user_message"} = e) do
-    %{type: :message, role: "user", content: e.content, timestamp: e.inserted_at, id: e.sequence}
-  end
-
-  defp event_to_display(%{event_type: "assistant_message"} = e) do
-    %{
-      type: :message,
-      role: "assistant",
-      content: e.content,
-      timestamp: e.inserted_at,
-      id: e.sequence
-    }
-  end
-
-  defp event_to_display(%{event_type: "tool_call"} = e) do
-    args = normalize_tool_input(e.tool_input)
-
-    %{
-      type: :tool_call,
-      tool: e.tool_name,
-      args: args,
-      timestamp: e.inserted_at,
-      id: e.sequence,
-      tool_duration_ms: e.tool_duration_ms
-    }
-  end
-
-  defp event_to_display(%{event_type: "tool_result"} = e) do
-    %{
-      type: :tool_result,
-      tool: e.tool_name,
-      success: e.tool_success,
-      content: e.content || "",
-      timestamp: e.inserted_at,
-      id: e.sequence,
-      tool_duration_ms: e.tool_duration_ms
-    }
-  end
-
-  defp event_to_display(%{event_type: "status_change"} = e) do
-    %{type: :status, content: e.content, timestamp: e.inserted_at, id: e.sequence}
-  end
-
-  defp event_to_display(_), do: nil
-
-  defp normalize_tool_input(nil), do: %{}
-
-  defp normalize_tool_input(args) when is_map(args),
-    do: Map.new(args, fn {k, v} -> {to_string(k), v} end)
-
-  defp normalize_tool_input(_), do: %{}
-
-  defp pipeline_step_to_status(:generating_code), do: :generating
-  defp pipeline_step_to_status(:generating_tests), do: :generating_tests
-  defp pipeline_step_to_status(:compiling), do: :compiling
-  defp pipeline_step_to_status(:formatting), do: :formatting
-  defp pipeline_step_to_status(:linting), do: :linting
-  defp pipeline_step_to_status(:fixing_compilation), do: :fixing
-  defp pipeline_step_to_status(:fixing_lint), do: :fixing
-  defp pipeline_step_to_status(:fixing_tests), do: :fixing
-  defp pipeline_step_to_status(:generating_docs), do: :generating_docs
-  defp pipeline_step_to_status(:submitting), do: :submitting
-  defp pipeline_step_to_status(_), do: :processing
-
-  defp maybe_update_code_from_step(socket, %{code: code}) when is_binary(code) do
-    assign(socket, code: code)
-  end
-
-  defp maybe_update_code_from_step(socket, %{test_code: test_code}) when is_binary(test_code) do
-    assign(socket, test_code: test_code)
-  end
-
-  defp maybe_update_code_from_step(socket, %{step: :generating_docs, content: doc})
-       when is_binary(doc) do
-    files =
-      Enum.map(socket.assigns.files, fn
-        %{path: "/README.md"} = f -> %{f | content: doc}
-        f -> f
-      end)
-
-    assign(socket, files: files)
-  end
-
-  defp maybe_update_code_from_step(socket, _payload), do: socket
-
-  defp agent_tool_to_status("generate_code"), do: :generating
-  defp agent_tool_to_status("compile_code"), do: :compiling
-  defp agent_tool_to_status("format_code"), do: :formatting
-  defp agent_tool_to_status("lint_code"), do: :linting
-  defp agent_tool_to_status("generate_tests"), do: :generating_tests
-  defp agent_tool_to_status("run_tests"), do: :running_tests
-  defp agent_tool_to_status("generate_docs"), do: :generating_docs
-  defp agent_tool_to_status("submit_code"), do: :submitting
-  defp agent_tool_to_status(_), do: :processing
-
   defp handle_agent_code_completed(socket, code, test_code, summary, _api) do
     assistant_msg = %{"role" => "assistant", "content" => summary || "Code updated successfully"}
     completion_event = %{type: :message, role: "assistant", content: assistant_msg["content"]}
@@ -778,7 +652,6 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
     has_previous_code = socket.assigns.code != ""
 
     if has_previous_code do
-      # Build per-file diffs by comparing previous files with new files from DB
       files_changed = build_files_changed(socket.assigns.files, socket.assigns.api.id)
       code_diff = DiffEngine.compute_diff(socket.assigns.code, code)
 
@@ -826,6 +699,27 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
     |> Enum.filter(& &1.changed)
   end
 
+  defp maybe_update_code_from_step(socket, %{code: code}) when is_binary(code) do
+    assign(socket, code: code)
+  end
+
+  defp maybe_update_code_from_step(socket, %{test_code: test_code}) when is_binary(test_code) do
+    assign(socket, test_code: test_code)
+  end
+
+  defp maybe_update_code_from_step(socket, %{step: :generating_docs, content: doc})
+       when is_binary(doc) do
+    files =
+      Enum.map(socket.assigns.files, fn
+        %{path: "/README.md"} = f -> %{f | content: doc}
+        f -> f
+      end)
+
+    assign(socket, files: files)
+  end
+
+  defp maybe_update_code_from_step(socket, _payload), do: socket
+
   defp apply_action_to_editor(socket, "compile_code", %{"code" => code}) do
     assign(socket, code: code)
   end
@@ -857,14 +751,14 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
 
   defp resolve_editor_content(assigns) do
     path = assigns.selected_file && assigns.selected_file.path
-    target = streaming_target(assigns.pipeline_status, path)
+    target = H.streaming_target(assigns.pipeline_status, path)
     resolve_for_target(target, assigns)
   end
 
   defp resolve_for_target(target, assigns)
        when target in [:streaming_source, :streaming_test, :streaming_doc] do
     if assigns.streaming_tokens != "" do
-      strip_code_fences(assigns.streaming_tokens)
+      H.strip_code_fences(assigns.streaming_tokens)
     else
       static_content_for(target, assigns)
     end
@@ -881,32 +775,6 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
 
   defp selected_file_content(assigns),
     do: (assigns.selected_file && assigns.selected_file.content) || ""
-
-  defp streaming_target(status, path) do
-    file_type = classify_file(path)
-    streaming_target_for(status, file_type)
-  end
-
-  defp classify_file(nil), do: :unknown
-
-  defp classify_file(path) when is_binary(path) do
-    cond do
-      String.starts_with?(path, "/src") -> :source
-      String.starts_with?(path, "/test") -> :test
-      String.ends_with?(path, ".md") -> :doc
-      true -> :unknown
-    end
-  end
-
-  defp streaming_target_for(status, :source)
-       when status in [:generating, :compiling, :formatting, :linting],
-       do: :streaming_source
-
-  defp streaming_target_for(status, :test) when status in [:generating_tests, :running_tests],
-    do: :streaming_test
-
-  defp streaming_target_for(:generating_docs, :doc), do: :streaming_doc
-  defp streaming_target_for(_status, file_type), do: file_type
 
   defp refresh_files_from_db(socket) do
     api = Blackboex.Repo.reload!(socket.assigns.api)
@@ -951,7 +819,6 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
     if is_nil(streaming_path) or streaming_path == selected_path do
       socket
     else
-      # Streaming is for a different file — switch focus and reset tokens
       files = socket.assigns.files
       file = Enum.find(files, &(&1.path == streaming_path))
 
@@ -974,58 +841,12 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
     if socket.assigns.pipeline_status == :fixing do
       socket
     else
-      assign(socket, editor_live_content: strip_code_fences(new_tokens))
+      assign(socket, editor_live_content: H.strip_code_fences(new_tokens))
     end
   end
-
-  defp strip_code_fences(tokens) when is_binary(tokens) do
-    tokens
-    |> String.replace(~r/^.*?```(?:elixir)?\s*\n/s, "")
-    |> String.replace(~r/```\s*$/s, "")
-    |> String.trim_leading("\n")
-  end
-
-  defp strip_code_fences(_), do: ""
 
   defp edit_tab_path(socket, tab) do
     "/apis/#{socket.assigns.api.id}/edit/#{tab}"
-  end
-
-  defp restore_validation_report(nil), do: nil
-
-  defp restore_validation_report(report) when is_map(report) do
-    %{
-      compilation: safe_to_atom(report["compilation"]),
-      compilation_errors: report["compilation_errors"] || [],
-      format: safe_to_atom(report["format"]),
-      format_issues: report["format_issues"] || [],
-      credo: safe_to_atom(report["credo"]),
-      credo_issues: report["credo_issues"] || [],
-      tests: safe_to_atom(report["tests"]),
-      test_results: report["test_results"] || [],
-      overall: safe_to_atom(report["overall"])
-    }
-  end
-
-  defp safe_to_atom(nil), do: :pass
-  defp safe_to_atom(val) when is_atom(val), do: val
-  defp safe_to_atom(val) when val in ["pass", "fail", "skipped"], do: String.to_existing_atom(val)
-  defp safe_to_atom(_), do: :pass
-
-  defp derive_test_summary(nil), do: nil
-
-  defp derive_test_summary(report) when is_map(report) do
-    test_results = report["test_results"] || []
-
-    if test_results != [] do
-      passed =
-        Enum.count(test_results, fn item -> (item[:status] || item["status"]) == "passed" end)
-
-      total = length(test_results)
-      "#{passed}/#{total}"
-    else
-      nil
-    end
   end
 
   defp get_selected_content(socket) do
@@ -1034,10 +855,4 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
       _ -> ""
     end
   end
-
-  defp filename_from_path(%{path: path}) when is_binary(path) do
-    Path.basename(path)
-  end
-
-  defp filename_from_path(_), do: "file.txt"
 end

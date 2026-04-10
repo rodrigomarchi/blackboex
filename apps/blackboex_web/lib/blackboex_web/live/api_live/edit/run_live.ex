@@ -6,11 +6,11 @@ defmodule BlackboexWeb.ApiLive.Edit.RunLive do
   require Logger
 
   import BlackboexWeb.ApiLive.Edit.EditorShell
-  import BlackboexWeb.ApiLive.Edit.Helpers, only: [history_status_color: 1]
+  import BlackboexWeb.ApiLive.Edit.RunLiveComponents
+  import BlackboexWeb.ApiLive.Edit.RunLiveHelpers
 
   alias Blackboex.Testing
   alias Blackboex.Testing.RequestExecutor
-  alias Blackboex.Testing.ResponseValidator
   alias Blackboex.Testing.SampleData
   alias Blackboex.Testing.SnippetGenerator
   alias BlackboexWeb.ApiLive.Edit.Shared
@@ -80,59 +80,7 @@ defmodule BlackboexWeb.ApiLive.Edit.RunLive do
         </div>
 
         <%!-- Test History --%>
-        <div class="w-52 shrink-0 border-l pl-3 overflow-y-auto">
-          <div class="flex items-center justify-between mb-2">
-            <h4 class="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase">
-              <.icon name="hero-clock-mini" class="size-3.5 text-amber-400" /> History
-            </h4>
-            <button
-              :if={@test_history != []}
-              phx-click="request_confirm"
-              phx-value-action="clear_history"
-              class="inline-flex items-center text-[10px] text-destructive hover:underline"
-            >
-              <.icon name="hero-trash-mini" class="mr-1 size-3" /> Clear
-            </button>
-          </div>
-
-          <div class="flex flex-wrap gap-1 mb-2">
-            <button
-              :for={lang <- ~w(curl python javascript elixir ruby go)}
-              phx-click="copy_snippet"
-              phx-value-language={lang}
-              class="rounded border px-1.5 py-0.5 text-[10px] hover:bg-accent"
-            >
-              {lang}
-            </button>
-          </div>
-
-          <%= if @test_history == [] do %>
-            <p class="text-[10px] text-muted-foreground">No requests yet</p>
-          <% else %>
-            <div class="space-y-1">
-              <div
-                :for={item <- @test_history}
-                phx-click="load_history_item"
-                phx-value-id={item.id}
-                class="rounded border p-1.5 text-[10px] cursor-pointer hover:bg-accent"
-              >
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-1">
-                    <span class="font-semibold">{item.method}</span>
-                    <span class="text-muted-foreground truncate max-w-[80px]">{item.path}</span>
-                  </div>
-                  <span class={[
-                    "inline-flex rounded-full px-1 py-0 text-[9px] font-semibold",
-                    history_status_color(item.response_status)
-                  ]}>
-                    {item.response_status}
-                  </span>
-                </div>
-                <div class="text-muted-foreground mt-0.5">{item.duration_ms}ms</div>
-              </div>
-            </div>
-          <% end %>
-        </div>
+        <.history_sidebar test_history={@test_history} />
       </div>
 
       <.confirm_dialog
@@ -465,20 +413,6 @@ defmodule BlackboexWeb.ApiLive.Edit.RunLive do
 
   # ── Private Helpers ───────────────────────────────────────────────────
 
-  defp build_confirm("clear_history", _params) do
-    %{
-      title: "Clear request history?",
-      description:
-        "All saved request/response pairs will be removed. This won't affect your API code.",
-      variant: :warning,
-      confirm_label: "Clear",
-      event: "clear_history",
-      meta: %{}
-    }
-  end
-
-  defp build_confirm(_, _), do: nil
-
   defp init_assigns(socket) do
     api = socket.assigns.api
     org = socket.assigns.org
@@ -509,56 +443,6 @@ defmodule BlackboexWeb.ApiLive.Edit.RunLive do
   defp load_history(socket) do
     history = Testing.list_test_requests(socket.assigns.api.id)
     assign(socket, test_history: history, history_loaded: true)
-  end
-
-  defp default_test_body(api) do
-    if api.example_request do
-      Jason.encode!(api.example_request, pretty: true)
-    else
-      "{}"
-    end
-  end
-
-  defp build_request(assigns) do
-    headers = build_header_list(assigns.test_headers)
-
-    headers =
-      if assigns.test_api_key != "" do
-        headers ++ [{"x-api-key", assigns.test_api_key}]
-      else
-        headers
-      end
-
-    method = assigns.test_method |> String.downcase() |> String.to_existing_atom()
-
-    body =
-      if method in [:post, :put, :patch],
-        do: assigns.test_body_json,
-        else: nil
-
-    %{method: method, url: assigns.test_url, headers: headers, body: body}
-  end
-
-  defp build_header_list(headers) do
-    headers
-    |> Enum.filter(fn h -> h.key != "" end)
-    |> Enum.map(fn h -> {h.key, h.value} end)
-  end
-
-  defp headers_to_persist(assigns) do
-    assigns.test_headers
-    |> Enum.filter(fn h -> h.key != "" end)
-    |> Map.new(fn h -> {h.key, h.value} end)
-  end
-
-  defp validate_response(response, api) do
-    ResponseValidator.validate(response, api.param_schema)
-  end
-
-  defp update_item(items, id, field, value) do
-    Enum.map(items, fn item ->
-      if item.id == id, do: Map.put(item, field, value), else: item
-    end)
   end
 
   defp shared_shell_assigns(assigns) do

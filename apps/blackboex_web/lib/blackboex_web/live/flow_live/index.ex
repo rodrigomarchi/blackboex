@@ -6,13 +6,14 @@ defmodule BlackboexWeb.FlowLive.Index do
 
   use BlackboexWeb, :live_view
 
-  import BlackboexWeb.Components.Modal
   import BlackboexWeb.Components.Badge
   import BlackboexWeb.Components.Shared.EmptyState
+  import BlackboexWeb.FlowLive.Components.CreateFlowModal
 
   alias Blackboex.Flows
   alias Blackboex.Flows.Templates
   alias Blackboex.Policy
+  alias BlackboexWeb.FlowLive.IndexHelpers
 
   @impl true
   def mount(_params, _session, socket) do
@@ -34,7 +35,7 @@ defmodule BlackboexWeb.FlowLive.Index do
        create_mode: :template,
        selected_template: nil,
        template_categories: Templates.list_by_category(),
-       active_category: get_first_category(),
+       active_category: IndexHelpers.get_first_category(),
        create_form: to_form(%{"name" => "", "description" => ""}),
        create_error: nil,
        confirm: nil
@@ -45,7 +46,7 @@ defmodule BlackboexWeb.FlowLive.Index do
 
   @impl true
   def handle_event("request_confirm", params, socket) do
-    confirm = build_confirm(params["action"], params)
+    confirm = IndexHelpers.build_confirm(params["action"], params)
     {:noreply, assign(socket, confirm: confirm)}
   end
 
@@ -115,7 +116,7 @@ defmodule BlackboexWeb.FlowLive.Index do
        show_create_modal: true,
        create_mode: :template,
        selected_template: nil,
-       active_category: get_first_category(),
+       active_category: IndexHelpers.get_first_category(),
        create_form: to_form(%{"name" => "", "description" => ""}),
        create_error: nil
      )}
@@ -194,7 +195,8 @@ defmodule BlackboexWeb.FlowLive.Index do
            )}
 
         {:error, changeset} ->
-          {:noreply, assign(socket, create_error: format_changeset_errors(changeset))}
+          {:noreply,
+           assign(socket, create_error: IndexHelpers.format_changeset_errors(changeset))}
       end
     else
       {:error, _reason} -> {:noreply, put_flash(socket, :error, "Not authorized.")}
@@ -264,7 +266,7 @@ defmodule BlackboexWeb.FlowLive.Index do
             </div>
           </:col>
           <:col :let={flow} label="Status">
-            <.badge class={flow_status_classes(flow.status)}>{flow.status}</.badge>
+            <.badge class={IndexHelpers.flow_status_classes(flow.status)}>{flow.status}</.badge>
           </:col>
           <:col :let={flow} label="Created">
             <span class="text-xs text-muted-foreground">
@@ -300,197 +302,16 @@ defmodule BlackboexWeb.FlowLive.Index do
         confirm_label={@confirm[:confirm_label] || "Confirm"}
       />
 
-      <%!-- Create Flow Modal --%>
-      <.modal show={@show_create_modal} on_close="close_create_modal" title="Create Flow">
-        <%= if @create_error do %>
-          <div class="mb-4 rounded-md border border-destructive bg-destructive/10 p-3 text-sm text-destructive">
-            {@create_error}
-          </div>
-        <% end %>
-
-        <%!-- Mode Toggle --%>
-        <div class="flex gap-1 rounded-lg bg-muted p-1 mb-4">
-          <button
-            type="button"
-            phx-click="set_create_mode"
-            phx-value-mode="template"
-            class={[
-              "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-              if(@create_mode == :template,
-                do: "bg-background text-foreground shadow-sm",
-                else: "text-muted-foreground hover:text-foreground"
-              )
-            ]}
-          >
-            <.icon name="hero-squares-2x2" class="mr-1.5 size-4 inline" /> From template
-          </button>
-          <button
-            type="button"
-            phx-click="set_create_mode"
-            phx-value-mode="blank"
-            class={[
-              "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-              if(@create_mode == :blank,
-                do: "bg-background text-foreground shadow-sm",
-                else: "text-muted-foreground hover:text-foreground"
-              )
-            ]}
-          >
-            <.icon name="hero-document-plus" class="mr-1.5 size-4 inline" /> Blank flow
-          </button>
-        </div>
-
-        <%!-- Template Picker --%>
-        <div :if={@create_mode == :template} class="mb-4 space-y-3">
-          <%!-- Category Pills --%>
-          <div class="flex gap-1 flex-wrap">
-            <%= for {cat, _templates} <- @template_categories do %>
-              <button
-                type="button"
-                phx-click="set_active_category"
-                phx-value-category={cat}
-                class={[
-                  "rounded-full px-3 py-1 text-xs font-medium transition-colors border",
-                  if(@active_category == cat,
-                    do: "bg-primary text-primary-foreground border-primary",
-                    else:
-                      "bg-background text-muted-foreground border-border hover:border-primary/50 hover:text-foreground"
-                  )
-                ]}
-              >
-                {cat}
-              </button>
-            <% end %>
-          </div>
-
-          <%!-- Template Grid --%>
-          <div class="max-h-52 overflow-y-auto -mx-1 px-1">
-            <div class="grid grid-cols-2 gap-2">
-              <%= for {cat, templates} <- @template_categories, cat == @active_category, template <- templates do %>
-                <button
-                  type="button"
-                  phx-click="select_template"
-                  phx-value-id={template.id}
-                  class={[
-                    "flex items-start gap-2 rounded-lg border p-2.5 text-left transition-colors hover:border-primary/50",
-                    if(@selected_template && @selected_template.id == template.id,
-                      do: "border-primary bg-primary/5 ring-1 ring-primary",
-                      else: "border-border bg-background"
-                    )
-                  ]}
-                >
-                  <div class="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary mt-0.5">
-                    <.icon name={template.icon} class="size-4" />
-                  </div>
-                  <div class="min-w-0">
-                    <p class="text-xs font-medium leading-snug">{template.name}</p>
-                    <p class="text-xs text-muted-foreground line-clamp-2 leading-snug mt-0.5">
-                      {template.description}
-                    </p>
-                    <p class="text-xs text-muted-foreground/60 mt-1">
-                      {length(template.definition["nodes"])} nodes
-                    </p>
-                  </div>
-                </button>
-              <% end %>
-            </div>
-          </div>
-
-          <%!-- Helper text --%>
-          <p :if={is_nil(@selected_template)} class="text-xs text-muted-foreground">
-            Select a template above, or switch to
-            <button
-              type="button"
-              phx-click="set_create_mode"
-              phx-value-mode="blank"
-              class="underline hover:text-foreground"
-            >
-              blank flow
-            </button>
-            to start from scratch.
-          </p>
-        </div>
-
-        <form phx-submit="create_flow" class="space-y-4">
-          <.input
-            type="text"
-            name="name"
-            value={@create_form[:name].value}
-            label="Name *"
-            required
-            maxlength="200"
-            placeholder="My Workflow"
-            autofocus
-          />
-
-          <.input
-            type="textarea"
-            name="description"
-            value={@create_form[:description].value}
-            label="Description"
-            rows="3"
-            maxlength="10000"
-            placeholder="What does this flow do?"
-          />
-
-          <div class="flex justify-end gap-3 pt-2">
-            <.button type="button" variant="outline" phx-click="close_create_modal">
-              Cancel
-            </.button>
-            <.button
-              type="submit"
-              variant="primary"
-              disabled={@create_mode == :template && is_nil(@selected_template)}
-            >
-              <.icon name="hero-arrow-right" class="mr-2 size-4" /> Create & Edit
-            </.button>
-          </div>
-        </form>
-      </.modal>
+      <.create_flow_modal
+        show={@show_create_modal}
+        create_mode={@create_mode}
+        selected_template={@selected_template}
+        template_categories={@template_categories}
+        active_category={@active_category}
+        create_form={@create_form}
+        create_error={@create_error}
+      />
     </div>
     """
-  end
-
-  # ── Helpers ──────────────────────────────────────────────────────────────
-
-  defp get_first_category do
-    case Templates.list_by_category() do
-      [{cat, _} | _] -> cat
-      [] -> nil
-    end
-  end
-
-  defp build_confirm("delete", params) do
-    %{
-      title: "Delete flow?",
-      description:
-        "This action cannot be undone. The flow and all its data will be permanently removed.",
-      variant: :danger,
-      confirm_label: "Delete",
-      event: "delete",
-      meta: Map.take(params, ["id"])
-    }
-  end
-
-  defp build_confirm(_, _), do: nil
-
-  defp flow_status_classes("draft"), do: "bg-muted text-muted-foreground"
-
-  defp flow_status_classes("active"),
-    do: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-
-  defp flow_status_classes("archived"),
-    do: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200"
-
-  defp flow_status_classes(_), do: "bg-muted text-muted-foreground"
-
-  defp format_changeset_errors(changeset) do
-    Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
-      Regex.replace(~r"%{(\w+)}", msg, fn _, key ->
-        opts |> Keyword.get(String.to_existing_atom(key), key) |> to_string()
-      end)
-    end)
-    |> Enum.map(fn {field, msgs} -> "#{field}: #{Enum.join(msgs, ", ")}" end)
-    |> Enum.join("; ")
   end
 end

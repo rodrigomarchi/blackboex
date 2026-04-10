@@ -7,6 +7,7 @@ defmodule BlackboexWeb.DashboardLive do
   import BlackboexWeb.Components.Shared.StatCard
   import BlackboexWeb.Components.Shared.EmptyState
   import BlackboexWeb.Components.Shared.DashboardNav
+  import BlackboexWeb.Components.Shared.DashboardHelpers
   import BlackboexWeb.Components.Card
 
   alias Blackboex.Apis.DashboardQueries
@@ -172,26 +173,6 @@ defmodule BlackboexWeb.DashboardLive do
   end
 
   # -- Template helpers --
-
-  @spec format_number(number() | nil) :: String.t()
-  defp format_number(nil), do: "0"
-
-  defp format_number(n) when is_integer(n) do
-    n
-    |> Integer.to_string()
-    |> String.graphemes()
-    |> Enum.reverse()
-    |> Enum.chunk_every(3)
-    |> Enum.map(&Enum.reverse/1)
-    |> Enum.reverse()
-    |> Enum.map_join(",", &Enum.join/1)
-  end
-
-  defp format_number(n) when is_float(n), do: format_number(trunc(n))
-
-  @spec format_cost(non_neg_integer()) :: String.t()
-  defp format_cost(0), do: "$0.00"
-  defp format_cost(cents) when is_integer(cents), do: "$#{Float.round(cents / 100, 2)}"
 
   @spec format_action(String.t()) :: String.t()
   defp format_action(action) when is_binary(action) do

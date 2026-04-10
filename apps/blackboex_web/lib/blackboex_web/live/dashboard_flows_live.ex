@@ -7,6 +7,7 @@ defmodule BlackboexWeb.DashboardFlowsLive do
   import BlackboexWeb.Components.Shared.Charts
   import BlackboexWeb.Components.Shared.StatCard
   import BlackboexWeb.Components.Shared.DashboardNav
+  import BlackboexWeb.Components.Shared.DashboardHelpers
   import BlackboexWeb.Components.Card
 
   alias Blackboex.Apis.DashboardQueries
@@ -255,34 +256,6 @@ defmodule BlackboexWeb.DashboardFlowsLive do
   end
 
   # -- Template helpers --
-
-  defp period_label("24h"), do: "today"
-  defp period_label("7d"), do: "7d"
-  defp period_label("30d"), do: "30d"
-  defp period_label(_), do: ""
-
-  @spec format_number(number() | nil) :: String.t()
-  defp format_number(nil), do: "0"
-
-  defp format_number(n) when is_integer(n) do
-    n
-    |> Integer.to_string()
-    |> String.graphemes()
-    |> Enum.reverse()
-    |> Enum.chunk_every(3)
-    |> Enum.map(&Enum.reverse/1)
-    |> Enum.reverse()
-    |> Enum.map_join(",", &Enum.join/1)
-  end
-
-  defp format_number(n) when is_float(n), do: format_number(trunc(n))
-
-  @spec format_duration(float() | integer() | nil) :: String.t()
-  defp format_duration(nil), do: "- ms"
-  defp format_duration(ms) when is_float(ms) and ms >= 1000, do: "#{Float.round(ms / 1000, 1)}s"
-  defp format_duration(ms) when is_float(ms), do: "#{Float.round(ms, 1)}ms"
-  defp format_duration(ms) when is_integer(ms) and ms >= 1000, do: "#{Float.round(ms / 1000, 1)}s"
-  defp format_duration(ms) when is_integer(ms), do: "#{ms}ms"
 
   @spec status_color(String.t()) :: String.t()
   defp status_color("completed"), do: "text-emerald-400"

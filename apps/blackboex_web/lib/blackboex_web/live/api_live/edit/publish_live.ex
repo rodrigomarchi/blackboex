@@ -4,7 +4,8 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLive do
   use BlackboexWeb, :live_view
 
   import BlackboexWeb.ApiLive.Edit.EditorShell
-  import BlackboexWeb.ApiLive.Edit.Helpers, only: [time_ago: 1]
+  import BlackboexWeb.ApiLive.Edit.PublishLiveComponents
+  import BlackboexWeb.ApiLive.Edit.PublishLiveHelpers
 
   alias Blackboex.Apis
   alias Blackboex.Apis.Analytics
@@ -27,66 +28,7 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLive do
     ~H"""
     <.editor_shell {shared_shell_assigns(assigns)} active_tab="publish">
       <div class="p-4 overflow-y-auto h-full max-w-3xl space-y-6">
-        <%!-- Status Header --%>
-        <div class="rounded-lg border p-4 space-y-3">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <span class="text-xs text-muted-foreground">Status</span>
-              <span class={[
-                "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold",
-                api_status_border(@api.status)
-              ]}>
-                {@api.status}
-              </span>
-            </div>
-            <%= if @api.status == "compiled" do %>
-              <button
-                phx-click="publish"
-                class="inline-flex items-center rounded-md bg-info px-3 py-1.5 text-xs font-medium text-info-foreground hover:bg-info/90"
-              >
-                <.icon name="hero-rocket-launch" class="mr-1.5 size-3.5" /> Publish API
-              </button>
-            <% end %>
-            <%= if @api.status == "published" do %>
-              <button
-                phx-click="request_confirm"
-                phx-value-action="unpublish"
-                class="inline-flex items-center rounded-md border border-destructive px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10"
-              >
-                <.icon name="hero-arrow-down-circle" class="mr-1.5 size-3.5" /> Unpublish
-              </button>
-            <% end %>
-          </div>
-
-          <div class="flex items-center gap-2 text-xs">
-            <span class="text-muted-foreground">URL</span>
-            <code class="font-mono">/api/{@org.slug}/{@api.slug}</code>
-            <button
-              phx-click="copy_url"
-              class="inline-flex items-center text-primary hover:underline text-[10px]"
-            >
-              <.icon name="hero-clipboard-document-mini" class="mr-1 size-3 text-sky-400" />Copy
-            </button>
-            <%= if @api.status == "draft" do %>
-              <span class="text-muted-foreground">(preview)</span>
-            <% end %>
-          </div>
-
-          <%= if @api.status == "published" && @published_version do %>
-            <div class="flex items-center gap-2 text-xs">
-              <span class="inline-flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-success-foreground font-semibold">
-                <.icon name="hero-signal" class="size-3 text-emerald-400" /> LIVE
-              </span>
-              <span>v{@published_version.version_number}</span>
-              <span :if={@published_version.version_label} class="text-muted-foreground">
-                ({@published_version.version_label})
-              </span>
-              <span class="text-muted-foreground">
-                published {time_ago(@published_version.inserted_at)}
-              </span>
-            </div>
-          <% end %>
-        </div>
+        <.status_header api={@api} org={@org} published_version={@published_version} />
 
         <%= if @api.status == "draft" do %>
           <p class="text-sm text-muted-foreground">
@@ -100,196 +42,20 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLive do
           </p>
         <% end %>
 
-        <%!-- Version Timeline --%>
-        <div>
-          <h3 class="text-xs font-semibold text-muted-foreground uppercase mb-3">Versions</h3>
-          <%= if @versions == [] do %>
-            <p class="text-sm text-muted-foreground">
-              No versions yet. Save to create the first version.
-            </p>
-          <% else %>
-            <div class="space-y-2">
-              <%= for version <- @versions do %>
-                <div class={[
-                  "rounded border p-3 text-xs space-y-1",
-                  if(published_version?(version, @published_version),
-                    do: "border-success bg-success/5",
-                    else: ""
-                  )
-                ]}>
-                  <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                      <span class="font-semibold">v{version.version_number}</span>
-                      <%= if published_version?(version, @published_version) do %>
-                        <span class="inline-flex items-center gap-1 rounded-full bg-success/10 px-1.5 py-0.5 text-[10px] font-semibold text-success-foreground">
-                          LIVE
-                        </span>
-                      <% end %>
-                      <span class={[
-                        "inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium",
-                        compilation_status_classes(version.compilation_status)
-                      ]}>
-                        {compilation_status_label(version.compilation_status)}
-                      </span>
-                    </div>
-                    <span class="text-muted-foreground">
-                      {Calendar.strftime(version.inserted_at, "%H:%M")}
-                    </span>
-                  </div>
+        <.version_timeline
+          versions={@versions}
+          published_version={@published_version}
+          api_status={@api.status}
+        />
 
-                  <div class="text-muted-foreground">
-                    {humanize_source(version.source)}
-                    <%= if version.diff_summary do %>
-                      — {version.diff_summary}
-                    <% end %>
-                  </div>
-
-                  <div class="flex gap-2">
-                    <button
-                      phx-click="view_version"
-                      phx-value-number={version.version_number}
-                      class="inline-flex items-center text-primary hover:underline"
-                    >
-                      <.icon name="hero-eye-mini" class="mr-1 size-3" />View
-                    </button>
-                    <%= if can_publish_version?(version, @published_version, @api.status) do %>
-                      <button
-                        phx-click="request_confirm"
-                        phx-value-action="publish_version"
-                        phx-value-number={version.version_number}
-                        class="inline-flex items-center text-info hover:underline font-medium"
-                      >
-                        <.icon name="hero-rocket-launch-mini" class="mr-1 size-3" />Publish this version
-                      </button>
-                    <% end %>
-                  </div>
-                </div>
-              <% end %>
-            </div>
-          <% end %>
-        </div>
-
-        <%!-- Metrics --%>
         <%= if @api.status == "published" && @metrics do %>
-          <div>
-            <h3 class="text-xs font-semibold text-muted-foreground uppercase mb-3">Metrics (24h)</h3>
-            <div class="grid grid-cols-4 gap-3">
-              <div class="rounded-lg border p-3 text-center">
-                <p class="text-xl font-bold">{@metrics.count_24h}</p>
-                <p class="flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
-                  <.icon name="hero-signal-mini" class="size-3.5 text-sky-400" /> Total Calls
-                </p>
-              </div>
-              <div class="rounded-lg border p-3 text-center">
-                <p class="text-xl font-bold">{@metrics.success_rate}%</p>
-                <p class="text-[10px] text-muted-foreground">Success Rate</p>
-              </div>
-              <div class="rounded-lg border p-3 text-center">
-                <p class="text-xl font-bold">{@metrics.avg_latency}ms</p>
-                <p class="flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
-                  <.icon name="hero-clock-mini" class="size-3.5 text-amber-400" /> Avg Latency
-                </p>
-              </div>
-              <div class="rounded-lg border p-3 text-center">
-                <p class="text-xl font-bold">{@metrics[:error_count] || 0}</p>
-                <p class="flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
-                  <.icon name="hero-exclamation-circle-mini" class="size-3.5 text-red-400" /> Errors
-                </p>
-              </div>
-            </div>
-          </div>
+          <.metrics_grid metrics={@metrics} />
         <% end %>
 
-        <%!-- Authentication & Keys Summary --%>
-        <div>
-          <h3 class="text-xs font-semibold text-muted-foreground uppercase mb-3">Authentication</h3>
-          <div class="rounded-lg border p-4 space-y-3">
-            <form phx-submit="save_publish_settings">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="requires_auth"
-                    name="requires_auth"
-                    value="true"
-                    checked={@api.requires_auth}
-                    class="rounded border"
-                  />
-                  <label for="requires_auth" class="text-xs font-medium">
-                    Require API key
-                  </label>
-                </div>
-                <button
-                  type="submit"
-                  class="inline-flex items-center rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
-                >
-                  <.icon name="hero-check" class="mr-1.5 size-3.5" /> Save
-                </button>
-              </div>
-            </form>
+        <.auth_section api={@api} keys_summary={@keys_summary} />
 
-            <div class="border-t pt-3 space-y-2">
-              <div class="flex items-center justify-between text-xs">
-                <span class="text-muted-foreground">
-                  {@keys_summary.active_count} active
-                  <%= if @keys_summary.revoked_count > 0 do %>
-                    , {@keys_summary.revoked_count} revoked
-                  <% end %>
-                </span>
-                <a
-                  href="/api-keys"
-                  class="inline-flex items-center text-primary hover:underline text-xs font-medium"
-                >
-                  <.icon name="hero-key-mini" class="mr-1 size-3 text-amber-400" />Manage Keys
-                </a>
-              </div>
-              <%= if @keys_summary.active_keys != [] do %>
-                <div class="flex flex-wrap gap-1">
-                  <span
-                    :for={key <- @keys_summary.active_keys}
-                    class="inline-flex items-center rounded bg-muted px-2 py-0.5 font-mono text-[10px]"
-                  >
-                    {key.key_prefix}...
-                  </span>
-                </div>
-              <% end %>
-            </div>
-          </div>
-        </div>
-
-        <%!-- Documentation --%>
         <%= if @api.status in ["compiled", "published"] do %>
-          <div>
-            <h3 class="text-xs font-semibold text-muted-foreground uppercase mb-3">Documentation</h3>
-            <div class="space-y-2">
-              <div class="flex items-center justify-between rounded border p-3">
-                <div class="flex items-center gap-2">
-                  <.icon name="hero-document-text" class="size-4 text-blue-400" />
-                  <span class="text-sm">Swagger UI</span>
-                </div>
-                <a
-                  href={"/api/#{@org.slug}/#{@api.slug}/docs"}
-                  target="_blank"
-                  class="text-xs text-primary hover:underline"
-                >
-                  Open
-                </a>
-              </div>
-              <div class="flex items-center justify-between rounded border p-3">
-                <div class="flex items-center gap-2">
-                  <.icon name="hero-code-bracket" class="size-4 text-purple-400" />
-                  <span class="text-sm">OpenAPI JSON</span>
-                </div>
-                <a
-                  href={"/api/#{@org.slug}/#{@api.slug}/openapi.json"}
-                  target="_blank"
-                  class="text-xs text-primary hover:underline"
-                >
-                  Open
-                </a>
-              </div>
-            </div>
-          </div>
+          <.docs_section org={@org} api={@api} />
         <% end %>
       </div>
 
@@ -446,32 +212,6 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLive do
 
   # ── Private ──────────────────────────────────────────────────────────
 
-  defp build_confirm("unpublish", _params) do
-    %{
-      title: "Unpublish API?",
-      description:
-        "The API will no longer be accessible to consumers. You can republish it later.",
-      variant: :warning,
-      confirm_label: "Unpublish",
-      event: "unpublish",
-      meta: %{}
-    }
-  end
-
-  defp build_confirm("publish_version", params) do
-    %{
-      title: "Publish this version?",
-      description:
-        "This will make it the live version. The current published version will be replaced.",
-      variant: :info,
-      confirm_label: "Publish",
-      event: "publish_version",
-      meta: Map.take(params, ["number"])
-    }
-  end
-
-  defp build_confirm(_, _), do: nil
-
   @spec init_assigns(Phoenix.LiveView.Socket.t()) :: Phoenix.LiveView.Socket.t()
   defp init_assigns(socket) do
     api = socket.assigns.api
@@ -506,34 +246,6 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLive do
           {:ok, Apis.Api.t()} | {:error, term()}
   defp ensure_compiled_and_publish(%{status: "compiled"} = api, org), do: Apis.publish(api, org)
   defp ensure_compiled_and_publish(_, _), do: {:error, :not_compiled}
-
-  @spec published_version?(map(), map() | nil) :: boolean()
-  defp published_version?(_version, nil), do: false
-
-  defp published_version?(version, published),
-    do: version.version_number == published.version_number
-
-  @spec can_publish_version?(map(), map() | nil, String.t()) :: boolean()
-  defp can_publish_version?(version, published_version, api_status) do
-    version.compilation_status == "success" and
-      api_status in ["compiled", "published"] and
-      not published_version?(version, published_version)
-  end
-
-  @spec compilation_status_classes(String.t()) :: String.t()
-  defp compilation_status_classes("success"), do: "bg-success/10 text-success-foreground"
-  defp compilation_status_classes("error"), do: "bg-destructive/10 text-destructive"
-  defp compilation_status_classes(_), do: "bg-muted text-muted-foreground"
-
-  @spec compilation_status_label(String.t()) :: String.t()
-  defp compilation_status_label("success"), do: "Compiled"
-  defp compilation_status_label("error"), do: "Failed"
-  defp compilation_status_label(_), do: "Pending"
-
-  @spec humanize_source(String.t()) :: String.t()
-  defp humanize_source("manual_edit"), do: "manual edit"
-  defp humanize_source("chat_edit"), do: "chat edit"
-  defp humanize_source(source), do: source
 
   @spec shared_shell_assigns(map()) :: map()
   defp shared_shell_assigns(assigns) do

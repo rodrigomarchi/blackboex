@@ -7,6 +7,7 @@ defmodule BlackboexWeb.DashboardUsageLive do
   import BlackboexWeb.Components.Shared.Charts
   import BlackboexWeb.Components.Shared.StatCard
   import BlackboexWeb.Components.Shared.DashboardNav
+  import BlackboexWeb.Components.Shared.DashboardHelpers
   import BlackboexWeb.Components.Shared.ProgressBar
   import BlackboexWeb.Components.Card
 
@@ -203,11 +204,6 @@ defmodule BlackboexWeb.DashboardUsageLive do
 
   # -- Template helpers --
 
-  defp period_label("24h"), do: "today"
-  defp period_label("7d"), do: "7d"
-  defp period_label("30d"), do: "30d"
-  defp period_label(_), do: ""
-
   @spec llm_gens_used(map() | nil) :: non_neg_integer()
   defp llm_gens_used(nil), do: 0
   defp llm_gens_used(%{llm_generations_month: %{used: used}}), do: used
@@ -220,26 +216,4 @@ defmodule BlackboexWeb.DashboardUsageLive do
   defp format_llm_limit(nil), do: "-"
   defp format_llm_limit(%{llm_generations_month: %{limit: :unlimited}}), do: "unlimited"
   defp format_llm_limit(%{llm_generations_month: %{limit: limit}}), do: format_number(limit)
-
-  @spec format_number(number() | nil) :: String.t()
-  defp format_number(nil), do: "0"
-
-  defp format_number(n) when is_integer(n) do
-    n
-    |> Integer.to_string()
-    |> String.graphemes()
-    |> Enum.reverse()
-    |> Enum.chunk_every(3)
-    |> Enum.map(&Enum.reverse/1)
-    |> Enum.reverse()
-    |> Enum.map_join(",", &Enum.join/1)
-  end
-
-  defp format_number(n) when is_float(n), do: format_number(trunc(n))
-
-  @spec format_tokens(non_neg_integer()) :: String.t()
-  defp format_tokens(0), do: "0"
-  defp format_tokens(n) when n >= 1_000_000, do: "#{Float.round(n / 1_000_000, 1)}M"
-  defp format_tokens(n) when n >= 1_000, do: "#{Float.round(n / 1_000, 1)}K"
-  defp format_tokens(n), do: Integer.to_string(n)
 end

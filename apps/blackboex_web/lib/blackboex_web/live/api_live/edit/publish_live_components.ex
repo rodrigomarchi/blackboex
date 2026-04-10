@@ -1,0 +1,314 @@
+defmodule BlackboexWeb.ApiLive.Edit.PublishLiveComponents do
+  @moduledoc """
+  Function components for the PublishLive view.
+  Each component renders a distinct visual section of the publish tab.
+  """
+
+  use BlackboexWeb, :html
+
+  import BlackboexWeb.ApiLive.Edit.Helpers, only: [time_ago: 1]
+
+  import BlackboexWeb.ApiLive.Edit.PublishLiveHelpers,
+    only: [
+      published_version?: 2,
+      can_publish_version?: 3,
+      compilation_status_classes: 1,
+      compilation_status_label: 1,
+      humanize_source: 1
+    ]
+
+  # ── Status Header ─────────────────────────────────────────────────────
+
+  attr :api, :map, required: true
+  attr :org, :map, required: true
+  attr :published_version, :map, default: nil
+
+  @spec status_header(map()) :: Phoenix.LiveView.Rendered.t()
+  def status_header(assigns) do
+    ~H"""
+    <div class="rounded-lg border p-4 space-y-3">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-muted-foreground">Status</span>
+          <span class={[
+            "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold",
+            api_status_border(@api.status)
+          ]}>
+            {@api.status}
+          </span>
+        </div>
+        <%= if @api.status == "compiled" do %>
+          <button
+            phx-click="publish"
+            class="inline-flex items-center rounded-md bg-info px-3 py-1.5 text-xs font-medium text-info-foreground hover:bg-info/90"
+          >
+            <.icon name="hero-rocket-launch" class="mr-1.5 size-3.5" /> Publish API
+          </button>
+        <% end %>
+        <%= if @api.status == "published" do %>
+          <button
+            phx-click="request_confirm"
+            phx-value-action="unpublish"
+            class="inline-flex items-center rounded-md border border-destructive px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10"
+          >
+            <.icon name="hero-arrow-down-circle" class="mr-1.5 size-3.5" /> Unpublish
+          </button>
+        <% end %>
+      </div>
+
+      <div class="flex items-center gap-2 text-xs">
+        <span class="text-muted-foreground">URL</span>
+        <code class="font-mono">/api/{@org.slug}/{@api.slug}</code>
+        <button
+          phx-click="copy_url"
+          class="inline-flex items-center text-primary hover:underline text-[10px]"
+        >
+          <.icon name="hero-clipboard-document-mini" class="mr-1 size-3 text-sky-400" />Copy
+        </button>
+        <%= if @api.status == "draft" do %>
+          <span class="text-muted-foreground">(preview)</span>
+        <% end %>
+      </div>
+
+      <%= if @api.status == "published" && @published_version do %>
+        <div class="flex items-center gap-2 text-xs">
+          <span class="inline-flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-success-foreground font-semibold">
+            <.icon name="hero-signal" class="size-3 text-emerald-400" /> LIVE
+          </span>
+          <span>v{@published_version.version_number}</span>
+          <span :if={@published_version.version_label} class="text-muted-foreground">
+            ({@published_version.version_label})
+          </span>
+          <span class="text-muted-foreground">
+            published {time_ago(@published_version.inserted_at)}
+          </span>
+        </div>
+      <% end %>
+    </div>
+    """
+  end
+
+  # ── Version Timeline ──────────────────────────────────────────────────
+
+  attr :versions, :list, required: true
+  attr :published_version, :map, default: nil
+  attr :api_status, :string, required: true
+
+  @spec version_timeline(map()) :: Phoenix.LiveView.Rendered.t()
+  def version_timeline(assigns) do
+    ~H"""
+    <div>
+      <h3 class="text-xs font-semibold text-muted-foreground uppercase mb-3">Versions</h3>
+      <%= if @versions == [] do %>
+        <p class="text-sm text-muted-foreground">
+          No versions yet. Save to create the first version.
+        </p>
+      <% else %>
+        <div class="space-y-2">
+          <%= for version <- @versions do %>
+            <div class={[
+              "rounded border p-3 text-xs space-y-1",
+              if(published_version?(version, @published_version),
+                do: "border-success bg-success/5",
+                else: ""
+              )
+            ]}>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="font-semibold">v{version.version_number}</span>
+                  <%= if published_version?(version, @published_version) do %>
+                    <span class="inline-flex items-center gap-1 rounded-full bg-success/10 px-1.5 py-0.5 text-[10px] font-semibold text-success-foreground">
+                      LIVE
+                    </span>
+                  <% end %>
+                  <span class={[
+                    "inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium",
+                    compilation_status_classes(version.compilation_status)
+                  ]}>
+                    {compilation_status_label(version.compilation_status)}
+                  </span>
+                </div>
+                <span class="text-muted-foreground">
+                  {Calendar.strftime(version.inserted_at, "%H:%M")}
+                </span>
+              </div>
+
+              <div class="text-muted-foreground">
+                {humanize_source(version.source)}
+                <%= if version.diff_summary do %>
+                  — {version.diff_summary}
+                <% end %>
+              </div>
+
+              <div class="flex gap-2">
+                <button
+                  phx-click="view_version"
+                  phx-value-number={version.version_number}
+                  class="inline-flex items-center text-primary hover:underline"
+                >
+                  <.icon name="hero-eye-mini" class="mr-1 size-3" />View
+                </button>
+                <%= if can_publish_version?(version, @published_version, @api_status) do %>
+                  <button
+                    phx-click="request_confirm"
+                    phx-value-action="publish_version"
+                    phx-value-number={version.version_number}
+                    class="inline-flex items-center text-info hover:underline font-medium"
+                  >
+                    <.icon name="hero-rocket-launch-mini" class="mr-1 size-3" />Publish this version
+                  </button>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+    """
+  end
+
+  # ── Metrics Grid ──────────────────────────────────────────────────────
+
+  attr :metrics, :map, required: true
+
+  @spec metrics_grid(map()) :: Phoenix.LiveView.Rendered.t()
+  def metrics_grid(assigns) do
+    ~H"""
+    <div>
+      <h3 class="text-xs font-semibold text-muted-foreground uppercase mb-3">Metrics (24h)</h3>
+      <div class="grid grid-cols-4 gap-3">
+        <div class="rounded-lg border p-3 text-center">
+          <p class="text-xl font-bold">{@metrics.count_24h}</p>
+          <p class="flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
+            <.icon name="hero-signal-mini" class="size-3.5 text-sky-400" /> Total Calls
+          </p>
+        </div>
+        <div class="rounded-lg border p-3 text-center">
+          <p class="text-xl font-bold">{@metrics.success_rate}%</p>
+          <p class="text-[10px] text-muted-foreground">Success Rate</p>
+        </div>
+        <div class="rounded-lg border p-3 text-center">
+          <p class="text-xl font-bold">{@metrics.avg_latency}ms</p>
+          <p class="flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
+            <.icon name="hero-clock-mini" class="size-3.5 text-amber-400" /> Avg Latency
+          </p>
+        </div>
+        <div class="rounded-lg border p-3 text-center">
+          <p class="text-xl font-bold">{@metrics[:error_count] || 0}</p>
+          <p class="flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
+            <.icon name="hero-exclamation-circle-mini" class="size-3.5 text-red-400" /> Errors
+          </p>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  # ── Authentication Section ────────────────────────────────────────────
+
+  attr :api, :map, required: true
+  attr :keys_summary, :map, required: true
+
+  @spec auth_section(map()) :: Phoenix.LiveView.Rendered.t()
+  def auth_section(assigns) do
+    ~H"""
+    <div>
+      <h3 class="text-xs font-semibold text-muted-foreground uppercase mb-3">Authentication</h3>
+      <div class="rounded-lg border p-4 space-y-3">
+        <form phx-submit="save_publish_settings">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="requires_auth"
+                name="requires_auth"
+                value="true"
+                checked={@api.requires_auth}
+                class="rounded border"
+              />
+              <label for="requires_auth" class="text-xs font-medium">
+                Require API key
+              </label>
+            </div>
+            <button
+              type="submit"
+              class="inline-flex items-center rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+            >
+              <.icon name="hero-check" class="mr-1.5 size-3.5" /> Save
+            </button>
+          </div>
+        </form>
+
+        <div class="border-t pt-3 space-y-2">
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-muted-foreground">
+              {@keys_summary.active_count} active
+              <%= if @keys_summary.revoked_count > 0 do %>
+                , {@keys_summary.revoked_count} revoked
+              <% end %>
+            </span>
+            <a
+              href="/api-keys"
+              class="inline-flex items-center text-primary hover:underline text-xs font-medium"
+            >
+              <.icon name="hero-key-mini" class="mr-1 size-3 text-amber-400" />Manage Keys
+            </a>
+          </div>
+          <%= if @keys_summary.active_keys != [] do %>
+            <div class="flex flex-wrap gap-1">
+              <span
+                :for={key <- @keys_summary.active_keys}
+                class="inline-flex items-center rounded bg-muted px-2 py-0.5 font-mono text-[10px]"
+              >
+                {key.key_prefix}...
+              </span>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  # ── Documentation Section ─────────────────────────────────────────────
+
+  attr :org, :map, required: true
+  attr :api, :map, required: true
+
+  @spec docs_section(map()) :: Phoenix.LiveView.Rendered.t()
+  def docs_section(assigns) do
+    ~H"""
+    <div>
+      <h3 class="text-xs font-semibold text-muted-foreground uppercase mb-3">Documentation</h3>
+      <div class="space-y-2">
+        <div class="flex items-center justify-between rounded border p-3">
+          <div class="flex items-center gap-2">
+            <.icon name="hero-document-text" class="size-4 text-blue-400" />
+            <span class="text-sm">Swagger UI</span>
+          </div>
+          <a
+            href={"/api/#{@org.slug}/#{@api.slug}/docs"}
+            target="_blank"
+            class="text-xs text-primary hover:underline"
+          >
+            Open
+          </a>
+        </div>
+        <div class="flex items-center justify-between rounded border p-3">
+          <div class="flex items-center gap-2">
+            <.icon name="hero-code-bracket" class="size-4 text-purple-400" />
+            <span class="text-sm">OpenAPI JSON</span>
+          </div>
+          <a
+            href={"/api/#{@org.slug}/#{@api.slug}/openapi.json"}
+            target="_blank"
+            class="text-xs text-primary hover:underline"
+          >
+            Open
+          </a>
+        </div>
+      </div>
+    </div>
+    """
+  end
+end

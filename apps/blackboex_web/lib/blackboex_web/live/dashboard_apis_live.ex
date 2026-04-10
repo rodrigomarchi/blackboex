@@ -7,6 +7,7 @@ defmodule BlackboexWeb.DashboardApisLive do
   import BlackboexWeb.Components.Shared.Charts
   import BlackboexWeb.Components.Shared.StatCard
   import BlackboexWeb.Components.Shared.DashboardNav
+  import BlackboexWeb.Components.Shared.DashboardHelpers
   import BlackboexWeb.Components.Card
 
   alias Blackboex.Apis.DashboardQueries
@@ -243,11 +244,6 @@ defmodule BlackboexWeb.DashboardApisLive do
 
   # -- Template helpers --
 
-  defp period_label("24h"), do: "today"
-  defp period_label("7d"), do: "7d"
-  defp period_label("30d"), do: "30d"
-  defp period_label(_), do: ""
-
   defp total_calls(%{calls_series: s}), do: s |> Enum.map(& &1.value) |> Enum.sum()
   defp total_errors(%{errors_series: s}), do: s |> Enum.map(& &1.value) |> Enum.sum()
 
@@ -268,22 +264,6 @@ defmodule BlackboexWeb.DashboardApisLive do
       do: "#{Float.round(errors / calls * 100, 1)}%",
       else: "0%"
   end
-
-  @spec format_number(number() | nil) :: String.t()
-  defp format_number(nil), do: "0"
-
-  defp format_number(n) when is_integer(n) do
-    n
-    |> Integer.to_string()
-    |> String.graphemes()
-    |> Enum.reverse()
-    |> Enum.chunk_every(3)
-    |> Enum.map(&Enum.reverse/1)
-    |> Enum.reverse()
-    |> Enum.map_join(",", &Enum.join/1)
-  end
-
-  defp format_number(n) when is_float(n), do: format_number(trunc(n))
 
   @spec format_latency(float() | integer() | nil) :: String.t()
   defp format_latency(nil), do: "- ms"

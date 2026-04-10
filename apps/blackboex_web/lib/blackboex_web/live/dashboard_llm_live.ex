@@ -7,9 +7,10 @@ defmodule BlackboexWeb.DashboardLlmLive do
 
   import BlackboexWeb.Components.Shared.Charts
   import BlackboexWeb.Components.Shared.StatCard
+  import BlackboexWeb.Components.Shared.StatFigure
   import BlackboexWeb.Components.Shared.DashboardNav
   import BlackboexWeb.Components.Shared.DashboardHelpers
-  import BlackboexWeb.Components.Card
+  import BlackboexWeb.Components.Shared.DashboardSection
 
   alias Blackboex.Apis.DashboardQueries
 
@@ -50,7 +51,7 @@ defmodule BlackboexWeb.DashboardLlmLive do
     <div class="space-y-6">
       <.header>
         <span class="flex items-center gap-2">
-          <.icon name="hero-sparkles" class="size-5 text-violet-400" /> LLM Metrics
+          <.icon name="hero-sparkles" class="size-5 text-accent-violet" /> LLM Metrics
         </span>
         <:subtitle>AI model usage, costs, and performance</:subtitle>
         <:actions>
@@ -77,182 +78,165 @@ defmodule BlackboexWeb.DashboardLlmLive do
           label={"LLM Calls (#{period_label(@period)})"}
           value={format_number(@metrics.total_calls)}
           icon="hero-sparkles-mini"
-          icon_class="text-violet-400"
+          icon_class="text-accent-violet"
         />
         <.stat_card
           label={"Total Cost (#{period_label(@period)})"}
           value={format_cost(@metrics.total_cost_cents)}
           icon="hero-currency-dollar-mini"
-          icon_class="text-amber-400"
+          icon_class="text-accent-amber"
         />
         <.stat_card
           label={"Tokens In (#{period_label(@period)})"}
           value={format_tokens(@metrics.total_input_tokens)}
           icon="hero-arrow-down-tray-mini"
-          icon_class="text-blue-400"
+          icon_class="text-accent-blue"
         />
         <.stat_card
           label={"Tokens Out (#{period_label(@period)})"}
           value={format_tokens(@metrics.total_output_tokens)}
           icon="hero-arrow-up-tray-mini"
-          icon_class="text-emerald-400"
+          icon_class="text-accent-emerald"
         />
         <.stat_card
           label={"Avg Duration (#{period_label(@period)})"}
           value={format_duration(@metrics.avg_duration_ms)}
           icon="hero-clock-mini"
-          icon_class="text-sky-400"
+          icon_class="text-accent-sky"
         />
       </div>
 
       <%!-- Charts --%>
       <div class="grid gap-4 lg:grid-cols-2">
-        <.card>
-          <.card_content class="p-4">
-            <p class="flex items-center gap-1.5 text-sm font-medium text-muted-foreground mb-3">
-              <.icon name="hero-sparkles-mini" class="size-3.5 text-violet-400" /> LLM Calls
-            </p>
-            <.bar_chart data={@metrics.calls_series} color="var(--color-chart-4)" />
-          </.card_content>
-        </.card>
-        <.card>
-          <.card_content class="p-4">
-            <p class="flex items-center gap-1.5 text-sm font-medium text-muted-foreground mb-3">
-              <.icon name="hero-currency-dollar-mini" class="size-3.5 text-amber-400" /> Cost (cents)
-            </p>
-            <.line_chart data={@metrics.cost_series} color="var(--color-chart-5)" />
-          </.card_content>
-        </.card>
+        <.dashboard_section
+          icon="hero-sparkles-mini"
+          icon_class="text-accent-violet"
+          title="LLM Calls"
+        >
+          <.bar_chart data={@metrics.calls_series} color="var(--color-chart-4)" />
+        </.dashboard_section>
+        <.dashboard_section
+          icon="hero-currency-dollar-mini"
+          icon_class="text-accent-amber"
+          title="Cost (cents)"
+        >
+          <.line_chart data={@metrics.cost_series} color="var(--color-chart-5)" />
+        </.dashboard_section>
       </div>
 
       <div class="grid gap-4 lg:grid-cols-2">
-        <.card>
-          <.card_content class="p-4">
-            <p class="flex items-center gap-1.5 text-sm font-medium text-muted-foreground mb-3">
-              <.icon name="hero-arrow-down-tray-mini" class="size-3.5 text-blue-400" /> Tokens
-            </p>
-            <.bar_chart data={@metrics.tokens_series} />
-          </.card_content>
-        </.card>
-        <.card>
-          <.card_content class="p-4">
-            <p class="flex items-center gap-1.5 text-sm font-medium text-muted-foreground mb-3">
-              <.icon name="hero-clock-mini" class="size-3.5 text-sky-400" /> Avg Duration (ms)
-            </p>
-            <.line_chart data={@metrics.duration_series} color="var(--color-chart-3)" />
-          </.card_content>
-        </.card>
+        <.dashboard_section
+          icon="hero-arrow-down-tray-mini"
+          icon_class="text-accent-blue"
+          title="Tokens"
+        >
+          <.bar_chart data={@metrics.tokens_series} />
+        </.dashboard_section>
+        <.dashboard_section
+          icon="hero-clock-mini"
+          icon_class="text-accent-sky"
+          title="Avg Duration (ms)"
+        >
+          <.line_chart data={@metrics.duration_series} color="var(--color-chart-3)" />
+        </.dashboard_section>
       </div>
 
       <%!-- Usage by Model table --%>
-      <.card :if={@metrics.by_model != []}>
-        <.card_content class="p-4">
-          <p class="flex items-center gap-1.5 text-sm font-medium text-muted-foreground mb-3">
-            <.icon name="hero-cpu-chip-mini" class="size-3.5 text-violet-400" /> Usage by Model
-          </p>
-          <.table id="by-model" rows={@metrics.by_model}>
-            <:col :let={row} label="Provider">{row.provider}</:col>
-            <:col :let={row} label="Model">{row.model}</:col>
-            <:col :let={row} label="Calls">{format_number(row.calls)}</:col>
-            <:col :let={row} label="Tokens In">{format_tokens(row.input_tokens)}</:col>
-            <:col :let={row} label="Tokens Out">{format_tokens(row.output_tokens)}</:col>
-            <:col :let={row} label="Cost">{format_cost(row.cost_cents)}</:col>
-            <:col :let={row} label="Avg Duration">{format_duration(row.avg_duration_ms)}</:col>
-          </.table>
-        </.card_content>
-      </.card>
+      <.dashboard_section
+        :if={@metrics.by_model != []}
+        icon="hero-cpu-chip-mini"
+        icon_class="text-accent-violet"
+        title="Usage by Model"
+      >
+        <.table id="by-model" rows={@metrics.by_model}>
+          <:col :let={row} label="Provider">{row.provider}</:col>
+          <:col :let={row} label="Model">{row.model}</:col>
+          <:col :let={row} label="Calls">{format_number(row.calls)}</:col>
+          <:col :let={row} label="Tokens In">{format_tokens(row.input_tokens)}</:col>
+          <:col :let={row} label="Tokens Out">{format_tokens(row.output_tokens)}</:col>
+          <:col :let={row} label="Cost">{format_cost(row.cost_cents)}</:col>
+          <:col :let={row} label="Avg Duration">{format_duration(row.avg_duration_ms)}</:col>
+        </.table>
+      </.dashboard_section>
 
       <%!-- Usage by Operation --%>
-      <.card :if={@metrics.by_operation != []}>
-        <.card_content class="p-4">
-          <p class="flex items-center gap-1.5 text-sm font-medium text-muted-foreground mb-3">
-            <.icon name="hero-cog-6-tooth-mini" class="size-3.5 text-sky-400" /> Usage by Operation
-          </p>
-          <.table id="by-operation" rows={@metrics.by_operation}>
-            <:col :let={row} label="Operation">{format_operation(row.operation)}</:col>
-            <:col :let={row} label="Calls">{format_number(row.calls)}</:col>
-            <:col :let={row} label="Cost">{format_cost(row.cost_cents)}</:col>
-            <:col :let={row} label="Avg Duration">{format_duration(row.avg_duration_ms)}</:col>
-          </.table>
-        </.card_content>
-      </.card>
+      <.dashboard_section
+        :if={@metrics.by_operation != []}
+        icon="hero-cog-6-tooth-mini"
+        icon_class="text-accent-sky"
+        title="Usage by Operation"
+      >
+        <.table id="by-operation" rows={@metrics.by_operation}>
+          <:col :let={row} label="Operation">{format_operation(row.operation)}</:col>
+          <:col :let={row} label="Calls">{format_number(row.calls)}</:col>
+          <:col :let={row} label="Cost">{format_cost(row.cost_cents)}</:col>
+          <:col :let={row} label="Avg Duration">{format_duration(row.avg_duration_ms)}</:col>
+        </.table>
+      </.dashboard_section>
 
       <%!-- Cost by API --%>
-      <.card :if={@metrics.cost_by_api != []}>
-        <.card_content class="p-4">
-          <p class="flex items-center gap-1.5 text-sm font-medium text-muted-foreground mb-3">
-            <.icon name="hero-cube-mini" class="size-3.5 text-blue-400" /> Cost by API
-          </p>
-          <.table id="cost-by-api" rows={@metrics.cost_by_api}>
-            <:col :let={row} label="API">{row.api_name}</:col>
-            <:col :let={row} label="Calls">{format_number(row.calls)}</:col>
-            <:col :let={row} label="Tokens In">{format_tokens(row.input_tokens)}</:col>
-            <:col :let={row} label="Tokens Out">{format_tokens(row.output_tokens)}</:col>
-            <:col :let={row} label="Cost">{format_cost(row.cost_cents)}</:col>
-          </.table>
-        </.card_content>
-      </.card>
+      <.dashboard_section
+        :if={@metrics.cost_by_api != []}
+        icon="hero-cube-mini"
+        icon_class="text-accent-blue"
+        title="Cost by API"
+      >
+        <.table id="cost-by-api" rows={@metrics.cost_by_api}>
+          <:col :let={row} label="API">{row.api_name}</:col>
+          <:col :let={row} label="Calls">{format_number(row.calls)}</:col>
+          <:col :let={row} label="Tokens In">{format_tokens(row.input_tokens)}</:col>
+          <:col :let={row} label="Tokens Out">{format_tokens(row.output_tokens)}</:col>
+          <:col :let={row} label="Cost">{format_cost(row.cost_cents)}</:col>
+        </.table>
+      </.dashboard_section>
 
       <%!-- Conversations & Runs summary --%>
       <div class="grid gap-4 lg:grid-cols-2">
-        <.card>
-          <.card_content class="p-4">
-            <p class="flex items-center gap-1.5 text-sm font-medium text-muted-foreground mb-3">
-              <.icon name="hero-chat-bubble-left-right-mini" class="size-3.5 text-indigo-400" />
-              Conversations
-            </p>
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <p class="text-2xl font-bold">{format_number(@metrics.conversations.total)}</p>
-                <p class="text-xs text-muted-foreground">Total</p>
-              </div>
-              <div>
-                <p class="text-2xl font-bold text-emerald-400">
-                  {format_number(@metrics.conversations.active)}
-                </p>
-                <p class="text-xs text-muted-foreground">Active</p>
-              </div>
-              <div>
-                <p class="text-2xl font-bold">{format_tokens(@metrics.conversations.total_tokens)}</p>
-                <p class="text-xs text-muted-foreground">Total Tokens</p>
-              </div>
-              <div>
-                <p class="text-2xl font-bold">
-                  {format_cost(@metrics.conversations.total_cost_cents)}
-                </p>
-                <p class="text-xs text-muted-foreground">Total Cost</p>
-              </div>
-            </div>
-          </.card_content>
-        </.card>
-        <.card>
-          <.card_content class="p-4">
-            <p class="flex items-center gap-1.5 text-sm font-medium text-muted-foreground mb-3">
-              <.icon name="hero-play-mini" class="size-3.5 text-sky-400" />
-              Agent Runs ({period_label(@period)})
-            </p>
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <p class="text-2xl font-bold">{format_number(@metrics.runs.total)}</p>
-                <p class="text-xs text-muted-foreground">Total</p>
-              </div>
-              <div>
-                <p class="text-2xl font-bold text-emerald-400">
-                  {format_number(@metrics.runs.completed)}
-                </p>
-                <p class="text-xs text-muted-foreground">Completed</p>
-              </div>
-              <div>
-                <p class="text-2xl font-bold text-red-400">{format_number(@metrics.runs.failed)}</p>
-                <p class="text-xs text-muted-foreground">Failed</p>
-              </div>
-              <div>
-                <p class="text-2xl font-bold">{format_duration(@metrics.runs.avg_duration_ms)}</p>
-                <p class="text-xs text-muted-foreground">Avg Duration</p>
-              </div>
-            </div>
-          </.card_content>
-        </.card>
+        <.dashboard_section
+          icon="hero-chat-bubble-left-right-mini"
+          icon_class="text-accent-purple"
+          title="Conversations"
+        >
+          <div class="grid grid-cols-2 gap-4">
+            <.stat_figure value={format_number(@metrics.conversations.total)} label="Total" />
+            <.stat_figure
+              value={format_number(@metrics.conversations.active)}
+              label="Active"
+              color="text-status-completed-foreground"
+            />
+            <.stat_figure
+              value={format_tokens(@metrics.conversations.total_tokens)}
+              label="Total Tokens"
+            />
+            <.stat_figure
+              value={format_cost(@metrics.conversations.total_cost_cents)}
+              label="Total Cost"
+            />
+          </div>
+        </.dashboard_section>
+        <.dashboard_section
+          icon="hero-play-mini"
+          icon_class="text-accent-sky"
+          title={"Agent Runs (#{period_label(@period)})"}
+        >
+          <div class="grid grid-cols-2 gap-4">
+            <.stat_figure value={format_number(@metrics.runs.total)} label="Total" />
+            <.stat_figure
+              value={format_number(@metrics.runs.completed)}
+              label="Completed"
+              color="text-status-completed-foreground"
+            />
+            <.stat_figure
+              value={format_number(@metrics.runs.failed)}
+              label="Failed"
+              color="text-status-failed-foreground"
+            />
+            <.stat_figure
+              value={format_duration(@metrics.runs.avg_duration_ms)}
+              label="Avg Duration"
+            />
+          </div>
+        </.dashboard_section>
       </div>
     </div>
     """

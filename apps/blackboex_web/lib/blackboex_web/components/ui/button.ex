@@ -29,7 +29,8 @@ defmodule BlackboexWeb.Components.Button do
     "default" => "h-10 px-4 py-2",
     "sm" => "h-9 rounded-md px-3",
     "lg" => "h-11 rounded-md px-8",
-    "icon" => "h-10 w-10"
+    "icon" => "h-10 w-10",
+    "icon-sm" => "h-auto w-auto p-1"
   }
 
   attr :type, :string, default: nil
@@ -39,7 +40,7 @@ defmodule BlackboexWeb.Components.Button do
     values: ~w(default primary secondary destructive outline ghost link),
     default: "default"
 
-  attr :size, :string, values: ~w(default sm lg icon), default: "default"
+  attr :size, :string, values: ~w(default sm lg icon icon-sm), default: "default"
   attr :rest, :global, include: ~w(href navigate patch method download disabled form name value)
 
   slot :inner_block, required: true

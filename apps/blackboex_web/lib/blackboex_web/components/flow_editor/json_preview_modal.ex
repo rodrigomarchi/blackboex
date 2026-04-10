@@ -21,7 +21,7 @@ defmodule BlackboexWeb.Components.FlowEditor.JsonPreviewModal do
         phx-click-away="close_json_modal"
       >
         <div class="flex items-center justify-between border-b px-5 py-3">
-          <.section_heading icon="hero-code-bracket" icon_class="size-5 text-violet-400">
+          <.section_heading icon="hero-code-bracket" icon_class="size-5 text-accent-violet">
             Flow Definition (JSON)
           </.section_heading>
           <div class="flex items-center gap-1.5">
@@ -34,7 +34,7 @@ defmodule BlackboexWeb.Components.FlowEditor.JsonPreviewModal do
                 )
               }
             >
-              <.icon name="hero-clipboard-document" class="mr-1.5 size-4 text-sky-400" /> Copy
+              <.icon name="hero-clipboard-document" class="mr-1.5 size-4 text-accent-sky" /> Copy
             </.button>
             <.button
               variant="outline"
@@ -48,12 +48,13 @@ defmodule BlackboexWeb.Components.FlowEditor.JsonPreviewModal do
                 )
               }
             >
-              <.icon name="hero-arrow-down-tray" class="mr-1.5 size-4 text-emerald-400" /> Download
+              <.icon name="hero-arrow-down-tray" class="mr-1.5 size-4 text-accent-emerald" /> Download
             </.button>
             <.button
               variant="ghost"
+              size="icon-sm"
               phx-click="close_json_modal"
-              class="h-auto w-auto rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+              class="text-muted-foreground hover:bg-accent hover:text-foreground"
             >
               <.icon name="hero-x-mark" class="size-5" />
             </.button>

@@ -34,8 +34,8 @@ defmodule BlackboexWeb.Components.Editor.FileEditor do
         <div class="flex items-center h-8 px-3 border-b border-white/10 shrink-0">
           <span class="text-[10px] text-white/60 font-mono truncate">{@file.path}</span>
           <%= if @streaming do %>
-            <span class="ml-2 flex items-center gap-1 text-[10px] text-amber-400/80">
-              <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+            <span class="ml-2 flex items-center gap-1 text-[10px] text-accent-amber/80">
+              <span class="inline-block w-1.5 h-1.5 rounded-full bg-warning animate-pulse"></span>
               generating
             </span>
           <% end %>

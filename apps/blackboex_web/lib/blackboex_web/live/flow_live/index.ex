@@ -211,12 +211,12 @@ defmodule BlackboexWeb.FlowLive.Index do
     <div class="space-y-6">
       <.header>
         <span class="flex items-center gap-2">
-          <.icon name="hero-arrow-path" class="size-5 text-violet-400" /> Flows
+          <.icon name="hero-arrow-path" class="size-5 text-accent-violet" /> Flows
         </span>
         <:subtitle>Build visual workflows by connecting nodes</:subtitle>
         <:actions>
           <.button variant="primary" phx-click="open_create_modal">
-            <.icon name="hero-plus" class="mr-2 size-4 text-emerald-300" /> Create Flow
+            <.icon name="hero-plus" class="mr-2 size-4 text-accent-emerald" /> Create Flow
           </.button>
         </:actions>
       </.header>
@@ -249,8 +249,8 @@ defmodule BlackboexWeb.FlowLive.Index do
         <.table id="flows" rows={@flows}>
           <:col :let={flow} label="Flow">
             <div class="flex items-center gap-3">
-              <div class="flex size-8 items-center justify-center rounded-lg bg-violet-500/15">
-                <.icon name="hero-arrow-path" class="size-4 text-violet-400" />
+              <div class="flex size-8 items-center justify-center rounded-lg bg-accent-violet/15">
+                <.icon name="hero-arrow-path" class="size-4 text-accent-violet" />
               </div>
               <div class="min-w-0">
                 <.link

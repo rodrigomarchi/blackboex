@@ -7,6 +7,7 @@ defmodule BlackboexWeb.FlowLive.Executions do
 
   import BlackboexWeb.Components.Card
   import BlackboexWeb.Components.Shared.EmptyState
+  import BlackboexWeb.Components.StatusHelpers
   import BlackboexWeb.Components.UI.SectionHeading
 
   alias Blackboex.FlowExecutions
@@ -53,7 +54,7 @@ defmodule BlackboexWeb.FlowLive.Executions do
           <span class="text-xs text-muted-foreground">{@flow.name}</span>
         </div>
         <div :if={@executions != []} class="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <.icon name="hero-bolt-mini" class="size-3.5 text-amber-400" />
+          <.icon name="hero-bolt-mini" class="size-3.5 text-accent-amber" />
           {length(@executions)} total runs
         </div>
       </header>
@@ -65,25 +66,25 @@ defmodule BlackboexWeb.FlowLive.Executions do
               label="Total"
               value={@stats.total}
               icon="hero-play-circle"
-              color="text-blue-400"
+              color="text-accent-blue"
             />
             <.stat_mini
               label="Completed"
               value={@stats.completed}
               icon="hero-check-circle"
-              color="text-green-500"
+              color="text-accent-emerald"
             />
             <.stat_mini
               label="Failed"
               value={@stats.failed}
               icon="hero-x-circle"
-              color="text-red-500"
+              color="text-accent-red"
             />
             <.stat_mini
               label="Avg Duration"
               value={@stats.avg_duration}
               icon="hero-clock"
-              color="text-amber-400"
+              color="text-accent-amber"
             />
           </div>
         <% end %>
@@ -165,11 +166,11 @@ defmodule BlackboexWeb.FlowLive.Executions do
     %{total: total, completed: completed, failed: failed, avg_duration: avg}
   end
 
-  defp status_badge("completed"), do: "bg-green-500/15 text-green-700 dark:text-green-400"
-  defp status_badge("failed"), do: "bg-red-500/15 text-red-700 dark:text-red-400"
-  defp status_badge("running"), do: "bg-blue-500/15 text-blue-700 dark:text-blue-400"
-  defp status_badge("halted"), do: "bg-amber-500/15 text-amber-700 dark:text-amber-400"
-  defp status_badge(_), do: "bg-muted text-muted-foreground"
+  defp status_badge("completed"), do: execution_status_classes("completed")
+  defp status_badge("failed"), do: execution_status_classes("failed")
+  defp status_badge("running"), do: execution_status_classes("running")
+  defp status_badge("halted"), do: execution_status_classes("halted")
+  defp status_badge(_), do: execution_status_classes("pending")
 
   defp status_icon("completed"), do: "hero-check-circle-mini"
   defp status_icon("failed"), do: "hero-x-circle-mini"

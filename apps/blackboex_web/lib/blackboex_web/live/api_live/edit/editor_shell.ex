@@ -6,6 +6,7 @@ defmodule BlackboexWeb.ApiLive.Edit.EditorShell do
 
   use BlackboexWeb, :html
 
+  import BlackboexWeb.Components.Badge
   import BlackboexWeb.Components.Editor.Toolbar
   import BlackboexWeb.Components.Editor.StatusBar
   import BlackboexWeb.Components.Editor.CommandPalette
@@ -58,18 +59,20 @@ defmodule BlackboexWeb.ApiLive.Edit.EditorShell do
             >
               <.icon name={tab_icon(tab.id)} class={"size-3.5 #{tab_icon_color(tab.id)}"} />
               {tab.label}
-              <span
+              <.badge
                 :if={tab.id == "validation" && @validation_report}
-                class={[
-                  "ml-1 inline-flex rounded-full px-1.5 text-[10px] font-semibold",
-                  if(@validation_report.overall == :pass,
-                    do: "bg-success/10 text-success-foreground",
-                    else: "bg-destructive/10 text-destructive"
-                  )
-                ]}
+                size="xs"
+                variant="status"
+                class={
+                  "ml-1 " <>
+                    if(@validation_report.overall == :pass,
+                      do: "bg-success/10 text-success-foreground",
+                      else: "bg-destructive/10 text-destructive"
+                    )
+                }
               >
                 {if @validation_report.overall == :pass, do: "✓", else: "!"}
-              </span>
+              </.badge>
             </.link>
           </div>
 
@@ -100,11 +103,11 @@ defmodule BlackboexWeb.ApiLive.Edit.EditorShell do
   defp tab_icon("info"), do: "hero-information-circle"
   defp tab_icon(_), do: "hero-squares-2x2"
 
-  defp tab_icon_color("chat"), do: "text-violet-400"
-  defp tab_icon_color("validation"), do: "text-teal-400"
-  defp tab_icon_color("run"), do: "text-green-400"
-  defp tab_icon_color("metrics"), do: "text-sky-400"
-  defp tab_icon_color("publish"), do: "text-emerald-400"
-  defp tab_icon_color("info"), do: "text-blue-400"
+  defp tab_icon_color("chat"), do: "text-accent-violet"
+  defp tab_icon_color("validation"), do: "text-accent-teal"
+  defp tab_icon_color("run"), do: "text-accent-emerald"
+  defp tab_icon_color("metrics"), do: "text-accent-sky"
+  defp tab_icon_color("publish"), do: "text-accent-emerald"
+  defp tab_icon_color("info"), do: "text-accent-blue"
   defp tab_icon_color(_), do: "text-muted-foreground"
 end

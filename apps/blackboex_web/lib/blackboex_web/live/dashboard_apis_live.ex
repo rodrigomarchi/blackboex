@@ -8,7 +8,7 @@ defmodule BlackboexWeb.DashboardApisLive do
   import BlackboexWeb.Components.Shared.StatCard
   import BlackboexWeb.Components.Shared.DashboardNav
   import BlackboexWeb.Components.Shared.DashboardHelpers
-  import BlackboexWeb.Components.Card
+  import BlackboexWeb.Components.Shared.DashboardSection
 
   alias Blackboex.Apis.DashboardQueries
 
@@ -55,7 +55,7 @@ defmodule BlackboexWeb.DashboardApisLive do
     <div class="space-y-6">
       <.header>
         <span class="flex items-center gap-2">
-          <.icon name="hero-cube" class="size-5 text-blue-400" /> API Metrics
+          <.icon name="hero-cube" class="size-5 text-accent-blue" /> API Metrics
         </span>
         <:subtitle>Performance and usage metrics for your APIs</:subtitle>
         <:actions>
@@ -82,65 +82,57 @@ defmodule BlackboexWeb.DashboardApisLive do
           label={"Calls (#{period_label(@period)})"}
           value={format_number(total_calls(@metrics))}
           icon="hero-signal-mini"
-          icon_class="text-sky-400"
+          icon_class="text-accent-sky"
         />
         <.stat_card
           label={"Errors (#{period_label(@period)})"}
           value={format_number(total_errors(@metrics))}
           icon="hero-exclamation-circle-mini"
-          icon_class="text-red-400"
+          icon_class="text-accent-red"
         />
         <.stat_card
           label={"Avg Latency (#{period_label(@period)})"}
           value={format_latency(avg_latency(@metrics))}
           icon="hero-clock-mini"
-          icon_class="text-amber-400"
+          icon_class="text-accent-amber"
         />
         <.stat_card
           label={"Error Rate (#{period_label(@period)})"}
           value={error_rate(@metrics)}
           icon="hero-exclamation-triangle-mini"
-          icon_class="text-orange-400"
+          icon_class="text-accent-orange"
         />
       </div>
 
       <%!-- Charts --%>
       <div class="grid gap-4 lg:grid-cols-2">
-        <.card>
-          <.card_content class="p-4">
-            <p class="flex items-center gap-1.5 text-sm font-medium text-muted-foreground mb-3">
-              <.icon name="hero-signal-mini" class="size-3.5 text-sky-400" /> API Calls
-            </p>
-            <.bar_chart data={@metrics.calls_series} />
-          </.card_content>
-        </.card>
-        <.card>
-          <.card_content class="p-4">
-            <p class="flex items-center gap-1.5 text-sm font-medium text-muted-foreground mb-3">
-              <.icon name="hero-exclamation-circle-mini" class="size-3.5 text-red-400" /> Errors
-            </p>
-            <.bar_chart data={@metrics.errors_series} color="var(--color-chart-2)" />
-          </.card_content>
-        </.card>
+        <.dashboard_section icon="hero-signal-mini" icon_class="text-accent-sky" title="API Calls">
+          <.bar_chart data={@metrics.calls_series} />
+        </.dashboard_section>
+        <.dashboard_section
+          icon="hero-exclamation-circle-mini"
+          icon_class="text-accent-red"
+          title="Errors"
+        >
+          <.bar_chart data={@metrics.errors_series} color="var(--color-chart-2)" />
+        </.dashboard_section>
       </div>
 
       <div class="grid gap-4 lg:grid-cols-2">
-        <.card>
-          <.card_content class="p-4">
-            <p class="flex items-center gap-1.5 text-sm font-medium text-muted-foreground mb-3">
-              <.icon name="hero-clock-mini" class="size-3.5 text-amber-400" /> Avg Latency (ms)
-            </p>
-            <.line_chart data={@metrics.latency_avg_series} />
-          </.card_content>
-        </.card>
-        <.card>
-          <.card_content class="p-4">
-            <p class="flex items-center gap-1.5 text-sm font-medium text-muted-foreground mb-3">
-              <.icon name="hero-clock-mini" class="size-3.5 text-violet-400" /> P95 Latency (ms)
-            </p>
-            <.line_chart data={@metrics.latency_p95_series} color="var(--color-chart-4)" />
-          </.card_content>
-        </.card>
+        <.dashboard_section
+          icon="hero-clock-mini"
+          icon_class="text-accent-amber"
+          title="Avg Latency (ms)"
+        >
+          <.line_chart data={@metrics.latency_avg_series} />
+        </.dashboard_section>
+        <.dashboard_section
+          icon="hero-clock-mini"
+          icon_class="text-accent-violet"
+          title="P95 Latency (ms)"
+        >
+          <.line_chart data={@metrics.latency_p95_series} color="var(--color-chart-4)" />
+        </.dashboard_section>
       </div>
 
       <%!-- Extended metrics row --%>
@@ -149,61 +141,59 @@ defmodule BlackboexWeb.DashboardApisLive do
           label={"Unique Consumers (#{period_label(@period)})"}
           value={format_number(@extended.unique_consumers)}
           icon="hero-user-group-mini"
-          icon_class="text-indigo-400"
+          icon_class="text-accent-purple"
         />
         <.stat_card
           label="2xx Responses"
           value={format_number(@extended.status_distribution.s2xx)}
           icon="hero-check-circle-mini"
-          icon_class="text-emerald-400"
+          icon_class="text-accent-emerald"
         />
         <.stat_card
           label="4xx / 5xx Errors"
           value={"#{format_number(@extended.status_distribution.s4xx)} / #{format_number(@extended.status_distribution.s5xx)}"}
           icon="hero-exclamation-triangle-mini"
-          icon_class="text-red-400"
+          icon_class="text-accent-red"
         />
         <.stat_card
           label="Avg Payload Size"
           value={"#{format_bytes(@extended.avg_request_size)} / #{format_bytes(@extended.avg_response_size)}"}
           icon="hero-arrows-right-left-mini"
-          icon_class="text-cyan-400"
+          icon_class="text-accent-cyan"
         />
       </div>
 
       <%!-- Top APIs table --%>
-      <.card>
-        <.card_content class="p-4">
-          <p class="flex items-center gap-1.5 text-sm font-medium text-muted-foreground mb-3">
-            <.icon name="hero-arrow-trending-up-mini" class="size-3.5 text-sky-400" />
-            Top APIs by Calls
-          </p>
-          <.table id="top-apis" rows={Enum.with_index(@metrics.top_apis, 1)}>
-            <:col :let={{_api, idx}} label="#">{idx}</:col>
-            <:col :let={{api, _idx}} label="Name">{api.name}</:col>
-            <:col :let={{api, _idx}} label="Calls">{format_number(api.calls)}</:col>
-            <:col :let={{api, _idx}} label="Avg Latency">{format_latency(api.avg_latency)}</:col>
-          </.table>
-        </.card_content>
-      </.card>
+      <.dashboard_section
+        icon="hero-arrow-trending-up-mini"
+        icon_class="text-accent-sky"
+        title="Top APIs by Calls"
+      >
+        <.table id="top-apis" rows={Enum.with_index(@metrics.top_apis, 1)}>
+          <:col :let={{_api, idx}} label="#">{idx}</:col>
+          <:col :let={{api, _idx}} label="Name">{api.name}</:col>
+          <:col :let={{api, _idx}} label="Calls">{format_number(api.calls)}</:col>
+          <:col :let={{api, _idx}} label="Avg Latency">{format_latency(api.avg_latency)}</:col>
+        </.table>
+      </.dashboard_section>
 
       <%!-- API Key usage table --%>
-      <.card :if={@extended.api_key_usage != []}>
-        <.card_content class="p-4">
-          <p class="flex items-center gap-1.5 text-sm font-medium text-muted-foreground mb-3">
-            <.icon name="hero-key-mini" class="size-3.5 text-amber-400" /> Usage by API Key
-          </p>
-          <.table id="api-key-usage" rows={@extended.api_key_usage}>
-            <:col :let={row} label="Key">
-              <span class="font-mono text-xs">{row.key_prefix}...</span>
-              <span class="ml-1 text-muted-foreground">{row.key_label}</span>
-            </:col>
-            <:col :let={row} label="Calls">{format_number(row.calls)}</:col>
-            <:col :let={row} label="Errors">{format_number(row.errors)}</:col>
-            <:col :let={row} label="Avg Latency">{format_latency(row.avg_latency)}</:col>
-          </.table>
-        </.card_content>
-      </.card>
+      <.dashboard_section
+        :if={@extended.api_key_usage != []}
+        icon="hero-key-mini"
+        icon_class="text-accent-amber"
+        title="Usage by API Key"
+      >
+        <.table id="api-key-usage" rows={@extended.api_key_usage}>
+          <:col :let={row} label="Key">
+            <span class="font-mono text-xs">{row.key_prefix}...</span>
+            <span class="ml-1 text-muted-foreground">{row.key_label}</span>
+          </:col>
+          <:col :let={row} label="Calls">{format_number(row.calls)}</:col>
+          <:col :let={row} label="Errors">{format_number(row.errors)}</:col>
+          <:col :let={row} label="Avg Latency">{format_latency(row.avg_latency)}</:col>
+        </.table>
+      </.dashboard_section>
     </div>
     """
   end

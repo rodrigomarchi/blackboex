@@ -6,6 +6,7 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLiveComponents do
 
   use BlackboexWeb, :html
 
+  import BlackboexWeb.Components.Badge
   import BlackboexWeb.Components.UI.FieldLabel
   import BlackboexWeb.Components.UI.SectionHeading
 
@@ -32,13 +33,10 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLiveComponents do
     <div class="rounded-lg border p-4 space-y-3">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
-          <span class="text-xs text-muted-foreground">Status</span>
-          <span class={[
-            "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold",
-            api_status_border(@api.status)
-          ]}>
+          <span class="text-muted-caption">Status</span>
+          <.badge variant="status" class={api_status_border(@api.status)}>
             {@api.status}
-          </span>
+          </.badge>
         </div>
         <.button
           :if={@api.status == "compiled"}
@@ -66,7 +64,7 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLiveComponents do
           phx-click="copy_url"
           class="h-auto w-auto p-0 inline-flex items-center text-primary hover:underline text-[10px] hover:bg-transparent"
         >
-          <.icon name="hero-clipboard-document-mini" class="mr-1 size-3 text-sky-400" />Copy
+          <.icon name="hero-clipboard-document-mini" class="mr-1 size-3 text-accent-sky" />Copy
         </.button>
         <%= if @api.status == "draft" do %>
           <span class="text-muted-foreground">(preview)</span>
@@ -75,9 +73,9 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLiveComponents do
 
       <%= if @api.status == "published" && @published_version do %>
         <div class="flex items-center gap-2 text-xs">
-          <span class="inline-flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-success-foreground font-semibold">
-            <.icon name="hero-signal" class="size-3 text-emerald-400" /> LIVE
-          </span>
+          <.badge variant="status" class="gap-1 bg-success/10 text-success-foreground font-semibold">
+            <.icon name="hero-signal" class="size-3 text-accent-emerald" /> LIVE
+          </.badge>
           <span>v{@published_version.version_number}</span>
           <span :if={@published_version.version_label} class="text-muted-foreground">
             ({@published_version.version_label})
@@ -103,7 +101,7 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLiveComponents do
     <div>
       <.section_heading level="h3" class="uppercase mb-3">Versions</.section_heading>
       <%= if @versions == [] do %>
-        <p class="text-sm text-muted-foreground">
+        <p class="text-muted-description">
           No versions yet. Save to create the first version.
         </p>
       <% else %>
@@ -120,16 +118,21 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLiveComponents do
                 <div class="flex items-center gap-2">
                   <span class="font-semibold">v{version.version_number}</span>
                   <%= if published_version?(version, @published_version) do %>
-                    <span class="inline-flex items-center gap-1 rounded-full bg-success/10 px-1.5 py-0.5 text-[10px] font-semibold text-success-foreground">
+                    <.badge
+                      size="xs"
+                      variant="status"
+                      class="gap-1 bg-success/10 text-success-foreground font-semibold"
+                    >
                       LIVE
-                    </span>
+                    </.badge>
                   <% end %>
-                  <span class={[
-                    "inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium",
-                    compilation_status_classes(version.compilation_status)
-                  ]}>
+                  <.badge
+                    size="xs"
+                    variant="status"
+                    class={compilation_status_classes(version.compilation_status)}
+                  >
                     {compilation_status_label(version.compilation_status)}
-                  </span>
+                  </.badge>
                 </div>
                 <span class="text-muted-foreground">
                   {Calendar.strftime(version.inserted_at, "%H:%M")}
@@ -184,7 +187,7 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLiveComponents do
         <div class="rounded-lg border p-3 text-center">
           <p class="text-xl font-bold">{@metrics.count_24h}</p>
           <p class="flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
-            <.icon name="hero-signal-mini" class="size-3.5 text-sky-400" /> Total Calls
+            <.icon name="hero-signal-mini" class="size-3.5 text-accent-sky" /> Total Calls
           </p>
         </div>
         <div class="rounded-lg border p-3 text-center">
@@ -194,13 +197,13 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLiveComponents do
         <div class="rounded-lg border p-3 text-center">
           <p class="text-xl font-bold">{@metrics.avg_latency}ms</p>
           <p class="flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
-            <.icon name="hero-clock-mini" class="size-3.5 text-amber-400" /> Avg Latency
+            <.icon name="hero-clock-mini" class="size-3.5 text-accent-amber" /> Avg Latency
           </p>
         </div>
         <div class="rounded-lg border p-3 text-center">
           <p class="text-xl font-bold">{@metrics[:error_count] || 0}</p>
           <p class="flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
-            <.icon name="hero-exclamation-circle-mini" class="size-3.5 text-red-400" /> Errors
+            <.icon name="hero-exclamation-circle-mini" class="size-3.5 text-accent-red" /> Errors
           </p>
         </div>
       </div>
@@ -255,7 +258,7 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLiveComponents do
               href="/api-keys"
               class="inline-flex items-center text-primary hover:underline text-xs font-medium"
             >
-              <.icon name="hero-key-mini" class="mr-1 size-3 text-amber-400" />Manage Keys
+              <.icon name="hero-key-mini" class="mr-1 size-3 text-accent-amber" />Manage Keys
             </.link>
           </div>
           <%= if @keys_summary.active_keys != [] do %>
@@ -287,7 +290,7 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLiveComponents do
       <div class="space-y-2">
         <div class="flex items-center justify-between rounded border p-3">
           <div class="flex items-center gap-2">
-            <.icon name="hero-document-text" class="size-4 text-blue-400" />
+            <.icon name="hero-document-text" class="size-4 text-accent-blue" />
             <span class="text-sm">Swagger UI</span>
           </div>
           <.link
@@ -300,7 +303,7 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLiveComponents do
         </div>
         <div class="flex items-center justify-between rounded border p-3">
           <div class="flex items-center gap-2">
-            <.icon name="hero-code-bracket" class="size-4 text-purple-400" />
+            <.icon name="hero-code-bracket" class="size-4 text-accent-purple" />
             <span class="text-sm">OpenAPI JSON</span>
           </div>
           <.link

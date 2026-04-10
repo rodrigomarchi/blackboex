@@ -68,7 +68,7 @@ defmodule BlackboexWeb.ApiKeyLive.Show do
               variant="default"
               size="sm"
             >
-              <.icon name="hero-arrow-path" class="mr-1.5 size-4 text-amber-400" /> Rotate
+              <.icon name="hero-arrow-path" class="mr-1.5 size-4 text-accent-amber" /> Rotate
             </.button>
             <.button
               :if={!@key.revoked_at}
@@ -77,7 +77,7 @@ defmodule BlackboexWeb.ApiKeyLive.Show do
               variant="destructive"
               size="sm"
             >
-              <.icon name="hero-x-circle" class="mr-1.5 size-4 text-red-400" /> Revoke
+              <.icon name="hero-x-circle" class="mr-1.5 size-4 text-accent-red" /> Revoke
             </.button>
           </div>
         </:actions>
@@ -106,7 +106,7 @@ defmodule BlackboexWeb.ApiKeyLive.Show do
         <div class="flex items-center justify-between">
           <.section_heading
             icon="hero-chart-bar"
-            icon_class="size-4 text-sky-400"
+            icon_class="size-4 text-accent-sky"
             heading_class="text-lg font-semibold gap-2"
           >
             Usage
@@ -141,7 +141,7 @@ defmodule BlackboexWeb.ApiKeyLive.Show do
         <.card_content class="pt-6">
           <.section_heading
             icon="hero-information-circle"
-            icon_class="size-4 text-blue-400"
+            icon_class="size-4 text-accent-blue"
             class="mb-4"
             heading_class="text-lg font-semibold gap-2"
           >

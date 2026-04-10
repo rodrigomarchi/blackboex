@@ -45,6 +45,7 @@ Violation of this rule creates inconsistent UI, breaks dark mode, bypasses seman
 | Form-free select | `<.inline_select>` | `ui/inline_select.ex` |
 | Form-free textarea | `<.inline_textarea>` | `ui/inline_textarea.ex` |
 | Status dot | `<.status_dot>` | `ui/status_dot.ex` |
+| Dashboard card section | `<.dashboard_section>` | `shared/dashboard_section.ex` |
 
 ---
 
@@ -54,7 +55,7 @@ Violation of this rule creates inconsistent UI, breaks dark mode, bypasses seman
 `Icon`, `Button`, `Flash`/`flash_group`, `FormField` (`<.input>`), `Table`, `Header`, `Helpers`, `StatusHelpers`, `Logo`, `JS`
 
 **Explicit import required** (add to LiveView module):
-`Badge`, `Card`, `Modal`, `DropdownMenu`, `Tabs`, `Avatar`, `Separator`, `Label`, `Input` (raw), `Sheet`, `Sidebar`, `Tooltip`, `Spinner`, `Skeleton`, `SectionHeading`, `FieldLabel`, `InlineInput`, `InlineSelect`, `InlineTextarea`, `StatusDot`, `Shared.Charts`, `Shared.StatCard`, `Shared.EmptyState`, `Shared.ProgressBar`, `Shared.DescriptionList`
+`Badge`, `Card`, `Modal`, `DropdownMenu`, `Tabs`, `Avatar`, `Separator`, `Label`, `Input` (raw), `Sheet`, `Sidebar`, `Tooltip`, `Spinner`, `Skeleton`, `SectionHeading`, `FieldLabel`, `InlineInput`, `InlineSelect`, `InlineTextarea`, `StatusDot`, `Shared.DashboardSection`, `Shared.Charts`, `Shared.StatCard`, `Shared.EmptyState`, `Shared.ProgressBar`, `Shared.DescriptionList`
 
 All from `BlackboexWeb.Components.*`.
 
@@ -224,12 +225,31 @@ Elixir functions, not components. Use to build `class` attribute values on `<.ba
 | `result_classes/1` | `"pass"/:pass`, `"fail"/:fail`, `"skip"/:skip`, `"passed"`, `"failed"` | Pass/fail badge classes |
 | `subscription_classes/1` | `"active"`, `"trialing"`, `"past_due"`, `"canceled"`, `"incomplete"` | Billing status badge classes |
 | `api_key_status_classes/1` | `"Active"`, `"Expired"`, `"Revoked"` | API key status badge classes |
+| `execution_status_classes/1` | `"completed"`, `"running"`, `"failed"`, `"pending"`, `"cancelled"`, `"halted"` | Flow execution badge classes |
+| `execution_status_dot/1` | same | Solid background for status dot circles |
+| `field_type_classes/1` | `"string"`, `"integer"`, `"float"`, `"boolean"`, `"array"`, `"object"` | Schema type color classes |
 | `chart_color/1` | `:primary`, `:error`, `:warning`, `:success`, `:accent`, `:axis` | CSS variable string for SVG fills |
 
 ```heex
 <.badge class={api_status_classes(@api.status)}>{@api.status}</.badge>
 <.badge class={result_classes(:pass)}>Passed</.badge>
+<.badge class={execution_status_classes("completed")}>completed</.badge>
 ```
+
+#### CSS Design Tokens
+
+All colors use semantic tokens defined in `app.css`. **Never use raw Tailwind color names** (e.g., `text-green-500`).
+
+| Token Group | Example Classes | Use For |
+|-------------|----------------|---------|
+| Semantic feedback | `text-success-foreground`, `bg-warning/15`, `text-info-foreground`, `text-destructive` | Status indicators, alerts |
+| Status lifecycle | `text-status-compiled-foreground`, `bg-status-published/10` | API/process lifecycle badges |
+| Execution status | `text-status-completed-foreground`, `bg-status-failed/15` | Flow execution badges/dots |
+| Icon accents | `text-accent-blue`, `text-accent-violet`, `text-accent-amber`, etc. | Decorative icon colors for visual differentiation |
+| Field types | `text-type-string-foreground`, `text-type-number-foreground` | Schema field type indicators |
+| Charts | `var(--color-chart-1)` through `var(--color-chart-5)` | SVG chart fills |
+
+Available accent colors: `blue`, `violet`, `amber`, `emerald`, `red`, `purple`, `sky`, `teal`, `rose`, `orange`, `cyan`.
 
 ---
 
@@ -655,6 +675,29 @@ Module: `BlackboexWeb.Components.Shared.StatCard`
 ```heex
 <.stat_card label="Total Requests" value="12,345" />
 <.stat_card label="Error Rate" value="5.2%" color="destructive" />
+```
+
+---
+
+#### `<.dashboard_section>`
+
+Module: `BlackboexWeb.Components.Shared.DashboardSection`
+
+Card with icon+title header and content area. Replaces the repeated card+label pattern in dashboards.
+
+| Attr | Type | Default | Description |
+|------|------|---------|-------------|
+| `title` | `:string` | required | Section title text |
+| `icon` | `:string` | required | Hero icon name |
+| `icon_class` | `:string` | `nil` | Icon accent color (e.g. `"text-accent-violet"`) |
+| `class` | `:any` | `nil` | Additional card classes |
+
+Slot: `:inner_block` (required)
+
+```heex
+<.dashboard_section icon="hero-sparkles-mini" icon_class="text-accent-violet" title="LLM Calls">
+  <.bar_chart data={@data} />
+</.dashboard_section>
 ```
 
 ---

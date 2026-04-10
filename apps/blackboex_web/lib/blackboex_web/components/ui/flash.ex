@@ -46,12 +46,12 @@ defmodule BlackboexWeb.Components.Flash do
         <.icon
           :if={@kind == :info}
           name="hero-information-circle"
-          class="size-5 shrink-0 mt-0.5 text-blue-400"
+          class="size-5 shrink-0 mt-0.5 text-accent-blue"
         />
         <.icon
           :if={@kind == :error}
           name="hero-exclamation-circle"
-          class="size-5 shrink-0 mt-0.5 text-red-400"
+          class="size-5 shrink-0 mt-0.5 text-accent-red"
         />
         <div class="flex-1 text-wrap">
           <p :if={@title} class="font-semibold">{@title}</p>

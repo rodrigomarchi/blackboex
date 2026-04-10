@@ -291,12 +291,12 @@ defmodule BlackboexWeb.ApiLive.Index do
     <div class="space-y-6">
       <.header>
         <span class="flex items-center gap-2">
-          <.icon name="hero-cube" class="size-5 text-blue-400" /> APIs
+          <.icon name="hero-cube" class="size-5 text-accent-blue" /> APIs
         </span>
         <:subtitle>Manage and monitor your API endpoints</:subtitle>
         <:actions>
           <.button variant="primary" phx-click="open_create_modal">
-            <.icon name="hero-plus" class="mr-2 size-4 text-emerald-300" /> Create API
+            <.icon name="hero-plus" class="mr-2 size-4 text-accent-emerald" /> Create API
           </.button>
         </:actions>
       </.header>

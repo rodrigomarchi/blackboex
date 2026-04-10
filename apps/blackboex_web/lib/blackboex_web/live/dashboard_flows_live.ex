@@ -6,9 +6,10 @@ defmodule BlackboexWeb.DashboardFlowsLive do
 
   import BlackboexWeb.Components.Shared.Charts
   import BlackboexWeb.Components.Shared.StatCard
+  import BlackboexWeb.Components.Shared.StatFigure
   import BlackboexWeb.Components.Shared.DashboardNav
   import BlackboexWeb.Components.Shared.DashboardHelpers
-  import BlackboexWeb.Components.Card
+  import BlackboexWeb.Components.Shared.DashboardSection
 
   alias Blackboex.Apis.DashboardQueries
 
@@ -55,7 +56,7 @@ defmodule BlackboexWeb.DashboardFlowsLive do
     <div class="space-y-6">
       <.header>
         <span class="flex items-center gap-2">
-          <.icon name="hero-arrow-path" class="size-5 text-violet-400" /> Flow Metrics
+          <.icon name="hero-arrow-path" class="size-5 text-accent-violet" /> Flow Metrics
         </span>
         <:subtitle>Execution metrics for your automation flows</:subtitle>
         <:actions>
@@ -82,139 +83,126 @@ defmodule BlackboexWeb.DashboardFlowsLive do
           label={"Executions (#{period_label(@period)})"}
           value={format_number(@metrics.total_executions)}
           icon="hero-bolt-mini"
-          icon_class="text-sky-400"
+          icon_class="text-accent-sky"
         />
         <.stat_card
           label={"Success Rate (#{period_label(@period)})"}
           value={"#{@metrics.success_rate}%"}
           icon="hero-check-circle-mini"
-          icon_class="text-emerald-400"
+          icon_class="text-accent-emerald"
         />
         <.stat_card
           label={"Failed (#{period_label(@period)})"}
           value={format_number(@metrics.failed)}
           icon="hero-x-circle-mini"
-          icon_class="text-red-400"
+          icon_class="text-accent-red"
         />
         <.stat_card
           label={"Avg Duration (#{period_label(@period)})"}
           value={format_duration(@metrics.avg_duration_ms)}
           icon="hero-clock-mini"
-          icon_class="text-amber-400"
+          icon_class="text-accent-amber"
         />
       </div>
 
       <%!-- Charts --%>
       <div class="grid gap-4 lg:grid-cols-2">
-        <.card>
-          <.card_content class="p-4">
-            <p class="flex items-center gap-1.5 text-sm font-medium text-muted-foreground mb-3">
-              <.icon name="hero-bolt-mini" class="size-3.5 text-sky-400" /> Executions
-            </p>
-            <.bar_chart data={@metrics.executions_series} />
-          </.card_content>
-        </.card>
-        <.card>
-          <.card_content class="p-4">
-            <p class="flex items-center gap-1.5 text-sm font-medium text-muted-foreground mb-3">
-              <.icon name="hero-x-circle-mini" class="size-3.5 text-red-400" /> Failures
-            </p>
-            <.bar_chart data={@metrics.failures_series} color="var(--color-chart-2)" />
-          </.card_content>
-        </.card>
+        <.dashboard_section icon="hero-bolt-mini" icon_class="text-accent-sky" title="Executions">
+          <.bar_chart data={@metrics.executions_series} />
+        </.dashboard_section>
+        <.dashboard_section icon="hero-x-circle-mini" icon_class="text-accent-red" title="Failures">
+          <.bar_chart data={@metrics.failures_series} color="var(--color-chart-2)" />
+        </.dashboard_section>
       </div>
 
-      <.card>
-        <.card_content class="p-4">
-          <p class="flex items-center gap-1.5 text-sm font-medium text-muted-foreground mb-3">
-            <.icon name="hero-clock-mini" class="size-3.5 text-amber-400" /> Avg Duration (ms)
-          </p>
-          <.line_chart data={@metrics.duration_series} color="var(--color-chart-3)" />
-        </.card_content>
-      </.card>
+      <.dashboard_section
+        icon="hero-clock-mini"
+        icon_class="text-accent-amber"
+        title="Avg Duration (ms)"
+      >
+        <.line_chart data={@metrics.duration_series} color="var(--color-chart-3)" />
+      </.dashboard_section>
 
       <%!-- Status distribution --%>
-      <.card>
-        <.card_content class="p-4">
-          <p class="flex items-center gap-1.5 text-sm font-medium text-muted-foreground mb-3">
-            <.icon name="hero-chart-pie-mini" class="size-3.5 text-indigo-400" /> Status Distribution
-          </p>
-          <div class="grid grid-cols-5 gap-3 text-center">
-            <div>
-              <p class="text-2xl font-bold text-muted-foreground">
-                {@extended.status_distribution.pending}
-              </p>
-              <p class="text-xs text-muted-foreground">Pending</p>
-            </div>
-            <div>
-              <p class="text-2xl font-bold text-sky-400">{@extended.status_distribution.running}</p>
-              <p class="text-xs text-muted-foreground">Running</p>
-            </div>
-            <div>
-              <p class="text-2xl font-bold text-emerald-400">
-                {@extended.status_distribution.completed}
-              </p>
-              <p class="text-xs text-muted-foreground">Completed</p>
-            </div>
-            <div>
-              <p class="text-2xl font-bold text-red-400">{@extended.status_distribution.failed}</p>
-              <p class="text-xs text-muted-foreground">Failed</p>
-            </div>
-            <div>
-              <p class="text-2xl font-bold text-amber-400">{@extended.status_distribution.halted}</p>
-              <p class="text-xs text-muted-foreground">Halted</p>
-            </div>
-          </div>
-        </.card_content>
-      </.card>
+      <.dashboard_section
+        icon="hero-chart-pie-mini"
+        icon_class="text-accent-purple"
+        title="Status Distribution"
+      >
+        <div class="grid grid-cols-5 gap-3 text-center">
+          <.stat_figure
+            value={@extended.status_distribution.pending}
+            label="Pending"
+            color="text-muted-foreground"
+          />
+          <.stat_figure
+            value={@extended.status_distribution.running}
+            label="Running"
+            color="text-status-running-foreground"
+          />
+          <.stat_figure
+            value={@extended.status_distribution.completed}
+            label="Completed"
+            color="text-status-completed-foreground"
+          />
+          <.stat_figure
+            value={@extended.status_distribution.failed}
+            label="Failed"
+            color="text-status-failed-foreground"
+          />
+          <.stat_figure
+            value={@extended.status_distribution.halted}
+            label="Halted"
+            color="text-status-halted-foreground"
+          />
+        </div>
+      </.dashboard_section>
 
       <%!-- Top Flows table --%>
-      <.card>
-        <.card_content class="p-4">
-          <p class="flex items-center gap-1.5 text-sm font-medium text-muted-foreground mb-3">
-            <.icon name="hero-arrow-trending-up-mini" class="size-3.5 text-violet-400" />
-            Top Flows by Executions
-          </p>
-          <.table id="top-flows" rows={Enum.with_index(@metrics.top_flows, 1)}>
-            <:col :let={{_flow, idx}} label="#">{idx}</:col>
-            <:col :let={{flow, _idx}} label="Name">{flow.name}</:col>
-            <:col :let={{flow, _idx}} label="Executions">{format_number(flow.executions)}</:col>
-            <:col :let={{flow, _idx}} label="Avg Duration">{format_duration(flow.avg_duration)}</:col>
-            <:col :let={{flow, _idx}} label="Success Rate">{"#{flow.success_rate}%"}</:col>
-          </.table>
-        </.card_content>
-      </.card>
+      <.dashboard_section
+        icon="hero-arrow-trending-up-mini"
+        icon_class="text-accent-violet"
+        title="Top Flows by Executions"
+      >
+        <.table id="top-flows" rows={Enum.with_index(@metrics.top_flows, 1)}>
+          <:col :let={{_flow, idx}} label="#">{idx}</:col>
+          <:col :let={{flow, _idx}} label="Name">{flow.name}</:col>
+          <:col :let={{flow, _idx}} label="Executions">{format_number(flow.executions)}</:col>
+          <:col :let={{flow, _idx}} label="Avg Duration">{format_duration(flow.avg_duration)}</:col>
+          <:col :let={{flow, _idx}} label="Success Rate">{"#{flow.success_rate}%"}</:col>
+        </.table>
+      </.dashboard_section>
 
       <%!-- Slowest Executions --%>
-      <.card :if={@extended.longest_executions != []}>
-        <.card_content class="p-4">
-          <p class="flex items-center gap-1.5 text-sm font-medium text-muted-foreground mb-3">
-            <.icon name="hero-clock-mini" class="size-3.5 text-orange-400" /> Slowest Executions
-          </p>
-          <.table id="slowest-execs" rows={@extended.longest_executions}>
-            <:col :let={row} label="Flow">{row.flow_name}</:col>
-            <:col :let={row} label="Status">
-              <span class={status_color(row.status)}>{row.status}</span>
-            </:col>
-            <:col :let={row} label="Duration">{format_duration(row.duration_ms)}</:col>
-          </.table>
-        </.card_content>
-      </.card>
+      <.dashboard_section
+        :if={@extended.longest_executions != []}
+        icon="hero-clock-mini"
+        icon_class="text-accent-orange"
+        title="Slowest Executions"
+      >
+        <.table id="slowest-execs" rows={@extended.longest_executions}>
+          <:col :let={row} label="Flow">{row.flow_name}</:col>
+          <:col :let={row} label="Status">
+            <span class={status_color(row.status)}>{row.status}</span>
+          </:col>
+          <:col :let={row} label="Duration">{format_duration(row.duration_ms)}</:col>
+        </.table>
+      </.dashboard_section>
 
       <%!-- Recent Failures --%>
-      <.card :if={@extended.recent_failures != []}>
-        <.card_content class="p-4">
-          <p class="flex items-center gap-1.5 text-sm font-medium text-muted-foreground mb-3">
-            <.icon name="hero-x-circle-mini" class="size-3.5 text-red-400" /> Recent Failures
-          </p>
-          <.table id="recent-failures" rows={@extended.recent_failures}>
-            <:col :let={row} label="Flow">{row.flow_name}</:col>
-            <:col :let={row} label="Error">
-              <span class="text-xs font-mono truncate max-w-xs block">{truncate(row.error, 80)}</span>
-            </:col>
-          </.table>
-        </.card_content>
-      </.card>
+      <.dashboard_section
+        :if={@extended.recent_failures != []}
+        icon="hero-x-circle-mini"
+        icon_class="text-accent-red"
+        title="Recent Failures"
+      >
+        <.table id="recent-failures" rows={@extended.recent_failures}>
+          <:col :let={row} label="Flow">{row.flow_name}</:col>
+          <:col :let={row} label="Error">
+            <span class="text-xs font-mono truncate max-w-xs block">{truncate(row.error, 80)}</span>
+          </:col>
+        </.table>
+      </.dashboard_section>
     </div>
     """
   end
@@ -258,10 +246,10 @@ defmodule BlackboexWeb.DashboardFlowsLive do
   # -- Template helpers --
 
   @spec status_color(String.t()) :: String.t()
-  defp status_color("completed"), do: "text-emerald-400"
-  defp status_color("failed"), do: "text-red-400"
-  defp status_color("running"), do: "text-sky-400"
-  defp status_color("halted"), do: "text-amber-400"
+  defp status_color("completed"), do: "text-status-completed-foreground"
+  defp status_color("failed"), do: "text-status-failed-foreground"
+  defp status_color("running"), do: "text-status-running-foreground"
+  defp status_color("halted"), do: "text-status-halted-foreground"
   defp status_color(_), do: "text-muted-foreground"
 
   @spec truncate(String.t() | nil, non_neg_integer()) :: String.t()

@@ -240,6 +240,43 @@
   --info: 221 83% 53%;
   --info-foreground: 224 76% 20%;
 
+  /* ── Icon accents (contextual differentiation) ── */
+  --accent-blue: 213 94% 68%;
+  --accent-violet: 255 92% 76%;
+  --accent-amber: 45 93% 47%;
+  --accent-emerald: 156 72% 57%;
+  --accent-red: 0 84% 60%;
+  --accent-purple: 272 51% 60%;
+  --accent-sky: 199 89% 48%;
+  --accent-teal: 172 66% 50%;
+  --accent-rose: 347 77% 50%;
+  --accent-orange: 25 95% 53%;
+  --accent-cyan: 188 78% 41%;
+
+  /* ── Schema field types ────────────────────────── */
+  --type-string: 160 84% 39%;
+  --type-string-foreground: 155 65% 30%;
+  --type-number: 217 91% 60%;
+  --type-number-foreground: 224 76% 35%;
+  --type-boolean: 38 92% 50%;
+  --type-boolean-foreground: 32 81% 29%;
+  --type-array: 270 60% 55%;
+  --type-array-foreground: 270 50% 35%;
+  --type-object: 235 60% 55%;
+  --type-object-foreground: 235 50% 35%;
+
+  /* ── Execution status (extends process states) ── */
+  --status-completed: 142 71% 45%;
+  --status-completed-foreground: 144 61% 20%;
+  --status-failed: 0 84% 60%;
+  --status-failed-foreground: 0 74% 22%;
+  --status-cancelled: 240 6% 65%;
+  --status-cancelled-foreground: 240 4% 46%;
+  --status-halted: 38 92% 50%;
+  --status-halted-foreground: 32 81% 29%;
+  --status-skipped: 240 5% 96%;
+  --status-skipped-foreground: 240 4% 46%;
+
   /* ── Charts ────────────────────────────────────── */
   --chart-1: 239 65% 58%;
   --chart-2: 0 84% 60%;
@@ -300,6 +337,43 @@
   --warning-foreground: 48 96% 80%;
   --info: 217 91% 60%;
   --info-foreground: 213 94% 85%;
+
+  /* ── Icon accents (contextual differentiation) ── */
+  --accent-blue: 217 91% 65%;
+  --accent-violet: 258 90% 72%;
+  --accent-amber: 38 92% 55%;
+  --accent-emerald: 160 84% 45%;
+  --accent-red: 0 63% 60%;
+  --accent-purple: 272 51% 65%;
+  --accent-sky: 199 89% 55%;
+  --accent-teal: 172 66% 55%;
+  --accent-rose: 347 77% 55%;
+  --accent-orange: 25 95% 58%;
+  --accent-cyan: 188 78% 48%;
+
+  /* ── Schema field types ────────────────────────── */
+  --type-string: 160 84% 45%;
+  --type-string-foreground: 160 72% 70%;
+  --type-number: 217 91% 65%;
+  --type-number-foreground: 213 94% 78%;
+  --type-boolean: 38 92% 55%;
+  --type-boolean-foreground: 48 96% 80%;
+  --type-array: 270 60% 60%;
+  --type-array-foreground: 270 60% 78%;
+  --type-object: 235 60% 60%;
+  --type-object-foreground: 235 60% 78%;
+
+  /* ── Execution status (extends process states) ── */
+  --status-completed: 142 71% 45%;
+  --status-completed-foreground: 142 76% 80%;
+  --status-failed: 0 63% 55%;
+  --status-failed-foreground: 0 86% 80%;
+  --status-cancelled: 240 6% 35%;
+  --status-cancelled-foreground: 240 5% 65%;
+  --status-halted: 38 92% 50%;
+  --status-halted-foreground: 48 96% 80%;
+  --status-skipped: 240 6% 25%;
+  --status-skipped-foreground: 240 5% 65%;
 
   /* ── Charts ────────────────────────────────────── */
   --chart-1: 239 65% 65%;
@@ -363,6 +437,43 @@
   --color-warning-foreground: hsl(var(--warning-foreground));
   --color-info: hsl(var(--info));
   --color-info-foreground: hsl(var(--info-foreground));
+
+  /* ── Icon accents ────────────────────────────── */
+  --color-accent-blue: hsl(var(--accent-blue));
+  --color-accent-violet: hsl(var(--accent-violet));
+  --color-accent-amber: hsl(var(--accent-amber));
+  --color-accent-emerald: hsl(var(--accent-emerald));
+  --color-accent-red: hsl(var(--accent-red));
+  --color-accent-purple: hsl(var(--accent-purple));
+  --color-accent-sky: hsl(var(--accent-sky));
+  --color-accent-teal: hsl(var(--accent-teal));
+  --color-accent-rose: hsl(var(--accent-rose));
+  --color-accent-orange: hsl(var(--accent-orange));
+  --color-accent-cyan: hsl(var(--accent-cyan));
+
+  /* ── Schema field types ────────────────────── */
+  --color-type-string: hsl(var(--type-string));
+  --color-type-string-foreground: hsl(var(--type-string-foreground));
+  --color-type-number: hsl(var(--type-number));
+  --color-type-number-foreground: hsl(var(--type-number-foreground));
+  --color-type-boolean: hsl(var(--type-boolean));
+  --color-type-boolean-foreground: hsl(var(--type-boolean-foreground));
+  --color-type-array: hsl(var(--type-array));
+  --color-type-array-foreground: hsl(var(--type-array-foreground));
+  --color-type-object: hsl(var(--type-object));
+  --color-type-object-foreground: hsl(var(--type-object-foreground));
+
+  /* ── Execution status ──────────────────────── */
+  --color-status-completed: hsl(var(--status-completed));
+  --color-status-completed-foreground: hsl(var(--status-completed-foreground));
+  --color-status-failed: hsl(var(--status-failed));
+  --color-status-failed-foreground: hsl(var(--status-failed-foreground));
+  --color-status-cancelled: hsl(var(--status-cancelled));
+  --color-status-cancelled-foreground: hsl(var(--status-cancelled-foreground));
+  --color-status-halted: hsl(var(--status-halted));
+  --color-status-halted-foreground: hsl(var(--status-halted-foreground));
+  --color-status-skipped: hsl(var(--status-skipped));
+  --color-status-skipped-foreground: hsl(var(--status-skipped-foreground));
 
   /* ── Charts ─────────────────────────────────── */
   --color-chart-1: hsl(var(--chart-1));
@@ -441,5 +552,14 @@
 .highlight .gd { color: #f92672; }
 .highlight .gi { color: #a6e22e; }
 .highlight .err { color: #f8f8f2; }
+
+/* ── Muted text utilities (70+ occurrences across the app) ──── */
+.text-muted-caption {
+  @apply text-xs text-muted-foreground;
+}
+
+.text-muted-description {
+  @apply text-sm text-muted-foreground;
+}
 
 /* This file is for your main application CSS */

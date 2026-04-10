@@ -15,16 +15,19 @@ defmodule BlackboexWeb.Components.UI.StatusDot do
   use BlackboexWeb.Component
 
   @tones %{
-    "active" => {"bg-green-500/15 text-green-600", "bg-green-500"},
-    "running" => {"bg-blue-500/15 text-blue-600", "bg-blue-500"},
-    "pending" => {"bg-amber-500/15 text-amber-600", "bg-amber-500"},
+    "active" =>
+      {"bg-status-completed/15 text-status-completed-foreground", "bg-status-completed"},
+    "running" => {"bg-status-running/15 text-status-running-foreground", "bg-status-running"},
+    "pending" => {"bg-status-pending/15 text-status-pending-foreground", "bg-status-pending"},
     "draft" => {"bg-muted text-muted-foreground", "bg-muted-foreground"},
-    "paused" => {"bg-amber-500/15 text-amber-600", "bg-amber-500"},
-    "failed" => {"bg-red-500/15 text-red-600", "bg-red-500"},
-    "error" => {"bg-red-500/15 text-red-600", "bg-red-500"},
+    "paused" => {"bg-status-halted/15 text-status-halted-foreground", "bg-status-halted"},
+    "failed" => {"bg-status-failed/15 text-status-failed-foreground", "bg-status-failed"},
+    "error" => {"bg-status-failed/15 text-status-failed-foreground", "bg-status-failed"},
     "archived" => {"bg-muted text-muted-foreground", "bg-muted-foreground"},
-    "success" => {"bg-green-500/15 text-green-600", "bg-green-500"},
-    "completed" => {"bg-green-500/15 text-green-600", "bg-green-500"}
+    "success" =>
+      {"bg-status-completed/15 text-status-completed-foreground", "bg-status-completed"},
+    "completed" =>
+      {"bg-status-completed/15 text-status-completed-foreground", "bg-status-completed"}
   }
 
   @fallback_tone {"bg-muted text-muted-foreground", "bg-muted-foreground"}

@@ -44,7 +44,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
           value={@data["name"] || "Start"}
           placeholder="Start"
           icon="hero-tag"
-          icon_color="text-violet-400"
+          icon_color="text-accent-violet"
         />
         <.prop_field
           label="Description"
@@ -53,7 +53,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
           placeholder="Describe what triggers this flow"
           type="textarea"
           icon="hero-chat-bubble-bottom-center-text"
-          icon_color="text-sky-400"
+          icon_color="text-accent-sky"
         />
         <.prop_select
           label="Execution Mode"
@@ -61,7 +61,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
           value={@data["execution_mode"] || "sync"}
           options={[{"Sync (request/response)", "sync"}, {"Async (polling)", "async"}]}
           icon="hero-bolt"
-          icon_color="text-amber-400"
+          icon_color="text-accent-amber"
         />
         <.prop_field
           label="Timeout (ms)"
@@ -70,7 +70,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
           placeholder="30000"
           type="number"
           icon="hero-clock"
-          icon_color="text-orange-400"
+          icon_color="text-accent-orange"
         />
         <.prop_select
           label="Trigger Type"
@@ -78,7 +78,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
           value={@data["trigger_type"] || "webhook"}
           options={[{"Webhook", "webhook"}, {"Manual", "manual"}, {"Schedule", "schedule"}]}
           icon="hero-signal"
-          icon_color="text-green-400"
+          icon_color="text-accent-emerald"
         />
       </div>
 
@@ -111,7 +111,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
         value={@data["name"] || "Elixir Code"}
         placeholder="Elixir Code"
         icon="hero-tag"
-        icon_color="text-violet-400"
+        icon_color="text-accent-violet"
       />
       <.prop_field
         label="Description"
@@ -120,10 +120,10 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
         placeholder="What does this step do?"
         type="textarea"
         icon="hero-chat-bubble-bottom-center-text"
-        icon_color="text-sky-400"
+        icon_color="text-accent-sky"
       />
       <div>
-        <.field_label icon="hero-code-bracket" icon_color="text-purple-400">Code</.field_label>
+        <.field_label icon="hero-code-bracket" icon_color="text-accent-purple">Code</.field_label>
         <div
           id={"code-editor-#{@node_id}-code"}
           phx-hook="CodeEditor"
@@ -143,11 +143,11 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
         placeholder="5000"
         type="number"
         icon="hero-clock"
-        icon_color="text-orange-400"
+        icon_color="text-accent-orange"
       />
       <div class="border-t pt-4 mt-4">
         <.field_label icon="hero-funnel" icon_color="text-yellow-400">Skip Condition</.field_label>
-        <p class="text-xs text-muted-foreground mb-1.5">
+        <p class="text-muted-caption mb-1.5">
           Skip this node when expression is true
         </p>
         <div
@@ -163,8 +163,10 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
         />
       </div>
       <div class="border-t pt-4 mt-4">
-        <.field_label icon="hero-arrow-uturn-left" icon_color="text-rose-400">Undo Code</.field_label>
-        <p class="text-xs text-muted-foreground mb-1.5">
+        <.field_label icon="hero-arrow-uturn-left" icon_color="text-accent-rose">
+          Undo Code
+        </.field_label>
+        <p class="text-muted-caption mb-1.5">
           Rollback code if a downstream step fails. Has
           <code class="text-xs bg-muted px-1 rounded">result</code>
           binding.
@@ -194,7 +196,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
         value={@data["name"] || "Condition"}
         placeholder="Condition"
         icon="hero-tag"
-        icon_color="text-violet-400"
+        icon_color="text-accent-violet"
       />
       <.prop_field
         label="Description"
@@ -203,10 +205,10 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
         placeholder="Describe the branching logic"
         type="textarea"
         icon="hero-chat-bubble-bottom-center-text"
-        icon_color="text-sky-400"
+        icon_color="text-accent-sky"
       />
       <div>
-        <.field_label icon="hero-code-bracket" icon_color="text-blue-400">Expression</.field_label>
+        <.field_label icon="hero-code-bracket" icon_color="text-accent-blue">Expression</.field_label>
         <div
           id={"code-editor-#{@node_id}-expression"}
           phx-hook="CodeEditor"
@@ -220,8 +222,8 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
         />
       </div>
       <div>
-        <.field_label icon="hero-tag" icon_color="text-teal-400">Branch Labels</.field_label>
-        <p class="text-xs text-muted-foreground mb-2">
+        <.field_label icon="hero-tag" icon_color="text-accent-teal">Branch Labels</.field_label>
+        <p class="text-muted-caption mb-2">
           Name each output branch (one per line)
         </p>
         <.inline_textarea
@@ -252,7 +254,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
           value={@data["name"] || "End"}
           placeholder="End"
           icon="hero-tag"
-          icon_color="text-violet-400"
+          icon_color="text-accent-violet"
         />
         <.prop_field
           label="Description"
@@ -261,7 +263,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
           placeholder="Describe how the flow ends"
           type="textarea"
           icon="hero-chat-bubble-bottom-center-text"
-          icon_color="text-sky-400"
+          icon_color="text-accent-sky"
         />
         <.prop_select
           label="Output Mode"
@@ -273,7 +275,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
             {"Discard", "discard"}
           ]}
           icon="hero-arrow-down-tray"
-          icon_color="text-emerald-400"
+          icon_color="text-accent-emerald"
         />
       </div>
 
@@ -307,7 +309,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
           field="name"
           value={@data["name"] || "HTTP Request"}
           icon="hero-tag"
-          icon_color="text-violet-400"
+          icon_color="text-accent-violet"
         />
         <.prop_select
           label="Method"
@@ -321,7 +323,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
             {"DELETE", "DELETE"}
           ]}
           icon="hero-command-line"
-          icon_color="text-amber-400"
+          icon_color="text-accent-amber"
         />
         <.prop_field
           label="URL"
@@ -329,10 +331,10 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
           value={@data["url"] || ""}
           placeholder="https://api.example.com/{{state.path}}"
           icon="hero-link"
-          icon_color="text-blue-400"
+          icon_color="text-accent-blue"
         />
         <div>
-          <.field_label icon="hero-document-text" icon_color="text-emerald-400">
+          <.field_label icon="hero-document-text" icon_color="text-accent-emerald">
             Body Template
           </.field_label>
           <div
@@ -361,7 +363,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
             {"API Key", "api_key"}
           ]}
           icon="hero-lock-closed"
-          icon_color="text-rose-400"
+          icon_color="text-accent-rose"
         />
         <.prop_field
           :if={@data["auth_type"] == "bearer"}
@@ -370,7 +372,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
           value={get_in(@data, ["auth_config", "token"]) || ""}
           placeholder="Bearer token"
           icon="hero-key"
-          icon_color="text-amber-400"
+          icon_color="text-accent-amber"
         />
         <.prop_field
           :if={@data["auth_type"] == "basic"}
@@ -378,7 +380,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
           field="auth_username"
           value={get_in(@data, ["auth_config", "username"]) || ""}
           icon="hero-user"
-          icon_color="text-sky-400"
+          icon_color="text-accent-sky"
         />
         <.prop_field
           :if={@data["auth_type"] == "basic"}
@@ -386,7 +388,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
           field="auth_password"
           value={get_in(@data, ["auth_config", "password"]) || ""}
           icon="hero-lock-closed"
-          icon_color="text-rose-400"
+          icon_color="text-accent-rose"
         />
         <.prop_field
           :if={@data["auth_type"] == "api_key"}
@@ -395,7 +397,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
           value={get_in(@data, ["auth_config", "key_name"]) || ""}
           placeholder="X-API-Key"
           icon="hero-key"
-          icon_color="text-amber-400"
+          icon_color="text-accent-amber"
         />
         <.prop_field
           :if={@data["auth_type"] == "api_key"}
@@ -403,7 +405,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
           field="auth_key_value"
           value={get_in(@data, ["auth_config", "key_value"]) || ""}
           icon="hero-lock-closed"
-          icon_color="text-rose-400"
+          icon_color="text-accent-rose"
         />
       </div>
 
@@ -414,7 +416,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
           value={@data["timeout_ms"] || "10000"}
           type="number"
           icon="hero-clock"
-          icon_color="text-orange-400"
+          icon_color="text-accent-orange"
         />
         <.prop_field
           label="Max Retries"
@@ -422,7 +424,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
           value={@data["max_retries"] || "3"}
           type="number"
           icon="hero-arrow-path"
-          icon_color="text-cyan-400"
+          icon_color="text-accent-cyan"
         />
         <.prop_field
           label="Expected Status Codes"
@@ -430,11 +432,11 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
           value={format_status_codes(@data["expected_status"])}
           placeholder="200, 201"
           icon="hero-check-badge"
-          icon_color="text-green-400"
+          icon_color="text-accent-emerald"
         />
         <div class="border-t pt-4 mt-4">
           <.field_label icon="hero-funnel" icon_color="text-yellow-400">Skip Condition</.field_label>
-          <p class="text-xs text-muted-foreground mb-1.5">
+          <p class="text-muted-caption mb-1.5">
             Skip this node when expression is true
           </p>
           <div
@@ -450,10 +452,10 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
           />
         </div>
         <div class="border-t pt-4 mt-4">
-          <.field_label icon="hero-arrow-uturn-left" icon_color="text-rose-400">
+          <.field_label icon="hero-arrow-uturn-left" icon_color="text-accent-rose">
             Undo Request
           </.field_label>
-          <p class="text-xs text-muted-foreground mb-1.5">
+          <p class="text-muted-caption mb-1.5">
             HTTP request to undo this action if a downstream step fails
           </p>
           <.prop_select
@@ -468,7 +470,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
               {"PATCH", "PATCH"}
             ]}
             icon="hero-arrows-right-left"
-            icon_color="text-rose-400"
+            icon_color="text-accent-rose"
           />
           <div class="mt-2">
             <.prop_field
@@ -477,7 +479,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
               value={get_in(@data, ["undo_config", "url"]) || ""}
               placeholder="https://api.example.com/resource/{{state.id}}"
               icon="hero-link"
-              icon_color="text-rose-400"
+              icon_color="text-accent-rose"
             />
           </div>
         </div>
@@ -494,7 +496,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
         field="name"
         value={@data["name"] || "Delay"}
         icon="hero-tag"
-        icon_color="text-violet-400"
+        icon_color="text-accent-violet"
       />
       <.prop_field
         label="Duration (ms)"
@@ -503,7 +505,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
         placeholder="1000"
         type="number"
         icon="hero-clock"
-        icon_color="text-amber-400"
+        icon_color="text-accent-amber"
       />
       <.prop_field
         label="Max Duration (ms)"
@@ -512,7 +514,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
         placeholder="60000"
         type="number"
         icon="hero-clock"
-        icon_color="text-orange-400"
+        icon_color="text-accent-orange"
       />
       <.prop_field
         label="Description"
@@ -521,11 +523,11 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
         placeholder="Why is this delay needed?"
         type="textarea"
         icon="hero-chat-bubble-bottom-center-text"
-        icon_color="text-sky-400"
+        icon_color="text-accent-sky"
       />
       <div class="border-t pt-4 mt-4">
         <.field_label icon="hero-funnel" icon_color="text-yellow-400">Skip Condition</.field_label>
-        <p class="text-xs text-muted-foreground mb-1.5">
+        <p class="text-muted-caption mb-1.5">
           Skip this node when expression is true
         </p>
         <div
@@ -552,11 +554,11 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
         field="name"
         value={@data["name"] || "Sub-Flow"}
         icon="hero-tag"
-        icon_color="text-violet-400"
+        icon_color="text-accent-violet"
       />
 
       <div>
-        <.field_label icon="hero-squares-2x2" icon_color="text-indigo-400">Sub-Flow</.field_label>
+        <.field_label icon="hero-squares-2x2" icon_color="text-accent-purple">Sub-Flow</.field_label>
         <.inline_select
           name="flow_id"
           value={@data["flow_id"]}
@@ -567,15 +569,15 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
 
       <%= if @data["flow_id"] && @data["flow_id"] != "" do %>
         <div>
-          <.field_label icon="hero-arrows-right-left" icon_color="text-teal-400" class="mb-2">
+          <.field_label icon="hero-arrows-right-left" icon_color="text-accent-teal" class="mb-2">
             Input Mapping
           </.field_label>
-          <p class="text-xs text-muted-foreground mb-3">
+          <p class="text-muted-caption mb-3">
             Map parent flow state/input to sub-flow payload fields
           </p>
 
           <%= if (@sub_flow_schema) == [] do %>
-            <p class="text-xs text-muted-foreground italic">
+            <p class="text-muted-caption italic">
               Selected flow has no payload schema defined.
               You can still add custom mappings below.
             </p>
@@ -588,8 +590,8 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
             >
               <div class="flex items-center gap-1.5">
                 <span class="text-xs font-medium text-foreground">{field["name"]}</span>
-                <span class="text-xs text-muted-foreground">({field["type"]})</span>
-                <span class="text-xs text-muted-foreground">&larr;</span>
+                <span class="text-muted-caption">({field["type"]})</span>
+                <span class="text-muted-caption">&larr;</span>
               </div>
               <div
                 id={"code-editor-#{@node_id}-mapping-#{field["name"]}"}
@@ -615,11 +617,11 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
         placeholder="30000"
         type="number"
         icon="hero-clock"
-        icon_color="text-orange-400"
+        icon_color="text-accent-orange"
       />
       <div class="border-t pt-4 mt-4">
         <.field_label icon="hero-funnel" icon_color="text-yellow-400">Skip Condition</.field_label>
-        <p class="text-xs text-muted-foreground mb-1.5">
+        <p class="text-muted-caption mb-1.5">
           Skip this node when expression is true
         </p>
         <div
@@ -649,10 +651,12 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
           field="name"
           value={@data["name"] || "For Each"}
           icon="hero-tag"
-          icon_color="text-violet-400"
+          icon_color="text-accent-violet"
         />
         <div>
-          <.field_label icon="hero-funnel" icon_color="text-teal-400">Source Expression</.field_label>
+          <.field_label icon="hero-funnel" icon_color="text-accent-teal">
+            Source Expression
+          </.field_label>
           <div
             id={"code-editor-#{@node_id}-source_expression"}
             phx-hook="CodeEditor"
@@ -671,7 +675,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
           value={@data["item_variable"] || "item"}
           placeholder="item"
           icon="hero-variable"
-          icon_color="text-purple-400"
+          icon_color="text-accent-purple"
         />
         <.prop_field
           label="Accumulator Key"
@@ -679,7 +683,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
           value={@data["accumulator"] || "results"}
           placeholder="results"
           icon="hero-archive-box"
-          icon_color="text-amber-400"
+          icon_color="text-accent-amber"
         />
         <.prop_field
           label="Batch Size"
@@ -688,7 +692,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
           placeholder="10"
           type="number"
           icon="hero-squares-2x2"
-          icon_color="text-indigo-400"
+          icon_color="text-accent-purple"
         />
         <.prop_field
           label="Timeout per Item (ms)"
@@ -697,11 +701,11 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
           placeholder="5000"
           type="number"
           icon="hero-clock"
-          icon_color="text-orange-400"
+          icon_color="text-accent-orange"
         />
         <div class="border-t pt-4 mt-4">
           <.field_label icon="hero-funnel" icon_color="text-yellow-400">Skip Condition</.field_label>
-          <p class="text-xs text-muted-foreground mb-1.5">
+          <p class="text-muted-caption mb-1.5">
             Skip this node when expression is true
           </p>
           <div
@@ -719,7 +723,9 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
       </div>
 
       <div :if={@tab == "code"}>
-        <.field_label icon="hero-code-bracket" icon_color="text-purple-400">Body Code</.field_label>
+        <.field_label icon="hero-code-bracket" icon_color="text-accent-purple">
+          Body Code
+        </.field_label>
         <div
           id={"code-editor-#{@node_id}-body_code"}
           phx-hook="CodeEditor"
@@ -744,7 +750,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
         field="name"
         value={@data["name"] || "Webhook Wait"}
         icon="hero-tag"
-        icon_color="text-violet-400"
+        icon_color="text-accent-violet"
       />
       <.prop_field
         label="Event Type"
@@ -752,7 +758,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
         value={@data["event_type"] || ""}
         placeholder="e.g. approval, payment.confirmed"
         icon="hero-bell-alert"
-        icon_color="text-pink-400"
+        icon_color="text-accent-rose"
       />
       <.prop_field
         label="Timeout (ms)"
@@ -761,7 +767,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
         placeholder="3600000"
         type="number"
         icon="hero-clock"
-        icon_color="text-orange-400"
+        icon_color="text-accent-orange"
       />
       <.prop_field
         label="Resume Path"
@@ -769,17 +775,17 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
         value={@data["resume_path"] || ""}
         placeholder="e.g. data.approved"
         icon="hero-arrow-right-circle"
-        icon_color="text-emerald-400"
+        icon_color="text-accent-emerald"
       />
       <div>
-        <.field_label icon="hero-link" icon_color="text-blue-400">Callback URL</.field_label>
+        <.field_label icon="hero-link" icon_color="text-accent-blue">Callback URL</.field_label>
         <p class="rounded-lg border bg-muted/50 px-3 py-2 text-xs text-muted-foreground font-mono">
           POST /webhook/:token/resume/{@data["event_type"] || "<event_type>"}
         </p>
       </div>
       <div class="border-t pt-4 mt-4">
         <.field_label icon="hero-funnel" icon_color="text-yellow-400">Skip Condition</.field_label>
-        <p class="text-xs text-muted-foreground mb-1.5">
+        <p class="text-muted-caption mb-1.5">
           Skip this node when expression is true
         </p>
         <div
@@ -807,7 +813,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
         value={@data["name"] || "Fail"}
         placeholder="Fail"
         icon="hero-tag"
-        icon_color="text-violet-400"
+        icon_color="text-accent-violet"
       />
       <.prop_field
         label="Description"
@@ -816,13 +822,13 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
         placeholder="When does this error occur?"
         type="textarea"
         icon="hero-chat-bubble-bottom-center-text"
-        icon_color="text-sky-400"
+        icon_color="text-accent-sky"
       />
       <div>
-        <.field_label icon="hero-exclamation-triangle" icon_color="text-red-400">
+        <.field_label icon="hero-exclamation-triangle" icon_color="text-accent-red">
           Error Message
         </.field_label>
-        <p class="text-xs text-muted-foreground mb-1.5">
+        <p class="text-muted-caption mb-1.5">
           Elixir expression with <code class="text-xs bg-muted px-1 rounded">input</code>
           and <code class="text-xs bg-muted px-1 rounded">state</code>
           bindings
@@ -845,7 +851,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
         value={to_string(@data["include_state"] || false)}
         options={[{"No", "false"}, {"Yes", "true"}]}
         icon="hero-document-text"
-        icon_color="text-amber-400"
+        icon_color="text-accent-amber"
       />
     </div>
     """
@@ -860,11 +866,11 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
         value={@data["name"] || "Debug"}
         placeholder="Debug"
         icon="hero-tag"
-        icon_color="text-violet-400"
+        icon_color="text-accent-violet"
       />
       <div>
-        <.field_label icon="hero-bug-ant" icon_color="text-purple-400">Expression</.field_label>
-        <p class="text-xs text-muted-foreground mb-1.5">
+        <.field_label icon="hero-bug-ant" icon_color="text-accent-purple">Expression</.field_label>
+        <p class="text-muted-caption mb-1.5">
           Elixir expression to inspect. Leave empty to log the input.
         </p>
         <div
@@ -885,7 +891,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
         value={@data["log_level"] || "info"}
         options={[{"Debug", "debug"}, {"Info", "info"}, {"Warning", "warning"}]}
         icon="hero-signal"
-        icon_color="text-cyan-400"
+        icon_color="text-accent-cyan"
       />
       <.prop_field
         label="State Key"
@@ -893,7 +899,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
         value={@data["state_key"] || "debug"}
         placeholder="debug"
         icon="hero-key"
-        icon_color="text-emerald-400"
+        icon_color="text-accent-emerald"
       />
     </div>
     """
@@ -934,7 +940,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
   attr :placeholder, :string, default: ""
   attr :type, :string, default: "text"
   attr :icon, :string, default: nil
-  attr :icon_color, :string, default: "text-blue-400"
+  attr :icon_color, :string, default: "text-accent-blue"
 
   def prop_field(%{type: "textarea"} = assigns) do
     ~H"""
@@ -971,7 +977,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
   attr :value, :string, default: ""
   attr :options, :list, required: true
   attr :icon, :string, default: nil
-  attr :icon_color, :string, default: "text-blue-400"
+  attr :icon_color, :string, default: "text-accent-blue"
 
   def prop_select(assigns) do
     ~H"""

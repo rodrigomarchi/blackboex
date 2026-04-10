@@ -5,6 +5,8 @@ defmodule BlackboexWeb.Components.Editor.Toolbar do
   """
   use BlackboexWeb, :html
 
+  import BlackboexWeb.Components.Badge
+
   attr :api, :map, required: true
   attr :selected_version, :map, default: nil
   attr :generation_status, :string, default: nil
@@ -25,12 +27,9 @@ defmodule BlackboexWeb.Components.Editor.Toolbar do
 
       <h1 class="text-sm font-semibold truncate max-w-[200px]">{@api.name}</h1>
 
-      <span class={[
-        "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold",
-        status_color(@api.status)
-      ]}>
+      <.badge size="xs" variant="status" class={status_color(@api.status)}>
         {@api.status}
-      </span>
+      </.badge>
 
       <span
         :if={@selected_version}
@@ -62,7 +61,7 @@ defmodule BlackboexWeb.Components.Editor.Toolbar do
         class="h-auto inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-accent"
         title="Command Palette (⌘K)"
       >
-        <.icon name="hero-command-line" class="size-3.5 text-violet-400" />
+        <.icon name="hero-command-line" class="size-3.5 text-accent-violet" />
         <kbd class="hidden md:inline text-[10px] font-mono">⌘K</kbd>
       </.button>
     </header>

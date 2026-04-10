@@ -31,7 +31,10 @@ defmodule BlackboexWeb.Components.Editor.Chat.ChatMessage do
           <.icon
             name={if(@event.role == "user", do: "hero-user", else: "hero-sparkles")}
             class={
-              if(@event.role == "user", do: "size-3 text-blue-400", else: "size-3 text-violet-400")
+              if(@event.role == "user",
+                do: "size-3 text-accent-blue",
+                else: "size-3 text-accent-violet"
+              )
             }
           />
           <span class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">

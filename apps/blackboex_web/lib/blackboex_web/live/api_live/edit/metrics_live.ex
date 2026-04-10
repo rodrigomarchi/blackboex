@@ -58,25 +58,25 @@ defmodule BlackboexWeb.ApiLive.Edit.MetricsLive do
         <div class="grid grid-cols-4 gap-4">
           <div class="rounded-lg border p-4">
             <p class="flex items-center justify-center gap-1 text-xs text-muted-foreground">
-              <.icon name="hero-signal-mini" class="size-3.5 text-sky-400" /> Invocations
+              <.icon name="hero-signal-mini" class="size-3.5 text-accent-sky" /> Invocations
             </p>
             <p class="text-2xl font-bold">{@total_invocations}</p>
           </div>
           <div class="rounded-lg border p-4">
             <p class="flex items-center justify-center gap-1 text-xs text-muted-foreground">
-              <.icon name="hero-exclamation-circle-mini" class="size-3.5 text-red-400" /> Errors
+              <.icon name="hero-exclamation-circle-mini" class="size-3.5 text-accent-red" /> Errors
             </p>
             <p class="text-2xl font-bold">{@total_errors}</p>
           </div>
           <div class="rounded-lg border p-4">
             <p class="flex items-center justify-center gap-1 text-xs text-muted-foreground">
-              <.icon name="hero-chart-bar-mini" class="size-3.5 text-amber-400" /> Error Rate
+              <.icon name="hero-chart-bar-mini" class="size-3.5 text-accent-amber" /> Error Rate
             </p>
             <p class="text-2xl font-bold">{@error_rate}%</p>
           </div>
           <div class="rounded-lg border p-4">
             <p class="flex items-center justify-center gap-1 text-xs text-muted-foreground">
-              <.icon name="hero-clock-mini" class="size-3.5 text-amber-400" /> Avg Latency
+              <.icon name="hero-clock-mini" class="size-3.5 text-accent-amber" /> Avg Latency
             </p>
             <p class="text-2xl font-bold">{@avg_latency}ms</p>
           </div>
@@ -84,7 +84,7 @@ defmodule BlackboexWeb.ApiLive.Edit.MetricsLive do
 
         <%= if @invocation_data == [] do %>
           <div class="rounded-lg border border-dashed p-8 text-center">
-            <.icon name="hero-chart-bar" class="size-10 mx-auto text-sky-400 mb-3" />
+            <.icon name="hero-chart-bar" class="size-10 mx-auto text-accent-sky mb-3" />
             <p class="text-sm font-medium">No metrics data yet</p>
             <p class="text-xs text-muted-foreground mt-1">
               Publish and call your API to see stats. Data is aggregated hourly.

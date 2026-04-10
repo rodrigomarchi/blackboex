@@ -26,13 +26,13 @@ defmodule BlackboexWeb.Components.FlowEditor.FlowHeader do
           {@flow.name}
         </.section_heading>
         <%= if @flow.status == "active" do %>
-          <span class="inline-flex items-center gap-1.5 rounded-full bg-green-500/15 px-2.5 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">
-            <span class="size-1.5 rounded-full bg-green-500 animate-pulse" /> active
+          <span class="inline-flex items-center gap-1.5 rounded-full bg-status-completed/15 px-2.5 py-0.5 text-xs font-medium text-status-completed-foreground">
+            <span class="size-1.5 rounded-full bg-status-completed animate-pulse" /> active
           </span>
           <.button
             variant="ghost"
             phx-click="deactivate_flow"
-            class="h-auto inline-flex items-center gap-1 rounded-full bg-muted/50 px-2.5 py-1 text-xs text-muted-foreground hover:bg-orange-500/15 hover:text-orange-500 transition-colors"
+            class="h-auto inline-flex items-center gap-1 rounded-full bg-muted/50 px-2.5 py-1 text-xs text-muted-foreground hover:bg-accent-orange/15 hover:text-accent-orange transition-colors"
           >
             <.icon name="hero-pause-circle-mini" class="size-3.5" /> Pause
           </.button>
@@ -43,7 +43,7 @@ defmodule BlackboexWeb.Components.FlowEditor.FlowHeader do
           <.button
             variant="ghost"
             phx-click="activate_flow"
-            class="h-auto inline-flex items-center gap-1 rounded-full bg-green-500/15 px-2.5 py-1 text-xs text-green-600 dark:text-green-400 hover:bg-green-500/25 transition-colors"
+            class="h-auto inline-flex items-center gap-1 rounded-full bg-status-completed/15 px-2.5 py-1 text-xs text-status-completed-foreground hover:bg-status-completed/25 transition-colors"
           >
             <.icon name="hero-bolt-mini" class="size-3.5" /> Activate
           </.button>
@@ -53,7 +53,7 @@ defmodule BlackboexWeb.Components.FlowEditor.FlowHeader do
       <div class="flex items-center gap-2">
         <%!-- Webhook URL --%>
         <div class="hidden md:flex items-center gap-1 rounded border bg-muted/50 px-2 py-1">
-          <.icon name="hero-link-mini" class="size-3.5 text-emerald-400 shrink-0" />
+          <.icon name="hero-link-mini" class="size-3.5 text-accent-emerald shrink-0" />
           <span class="text-[0.65rem] text-muted-foreground font-mono truncate max-w-[200px]">
             /webhook/{String.slice(@flow.webhook_token, 0..7)}...
           </span>
@@ -63,7 +63,7 @@ defmodule BlackboexWeb.Components.FlowEditor.FlowHeader do
             class="h-auto w-auto p-0.5 text-muted-foreground hover:text-foreground hover:bg-transparent"
             title="Copy webhook URL"
           >
-            <.icon name="hero-clipboard-document" class="size-3.5 text-sky-400" />
+            <.icon name="hero-clipboard-document" class="size-3.5 text-accent-sky" />
           </.button>
           <.button
             variant="ghost"
@@ -72,20 +72,20 @@ defmodule BlackboexWeb.Components.FlowEditor.FlowHeader do
             class="h-auto w-auto p-0.5 text-muted-foreground hover:text-foreground hover:bg-transparent"
             title="Regenerate token"
           >
-            <.icon name="hero-arrow-path" class="size-3.5 text-amber-400" />
+            <.icon name="hero-arrow-path" class="size-3.5 text-accent-amber" />
           </.button>
         </div>
 
-        <span :if={@saved} class="text-xs text-green-600 dark:text-green-400">Saved</span>
+        <span :if={@saved} class="text-xs text-success-foreground">Saved</span>
 
         <.button variant="outline" size="sm" navigate={~p"/flows/#{@flow.id}/executions"}>
-          <.icon name="hero-clock" class="mr-1.5 size-4 text-sky-400" /> History
+          <.icon name="hero-clock" class="mr-1.5 size-4 text-accent-sky" /> History
         </.button>
         <.button variant="outline" size="sm" phx-click="open_run_modal">
-          <.icon name="hero-play" class="mr-1.5 size-4 text-green-400" /> Run
+          <.icon name="hero-play" class="mr-1.5 size-4 text-accent-emerald" /> Run
         </.button>
         <.button variant="outline" size="sm" phx-click="request_json_preview">
-          <.icon name="hero-code-bracket" class="mr-1.5 size-4 text-violet-400" /> JSON
+          <.icon name="hero-code-bracket" class="mr-1.5 size-4 text-accent-violet" /> JSON
         </.button>
         <.button
           variant="primary"
@@ -96,7 +96,7 @@ defmodule BlackboexWeb.Components.FlowEditor.FlowHeader do
           <%= if @saving do %>
             <.icon name="hero-arrow-path" class="mr-1.5 size-4 animate-spin" /> Saving...
           <% else %>
-            <.icon name="hero-arrow-down-tray" class="mr-1.5 size-4 text-emerald-300" /> Save
+            <.icon name="hero-arrow-down-tray" class="mr-1.5 size-4 text-accent-emerald" /> Save
           <% end %>
         </.button>
       </div>

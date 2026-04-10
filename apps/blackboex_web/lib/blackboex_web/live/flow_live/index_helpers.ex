@@ -33,10 +33,10 @@ defmodule BlackboexWeb.FlowLive.IndexHelpers do
   def flow_status_classes("draft"), do: "bg-muted text-muted-foreground"
 
   def flow_status_classes("active"),
-    do: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+    do: "bg-status-active/15 text-status-active-foreground"
 
   def flow_status_classes("archived"),
-    do: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200"
+    do: "bg-status-archived/15 text-status-archived-foreground"
 
   def flow_status_classes(_), do: "bg-muted text-muted-foreground"
 

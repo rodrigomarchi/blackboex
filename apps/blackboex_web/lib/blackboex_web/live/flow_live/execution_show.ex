@@ -5,7 +5,9 @@ defmodule BlackboexWeb.FlowLive.ExecutionShow do
 
   use BlackboexWeb, :live_view
 
+  import BlackboexWeb.Components.Badge
   import BlackboexWeb.Components.Card
+  import BlackboexWeb.Components.StatusHelpers
   import BlackboexWeb.Components.UI.SectionHeading
 
   alias Blackboex.FlowExecutions
@@ -69,24 +71,24 @@ defmodule BlackboexWeb.FlowLive.ExecutionShow do
       <div class="flex-1 overflow-y-auto p-6 space-y-5">
         <%!-- Summary bar --%>
         <div class="flex flex-wrap items-center gap-3 text-sm">
-          <div class={"inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium #{status_badge(@execution.status)}"}>
+          <.badge variant="status" class={"gap-1.5 #{status_badge(@execution.status)}"}>
             <.icon name={status_icon(@execution.status)} class="size-3.5" />
             {@execution.status}
-          </div>
+          </.badge>
           <div class="flex items-center gap-1.5 rounded-lg border bg-card px-3 py-1.5 text-muted-foreground">
             <.icon name="hero-clock-mini" class="size-3.5" />
             <span class="text-xs font-mono">{format_duration(@execution.duration_ms)}</span>
           </div>
           <div class="flex items-center gap-1.5 rounded-lg border bg-card px-3 py-1.5 text-muted-foreground">
-            <.icon name="hero-play-mini" class="size-3.5 text-green-500" />
+            <.icon name="hero-play-mini" class="size-3.5 text-accent-emerald" />
             <span class="text-xs">{format_time(@execution.inserted_at)}</span>
           </div>
           <div class="flex items-center gap-1.5 rounded-lg border bg-card px-3 py-1.5 text-muted-foreground">
-            <.icon name="hero-stop-mini" class="size-3.5 text-red-400" />
+            <.icon name="hero-stop-mini" class="size-3.5 text-accent-red" />
             <span class="text-xs">{format_time(@execution.finished_at)}</span>
           </div>
           <div class="flex items-center gap-1.5 rounded-lg border bg-card px-3 py-1.5 text-muted-foreground">
-            <.icon name="hero-squares-2x2-mini" class="size-3.5 text-blue-400" />
+            <.icon name="hero-squares-2x2-mini" class="size-3.5 text-accent-blue" />
             <span class="text-xs">{length(@node_executions)} nodes</span>
           </div>
         </div>
@@ -116,17 +118,17 @@ defmodule BlackboexWeb.FlowLive.ExecutionShow do
         <%!-- Halted banner --%>
         <div
           :if={@execution.status == "halted" && @execution.wait_event_type}
-          class="flex items-start gap-2 rounded-lg border border-amber-300/50 dark:border-amber-700/50 bg-amber-50 dark:bg-amber-950/20 px-3 py-2.5"
+          class="flex items-start gap-2 rounded-lg border border-warning/50 bg-warning/10 px-3 py-2.5"
         >
           <.icon
             name="hero-pause-circle-mini"
-            class="size-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5"
+            class="size-4 text-warning-foreground shrink-0 mt-0.5"
           />
           <div class="text-xs space-y-1">
-            <div class="font-medium text-amber-800 dark:text-amber-200">
+            <div class="font-medium text-warning-foreground">
               Waiting for: <span class="font-mono">{@execution.wait_event_type}</span>
             </div>
-            <code class="text-[11px] font-mono text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/40 px-1.5 py-0.5 rounded">
+            <code class="text-[11px] font-mono text-warning-foreground bg-warning/20 px-1.5 py-0.5 rounded">
               POST /webhook/{@flow.webhook_token}/resume/{@execution.wait_event_type}
             </code>
           </div>
@@ -137,7 +139,8 @@ defmodule BlackboexWeb.FlowLive.ExecutionShow do
           <.card>
             <.card_header class="py-2.5 px-4">
               <.card_title class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                <.icon name="hero-arrow-down-on-square-mini" class="size-3.5 text-blue-400" /> Input
+                <.icon name="hero-arrow-down-on-square-mini" class="size-3.5 text-accent-blue" />
+                Input
               </.card_title>
             </.card_header>
             <.card_content class="pt-0 px-4 pb-3">
@@ -156,7 +159,8 @@ defmodule BlackboexWeb.FlowLive.ExecutionShow do
           <.card>
             <.card_header class="py-2.5 px-4">
               <.card_title class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                <.icon name="hero-arrow-up-on-square-mini" class="size-3.5 text-green-400" /> Output
+                <.icon name="hero-arrow-up-on-square-mini" class="size-3.5 text-accent-emerald" />
+                Output
               </.card_title>
             </.card_header>
             <.card_content class="pt-0 px-4 pb-3">
@@ -178,7 +182,7 @@ defmodule BlackboexWeb.FlowLive.ExecutionShow do
         <.card>
           <.card_header class="py-3 px-4">
             <.card_title class="flex items-center gap-2 text-sm">
-              <.icon name="hero-queue-list" class="size-4 text-violet-400" /> Node Timeline
+              <.icon name="hero-queue-list" class="size-4 text-accent-violet" /> Node Timeline
             </.card_title>
           </.card_header>
           <.card_content class="p-0">
@@ -275,11 +279,11 @@ defmodule BlackboexWeb.FlowLive.ExecutionShow do
   defp node_icon(type),
     do: Map.get(@node_type_meta, type, %{icon: "hero-cube", color: "#6b7280", label: type})
 
-  defp status_badge("completed"), do: "bg-green-500/15 text-green-700 dark:text-green-400"
-  defp status_badge("failed"), do: "bg-red-500/15 text-red-700 dark:text-red-400"
-  defp status_badge("running"), do: "bg-blue-500/15 text-blue-700 dark:text-blue-400"
-  defp status_badge("halted"), do: "bg-amber-500/15 text-amber-700 dark:text-amber-400"
-  defp status_badge(_), do: "bg-muted text-muted-foreground"
+  defp status_badge("completed"), do: execution_status_classes("completed")
+  defp status_badge("failed"), do: execution_status_classes("failed")
+  defp status_badge("running"), do: execution_status_classes("running")
+  defp status_badge("halted"), do: execution_status_classes("halted")
+  defp status_badge(_), do: execution_status_classes("pending")
 
   defp status_icon("completed"), do: "hero-check-circle-mini"
   defp status_icon("failed"), do: "hero-x-circle-mini"
@@ -287,16 +291,16 @@ defmodule BlackboexWeb.FlowLive.ExecutionShow do
   defp status_icon("halted"), do: "hero-pause-circle-mini"
   defp status_icon(_), do: "hero-question-mark-circle-mini"
 
-  defp status_dot("completed"), do: "bg-green-500"
-  defp status_dot("failed"), do: "bg-red-500"
-  defp status_dot("running"), do: "bg-blue-500 animate-pulse"
-  defp status_dot("halted"), do: "bg-amber-500"
-  defp status_dot(_), do: "bg-gray-400"
+  defp status_dot("completed"), do: execution_status_dot("completed")
+  defp status_dot("failed"), do: execution_status_dot("failed")
+  defp status_dot("running"), do: execution_status_dot("running")
+  defp status_dot("halted"), do: execution_status_dot("halted")
+  defp status_dot(_), do: execution_status_dot("pending")
 
-  defp status_text("completed"), do: "text-green-700 dark:text-green-400"
-  defp status_text("failed"), do: "text-red-700 dark:text-red-400"
-  defp status_text("running"), do: "text-blue-700 dark:text-blue-400"
-  defp status_text("halted"), do: "text-amber-700 dark:text-amber-400"
+  defp status_text("completed"), do: "text-status-completed-foreground"
+  defp status_text("failed"), do: "text-status-failed-foreground"
+  defp status_text("running"), do: "text-status-running-foreground"
+  defp status_text("halted"), do: "text-status-halted-foreground"
   defp status_text(_), do: "text-muted-foreground"
 
   defp short_id(id) when is_binary(id), do: String.slice(id, 0, 8)

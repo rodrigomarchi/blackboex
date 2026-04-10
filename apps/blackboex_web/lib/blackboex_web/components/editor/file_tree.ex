@@ -49,7 +49,7 @@ defmodule BlackboexWeb.Components.Editor.FileTree do
         class="flex items-center gap-1 px-2 py-0.5 text-muted-foreground cursor-default select-none"
         style={"padding-left: #{@depth * 12 + 8}px"}
       >
-        <span class="hero-folder-open size-3.5 shrink-0 text-amber-500/80"></span>
+        <span class="hero-folder-open size-3.5 shrink-0 text-accent-amber/80"></span>
         <span class="truncate">{@node.name}</span>
       </div>
       <div role="group">
@@ -148,11 +148,11 @@ defmodule BlackboexWeb.Components.Editor.FileTree do
 
   defp file_icon_class(name) do
     cond do
-      String.ends_with?(name, ".md") -> "hero-document-text text-blue-500/80"
+      String.ends_with?(name, ".md") -> "hero-document-text text-accent-blue/80"
       String.ends_with?(name, "_test.ex") -> "hero-beaker text-green-500/80"
-      String.ends_with?(name, ".ex") -> "hero-code-bracket text-purple-500/80"
-      String.ends_with?(name, ".json") -> "hero-document-text text-amber-500/80"
-      String.ends_with?(name, ".yaml") -> "hero-document-text text-sky-500/80"
+      String.ends_with?(name, ".ex") -> "hero-code-bracket text-accent-purple/80"
+      String.ends_with?(name, ".json") -> "hero-document-text text-accent-amber/80"
+      String.ends_with?(name, ".yaml") -> "hero-document-text text-accent-sky/80"
       true -> "hero-document text-muted-foreground"
     end
   end

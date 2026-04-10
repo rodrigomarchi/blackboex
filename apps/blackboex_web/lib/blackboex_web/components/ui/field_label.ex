@@ -8,14 +8,14 @@ defmodule BlackboexWeb.Components.UI.FieldLabel do
   ## Examples
 
       <.field_label>Name</.field_label>
-      <.field_label icon="hero-code-bracket" icon_color="text-purple-400">Code</.field_label>
+      <.field_label icon="hero-code-bracket" icon_color="text-accent-purple">Code</.field_label>
   """
   use BlackboexWeb.Component
 
   alias BlackboexWeb.Components.Icon
 
   attr :icon, :string, default: nil
-  attr :icon_color, :string, default: "text-blue-400"
+  attr :icon_color, :string, default: "text-accent-blue"
   attr :class, :any, default: nil
   attr :rest, :global, include: ~w(for)
 

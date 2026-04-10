@@ -34,7 +34,7 @@ defmodule BlackboexWeb.Components.Editor.Chat.PipelineStatus do
     ~H"""
     <div class="relative pb-2 pt-1">
       <div class="absolute -left-[9px] top-[7px] size-[13px] rounded-full border-2 bg-background flex items-center justify-center border-muted-foreground/50">
-        <.icon name="hero-chart-bar" class="size-2 text-sky-400" />
+        <.icon name="hero-chart-bar" class="size-2 text-accent-sky" />
       </div>
       <div class="rounded-md border bg-muted/20 px-3 py-2 ml-2 space-y-1.5">
         <%!-- Status row --%>
@@ -49,7 +49,7 @@ defmodule BlackboexWeb.Components.Editor.Chat.PipelineStatus do
         </div>
         <%!-- Timing --%>
         <div class="flex items-center gap-1 text-[10px] text-muted-foreground">
-          <.icon name="hero-clock" class="size-3 text-amber-400" />
+          <.icon name="hero-clock" class="size-3 text-accent-amber" />
           <span>{format_timestamp(@run.started_at)}</span>
           <%= if @run.completed_at do %>
             <span>&rarr;</span>
@@ -62,19 +62,19 @@ defmodule BlackboexWeb.Components.Editor.Chat.PipelineStatus do
         <%!-- Metrics row --%>
         <div class="flex items-center gap-3 text-[10px] text-muted-foreground">
           <span class="flex items-center gap-0.5">
-            <.icon name="hero-arrow-down-tray" class="size-2.5 text-blue-400" />
+            <.icon name="hero-arrow-down-tray" class="size-2.5 text-accent-blue" />
             {format_tokens(@run.input_tokens)} in
           </span>
           <span class="flex items-center gap-0.5">
-            <.icon name="hero-arrow-up-tray" class="size-2.5 text-emerald-400" />
+            <.icon name="hero-arrow-up-tray" class="size-2.5 text-accent-emerald" />
             {format_tokens(@run.output_tokens)} out
           </span>
           <span class="flex items-center gap-0.5">
-            <.icon name="hero-currency-dollar" class="size-2.5 text-amber-400" />
+            <.icon name="hero-currency-dollar" class="size-2.5 text-accent-amber" />
             {format_cost(@run.cost_cents)}
           </span>
           <span class="flex items-center gap-0.5">
-            <.icon name="hero-queue-list" class="size-2.5 text-violet-400" />
+            <.icon name="hero-queue-list" class="size-2.5 text-accent-violet" />
             {to_string(@run.event_count || 0)} steps
           </span>
         </div>
@@ -176,7 +176,7 @@ defmodule BlackboexWeb.Components.Editor.Chat.PipelineStatus do
 
         <%!-- Timestamps --%>
         <div class="flex items-center gap-1 text-[10px] text-muted-foreground">
-          <.icon name="hero-clock" class="size-3 text-amber-400" />
+          <.icon name="hero-clock" class="size-3 text-accent-amber" />
           <span>{format_timestamp(@call[:timestamp])}</span>
           <%= if @result && @result[:timestamp] do %>
             <span>&rarr;</span>

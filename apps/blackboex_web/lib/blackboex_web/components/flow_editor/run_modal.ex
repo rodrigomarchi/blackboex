@@ -21,13 +21,14 @@ defmodule BlackboexWeb.Components.FlowEditor.RunModal do
         phx-click-away="close_run_modal"
       >
         <div class="flex items-center justify-between border-b px-5 py-3">
-          <.section_heading icon="hero-play" icon_class="size-5 text-green-500">
+          <.section_heading icon="hero-play" icon_class="size-5 text-accent-emerald">
             Test Run
           </.section_heading>
           <.button
             variant="ghost"
+            size="icon-sm"
             phx-click="close_run_modal"
-            class="h-auto w-auto rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+            class="text-muted-foreground hover:bg-accent hover:text-foreground"
           >
             <.icon name="hero-x-mark" class="size-5" />
           </.button>
@@ -55,7 +56,7 @@ defmodule BlackboexWeb.Components.FlowEditor.RunModal do
             <%= if @running do %>
               <.icon name="hero-arrow-path" class="mr-1.5 size-4 animate-spin" /> Running...
             <% else %>
-              <.icon name="hero-play" class="mr-1.5 size-4 text-green-400" /> Execute
+              <.icon name="hero-play" class="mr-1.5 size-4 text-accent-emerald" /> Execute
             <% end %>
           </.button>
 
@@ -77,9 +78,9 @@ defmodule BlackboexWeb.Components.FlowEditor.RunModal do
           <% end %>
 
           <%= if @run_result do %>
-            <div class="rounded-lg border border-green-500/50 bg-green-500/5 p-3 space-y-2">
+            <div class="rounded-lg border border-success/50 bg-success/5 p-3 space-y-2">
               <div class="flex items-center justify-between">
-                <p class="text-xs font-medium text-green-600">Success</p>
+                <p class="text-xs font-medium text-success-foreground">Success</p>
                 <span class="text-[0.65rem] text-muted-foreground">
                   {@run_result[:duration_ms]}ms
                 </span>

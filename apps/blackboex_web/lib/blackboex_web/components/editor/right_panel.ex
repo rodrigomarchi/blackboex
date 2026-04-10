@@ -20,8 +20,9 @@ defmodule BlackboexWeb.Components.Editor.RightPanel do
         </.section_heading>
         <.button
           variant="ghost"
+          size="icon-sm"
           phx-click={if @mode == :chat, do: "toggle_chat", else: "toggle_config"}
-          class="h-auto w-auto p-1 text-muted-foreground hover:text-foreground rounded hover:bg-accent"
+          class="text-muted-foreground hover:text-foreground hover:bg-accent"
           title="Close (Esc)"
         >
           <.icon name="hero-x-mark" class="size-3.5" />

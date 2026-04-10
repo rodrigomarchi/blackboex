@@ -6,6 +6,7 @@ defmodule BlackboexWeb.Components.Editor.ResponseViewer do
 
   use BlackboexWeb, :live_component
 
+  import BlackboexWeb.Components.Badge
   import BlackboexWeb.Components.UI.SectionHeading
 
   @impl true
@@ -16,31 +17,28 @@ defmodule BlackboexWeb.Components.Editor.ResponseViewer do
         <.section_heading
           level="h3"
           icon="hero-arrow-down-on-square-mini"
-          icon_class="size-3.5 text-blue-400"
+          icon_class="size-3.5 text-accent-blue"
           class="!text-sm !font-semibold !text-foreground"
         >
           Response
         </.section_heading>
         <%= if @response do %>
           <div class="flex items-center gap-2">
-            <span class={[
-              "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold",
-              status_color(@response.status)
-            ]}>
+            <.badge variant="status" class={status_color(@response.status)}>
               {@response.status}
-            </span>
+            </.badge>
             <span class="text-xs text-muted-foreground">
               {@response.duration_ms}ms
             </span>
             <%= if @violations != [] do %>
-              <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold border-orange-500 bg-orange-50 text-orange-700">
+              <.badge variant="status" class="border-warning bg-warning/10 text-warning-foreground">
                 {length(@violations)} violation(s)
-              </span>
+              </.badge>
             <% else %>
               <%= if @response do %>
-                <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold border-success bg-success/10 text-success-foreground">
+                <.badge variant="status" class="border-success bg-success/10 text-success-foreground">
                   Valid
-                </span>
+                </.badge>
               <% end %>
             <% end %>
           </div>

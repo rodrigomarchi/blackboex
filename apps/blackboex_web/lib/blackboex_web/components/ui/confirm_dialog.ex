@@ -118,14 +118,14 @@ defmodule BlackboexWeb.Components.ConfirmDialog do
   defp variant_icon(:info), do: "hero-information-circle"
 
   @spec variant_icon_bg(variant()) :: String.t()
-  defp variant_icon_bg(:danger), do: "bg-red-500/15"
-  defp variant_icon_bg(:warning), do: "bg-amber-500/15"
-  defp variant_icon_bg(:info), do: "bg-blue-500/15"
+  defp variant_icon_bg(:danger), do: "bg-destructive/15"
+  defp variant_icon_bg(:warning), do: "bg-warning/15"
+  defp variant_icon_bg(:info), do: "bg-info/15"
 
   @spec variant_icon_color(variant()) :: String.t()
-  defp variant_icon_color(:danger), do: "text-red-500"
-  defp variant_icon_color(:warning), do: "text-amber-500"
-  defp variant_icon_color(:info), do: "text-blue-500"
+  defp variant_icon_color(:danger), do: "text-destructive"
+  defp variant_icon_color(:warning), do: "text-warning"
+  defp variant_icon_color(:info), do: "text-info"
 
   @spec variant_button(variant()) :: String.t()
   defp variant_button(:danger), do: "destructive"

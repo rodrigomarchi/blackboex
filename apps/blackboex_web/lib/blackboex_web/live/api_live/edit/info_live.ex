@@ -82,19 +82,19 @@ defmodule BlackboexWeb.ApiLive.Edit.InfoLive do
             </div>
             <div class="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <span class="text-xs text-muted-foreground">Slug</span>
+                <span class="text-muted-caption">Slug</span>
                 <p class="font-mono">{@api.slug}</p>
               </div>
               <div>
-                <span class="text-xs text-muted-foreground">Template</span>
+                <span class="text-muted-caption">Template</span>
                 <p>{@api.template_type}</p>
               </div>
               <div>
-                <span class="text-xs text-muted-foreground">Created</span>
+                <span class="text-muted-caption">Created</span>
                 <p>{Calendar.strftime(@api.inserted_at, "%Y-%m-%d %H:%M")}</p>
               </div>
               <div>
-                <span class="text-xs text-muted-foreground">Last modified</span>
+                <span class="text-muted-caption">Last modified</span>
                 <p>{Calendar.strftime(@api.updated_at, "%Y-%m-%d %H:%M")}</p>
               </div>
             </div>
@@ -109,7 +109,7 @@ defmodule BlackboexWeb.ApiLive.Edit.InfoLive do
           <.section_heading
             level="h3"
             icon="hero-code-bracket"
-            icon_class="size-3.5 text-purple-400"
+            icon_class="size-3.5 text-accent-purple"
             class="mb-3"
             heading_class="text-xs font-semibold text-muted-foreground uppercase"
           >
@@ -119,19 +119,20 @@ defmodule BlackboexWeb.ApiLive.Edit.InfoLive do
             <div class="rounded-lg border p-3 text-center">
               <p class="text-xl font-bold">{@source_lines}</p>
               <p class="flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
-                <.icon name="hero-code-bracket-mini" class="size-3.5 text-purple-400" /> Source Lines
+                <.icon name="hero-code-bracket-mini" class="size-3.5 text-accent-purple" />
+                Source Lines
               </p>
             </div>
             <div class="rounded-lg border p-3 text-center">
               <p class="text-xl font-bold">{@test_lines}</p>
               <p class="flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
-                <.icon name="hero-beaker-mini" class="size-3.5 text-green-400" /> Test Lines
+                <.icon name="hero-beaker-mini" class="size-3.5 text-accent-emerald" /> Test Lines
               </p>
             </div>
             <div class="rounded-lg border p-3 text-center">
               <p class="text-xl font-bold">{length(@versions)}</p>
               <p class="flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
-                <.icon name="hero-clock-mini" class="size-3.5 text-amber-400" /> Versions
+                <.icon name="hero-clock-mini" class="size-3.5 text-accent-amber" /> Versions
               </p>
             </div>
             <div class="rounded-lg border p-3 text-center">
@@ -139,7 +140,7 @@ defmodule BlackboexWeb.ApiLive.Edit.InfoLive do
                 {if @versions != [], do: "v#{hd(@versions).version_number}", else: "-"}
               </p>
               <p class="flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
-                <.icon name="hero-tag-mini" class="size-3.5 text-blue-400" /> Latest
+                <.icon name="hero-tag-mini" class="size-3.5 text-accent-blue" /> Latest
               </p>
             </div>
           </div>
@@ -151,7 +152,7 @@ defmodule BlackboexWeb.ApiLive.Edit.InfoLive do
             <.section_heading
               level="h3"
               icon="hero-document-text"
-              icon_class="size-3.5 text-blue-400"
+              icon_class="size-3.5 text-accent-blue"
               class="mb-3"
               heading_class="text-xs font-semibold text-muted-foreground uppercase"
             >
@@ -217,7 +218,7 @@ defmodule BlackboexWeb.ApiLive.Edit.InfoLive do
           <.section_heading
             level="h3"
             icon="hero-exclamation-triangle"
-            icon_class="size-3.5 text-red-400"
+            icon_class="size-3.5 text-accent-red"
             class="mb-3"
             heading_class="text-xs font-semibold text-muted-foreground uppercase"
           >
@@ -226,7 +227,7 @@ defmodule BlackboexWeb.ApiLive.Edit.InfoLive do
           <div class="rounded-lg border border-destructive/30 p-4 flex items-center justify-between">
             <div>
               <p class="text-sm font-medium">Archive this API</p>
-              <p class="text-xs text-muted-foreground">
+              <p class="text-muted-caption">
                 Removes from active list. Published APIs will be unpublished first.
               </p>
             </div>

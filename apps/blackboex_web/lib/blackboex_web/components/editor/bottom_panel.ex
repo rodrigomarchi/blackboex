@@ -5,6 +5,8 @@ defmodule BlackboexWeb.Components.Editor.BottomPanel do
   """
   use BlackboexWeb, :html
 
+  import BlackboexWeb.Components.Badge
+
   attr :active_tab, :string, default: "test"
   attr :validation_report, :map, default: nil
   slot :inner_block, required: true
@@ -28,26 +30,29 @@ defmodule BlackboexWeb.Components.Editor.BottomPanel do
           ]}
         >
           {bottom_tab_label(tab)}
-          <span
+          <.badge
             :if={tab == "validation" && @validation_report != nil}
-            class={[
-              "ml-1 inline-flex rounded-full px-1.5 text-[10px] font-semibold",
-              if(@validation_report.overall == :pass,
-                do: "bg-success/10 text-success-foreground",
-                else: "bg-destructive/10 text-destructive"
-              )
-            ]}
+            size="xs"
+            variant="status"
+            class={
+              "ml-1 " <>
+                if(@validation_report.overall == :pass,
+                  do: "bg-success/10 text-success-foreground",
+                  else: "bg-destructive/10 text-destructive"
+                )
+            }
           >
             {if @validation_report.overall == :pass, do: "✓", else: "!"}
-          </span>
+          </.badge>
         </.button>
 
         <div class="flex-1" />
 
         <.button
           variant="ghost"
+          size="icon-sm"
           phx-click="toggle_bottom_panel"
-          class="h-auto w-auto p-1 text-muted-foreground hover:text-foreground rounded hover:bg-accent"
+          class="text-muted-foreground hover:text-foreground hover:bg-accent"
           title="Close"
         >
           <.icon name="hero-x-mark" class="size-3.5" />

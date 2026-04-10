@@ -39,12 +39,12 @@ defmodule BlackboexWeb.FlowLive.Components.SchemaBuilder.FieldComponents do
   def type_icon("object"), do: "hero-cube"
   def type_icon(_), do: "hero-question-mark-circle"
 
-  def type_color("string"), do: "text-emerald-500"
-  def type_color("integer"), do: "text-blue-500"
-  def type_color("float"), do: "text-blue-500"
-  def type_color("boolean"), do: "text-amber-500"
-  def type_color("array"), do: "text-purple-500"
-  def type_color("object"), do: "text-indigo-500"
+  def type_color("string"), do: "text-type-string-foreground"
+  def type_color("integer"), do: "text-type-number-foreground"
+  def type_color("float"), do: "text-type-number-foreground"
+  def type_color("boolean"), do: "text-type-boolean-foreground"
+  def type_color("array"), do: "text-type-array-foreground"
+  def type_color("object"), do: "text-type-object-foreground"
   def type_color(_), do: "text-muted-foreground"
 
   @doc false
@@ -121,7 +121,7 @@ defmodule BlackboexWeb.FlowLive.Components.SchemaBuilder.FieldComponents do
           }
           class={"h-auto w-auto rounded p-0.5 text-[10px] font-bold transition-colors hover:bg-transparent " <>
             if(@field["required"] == true,
-              do: "text-red-400 hover:text-red-300",
+              do: "text-accent-red hover:text-accent-red/80",
               else: "text-muted-foreground/30 hover:text-muted-foreground"
             )}
         >

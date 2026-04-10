@@ -103,6 +103,91 @@ defmodule BlackboexWeb.Components.StatusHelpers do
   def api_key_status_classes("Revoked"), do: "bg-destructive/10 text-destructive"
   def api_key_status_classes(_), do: "bg-muted text-muted-foreground"
 
+  # ── Schema field type colors ───────────────────────────────────────────
+
+  @doc """
+  Returns CSS class for schema field type indicators.
+
+  ## Examples
+
+      field_type_classes("string")  #=> "text-type-string-foreground"
+      field_type_classes("integer") #=> "text-type-number-foreground"
+  """
+  @spec field_type_classes(String.t()) :: String.t()
+  def field_type_classes("string"), do: "text-type-string-foreground"
+  def field_type_classes("integer"), do: "text-type-number-foreground"
+  def field_type_classes("number"), do: "text-type-number-foreground"
+  def field_type_classes("float"), do: "text-type-number-foreground"
+  def field_type_classes("boolean"), do: "text-type-boolean-foreground"
+  def field_type_classes("array"), do: "text-type-array-foreground"
+  def field_type_classes("object"), do: "text-type-object-foreground"
+  def field_type_classes(_), do: "text-muted-foreground"
+
+  # ── Execution status ───────────────────────────────────────────────────
+
+  @doc """
+  Returns CSS classes for flow execution status badges.
+
+  ## Examples
+
+      execution_status_classes("completed") #=> "bg-status-completed/15 text-status-completed-foreground"
+  """
+  @spec execution_status_classes(String.t()) :: String.t()
+  def execution_status_classes("completed"),
+    do: "bg-status-completed/15 text-status-completed-foreground"
+
+  def execution_status_classes("success"),
+    do: "bg-status-completed/15 text-status-completed-foreground"
+
+  def execution_status_classes("running"),
+    do: "bg-status-running/15 text-status-running-foreground"
+
+  def execution_status_classes("failed"),
+    do: "bg-status-failed/15 text-status-failed-foreground"
+
+  def execution_status_classes("error"),
+    do: "bg-status-failed/15 text-status-failed-foreground"
+
+  def execution_status_classes("pending"),
+    do: "bg-status-pending/15 text-status-pending-foreground"
+
+  def execution_status_classes("cancelled"),
+    do: "bg-status-cancelled/15 text-status-cancelled-foreground"
+
+  def execution_status_classes("halted"),
+    do: "bg-status-halted/15 text-status-halted-foreground"
+
+  def execution_status_classes("skipped"),
+    do: "bg-status-skipped/15 text-status-skipped-foreground"
+
+  def execution_status_classes("compensated"),
+    do: "bg-warning/15 text-warning-foreground"
+
+  def execution_status_classes(_), do: "bg-muted text-muted-foreground"
+
+  @doc """
+  Returns CSS class for execution status dot (solid background circle).
+
+  ## Examples
+
+      execution_status_dot("completed") #=> "bg-status-completed"
+      execution_status_dot("running")   #=> "bg-status-running animate-pulse"
+  """
+  @spec execution_status_dot(String.t()) :: String.t()
+  def execution_status_dot("completed"), do: "bg-status-completed"
+  def execution_status_dot("success"), do: "bg-status-completed"
+  def execution_status_dot("running"), do: "bg-status-running animate-pulse"
+  def execution_status_dot("failed"), do: "bg-status-failed"
+  def execution_status_dot("error"), do: "bg-status-failed"
+  def execution_status_dot("pending"), do: "bg-status-pending"
+  def execution_status_dot("cancelled"), do: "bg-status-cancelled"
+  def execution_status_dot("halted"), do: "bg-status-halted"
+  def execution_status_dot("skipped"), do: "bg-status-skipped"
+  def execution_status_dot("compensated"), do: "bg-warning"
+  def execution_status_dot(_), do: "bg-muted-foreground"
+
+  # ── Charts ─────────────────────────────────────────────────────────────
+
   @doc """
   Returns CSS custom property reference for SVG chart elements.
   Responds to theme changes automatically.

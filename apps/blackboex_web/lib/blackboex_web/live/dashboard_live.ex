@@ -8,7 +8,7 @@ defmodule BlackboexWeb.DashboardLive do
   import BlackboexWeb.Components.Shared.EmptyState
   import BlackboexWeb.Components.Shared.DashboardNav
   import BlackboexWeb.Components.Shared.DashboardHelpers
-  import BlackboexWeb.Components.Card
+  import BlackboexWeb.Components.Shared.DashboardSection
 
   alias Blackboex.Apis.DashboardQueries
   alias Blackboex.Audit
@@ -37,7 +37,7 @@ defmodule BlackboexWeb.DashboardLive do
     <div class="space-y-6">
       <.header>
         <span class="flex items-center gap-2">
-          <.icon name="hero-home" class="size-5 text-sky-400" /> Dashboard
+          <.icon name="hero-home" class="size-5 text-accent-sky" /> Dashboard
         </span>
         <:subtitle>Overview of your workspace</:subtitle>
         <:actions>
@@ -50,11 +50,11 @@ defmodule BlackboexWeb.DashboardLive do
           title="Welcome to BlackBoex"
           description="Transform natural language into production-ready Elixir APIs. Create your first API to get started."
           icon="hero-rocket-launch"
-          icon_class="text-violet-400"
+          icon_class="text-accent-violet"
         >
           <:actions>
             <.button navigate={~p"/apis/new"} variant="primary">
-              <.icon name="hero-plus" class="mr-1.5 size-3.5 text-emerald-300" />
+              <.icon name="hero-plus" class="mr-1.5 size-3.5 text-accent-emerald" />
               Create your first API
             </.button>
           </:actions>
@@ -66,80 +66,79 @@ defmodule BlackboexWeb.DashboardLive do
             label="Total APIs"
             value={format_number(@summary.total_apis)}
             icon="hero-cube-mini"
-            icon_class="text-blue-400"
+            icon_class="text-accent-blue"
           />
           <.stat_card
             label="Total Flows"
             value={format_number(@summary.total_flows)}
             icon="hero-arrow-path-mini"
-            icon_class="text-violet-400"
+            icon_class="text-accent-violet"
           />
           <.stat_card
             label="API Keys"
             value={format_number(@summary.total_api_keys)}
             icon="hero-key-mini"
-            icon_class="text-amber-400"
+            icon_class="text-accent-amber"
           />
           <.stat_card
             label="Active APIs"
             value={format_number(@summary.active_apis)}
             icon="hero-signal-mini"
-            icon_class="text-emerald-400"
+            icon_class="text-accent-emerald"
           />
           <.stat_card
             label="Active Flows"
             value={format_number(@summary.active_flows)}
             icon="hero-play-mini"
-            icon_class="text-sky-400"
+            icon_class="text-accent-sky"
           />
           <.stat_card
             label="Executions Today"
             value={format_number(@summary.total_executions_today)}
             icon="hero-bolt-mini"
-            icon_class="text-orange-400"
+            icon_class="text-accent-orange"
           />
           <.stat_card
             label="Conversations"
             value={format_number(@summary.total_conversations)}
             icon="hero-chat-bubble-left-right-mini"
-            icon_class="text-indigo-400"
+            icon_class="text-accent-purple"
           />
           <.stat_card
             label="Errors Today"
             value={format_number(@summary.errors_today)}
             icon="hero-exclamation-circle-mini"
-            icon_class="text-red-400"
+            icon_class="text-accent-red"
           />
           <.stat_card
             label="LLM Cost (month)"
             value={format_cost(@summary.llm_cost_month_cents)}
             icon="hero-currency-dollar-mini"
-            icon_class="text-emerald-400"
+            icon_class="text-accent-emerald"
           />
         </div>
 
         <%!-- Recent Activity --%>
-        <.card>
-          <.card_content class="p-4">
-            <p class="flex items-center gap-1.5 text-sm font-medium text-muted-foreground mb-3">
-              <.icon name="hero-clock-mini" class="size-3.5 text-amber-400" /> Recent Activity
-            </p>
-            <div :if={@recent_activity == []} class="py-4 text-center text-sm text-muted-foreground">
-              No recent activity
+        <.dashboard_section
+          icon="hero-clock-mini"
+          icon_class="text-accent-amber"
+          title="Recent Activity"
+        >
+          <div :if={@recent_activity == []} class="py-4 text-center text-sm text-muted-foreground">
+            No recent activity
+          </div>
+          <div :if={@recent_activity != []} class="divide-y">
+            <div
+              :for={activity <- @recent_activity}
+              class="flex items-center justify-between py-2"
+            >
+              <span class="text-sm">{format_action(activity.action)}</span>
+              <span class="text-xs text-muted-foreground">
+                {relative_time(activity.timestamp)}
+              </span>
             </div>
-            <div :if={@recent_activity != []} class="divide-y">
-              <div
-                :for={activity <- @recent_activity}
-                class="flex items-center justify-between py-2"
-              >
-                <span class="text-sm">{format_action(activity.action)}</span>
-                <span class="text-xs text-muted-foreground">
-                  {relative_time(activity.timestamp)}
-                </span>
-              </div>
-            </div>
-          </.card_content>
-        </.card>
+          </div>
+        </.dashboard_section>
       <% end %>
     </div>
     """

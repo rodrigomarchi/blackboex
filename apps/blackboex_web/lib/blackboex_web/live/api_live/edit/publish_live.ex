@@ -31,13 +31,13 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLive do
         <.status_header api={@api} org={@org} published_version={@published_version} />
 
         <%= if @api.status == "draft" do %>
-          <p class="text-sm text-muted-foreground">
+          <p class="text-muted-description">
             Save the API to compile it. Once compiled, you can publish.
           </p>
         <% end %>
 
         <%= if @api.status == "compiled" do %>
-          <p class="text-sm text-muted-foreground">
+          <p class="text-muted-description">
             Ready to publish. A default API key will be created automatically.
           </p>
         <% end %>

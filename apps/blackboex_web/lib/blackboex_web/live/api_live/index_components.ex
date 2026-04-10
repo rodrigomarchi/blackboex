@@ -30,8 +30,8 @@ defmodule BlackboexWeb.ApiLive.IndexComponents do
     <.table id="apis" rows={@api_rows}>
       <:col :let={row} label="API">
         <div class="flex items-center gap-3">
-          <div class="flex size-8 items-center justify-center rounded-lg bg-blue-500/15">
-            <.icon name="hero-cube" class="size-4 text-blue-400" />
+          <div class="flex size-8 items-center justify-center rounded-lg bg-accent-blue/15">
+            <.icon name="hero-cube" class="size-4 text-accent-blue" />
           </div>
           <div class="min-w-0">
             <.link
@@ -57,13 +57,13 @@ defmodule BlackboexWeb.ApiLive.IndexComponents do
       </:col>
       <:col :let={row} label="Calls">
         <div class="flex items-center gap-1.5">
-          <.icon name="hero-signal-mini" class="size-3.5 text-sky-400" />
+          <.icon name="hero-signal-mini" class="size-3.5 text-accent-sky" />
           <span class="text-xs font-mono">{row.calls_24h}</span>
         </div>
       </:col>
       <:col :let={row} label="Avg Latency">
         <div class="flex items-center gap-1.5">
-          <.icon name="hero-clock-mini" class="size-3.5 text-amber-400" />
+          <.icon name="hero-clock-mini" class="size-3.5 text-accent-amber" />
           <span class="text-xs font-mono">{format_latency(row.avg_latency)}</span>
         </div>
       </:col>
@@ -71,16 +71,16 @@ defmodule BlackboexWeb.ApiLive.IndexComponents do
         <div class="flex items-center gap-1.5">
           <.icon
             name="hero-exclamation-circle-mini"
-            class={"size-3.5 #{if row.errors_24h > 0, do: "text-red-400", else: "text-muted-foreground/50"}"}
+            class={"size-3.5 #{if row.errors_24h > 0, do: "text-destructive", else: "text-muted-foreground/50"}"}
           />
-          <span class={"text-xs font-mono #{if row.errors_24h > 0, do: "text-red-400", else: ""}"}>
+          <span class={"text-xs font-mono #{if row.errors_24h > 0, do: "text-destructive", else: ""}"}>
             {row.errors_24h}
           </span>
         </div>
       </:col>
       <:col :let={row} label="Endpoint">
         <%= if row.api.status == "published" do %>
-          <code class="rounded bg-muted px-1.5 py-0.5 text-[11px] font-mono text-emerald-500">
+          <code class="rounded bg-muted px-1.5 py-0.5 text-[11px] font-mono text-accent-emerald">
             POST /{@org_slug}/{row.api.slug}
           </code>
         <% else %>

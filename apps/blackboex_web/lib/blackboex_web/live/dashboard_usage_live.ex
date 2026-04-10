@@ -8,6 +8,7 @@ defmodule BlackboexWeb.DashboardUsageLive do
   import BlackboexWeb.Components.Shared.StatCard
   import BlackboexWeb.Components.Shared.DashboardNav
   import BlackboexWeb.Components.Shared.DashboardHelpers
+  import BlackboexWeb.Components.Shared.DashboardSection
   import BlackboexWeb.Components.Shared.ProgressBar
   import BlackboexWeb.Components.Card
 
@@ -56,7 +57,7 @@ defmodule BlackboexWeb.DashboardUsageLive do
     <div class="space-y-6">
       <.header>
         <span class="flex items-center gap-2">
-          <.icon name="hero-chart-bar" class="size-5 text-emerald-400" /> Usage
+          <.icon name="hero-chart-bar" class="size-5 text-accent-emerald" /> Usage
         </span>
         <:subtitle>Resource consumption and billing metrics</:subtitle>
         <:actions>
@@ -83,25 +84,25 @@ defmodule BlackboexWeb.DashboardUsageLive do
           label={"API Invocations (#{period_label(@period)})"}
           value={format_number(@metrics.api_invocations_total)}
           icon="hero-signal-mini"
-          icon_class="text-sky-400"
+          icon_class="text-accent-sky"
         />
         <.stat_card
           label={"LLM Generations (#{period_label(@period)})"}
           value={format_number(@metrics.llm_generations_total)}
           icon="hero-sparkles-mini"
-          icon_class="text-violet-400"
+          icon_class="text-accent-violet"
         />
         <.stat_card
           label={"Total Tokens (#{period_label(@period)})"}
           value={format_tokens(@metrics.tokens_in_total + @metrics.tokens_out_total)}
           icon="hero-calculator-mini"
-          icon_class="text-blue-400"
+          icon_class="text-accent-blue"
         />
         <.stat_card
           label={"LLM Cost (#{period_label(@period)})"}
           value={"$#{Float.round(@metrics.cost_total_cents / 100, 2)}"}
           icon="hero-currency-dollar-mini"
-          icon_class="text-amber-400"
+          icon_class="text-accent-amber"
         />
       </div>
 
@@ -109,7 +110,7 @@ defmodule BlackboexWeb.DashboardUsageLive do
       <.card :if={@usage}>
         <.card_content class="p-4">
           <p class="flex items-center gap-1.5 text-sm font-medium text-muted-foreground mb-4">
-            <.icon name="hero-shield-check-mini" class="size-3.5 text-emerald-400" /> Plan Limits
+            <.icon name="hero-shield-check-mini" class="size-3.5 text-accent-emerald" /> Plan Limits
           </p>
           <div class="space-y-3">
             <.progress_bar
@@ -124,51 +125,46 @@ defmodule BlackboexWeb.DashboardUsageLive do
 
       <%!-- Charts --%>
       <div class="grid gap-4 lg:grid-cols-2">
-        <.card>
-          <.card_content class="p-4">
-            <p class="flex items-center gap-1.5 text-sm font-medium text-muted-foreground mb-3">
-              <.icon name="hero-signal-mini" class="size-3.5 text-sky-400" /> API Invocations
-            </p>
-            <.bar_chart data={@metrics.api_invocations_series} />
-          </.card_content>
-        </.card>
-        <.card>
-          <.card_content class="p-4">
-            <p class="flex items-center gap-1.5 text-sm font-medium text-muted-foreground mb-3">
-              <.icon name="hero-sparkles-mini" class="size-3.5 text-violet-400" /> LLM Generations
-            </p>
-            <.bar_chart data={@metrics.generations_series} color="var(--color-chart-4)" />
-          </.card_content>
-        </.card>
+        <.dashboard_section
+          icon="hero-signal-mini"
+          icon_class="text-accent-sky"
+          title="API Invocations"
+        >
+          <.bar_chart data={@metrics.api_invocations_series} />
+        </.dashboard_section>
+        <.dashboard_section
+          icon="hero-sparkles-mini"
+          icon_class="text-accent-violet"
+          title="LLM Generations"
+        >
+          <.bar_chart data={@metrics.generations_series} color="var(--color-chart-4)" />
+        </.dashboard_section>
       </div>
 
       <div class="grid gap-4 lg:grid-cols-2">
-        <.card>
-          <.card_content class="p-4">
-            <p class="flex items-center gap-1.5 text-sm font-medium text-muted-foreground mb-3">
-              <.icon name="hero-arrow-down-tray-mini" class="size-3.5 text-blue-400" /> Tokens In
-            </p>
-            <.line_chart data={@metrics.tokens_in_series} />
-          </.card_content>
-        </.card>
-        <.card>
-          <.card_content class="p-4">
-            <p class="flex items-center gap-1.5 text-sm font-medium text-muted-foreground mb-3">
-              <.icon name="hero-arrow-up-tray-mini" class="size-3.5 text-emerald-400" /> Tokens Out
-            </p>
-            <.line_chart data={@metrics.tokens_out_series} color="var(--color-chart-3)" />
-          </.card_content>
-        </.card>
+        <.dashboard_section
+          icon="hero-arrow-down-tray-mini"
+          icon_class="text-accent-blue"
+          title="Tokens In"
+        >
+          <.line_chart data={@metrics.tokens_in_series} />
+        </.dashboard_section>
+        <.dashboard_section
+          icon="hero-arrow-up-tray-mini"
+          icon_class="text-accent-emerald"
+          title="Tokens Out"
+        >
+          <.line_chart data={@metrics.tokens_out_series} color="var(--color-chart-3)" />
+        </.dashboard_section>
       </div>
 
-      <.card>
-        <.card_content class="p-4">
-          <p class="flex items-center gap-1.5 text-sm font-medium text-muted-foreground mb-3">
-            <.icon name="hero-currency-dollar-mini" class="size-3.5 text-amber-400" /> LLM Cost ($)
-          </p>
-          <.line_chart data={@metrics.cost_series} color="var(--color-chart-5)" />
-        </.card_content>
-      </.card>
+      <.dashboard_section
+        icon="hero-currency-dollar-mini"
+        icon_class="text-accent-amber"
+        title="LLM Cost ($)"
+      >
+        <.line_chart data={@metrics.cost_series} color="var(--color-chart-5)" />
+      </.dashboard_section>
     </div>
     """
   end

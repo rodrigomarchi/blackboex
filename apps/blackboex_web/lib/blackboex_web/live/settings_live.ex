@@ -74,7 +74,7 @@ defmodule BlackboexWeb.SettingsLive do
       <.card_content class="pt-6">
         <.section_heading
           icon="hero-user-circle"
-          icon_class="size-4 text-blue-400"
+          icon_class="size-4 text-accent-blue"
           heading_class="text-lg font-semibold gap-2"
         >
           Profile
@@ -103,7 +103,7 @@ defmodule BlackboexWeb.SettingsLive do
 
         <div class="mt-4">
           <.button navigate={~p"/users/settings"} variant="default" size="sm">
-            <.icon name="hero-pencil-square" class="mr-1.5 size-3.5 text-blue-400" />
+            <.icon name="hero-pencil-square" class="mr-1.5 size-3.5 text-accent-blue" />
             Edit Email & Password
           </.button>
         </div>
@@ -118,7 +118,7 @@ defmodule BlackboexWeb.SettingsLive do
       <.card_content class="pt-6">
         <.section_heading
           icon="hero-building-office-2"
-          icon_class="size-4 text-violet-400"
+          icon_class="size-4 text-accent-violet"
           heading_class="text-lg font-semibold gap-2"
         >
           Organization
@@ -135,7 +135,7 @@ defmodule BlackboexWeb.SettingsLive do
       <.card_content class="pt-6">
         <.section_heading
           icon="hero-building-office-2"
-          icon_class="size-4 text-violet-400"
+          icon_class="size-4 text-accent-violet"
           heading_class="text-lg font-semibold gap-2"
         >
           Organization
@@ -159,7 +159,7 @@ defmodule BlackboexWeb.SettingsLive do
           <.section_heading
             level="h3"
             icon="hero-user-group"
-            icon_class="size-4 text-blue-400"
+            icon_class="size-4 text-accent-blue"
             heading_class="font-semibold text-foreground mb-2"
           >
             Members
@@ -185,7 +185,7 @@ defmodule BlackboexWeb.SettingsLive do
       <.card_content class="pt-6">
         <.section_heading
           icon="hero-credit-card"
-          icon_class="size-4 text-emerald-400"
+          icon_class="size-4 text-accent-emerald"
           heading_class="text-lg font-semibold gap-2"
         >
           Billing
@@ -202,7 +202,7 @@ defmodule BlackboexWeb.SettingsLive do
       <.card_content class="pt-6">
         <.section_heading
           icon="hero-credit-card"
-          icon_class="size-4 text-emerald-400"
+          icon_class="size-4 text-accent-emerald"
           heading_class="text-lg font-semibold gap-2"
         >
           Billing
@@ -224,10 +224,10 @@ defmodule BlackboexWeb.SettingsLive do
 
         <div class="flex gap-2 mt-4">
           <.button navigate={~p"/billing"} variant="primary" size="sm">
-            <.icon name="hero-sparkles" class="mr-1.5 size-3.5 text-amber-300" /> View Plans
+            <.icon name="hero-sparkles" class="mr-1.5 size-3.5 text-accent-amber" /> View Plans
           </.button>
           <.button navigate={~p"/billing/manage"} variant="default" size="sm">
-            <.icon name="hero-credit-card" class="mr-1.5 size-3.5 text-emerald-400" />
+            <.icon name="hero-credit-card" class="mr-1.5 size-3.5 text-accent-emerald" />
             Manage Subscription
           </.button>
         </div>
@@ -242,7 +242,7 @@ defmodule BlackboexWeb.SettingsLive do
       <.card_content class="pt-6">
         <.section_heading
           icon="hero-shield-check"
-          icon_class="size-4 text-teal-400"
+          icon_class="size-4 text-accent-teal"
           heading_class="text-lg font-semibold gap-2"
         >
           Security & Audit
@@ -256,7 +256,7 @@ defmodule BlackboexWeb.SettingsLive do
           <.section_heading
             level="h3"
             icon="hero-clock"
-            icon_class="size-4 text-amber-400"
+            icon_class="size-4 text-accent-amber"
             heading_class="font-semibold text-foreground mb-2"
           >
             Recent Activity
@@ -281,7 +281,8 @@ defmodule BlackboexWeb.SettingsLive do
 
         <div class="mt-6">
           <.button navigate={~p"/users/settings"} variant="default" size="sm">
-            <.icon name="hero-lock-closed" class="mr-1.5 size-3.5 text-amber-400" /> Change Password
+            <.icon name="hero-lock-closed" class="mr-1.5 size-3.5 text-accent-amber" />
+            Change Password
           </.button>
         </div>
       </.card_content>
@@ -332,10 +333,10 @@ defmodule BlackboexWeb.SettingsLive do
   defp tab_icon("security"), do: "hero-shield-check"
   defp tab_icon(_), do: "hero-squares-2x2"
 
-  defp tab_icon_color("profile"), do: "text-blue-400"
-  defp tab_icon_color("organization"), do: "text-violet-400"
-  defp tab_icon_color("billing"), do: "text-emerald-400"
-  defp tab_icon_color("security"), do: "text-teal-400"
+  defp tab_icon_color("profile"), do: "text-accent-blue"
+  defp tab_icon_color("organization"), do: "text-accent-violet"
+  defp tab_icon_color("billing"), do: "text-accent-emerald"
+  defp tab_icon_color("security"), do: "text-accent-teal"
   defp tab_icon_color(_), do: "text-muted-foreground"
 
   defp tab_label("profile"), do: "Profile"

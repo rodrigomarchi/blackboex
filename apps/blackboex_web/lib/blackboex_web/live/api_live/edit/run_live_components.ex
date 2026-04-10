@@ -16,7 +16,7 @@ defmodule BlackboexWeb.ApiLive.Edit.RunLiveComponents do
     <div class="w-52 shrink-0 border-l pl-3 overflow-y-auto">
       <div class="flex items-center justify-between mb-2">
         <h4 class="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase">
-          <.icon name="hero-clock-mini" class="size-3.5 text-amber-400" /> History
+          <.icon name="hero-clock-mini" class="size-3.5 text-accent-amber" /> History
         </h4>
         <.button
           :if={@test_history != []}

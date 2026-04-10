@@ -112,7 +112,7 @@ defmodule BlackboexWeb.BillingLive.Plans do
     <div class="max-w-5xl mx-auto py-8">
       <.header>
         <span class="flex items-center gap-2">
-          <.icon name="hero-sparkles" class="size-5 text-amber-400" /> Choose your plan
+          <.icon name="hero-sparkles" class="size-5 text-accent-amber" /> Choose your plan
         </span>
         <:subtitle>Scale your API platform with the right plan</:subtitle>
       </.header>
@@ -193,7 +193,7 @@ defmodule BlackboexWeb.BillingLive.Plans do
 
             <ul class="mt-6 space-y-2">
               <li :for={feature <- plan.features} class="flex items-center gap-2">
-                <.icon name="hero-check" class="size-4 text-green-400" />
+                <.icon name="hero-check" class="size-4 text-accent-emerald" />
                 <span class="text-sm">{feature}</span>
               </li>
             </ul>
@@ -220,7 +220,7 @@ defmodule BlackboexWeb.BillingLive.Plans do
                     <%= if @loading_plan == plan.id do %>
                       <.spinner class="size-4 mr-2" />
                     <% else %>
-                      <.icon name="hero-arrow-right" class="mr-1.5 size-3.5 text-emerald-300" />
+                      <.icon name="hero-arrow-right" class="mr-1.5 size-3.5 text-accent-emerald" />
                       Choose {plan.name}
                     <% end %>
                   </.button>

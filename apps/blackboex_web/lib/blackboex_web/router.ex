@@ -81,6 +81,15 @@ defmodule BlackboexWeb.Router do
       live_dashboard "/dashboard", metrics: BlackboexWeb.Telemetry
       forward "/mailbox", Plug.Swoosh.MailboxPreview
     end
+
+    scope "/showcase", BlackboexWeb do
+      pipe_through :browser
+
+      live_session :showcase, layout: {BlackboexWeb.Layouts, :showcase} do
+        live "/", ShowcaseLive, :index
+        live "/:section", ShowcaseLive, :show
+      end
+    end
   end
 
   # Stripe webhooks — no auth, no CSRF, signature verified in controller

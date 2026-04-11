@@ -318,4 +318,17 @@ defmodule BlackboexWeb.Layouts do
     </div>
     """
   end
+
+  @doc "Design system showcase layout — minimal shell, no auth, dev-only."
+  attr :flash, :map, required: true
+  attr :current_scope, :map, default: nil
+
+  def showcase(assigns) do
+    ~H"""
+    <div class="h-screen bg-background text-foreground overflow-hidden">
+      {@inner_content}
+    </div>
+    <.flash_group flash={@flash} />
+    """
+  end
 end

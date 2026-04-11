@@ -51,6 +51,9 @@ Violation of this rule creates inconsistent UI, breaks dark mode, bypasses seman
 | Dashboard page header | `<.dashboard_page_header>` | `shared/dashboard_page_header.ex` |
 | API key flash banner | `<.plain_key_banner>` | `shared/plain_key_banner.ex` |
 | Inline code snippet | `<.inline_code>` | `shared/inline_code.ex` |
+| Compact metric box | `<.stat_mini>` | `shared/stat_mini.ex` |
+| Template category pills | `<.category_pills>` | `shared/category_pills.ex` |
+| Selectable template grid | `<.template_grid>` | `shared/template_grid.ex` |
 
 ---
 
@@ -115,7 +118,7 @@ Renders `<button>` by default. When `navigate`, `patch`, or `href` is provided, 
 |------|------|---------|-------------|
 | `type` | `:string` | `nil` | HTML button type (`"button"`, `"submit"`, `"reset"`) |
 | `variant` | `:string` | `"default"` | `default`, `primary`, `secondary`, `destructive`, `outline`, `ghost`, `ghost-muted`, `ghost-dark`, `success`, `info`, `link` |
-| `size` | `:string` | `"default"` | `default`, `sm`, `lg`, `icon`, `icon-sm`, `icon-xs`, `compact`, `pill`, `micro` |
+| `size` | `:string` | `"default"` | `default`, `sm`, `lg`, `icon`, `icon-sm`, `icon-xs`, `compact`, `pill`, `micro`, `list-item` |
 | `class` | `:any` | `nil` | Additional CSS classes |
 | `navigate` / `patch` / `href` | global | — | Renders as `<.link>` |
 | `disabled` / `phx-click` | global | — | Standard button attrs |
@@ -975,7 +978,7 @@ One-time API key display banner with copy-friendly code block and dismiss button
 
 - **`<.stat_card>`** — added `href` attr (optional). When present, wraps card in a `<.link navigate={}>` with hover border.
 - **`<.badge>`** — added `variant="status"`, `size="xs"`, and semantic variants `success`, `warning`, `info`.
-- **`<.button>`** — added variants `success`, `info`, `ghost-dark`; sizes `compact`, `pill`, `micro`, `icon-sm`, `icon-xs`.
+- **`<.button>`** — added variants `success`, `info`, `ghost-dark`; sizes `compact`, `pill`, `micro`, `icon-sm`, `icon-xs`, `list-item`.
 - **`<.card_content>`** — added `standalone` boolean (restores top padding when no card_header), `size="compact"`.
 - **`<.card_header>`** — added `size="compact"` (tighter padding for dense layouts).
 - **`<.card_title>`** — added `size="label"` (small uppercase tracking style).

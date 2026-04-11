@@ -61,7 +61,7 @@ defmodule BlackboexWeb.Components.FlowEditor.FlowHeader do
         <%!-- Webhook URL --%>
         <div class="hidden md:flex items-center gap-1 rounded border bg-muted/50 px-2 py-1">
           <.icon name="hero-link-mini" class="size-3.5 text-accent-emerald shrink-0" />
-          <span class="text-[0.65rem] text-muted-foreground font-mono truncate max-w-[200px]">
+          <span class="text-2xs text-muted-foreground font-mono truncate max-w-[200px]">
             /webhook/{String.slice(@flow.webhook_token, 0..7)}...
           </span>
           <.button

@@ -586,6 +586,10 @@
   @apply text-primary hover:underline;
 }
 
+.link-primary {
+  @apply text-xs text-primary hover:underline;
+}
+
 /* ── Timeline dots (chat/pipeline timeline) ────── */
 .timeline-dot {
   @apply absolute -left-[9px] size-[13px] rounded-full border-2 border-background bg-background flex items-center justify-center;

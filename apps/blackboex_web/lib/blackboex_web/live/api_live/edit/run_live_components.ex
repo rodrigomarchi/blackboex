@@ -58,7 +58,7 @@ defmodule BlackboexWeb.ApiLive.Edit.RunLiveComponents do
                 <span class="text-muted-foreground truncate max-w-[80px]">{item.path}</span>
               </div>
               <span class={[
-                "inline-flex rounded-full px-1 py-0 text-[9px] font-semibold",
+                "inline-flex rounded-full px-1 py-0 text-2xs font-semibold",
                 history_status_color(item.response_status)
               ]}>
                 {item.response_status}

@@ -6,7 +6,9 @@ defmodule BlackboexWeb.FlowLive.Components.CreateFlowModal do
   use BlackboexWeb, :html
 
   import BlackboexWeb.Components.Modal
+  import BlackboexWeb.Components.Shared.CategoryPills
   import BlackboexWeb.Components.Shared.ModeToggle
+  import BlackboexWeb.Components.Shared.TemplateGrid
   import BlackboexWeb.Components.UI.AlertBanner
 
   attr :show, :boolean, required: true
@@ -42,61 +44,32 @@ defmodule BlackboexWeb.FlowLive.Components.CreateFlowModal do
 
       <%!-- Template Picker --%>
       <div :if={@create_mode == :template} class="mb-4 space-y-3">
-        <%!-- Category Pills --%>
-        <div class="flex gap-1 flex-wrap">
-          <%= for {cat, _templates} <- @template_categories do %>
-            <.button
-              type="button"
-              variant="ghost"
-              phx-click="set_active_category"
-              phx-value-category={cat}
-              class={[
-                "h-auto w-auto rounded-full px-3 py-1 text-xs font-medium transition-colors border hover:bg-transparent",
-                if(@active_category == cat,
-                  do: "bg-primary text-primary-foreground border-primary",
-                  else:
-                    "bg-background text-muted-foreground border-border hover:border-primary/50 hover:text-foreground"
-                )
-              ]}
-            >
-              {cat}
-            </.button>
-          <% end %>
-        </div>
+        <.category_pills categories={@template_categories} active={@active_category} />
 
-        <%!-- Template Grid --%>
-        <div class="max-h-52 overflow-y-auto -mx-1 px-1">
-          <div class="grid grid-cols-2 gap-2">
-            <%= for {cat, templates} <- @template_categories, cat == @active_category, template <- templates do %>
-              <.button
-                type="button"
-                variant="ghost"
-                phx-click="select_template"
-                phx-value-id={template.id}
-                class={[
-                  "h-auto w-auto justify-start flex items-start gap-2 rounded-lg border p-2.5 text-left transition-colors hover:border-primary/50 hover:bg-transparent",
-                  if(@selected_template && @selected_template.id == template.id,
-                    do: "border-primary bg-primary/5 ring-1 ring-primary",
-                    else: "border-border bg-background"
-                  )
-                ]}
-              >
-                <div class="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary mt-0.5">
-                  <.icon name={template.icon} class="size-4" />
-                </div>
-                <div class="min-w-0">
-                  <p class="text-xs font-medium leading-snug">{template.name}</p>
-                  <p class="text-muted-caption line-clamp-2 leading-snug mt-0.5">
-                    {template.description}
-                  </p>
-                  <p class="text-xs text-muted-foreground/60 mt-1">
-                    {length(template.definition["nodes"])} nodes
-                  </p>
-                </div>
-              </.button>
-            <% end %>
-          </div>
-        </div>
+        <.template_grid
+          templates={
+            for {cat, templates} <- @template_categories,
+                cat == @active_category,
+                template <- templates,
+                do: template
+          }
+          selected={@selected_template}
+        >
+          <:card :let={template}>
+            <div class="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary mt-0.5">
+              <.icon name={template.icon} class="size-4" />
+            </div>
+            <div class="min-w-0">
+              <p class="text-xs font-medium leading-snug">{template.name}</p>
+              <p class="text-muted-caption line-clamp-2 leading-snug mt-0.5">
+                {template.description}
+              </p>
+              <p class="text-xs text-muted-foreground/60 mt-1">
+                {length(template.definition["nodes"])} nodes
+              </p>
+            </div>
+          </:card>
+        </.template_grid>
 
         <%!-- Helper text --%>
         <p :if={is_nil(@selected_template)} class="text-muted-caption">

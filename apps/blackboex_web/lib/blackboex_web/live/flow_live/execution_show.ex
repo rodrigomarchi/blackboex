@@ -188,7 +188,8 @@ defmodule BlackboexWeb.FlowLive.ExecutionShow do
                 <.button
                   type="button"
                   variant="ghost"
-                  class={"w-full h-auto justify-start rounded-none flex items-center gap-3 px-4 py-2.5 text-left hover:bg-muted/30 transition-colors #{if @expanded_node == ne.node_id, do: "bg-muted/20", else: ""}"}
+                  size="list-item"
+                  class={"flex items-center gap-3 hover:bg-muted/30 transition-colors #{if @expanded_node == ne.node_id, do: "bg-muted/20", else: ""}"}
                   phx-click="toggle_node"
                   phx-value-node-id={ne.node_id}
                 >

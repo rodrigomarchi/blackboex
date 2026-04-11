@@ -38,7 +38,8 @@ defmodule BlackboexWeb.Components.Button do
     "icon-xs" => "h-auto w-auto p-0.5",
     "compact" => "h-auto px-3 py-1 text-xs",
     "pill" => "h-auto rounded-full px-2.5 py-1 text-xs",
-    "micro" => "h-auto w-auto px-1.5 py-0.5 text-2xs"
+    "micro" => "h-auto w-auto px-1.5 py-0.5 text-2xs",
+    "list-item" => "h-auto w-full justify-start rounded-none px-4 py-2.5 text-left"
   }
 
   attr :type, :string, default: nil
@@ -50,7 +51,7 @@ defmodule BlackboexWeb.Components.Button do
     default: "default"
 
   attr :size, :string,
-    values: ~w(default sm lg icon icon-sm icon-xs compact pill micro),
+    values: ~w(default sm lg icon icon-sm icon-xs compact pill micro list-item),
     default: "default"
 
   attr :rest, :global, include: ~w(href navigate patch method download disabled form name value)

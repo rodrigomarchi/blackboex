@@ -277,7 +277,7 @@ defmodule BlackboexWeb.FlowLive.Index do
             <div class="flex items-center gap-2">
               <.link
                 navigate={~p"/flows/#{flow.id}/edit"}
-                class="inline-flex items-center text-xs text-primary hover:underline"
+                class="inline-flex items-center link-primary"
               >
                 <.icon name="hero-pencil-square-mini" class="mr-1 size-3" /> Edit
               </.link>

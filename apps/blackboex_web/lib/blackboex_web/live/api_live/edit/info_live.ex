@@ -56,8 +56,7 @@ defmodule BlackboexWeb.ApiLive.Edit.InfoLive do
             level="h3"
             icon="hero-cog-6-tooth"
             icon_class="size-3.5 text-slate-400"
-            class="mb-3"
-            heading_class="text-xs font-semibold text-muted-foreground uppercase"
+            variant="label"
           >
             General
           </.section_heading>
@@ -112,8 +111,7 @@ defmodule BlackboexWeb.ApiLive.Edit.InfoLive do
             level="h3"
             icon="hero-code-bracket"
             icon_class="size-3.5 text-accent-purple"
-            class="mb-3"
-            heading_class="text-xs font-semibold text-muted-foreground uppercase"
+            variant="label"
           >
             Code Stats
           </.section_heading>
@@ -203,8 +201,7 @@ defmodule BlackboexWeb.ApiLive.Edit.InfoLive do
             level="h3"
             icon="hero-exclamation-triangle"
             icon_class="size-3.5 text-accent-red"
-            class="mb-3"
-            heading_class="text-xs font-semibold text-muted-foreground uppercase"
+            variant="label"
           >
             Danger Zone
           </.section_heading>

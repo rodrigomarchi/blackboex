@@ -75,7 +75,7 @@ defmodule BlackboexWeb.SettingsLive do
         <.section_heading
           icon="hero-user-circle"
           icon_class="size-4 text-accent-blue"
-          heading_class="text-lg font-semibold gap-2"
+          level="h1"
         >
           Profile
         </.section_heading>
@@ -119,7 +119,7 @@ defmodule BlackboexWeb.SettingsLive do
         <.section_heading
           icon="hero-building-office-2"
           icon_class="size-4 text-accent-violet"
-          heading_class="text-lg font-semibold gap-2"
+          level="h1"
         >
           Organization
         </.section_heading>
@@ -136,7 +136,7 @@ defmodule BlackboexWeb.SettingsLive do
         <.section_heading
           icon="hero-building-office-2"
           icon_class="size-4 text-accent-violet"
-          heading_class="text-lg font-semibold gap-2"
+          level="h1"
         >
           Organization
         </.section_heading>
@@ -186,7 +186,7 @@ defmodule BlackboexWeb.SettingsLive do
         <.section_heading
           icon="hero-credit-card"
           icon_class="size-4 text-accent-emerald"
-          heading_class="text-lg font-semibold gap-2"
+          level="h1"
         >
           Billing
         </.section_heading>
@@ -203,7 +203,7 @@ defmodule BlackboexWeb.SettingsLive do
         <.section_heading
           icon="hero-credit-card"
           icon_class="size-4 text-accent-emerald"
-          heading_class="text-lg font-semibold gap-2"
+          level="h1"
         >
           Billing
         </.section_heading>
@@ -243,7 +243,7 @@ defmodule BlackboexWeb.SettingsLive do
         <.section_heading
           icon="hero-shield-check"
           icon_class="size-4 text-accent-teal"
-          heading_class="text-lg font-semibold gap-2"
+          level="h1"
         >
           Security & Audit
         </.section_heading>

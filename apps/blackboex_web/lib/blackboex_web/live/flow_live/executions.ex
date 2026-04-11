@@ -8,6 +8,7 @@ defmodule BlackboexWeb.FlowLive.Executions do
   import BlackboexWeb.Components.Badge
   import BlackboexWeb.Components.Card
   import BlackboexWeb.Components.Shared.EmptyState
+  import BlackboexWeb.Components.Shared.StatMini
   import BlackboexWeb.Components.UI.SectionHeading
   import BlackboexWeb.FlowLive.ExecutionHelpers
 
@@ -64,28 +65,32 @@ defmodule BlackboexWeb.FlowLive.Executions do
         <%= if @executions != [] do %>
           <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
             <.stat_mini
+              layout="horizontal"
               label="Total"
               value={@stats.total}
               icon="hero-play-circle"
-              color="text-accent-blue"
+              icon_class="text-accent-blue"
             />
             <.stat_mini
+              layout="horizontal"
               label="Completed"
               value={@stats.completed}
               icon="hero-check-circle"
-              color="text-accent-emerald"
+              icon_class="text-accent-emerald"
             />
             <.stat_mini
+              layout="horizontal"
               label="Failed"
               value={@stats.failed}
               icon="hero-x-circle"
-              color="text-accent-red"
+              icon_class="text-accent-red"
             />
             <.stat_mini
+              layout="horizontal"
               label="Avg Duration"
               value={@stats.avg_duration}
               icon="hero-clock"
-              color="text-accent-amber"
+              icon_class="text-accent-amber"
             />
           </div>
         <% end %>
@@ -127,23 +132,6 @@ defmodule BlackboexWeb.FlowLive.Executions do
             </.card_content>
           </.card>
         <% end %>
-      </div>
-    </div>
-    """
-  end
-
-  attr :label, :string, required: true
-  attr :value, :any, required: true
-  attr :icon, :string, required: true
-  attr :color, :string, default: "text-muted-foreground"
-
-  defp stat_mini(assigns) do
-    ~H"""
-    <div class="flex items-center gap-3 rounded-lg border bg-card px-3 py-2.5">
-      <.icon name={@icon} class={"size-4 #{@color}"} />
-      <div>
-        <div class="text-muted-caption">{@label}</div>
-        <div class="text-sm font-semibold">{@value}</div>
       </div>
     </div>
     """

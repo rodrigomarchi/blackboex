@@ -94,7 +94,7 @@ defmodule BlackboexWeb.ApiKeyLive.Show do
           <.section_heading
             icon="hero-chart-bar"
             icon_class="size-4 text-accent-sky"
-            heading_class="text-lg font-semibold gap-2"
+            level="h1"
           >
             Usage
           </.section_heading>
@@ -130,7 +130,7 @@ defmodule BlackboexWeb.ApiKeyLive.Show do
             icon="hero-information-circle"
             icon_class="size-4 text-accent-blue"
             class="mb-4"
-            heading_class="text-lg font-semibold gap-2"
+            level="h1"
           >
             Details
           </.section_heading>

@@ -85,7 +85,7 @@ defmodule BlackboexWeb.ApiKeyLive.Index do
           <:action :let={key}>
             <.link
               navigate={~p"/api-keys/#{key.id}"}
-              class="inline-flex items-center text-xs text-primary hover:underline"
+              class="inline-flex items-center link-primary"
             >
               <.icon name="hero-eye-mini" class="mr-1 size-3" /> Details
             </.link>

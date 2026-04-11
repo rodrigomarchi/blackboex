@@ -301,7 +301,7 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLiveComponents do
           <.link
             href={"/api/#{@org.slug}/#{@api.slug}/docs"}
             target="_blank"
-            class="text-xs text-primary hover:underline"
+            class="link-primary"
           >
             Open
           </.link>
@@ -314,7 +314,7 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLiveComponents do
           <.link
             href={"/api/#{@org.slug}/#{@api.slug}/openapi.json"}
             target="_blank"
-            class="text-xs text-primary hover:underline"
+            class="link-primary"
           >
             Open
           </.link>

@@ -10,9 +10,22 @@ defmodule BlackboexWeb.Components.Shared.StatMini do
   attr :icon_class, :string, default: nil
   attr :size, :string, default: "sm", values: ~w(sm lg)
   attr :label_position, :string, default: "below", values: ~w(above below)
+  attr :layout, :string, default: "vertical", values: ~w(vertical horizontal)
   attr :class, :string, default: nil
 
   @spec stat_mini(map()) :: Phoenix.LiveView.Rendered.t()
+  def stat_mini(%{layout: "horizontal"} = assigns) do
+    ~H"""
+    <div class={classes(["flex items-center gap-3 rounded-lg border bg-card px-3 py-2.5", @class])}>
+      <.icon :if={@icon} name={@icon} class={classes(["size-4", @icon_class])} />
+      <div>
+        <div class="text-muted-caption">{@label}</div>
+        <div class="text-sm font-semibold">{@value}</div>
+      </div>
+    </div>
+    """
+  end
+
   def stat_mini(assigns) do
     ~H"""
     <div class={classes(["rounded-lg border text-center", padding(@size), @class])}>

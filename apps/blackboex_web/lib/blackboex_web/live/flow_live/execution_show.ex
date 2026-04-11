@@ -8,6 +8,7 @@ defmodule BlackboexWeb.FlowLive.ExecutionShow do
   import BlackboexWeb.Components.Badge
   import BlackboexWeb.Components.Card
   import BlackboexWeb.Components.Shared.CodeEditorField
+  import BlackboexWeb.Components.Shared.InlineCode
   import BlackboexWeb.Components.Shared.StatChip
   import BlackboexWeb.Components.StatusHelpers
   import BlackboexWeb.Components.UI.AlertBanner
@@ -65,10 +66,10 @@ defmodule BlackboexWeb.FlowLive.ExecutionShow do
             <.icon name="hero-arrow-left" class="size-5" />
           </.link>
           <.section_heading level="h2" compact>Execution</.section_heading>
-          <span class="text-xs font-mono text-muted-foreground">
+          <span class="text-muted-caption font-mono">
             {short_id(@execution.id)}
           </span>
-          <span class="text-xs text-muted-foreground">{@flow.name}</span>
+          <span class="text-muted-caption">{@flow.name}</span>
         </div>
       </header>
 
@@ -131,22 +132,22 @@ defmodule BlackboexWeb.FlowLive.ExecutionShow do
             <div class="font-medium">
               Waiting for: <span class="font-mono">{@execution.wait_event_type}</span>
             </div>
-            <code class="text-micro font-mono bg-warning/20 px-1.5 py-0.5 rounded">
+            <.inline_code class="text-micro bg-warning/20">
               POST /webhook/{@flow.webhook_token}/resume/{@execution.wait_event_type}
-            </code>
+            </.inline_code>
           </div>
         </.alert_banner>
 
         <%!-- Input / Output --%>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <.card>
-            <.card_header class="py-2.5 px-4">
-              <.card_title class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <.card_header size="compact">
+              <.card_title size="label" class="flex items-center gap-1.5">
                 <.icon name="hero-arrow-down-on-square-mini" class="size-3.5 text-accent-blue" />
                 Input
               </.card_title>
             </.card_header>
-            <.card_content class="pt-0 px-4 pb-3">
+            <.card_content size="compact">
               <.code_editor_field
                 id="exec-input-json"
                 value={format_json(@execution.input)}
@@ -156,13 +157,13 @@ defmodule BlackboexWeb.FlowLive.ExecutionShow do
             </.card_content>
           </.card>
           <.card>
-            <.card_header class="py-2.5 px-4">
-              <.card_title class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <.card_header size="compact">
+              <.card_title size="label" class="flex items-center gap-1.5">
                 <.icon name="hero-arrow-up-on-square-mini" class="size-3.5 text-accent-emerald" />
                 Output
               </.card_title>
             </.card_header>
-            <.card_content class="pt-0 px-4 pb-3">
+            <.card_content size="compact">
               <.code_editor_field
                 id="exec-output-json"
                 value={format_json(@execution.output)}
@@ -175,7 +176,7 @@ defmodule BlackboexWeb.FlowLive.ExecutionShow do
 
         <%!-- Node Timeline — compact table --%>
         <.card>
-          <.card_header class="py-3 px-4">
+          <.card_header size="compact">
             <.card_title class="flex items-center gap-2 text-sm">
               <.icon name="hero-queue-list" class="size-4 text-accent-violet" /> Node Timeline
             </.card_title>

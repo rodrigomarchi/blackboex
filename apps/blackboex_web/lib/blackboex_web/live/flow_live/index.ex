@@ -259,7 +259,7 @@ defmodule BlackboexWeb.FlowLive.Index do
                 >
                   {flow.name}
                 </.link>
-                <p :if={flow.description} class="text-xs text-muted-foreground truncate max-w-xs">
+                <p :if={flow.description} class="text-muted-caption truncate max-w-xs">
                   {flow.description}
                 </p>
               </div>
@@ -269,7 +269,7 @@ defmodule BlackboexWeb.FlowLive.Index do
             <.badge class={IndexHelpers.flow_status_classes(flow.status)}>{flow.status}</.badge>
           </:col>
           <:col :let={flow} label="Created">
-            <span class="text-xs text-muted-foreground">
+            <span class="text-muted-caption">
               {Calendar.strftime(flow.inserted_at, "%b %d, %Y")}
             </span>
           </:col>

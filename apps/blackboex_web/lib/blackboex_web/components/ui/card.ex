@@ -36,24 +36,36 @@ defmodule BlackboexWeb.Components.Card do
   end
 
   attr :class, :string, default: nil
+  attr :size, :string, values: ~w(default compact), default: "default"
   slot :inner_block, required: true
   attr :rest, :global
 
   def card_header(assigns) do
+    size_class = if assigns.size == "compact", do: "px-4 py-2.5", else: "p-6"
+    assigns = assign(assigns, :size_class, size_class)
+
     ~H"""
-    <div class={classes(["flex flex-col space-y-1.5 p-6", @class])} {@rest}>
+    <div class={classes(["flex flex-col space-y-1.5", @size_class, @class])} {@rest}>
       {render_slot(@inner_block)}
     </div>
     """
   end
 
   attr :class, :string, default: nil
+  attr :size, :string, values: ~w(default label), default: "default"
   slot :inner_block, required: true
   attr :rest, :global
 
   def card_title(assigns) do
+    size_class =
+      if assigns.size == "label",
+        do: "text-xs font-medium text-muted-foreground uppercase tracking-wider",
+        else: "text-2xl font-semibold leading-none tracking-tight"
+
+    assigns = assign(assigns, :size_class, size_class)
+
     ~H"""
-    <h3 class={classes(["text-2xl font-semibold leading-none tracking-tight", @class])} {@rest}>
+    <h3 class={classes([@size_class, @class])} {@rest}>
       {render_slot(@inner_block)}
     </h3>
     """
@@ -72,12 +84,27 @@ defmodule BlackboexWeb.Components.Card do
   end
 
   attr :class, :string, default: nil
+
+  attr :standalone, :boolean,
+    default: false,
+    doc: "true when used without card_header (restores top padding)"
+
+  attr :size, :string, values: ~w(default compact), default: "default"
   slot :inner_block, required: true
   attr :rest, :global
 
   def card_content(assigns) do
+    padding =
+      case {assigns.standalone, assigns.size} do
+        {true, _} -> "p-6"
+        {false, "compact"} -> "px-4 pb-3 pt-0"
+        {false, "default"} -> "p-6 pt-0"
+      end
+
+    assigns = assign(assigns, :padding, padding)
+
     ~H"""
-    <div class={classes(["p-6 pt-0", @class])} {@rest}>
+    <div class={classes([@padding, @class])} {@rest}>
       {render_slot(@inner_block)}
     </div>
     """

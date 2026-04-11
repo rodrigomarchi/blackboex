@@ -25,9 +25,10 @@ defmodule BlackboexWeb.Components.Editor.StatusBar do
         <span class="opacity-30">│</span>
         <span class="text-info-foreground">viewing v{@selected_version.version_number}</span>
         <.button
-          variant="ghost"
+          variant="link"
+          size="icon-xs"
           phx-click="clear_version_view"
-          class="h-auto w-auto p-0 text-primary hover:underline hover:bg-transparent ml-1"
+          class="ml-1"
         >
           ← current
         </.button>

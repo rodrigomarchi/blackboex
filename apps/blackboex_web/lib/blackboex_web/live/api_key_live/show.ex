@@ -125,7 +125,7 @@ defmodule BlackboexWeb.ApiKeyLive.Show do
 
       <%!-- Details --%>
       <.card>
-        <.card_content class="pt-6">
+        <.card_content standalone>
           <.section_heading
             icon="hero-information-circle"
             icon_class="size-4 text-accent-blue"

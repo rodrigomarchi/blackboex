@@ -59,7 +59,7 @@ defmodule BlackboexWeb.Components.Editor.ChatPanel do
       <%!-- Scrollable timeline area --%>
       <div class="flex-1 min-h-0 overflow-y-auto" id="chat-messages" phx-hook="ChatAutoScroll">
         <%= if @grouped_events == [] and @pending_edit == nil and @streaming_tokens == "" and not @loading do %>
-          <p class="text-sm text-muted-foreground text-center py-12 px-4">
+          <p class="text-muted-description text-center py-12 px-4">
             Describe what you want the agent to build or change.
           </p>
         <% else %>
@@ -83,7 +83,7 @@ defmodule BlackboexWeb.Components.Editor.ChatPanel do
             <%!-- Streaming tokens fallback (when streaming before first tool step) --%>
             <%= if @loading and not has_active_tool_call?(@grouped_events) and @streaming_tokens != "" do %>
               <div class="relative pb-2 pt-1">
-                <div class="absolute -left-[9px] top-3 size-[13px] rounded-full border-2 border-info bg-background flex items-center justify-center animate-pulse">
+                <div class="timeline-dot top-3 border-info animate-pulse">
                   <div class="size-[5px] rounded-full bg-info" />
                 </div>
                 <div class="ml-2">
@@ -96,7 +96,7 @@ defmodule BlackboexWeb.Components.Editor.ChatPanel do
             <%= if @loading and not has_active_tool_call?(@grouped_events) and @streaming_tokens == "" do %>
               <div class="relative py-2">
                 <div class="absolute -left-[7px] top-[11px] size-[9px] rounded-full bg-info animate-pulse" />
-                <span class="text-xs text-muted-foreground animate-pulse ml-2">Thinking...</span>
+                <span class="text-muted-caption animate-pulse ml-2">Thinking...</span>
               </div>
             <% end %>
 
@@ -124,10 +124,11 @@ defmodule BlackboexWeb.Components.Editor.ChatPanel do
           <%= for action <- quick_actions(@template_type) do %>
             <.button
               type="button"
-              variant="ghost"
+              variant="outline"
+              size="pill"
               phx-click="quick_action"
               phx-value-text={action}
-              class="h-auto w-auto rounded-full border px-2 py-0.5 text-micro text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              class="text-micro text-muted-foreground"
             >
               {action}
             </.button>
@@ -217,15 +218,18 @@ defmodule BlackboexWeb.Components.Editor.ChatPanel do
 
       <div class="flex gap-2">
         <.button
+          variant="success"
+          size="compact"
           phx-click="accept_edit"
-          class="h-auto rounded-md bg-success px-3 py-1 text-xs font-medium text-success-foreground hover:bg-success/90 flex items-center gap-1"
+          class="flex items-center gap-1 font-medium"
         >
           <.icon name="hero-check" class="size-3" /> Accept
         </.button>
         <.button
           variant="outline"
+          size="compact"
           phx-click="reject_edit"
-          class="h-auto rounded-md border border-destructive/50 bg-transparent px-3 py-1 text-xs font-medium text-destructive hover:bg-destructive/10 flex items-center gap-1"
+          class="border-destructive/50 text-destructive hover:bg-destructive/10 flex items-center gap-1 font-medium"
         >
           <.icon name="hero-x-mark" class="size-3" /> Reject
         </.button>

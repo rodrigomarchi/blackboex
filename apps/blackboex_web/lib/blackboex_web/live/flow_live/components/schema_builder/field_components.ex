@@ -364,11 +364,11 @@ defmodule BlackboexWeb.FlowLive.Components.SchemaBuilder.FieldComponents do
         </span>
         <.button
           type="button"
-          variant="ghost"
+          variant="ghost-muted"
+          size="micro"
           phx-click="schema_add_field"
           phx-value-schema-id={@schema_id}
           phx-value-path={@path <> ".fields"}
-          class="h-auto w-auto inline-flex items-center gap-0.5 rounded px-1 py-0 text-2xs text-muted-foreground hover:bg-accent hover:text-foreground"
         >
           <.icon name="hero-plus-mini" class="size-2.5" />
         </.button>
@@ -406,11 +406,11 @@ defmodule BlackboexWeb.FlowLive.Components.SchemaBuilder.FieldComponents do
         </span>
         <.button
           type="button"
-          variant="ghost"
+          variant="ghost-muted"
+          size="micro"
           phx-click="schema_add_field"
           phx-value-schema-id={@schema_id}
           phx-value-path={@path <> ".constraints.item_fields"}
-          class="h-auto w-auto inline-flex items-center gap-0.5 rounded px-1 py-0 text-2xs text-muted-foreground hover:bg-accent hover:text-foreground"
         >
           <.icon name="hero-plus-mini" class="size-2.5" />
         </.button>

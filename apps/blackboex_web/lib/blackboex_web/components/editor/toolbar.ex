@@ -34,8 +34,7 @@ defmodule BlackboexWeb.Components.Editor.Toolbar do
       <.badge
         :if={@selected_version}
         size="xs"
-        variant="status"
-        class="bg-info/10 text-info-foreground"
+        variant="info"
       >
         v{@selected_version.version_number}
       </.badge>
@@ -43,8 +42,8 @@ defmodule BlackboexWeb.Components.Editor.Toolbar do
       <.badge
         :if={@generation_status in ~w(pending generating validating)}
         size="xs"
-        variant="status"
-        class="bg-warning/10 text-warning-foreground animate-pulse"
+        variant="warning"
+        class="animate-pulse"
       >
         <.icon name="hero-arrow-path" class="size-3 animate-spin" /> generating
       </.badge>
@@ -52,8 +51,7 @@ defmodule BlackboexWeb.Components.Editor.Toolbar do
       <.badge
         :if={@generation_status == "failed"}
         size="xs"
-        variant="status"
-        class="bg-destructive/10 text-destructive"
+        variant="destructive"
       >
         generation failed
       </.badge>
@@ -64,7 +62,7 @@ defmodule BlackboexWeb.Components.Editor.Toolbar do
       <.button
         variant="outline"
         phx-click="toggle_command_palette"
-        class="h-auto inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-accent"
+        class="h-auto inline-flex items-center gap-1 rounded-md px-2 py-1 text-muted-caption hover:text-foreground hover:bg-accent"
         title="Command Palette (⌘K)"
       >
         <.icon name="hero-command-line" class="size-3.5 text-accent-violet" />

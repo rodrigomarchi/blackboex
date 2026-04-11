@@ -7,6 +7,7 @@ defmodule BlackboexWeb.Components.Editor.RequestBuilder do
   use BlackboexWeb, :live_component
 
   import BlackboexWeb.Components.Shared.CodeEditorField
+  import BlackboexWeb.Components.Shared.UnderlineTabs
   import BlackboexWeb.Components.UI.FieldLabel
   import BlackboexWeb.Components.UI.InlineInput
   import BlackboexWeb.Components.Spinner
@@ -48,23 +49,11 @@ defmodule BlackboexWeb.Components.Editor.RequestBuilder do
       </div>
 
       <div class="rounded-lg border bg-card">
-        <div class="flex border-b">
-          <.button
-            :for={tab <- ~w(params headers body auth)}
-            variant="ghost"
-            phx-click="switch_request_tab"
-            phx-value-tab={tab}
-            class={[
-              "h-auto rounded-none flex-1 px-3 py-2 text-xs font-medium border-b-2 hover:bg-transparent",
-              if(tab == @active_tab,
-                do: "border-primary text-primary",
-                else: "border-transparent text-muted-foreground hover:text-foreground"
-              )
-            ]}
-          >
-            {tab_label(tab)}
-          </.button>
-        </div>
+        <.underline_tabs
+          tabs={[{"params", "Params"}, {"headers", "Headers"}, {"body", "Body"}, {"auth", "Auth"}]}
+          active={@active_tab}
+          click_event="switch_request_tab"
+        />
 
         <div class="p-3">
           {render_request_tab(assigns)}
@@ -95,18 +84,20 @@ defmodule BlackboexWeb.Components.Editor.RequestBuilder do
           class="flex-1 rounded-md px-2 py-1 text-xs"
         />
         <.button
-          variant="ghost"
+          variant="link"
+          size="icon-xs"
           phx-click="remove_param"
           phx-value-id={param.id}
-          class="h-auto w-auto p-0 text-xs text-destructive hover:underline hover:bg-transparent"
+          class="text-xs text-destructive"
         >
           ✕
         </.button>
       </div>
       <.button
-        variant="ghost"
+        variant="link"
+        size="icon-xs"
         phx-click="add_param"
-        class="h-auto w-auto p-0 text-xs text-primary hover:underline hover:bg-transparent"
+        class="text-xs"
       >
         + Add param
       </.button>
@@ -135,18 +126,20 @@ defmodule BlackboexWeb.Components.Editor.RequestBuilder do
           class="flex-1 rounded-md px-2 py-1 text-xs"
         />
         <.button
-          variant="ghost"
+          variant="link"
+          size="icon-xs"
           phx-click="remove_header"
           phx-value-id={header.id}
-          class="h-auto w-auto p-0 text-xs text-destructive hover:underline hover:bg-transparent"
+          class="text-xs text-destructive"
         >
           ✕
         </.button>
       </div>
       <.button
-        variant="ghost"
+        variant="link"
+        size="icon-xs"
         phx-click="add_header"
-        class="h-auto w-auto p-0 text-xs text-primary hover:underline hover:bg-transparent"
+        class="text-xs"
       >
         + Add header
       </.button>
@@ -183,15 +176,10 @@ defmodule BlackboexWeb.Components.Editor.RequestBuilder do
         placeholder="Enter API key"
         class="rounded-md px-2 py-1 text-xs font-mono"
       />
-      <p class="text-xs text-muted-foreground">
+      <p class="text-muted-caption">
         Sent as X-Api-Key header
       </p>
     </div>
     """
   end
-
-  defp tab_label("params"), do: "Params"
-  defp tab_label("headers"), do: "Headers"
-  defp tab_label("body"), do: "Body"
-  defp tab_label("auth"), do: "Auth"
 end

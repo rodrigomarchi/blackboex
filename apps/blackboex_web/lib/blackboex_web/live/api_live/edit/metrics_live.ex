@@ -8,6 +8,7 @@ defmodule BlackboexWeb.ApiLive.Edit.MetricsLive do
   import Ecto.Query
   import BlackboexWeb.ApiLive.Edit.EditorShell
   import BlackboexWeb.Components.UI.SectionHeading
+  import BlackboexWeb.Components.Shared.StatMini
 
   alias Blackboex.Apis.Analytics
   alias Blackboex.Apis.MetricRollup
@@ -56,37 +57,45 @@ defmodule BlackboexWeb.ApiLive.Edit.MetricsLive do
 
         <%!-- Stat Cards --%>
         <div class="grid grid-cols-4 gap-4">
-          <div class="rounded-lg border p-4">
-            <p class="flex items-center justify-center gap-1 text-xs text-muted-foreground">
-              <.icon name="hero-signal-mini" class="size-3.5 text-accent-sky" /> Invocations
-            </p>
-            <p class="text-2xl font-bold">{@total_invocations}</p>
-          </div>
-          <div class="rounded-lg border p-4">
-            <p class="flex items-center justify-center gap-1 text-xs text-muted-foreground">
-              <.icon name="hero-exclamation-circle-mini" class="size-3.5 text-accent-red" /> Errors
-            </p>
-            <p class="text-2xl font-bold">{@total_errors}</p>
-          </div>
-          <div class="rounded-lg border p-4">
-            <p class="flex items-center justify-center gap-1 text-xs text-muted-foreground">
-              <.icon name="hero-chart-bar-mini" class="size-3.5 text-accent-amber" /> Error Rate
-            </p>
-            <p class="text-2xl font-bold">{@error_rate}%</p>
-          </div>
-          <div class="rounded-lg border p-4">
-            <p class="flex items-center justify-center gap-1 text-xs text-muted-foreground">
-              <.icon name="hero-clock-mini" class="size-3.5 text-accent-amber" /> Avg Latency
-            </p>
-            <p class="text-2xl font-bold">{@avg_latency}ms</p>
-          </div>
+          <.stat_mini
+            value={@total_invocations}
+            label="Invocations"
+            icon="hero-signal-mini"
+            icon_class="text-accent-sky"
+            size="lg"
+            label_position="above"
+          />
+          <.stat_mini
+            value={@total_errors}
+            label="Errors"
+            icon="hero-exclamation-circle-mini"
+            icon_class="text-accent-red"
+            size="lg"
+            label_position="above"
+          />
+          <.stat_mini
+            value={"#{@error_rate}%"}
+            label="Error Rate"
+            icon="hero-chart-bar-mini"
+            icon_class="text-accent-amber"
+            size="lg"
+            label_position="above"
+          />
+          <.stat_mini
+            value={"#{@avg_latency}ms"}
+            label="Avg Latency"
+            icon="hero-clock-mini"
+            icon_class="text-accent-amber"
+            size="lg"
+            label_position="above"
+          />
         </div>
 
         <%= if @invocation_data == [] do %>
           <div class="rounded-lg border border-dashed p-8 text-center">
             <.icon name="hero-chart-bar" class="size-10 mx-auto text-accent-sky mb-3" />
             <p class="text-sm font-medium">No metrics data yet</p>
-            <p class="text-xs text-muted-foreground mt-1">
+            <p class="text-muted-caption mt-1">
               Publish and call your API to see stats. Data is aggregated hourly.
             </p>
           </div>

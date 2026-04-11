@@ -6,6 +6,8 @@ defmodule BlackboexWeb.ApiLive.IndexComponents do
   use BlackboexWeb, :html
 
   import BlackboexWeb.Components.Badge
+  import BlackboexWeb.Components.Shared.InlineCode
+  import BlackboexWeb.Components.Shared.ModeToggle
   import BlackboexWeb.Components.Modal
   import BlackboexWeb.Components.Shared.DashboardHelpers, only: [format_latency: 1]
   import BlackboexWeb.Components.UI.AlertBanner
@@ -17,9 +19,9 @@ defmodule BlackboexWeb.ApiLive.IndexComponents do
   def generation_badge(assigns) do
     ~H"""
     <.badge
-      variant="status"
+      variant="warning"
       size="xs"
-      class="border border-warning/30 bg-warning/10 text-warning-foreground animate-pulse"
+      class="animate-pulse"
     >
       <.icon name="hero-arrow-path" class="size-3 animate-spin" /> Generating...
     </.badge>
@@ -46,7 +48,7 @@ defmodule BlackboexWeb.ApiLive.IndexComponents do
             >
               {row.api.name}
             </.link>
-            <p :if={row.api.description} class="text-xs text-muted-foreground truncate max-w-xs">
+            <p :if={row.api.description} class="text-muted-caption truncate max-w-xs">
               {row.api.description}
             </p>
           </div>
@@ -86,9 +88,9 @@ defmodule BlackboexWeb.ApiLive.IndexComponents do
       </:col>
       <:col :let={row} label="Endpoint">
         <%= if row.api.status == "published" do %>
-          <code class="rounded bg-muted px-1.5 py-0.5 text-micro font-mono text-accent-emerald">
+          <.inline_code class="text-micro text-accent-emerald">
             POST /{@org_slug}/{row.api.slug}
-          </code>
+          </.inline_code>
         <% else %>
           <span class="text-xs italic text-muted-foreground">—</span>
         <% end %>
@@ -102,11 +104,12 @@ defmodule BlackboexWeb.ApiLive.IndexComponents do
             <.icon name="hero-pencil-square-mini" class="mr-1 size-3" /> Edit
           </.link>
           <.button
-            variant="ghost"
+            variant="link"
+            size="icon-xs"
             phx-click="request_confirm"
             phx-value-action="delete"
             phx-value-id={row.api.id}
-            class="h-auto w-auto p-0 inline-flex items-center text-xs text-destructive hover:underline hover:bg-transparent"
+            class="text-xs text-destructive"
           >
             <.icon name="hero-trash-mini" class="mr-1 size-3" /> Delete
           </.button>
@@ -139,36 +142,16 @@ defmodule BlackboexWeb.ApiLive.IndexComponents do
       </.alert_banner>
 
       <%!-- Mode toggle --%>
-      <div class="flex gap-1 rounded-lg bg-muted p-1 mb-4">
-        <.button
-          type="button"
-          variant="ghost"
-          phx-click="switch_to_template"
-          class={[
-            "h-auto flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors hover:bg-transparent",
-            if(@creation_mode == :template,
-              do: "bg-background text-foreground shadow-sm",
-              else: "text-muted-foreground hover:text-foreground"
-            )
-          ]}
-        >
-          <.icon name="hero-squares-2x2" class="mr-1.5 size-4 inline" /> From template
-        </.button>
-        <.button
-          type="button"
-          variant="ghost"
-          phx-click="switch_to_description"
-          class={[
-            "h-auto flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors hover:bg-transparent",
-            if(@creation_mode == :description,
-              do: "bg-background text-foreground shadow-sm",
-              else: "text-muted-foreground hover:text-foreground"
-            )
-          ]}
-        >
-          <.icon name="hero-sparkles" class="mr-1.5 size-4 inline" /> Describe from scratch
-        </.button>
-      </div>
+      <.mode_toggle
+        options={[
+          {"switch_to_template", "From template", "hero-squares-2x2"},
+          {"switch_to_description", "Describe from scratch", "hero-sparkles"}
+        ]}
+        active={
+          if @creation_mode == :template, do: "switch_to_template", else: "switch_to_description"
+        }
+        class="mb-4"
+      />
 
       <.form for={%{}} as={:api} phx-submit="create_api" class="space-y-4">
         <.input
@@ -185,7 +168,7 @@ defmodule BlackboexWeb.ApiLive.IndexComponents do
         <%!-- Template mode --%>
         <%= if @creation_mode == :template do %>
           <%= if @template_categories == [] do %>
-            <p class="text-sm text-muted-foreground">No templates available yet.</p>
+            <p class="text-muted-description">No templates available yet.</p>
           <% else %>
             <%!-- Category tabs --%>
             <div class="flex gap-1 flex-wrap">
@@ -229,7 +212,7 @@ defmodule BlackboexWeb.ApiLive.IndexComponents do
                     <.icon name="hero-bolt" class="mt-0.5 size-4 shrink-0 text-muted-foreground" />
                     <div class="min-w-0">
                       <p class="text-xs font-medium leading-snug">{template.name}</p>
-                      <p class="text-xs text-muted-foreground line-clamp-2 leading-snug mt-0.5">
+                      <p class="text-muted-caption line-clamp-2 leading-snug mt-0.5">
                         {template.description}
                       </p>
                     </div>
@@ -252,30 +235,25 @@ defmodule BlackboexWeb.ApiLive.IndexComponents do
                     <.icon name="hero-x-mark" class="size-4" />
                   </.button>
                 </div>
-                <p class="text-xs text-muted-foreground">{@selected_template.description}</p>
+                <p class="text-muted-caption">{@selected_template.description}</p>
                 <div class="flex flex-wrap gap-1 pt-1">
-                  <span class="rounded bg-muted px-1.5 py-0.5 text-xs font-mono">handler.ex</span>
-                  <span class="rounded bg-muted px-1.5 py-0.5 text-xs font-mono">helpers.ex</span>
-                  <span class="rounded bg-muted px-1.5 py-0.5 text-xs font-mono">
-                    request_schema.ex
-                  </span>
-                  <span class="rounded bg-muted px-1.5 py-0.5 text-xs font-mono">
-                    response_schema.ex
-                  </span>
-                  <span class="rounded bg-muted px-1.5 py-0.5 text-xs font-mono">
-                    handler_test.ex
-                  </span>
-                  <span class="rounded bg-muted px-1.5 py-0.5 text-xs font-mono">README.md</span>
+                  <.inline_code>handler.ex</.inline_code>
+                  <.inline_code>helpers.ex</.inline_code>
+                  <.inline_code>request_schema.ex</.inline_code>
+                  <.inline_code>response_schema.ex</.inline_code>
+                  <.inline_code>handler_test.ex</.inline_code>
+                  <.inline_code>README.md</.inline_code>
                 </div>
               </div>
             <% else %>
-              <p class="text-xs text-muted-foreground">
+              <p class="text-muted-caption">
                 Select a template above, or
                 <.button
                   type="button"
-                  variant="ghost"
+                  variant="link"
+                  size="icon-xs"
                   phx-click="switch_to_description"
-                  class="h-auto w-auto p-0 underline hover:text-foreground hover:bg-transparent"
+                  class="underline hover:text-foreground"
                 >
                   describe from scratch
                 </.button>
@@ -296,7 +274,7 @@ defmodule BlackboexWeb.ApiLive.IndexComponents do
             maxlength="10000"
             placeholder="An API that receives a list of products with prices and returns the total, average, and most expensive item."
           />
-          <p class="text-xs text-muted-foreground">
+          <p class="text-muted-caption">
             Describe in natural language. Code will be generated automatically.
           </p>
         <% end %>

@@ -119,7 +119,7 @@ defmodule BlackboexWeb.BillingLive.Plans do
 
       <div :if={@usage} class="mb-8">
         <.card>
-          <.card_content class="pt-6">
+          <.card_content standalone>
             <div class="flex items-center justify-between mb-4">
               <.section_heading level="h1" compact>
                 Current Plan: {@usage.plan}
@@ -182,7 +182,7 @@ defmodule BlackboexWeb.BillingLive.Plans do
           :for={plan <- @plans}
           class={plan.id == @current_plan && "border-primary ring-2 ring-primary"}
         >
-          <.card_content class="pt-6">
+          <.card_content standalone>
             <.section_heading level="h1" compact>
               {plan.name}
             </.section_heading>
@@ -200,13 +200,13 @@ defmodule BlackboexWeb.BillingLive.Plans do
 
             <div class="flex gap-2 pt-2 mt-6">
               <%= if plan.id == @current_plan do %>
-                <.button variant="default" disabled class="w-full opacity-50 cursor-not-allowed">
+                <.button variant="default" disabled class="w-full">
                   <.icon name="hero-check-circle" class="mr-1.5 size-3.5 text-slate-400" />
                   Current Plan
                 </.button>
               <% else %>
                 <%= if plan.id == "free" do %>
-                  <.button variant="default" disabled class="w-full opacity-50 cursor-not-allowed">
+                  <.button variant="default" disabled class="w-full">
                     <.icon name="hero-check-circle" class="mr-1.5 size-3.5 text-slate-400" /> Free
                   </.button>
                 <% else %>

@@ -124,7 +124,7 @@ defmodule BlackboexWeb.DashboardLive do
           icon_class="text-accent-amber"
           title="Recent Activity"
         >
-          <div :if={@recent_activity == []} class="py-4 text-center text-sm text-muted-foreground">
+          <div :if={@recent_activity == []} class="py-4 text-center text-muted-description">
             No recent activity
           </div>
           <div :if={@recent_activity != []} class="divide-y">
@@ -133,7 +133,7 @@ defmodule BlackboexWeb.DashboardLive do
               class="flex items-center justify-between py-2"
             >
               <span class="text-sm">{format_action(activity.action)}</span>
-              <span class="text-xs text-muted-foreground">
+              <span class="text-muted-caption">
                 {relative_time(activity.timestamp)}
               </span>
             </div>

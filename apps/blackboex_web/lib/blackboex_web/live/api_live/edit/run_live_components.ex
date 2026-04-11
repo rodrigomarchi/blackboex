@@ -20,10 +20,11 @@ defmodule BlackboexWeb.ApiLive.Edit.RunLiveComponents do
         </h4>
         <.button
           :if={@test_history != []}
-          variant="ghost"
+          variant="link"
+          size="icon-xs"
           phx-click="request_confirm"
           phx-value-action="clear_history"
-          class="h-auto w-auto p-0 inline-flex items-center text-2xs text-destructive hover:underline hover:bg-transparent"
+          class="text-2xs text-destructive"
         >
           <.icon name="hero-trash-mini" class="mr-1 size-3" /> Clear
         </.button>
@@ -33,9 +34,9 @@ defmodule BlackboexWeb.ApiLive.Edit.RunLiveComponents do
         <.button
           :for={lang <- ~w(curl python javascript elixir ruby go)}
           variant="outline"
+          size="micro"
           phx-click="copy_snippet"
           phx-value-language={lang}
-          class="h-auto w-auto rounded border px-1.5 py-0.5 text-2xs hover:bg-accent"
         >
           {lang}
         </.button>

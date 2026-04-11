@@ -22,7 +22,7 @@ defmodule BlackboexWeb.Components.Shared.StatFigure do
     ~H"""
     <div class={@class}>
       <p class={classes(["text-2xl font-bold", @color])}>{@value}</p>
-      <p class="text-xs text-muted-foreground">{@label}</p>
+      <p class="text-muted-caption">{@label}</p>
     </div>
     """
   end

@@ -7,6 +7,7 @@ defmodule BlackboexWeb.ApiLive.Edit.InfoLive do
   import BlackboexWeb.ApiLive.Edit.Helpers, only: [count_lines: 1, format_json: 1]
   import BlackboexWeb.Components.Shared.CodeEditorField
   import BlackboexWeb.Components.UI.SectionHeading
+  import BlackboexWeb.Components.Shared.StatMini
   import BlackboexWeb.Components.UI.InlineInput
   import BlackboexWeb.Components.UI.InlineTextarea
   import BlackboexWeb.Components.Label
@@ -117,33 +118,30 @@ defmodule BlackboexWeb.ApiLive.Edit.InfoLive do
             Code Stats
           </.section_heading>
           <div class="grid grid-cols-4 gap-3">
-            <div class="rounded-lg border p-3 text-center">
-              <p class="text-xl font-bold">{@source_lines}</p>
-              <p class="flex items-center justify-center gap-1 text-2xs text-muted-foreground">
-                <.icon name="hero-code-bracket-mini" class="size-3.5 text-accent-purple" />
-                Source Lines
-              </p>
-            </div>
-            <div class="rounded-lg border p-3 text-center">
-              <p class="text-xl font-bold">{@test_lines}</p>
-              <p class="flex items-center justify-center gap-1 text-2xs text-muted-foreground">
-                <.icon name="hero-beaker-mini" class="size-3.5 text-accent-emerald" /> Test Lines
-              </p>
-            </div>
-            <div class="rounded-lg border p-3 text-center">
-              <p class="text-xl font-bold">{length(@versions)}</p>
-              <p class="flex items-center justify-center gap-1 text-2xs text-muted-foreground">
-                <.icon name="hero-clock-mini" class="size-3.5 text-accent-amber" /> Versions
-              </p>
-            </div>
-            <div class="rounded-lg border p-3 text-center">
-              <p class="text-xl font-bold">
-                {if @versions != [], do: "v#{hd(@versions).version_number}", else: "-"}
-              </p>
-              <p class="flex items-center justify-center gap-1 text-2xs text-muted-foreground">
-                <.icon name="hero-tag-mini" class="size-3.5 text-accent-blue" /> Latest
-              </p>
-            </div>
+            <.stat_mini
+              value={@source_lines}
+              label="Source Lines"
+              icon="hero-code-bracket-mini"
+              icon_class="text-accent-purple"
+            />
+            <.stat_mini
+              value={@test_lines}
+              label="Test Lines"
+              icon="hero-beaker-mini"
+              icon_class="text-accent-emerald"
+            />
+            <.stat_mini
+              value={length(@versions)}
+              label="Versions"
+              icon="hero-clock-mini"
+              icon_class="text-accent-amber"
+            />
+            <.stat_mini
+              value={if @versions != [], do: "v#{hd(@versions).version_number}", else: "-"}
+              label="Latest"
+              icon="hero-tag-mini"
+              icon_class="text-accent-blue"
+            />
           </div>
         </div>
 

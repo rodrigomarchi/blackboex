@@ -277,6 +277,9 @@
   --status-skipped: 240 5% 96%;
   --status-skipped-foreground: 240 4% 46%;
 
+  /* ── Editor ─────────────────────────────────────── */
+  --editor-bg: 240 21% 15%;
+
   /* ── Charts ────────────────────────────────────── */
   --chart-1: 239 65% 58%;
   --chart-2: 0 84% 60%;
@@ -374,6 +377,9 @@
   --status-halted-foreground: 48 96% 80%;
   --status-skipped: 240 6% 25%;
   --status-skipped-foreground: 240 5% 65%;
+
+  /* ── Editor ─────────────────────────────────────── */
+  --editor-bg: 240 21% 15%;
 
   /* ── Charts ────────────────────────────────────── */
   --chart-1: 239 65% 65%;
@@ -481,6 +487,9 @@
   --font-size-micro: 0.6875rem;
   --font-size-micro--line-height: 1rem;
 
+  /* ── Editor ───────────────────────────────────── */
+  --color-editor-bg: hsl(var(--editor-bg));
+
   /* ── Charts ─────────────────────────────────── */
   --color-chart-1: hsl(var(--chart-1));
   --color-chart-2: hsl(var(--chart-2));
@@ -575,6 +584,15 @@
 
 .link-entity {
   @apply text-primary hover:underline;
+}
+
+/* ── Timeline dots (chat/pipeline timeline) ────── */
+.timeline-dot {
+  @apply absolute -left-[9px] size-[13px] rounded-full border-2 border-background bg-background flex items-center justify-center;
+}
+
+.timeline-dot-sm {
+  @apply absolute -left-[5px] size-[7px] rounded-full border-2 border-background;
 }
 
 /* This file is for your main application CSS */

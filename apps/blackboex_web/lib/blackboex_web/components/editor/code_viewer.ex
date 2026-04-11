@@ -37,7 +37,7 @@ defmodule BlackboexWeb.Components.Editor.CodeViewer do
       |> assign(:gutter_width, gutter_width(length(lines)))
 
     ~H"""
-    <div class={["h-full flex flex-col bg-[#1e1e2e] overflow-hidden", @class]}>
+    <div class={["h-full flex flex-col bg-editor-bg overflow-hidden", @class]}>
       <div
         :if={@label}
         class="flex items-center justify-between px-2.5 py-1 border-b border-white/10 bg-white/5 shrink-0"

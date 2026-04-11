@@ -5,6 +5,8 @@ defmodule BlackboexWeb.Components.Shared.PlainKeyBanner do
 
   use BlackboexWeb, :html
 
+  import BlackboexWeb.Components.Shared.InlineCode
+
   attr :plain_key, :string, required: true
 
   @spec plain_key_banner(map()) :: Phoenix.LiveView.Rendered.t()
@@ -14,9 +16,9 @@ defmodule BlackboexWeb.Components.Shared.PlainKeyBanner do
       <p class="font-semibold text-foreground">
         Copy this key now — it won't be shown again:
       </p>
-      <code class="block bg-accent text-accent-foreground p-2 rounded font-mono text-sm break-all select-all">
+      <.inline_code variant="block">
         {@plain_key}
-      </code>
+      </.inline_code>
       <.button
         phx-click="dismiss_flash"
         variant="link"

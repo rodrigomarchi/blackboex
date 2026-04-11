@@ -35,7 +35,7 @@ defmodule BlackboexWeb.Components.Editor.Chat.PipelineStatus do
   def render_run_summary(assigns) do
     ~H"""
     <div class="relative pb-2 pt-1">
-      <div class="absolute -left-[9px] top-[7px] size-[13px] rounded-full border-2 bg-background flex items-center justify-center border-muted-foreground/50">
+      <div class="timeline-dot top-[7px] border-muted-foreground/50">
         <.icon name="hero-chart-bar" class="size-2 text-accent-sky" />
       </div>
       <div class="rounded-md border bg-muted/20 px-3 py-2 ml-2 space-y-1.5">
@@ -110,10 +110,7 @@ defmodule BlackboexWeb.Components.Editor.Chat.PipelineStatus do
     ~H"""
     <div class="relative pb-1 pt-0.5">
       <%!-- Timeline node --%>
-      <div class={[
-        "absolute -left-[9px] top-[5px] flex items-center justify-center size-[13px] rounded-full bg-background border-2",
-        step_node_class(@result)
-      ]}>
+      <div class={["timeline-dot top-[5px]", step_node_class(@result)]}>
         <.icon name={tool_icon(@call.tool)} class="size-[7px]" />
       </div>
 
@@ -172,7 +169,7 @@ defmodule BlackboexWeb.Components.Editor.Chat.PipelineStatus do
         <%!-- Thinking inside active step (no tokens yet) --%>
         <%= if is_nil(@result) and @streaming_tokens == "" do %>
           <div class="py-1">
-            <span class="text-xs text-muted-foreground animate-pulse">Thinking...</span>
+            <span class="text-muted-caption animate-pulse">Thinking...</span>
           </div>
         <% end %>
 
@@ -214,7 +211,7 @@ defmodule BlackboexWeb.Components.Editor.Chat.PipelineStatus do
     ~H"""
     <div class="relative pb-1 pt-0.5">
       <div class={[
-        "absolute -left-[9px] top-[5px] flex items-center justify-center size-[13px] rounded-full bg-background border-2",
+        "timeline-dot top-[5px]",
         if(@result[:success], do: "border-success", else: "border-destructive")
       ]}>
         <.icon name={tool_icon(@result.tool)} class="size-[7px]" />
@@ -242,7 +239,7 @@ defmodule BlackboexWeb.Components.Editor.Chat.PipelineStatus do
   def render_status_step(assigns) do
     ~H"""
     <div class="relative py-1">
-      <div class="absolute -left-[5px] top-[9px] size-[5px] rounded-full bg-muted-foreground/30" />
+      <div class="timeline-dot-sm top-[9px] bg-muted-foreground/30" />
       <span class="text-2xs text-muted-foreground italic ml-2">{@event.content || ""}</span>
     </div>
     """

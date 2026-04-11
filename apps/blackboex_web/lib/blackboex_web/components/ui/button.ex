@@ -24,6 +24,8 @@ defmodule BlackboexWeb.Components.Button do
     "ghost" => "hover:bg-accent hover:text-accent-foreground",
     "ghost-muted" => "text-muted-foreground hover:bg-accent hover:text-foreground",
     "ghost-dark" => "text-white/40 hover:bg-white/10 hover:text-white/70",
+    "success" => "bg-success text-success-foreground hover:bg-success/90",
+    "info" => "bg-info text-info-foreground hover:bg-info/90",
     "link" => "text-primary underline-offset-4 hover:underline"
   }
 
@@ -33,17 +35,24 @@ defmodule BlackboexWeb.Components.Button do
     "lg" => "h-11 rounded-md px-8",
     "icon" => "h-10 w-10",
     "icon-sm" => "h-auto w-auto p-1",
-    "icon-xs" => "h-auto w-auto p-0.5"
+    "icon-xs" => "h-auto w-auto p-0.5",
+    "compact" => "h-auto px-3 py-1 text-xs",
+    "pill" => "h-auto rounded-full px-2.5 py-1 text-xs",
+    "micro" => "h-auto w-auto px-1.5 py-0.5 text-2xs"
   }
 
   attr :type, :string, default: nil
   attr :class, :any, default: nil
 
   attr :variant, :string,
-    values: ~w(default primary secondary destructive outline ghost ghost-muted ghost-dark link),
+    values:
+      ~w(default primary secondary destructive outline ghost ghost-muted ghost-dark success info link),
     default: "default"
 
-  attr :size, :string, values: ~w(default sm lg icon icon-sm icon-xs), default: "default"
+  attr :size, :string,
+    values: ~w(default sm lg icon icon-sm icon-xs compact pill micro),
+    default: "default"
+
   attr :rest, :global, include: ~w(href navigate patch method download disabled form name value)
 
   slot :inner_block, required: true

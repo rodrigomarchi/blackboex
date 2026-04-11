@@ -55,7 +55,7 @@ defmodule BlackboexWeb.BillingLive.Manage do
 
       <%= if @subscription do %>
         <.card>
-          <.card_content class="pt-6">
+          <.card_content standalone>
             <.description_list>
               <:item label="Plan">
                 <span class="font-semibold capitalize">{@subscription.plan}</span>

@@ -9,6 +9,8 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
 
   use BlackboexWeb, :html
 
+  import BlackboexWeb.Components.Shared.InlineCode
+  import BlackboexWeb.Components.Shared.UnderlineTabs
   import BlackboexWeb.Components.UI.FieldLabel
   import BlackboexWeb.Components.UI.InlineInput
   import BlackboexWeb.Components.UI.InlineSelect
@@ -142,7 +144,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
         </.field_label>
         <p class="text-muted-caption mb-1.5">
           Rollback code if a downstream step fails. Has
-          <code class="text-xs bg-muted px-1 rounded">result</code>
+          <.inline_code>result</.inline_code>
           binding.
         </p>
         <.code_editor_field
@@ -666,7 +668,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
       />
       <div>
         <.field_label icon="hero-link" icon_color="text-accent-blue">Callback URL</.field_label>
-        <p class="rounded-lg border bg-muted/50 px-3 py-2 text-xs text-muted-foreground font-mono">
+        <p class="rounded-lg border bg-muted/50 px-3 py-2 text-muted-caption font-mono">
           POST /webhook/:token/resume/{@data["event_type"] || "<event_type>"}
         </p>
       </div>
@@ -689,8 +691,10 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
           Error Message
         </.field_label>
         <p class="text-muted-caption mb-1.5">
-          Elixir expression with <code class="text-xs bg-muted px-1 rounded">input</code>
-          and <code class="text-xs bg-muted px-1 rounded">state</code>
+          Elixir expression with
+          <.inline_code>input</.inline_code>
+          and
+          <.inline_code>state</.inline_code>
           bindings
         </p>
         <.code_editor_field
@@ -913,25 +917,16 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
   attr :active, :string, required: true
 
   def properties_tabs(assigns) do
+    assigns =
+      assign(assigns, :normalized_tabs, Enum.map(assigns.tabs, fn {label, id} -> {id, label} end))
+
     ~H"""
-    <div class="flex border-b -mx-4 px-4">
-      <button
-        :for={{label, id} <- @tabs}
-        type="button"
-        phx-click="set_properties_tab"
-        phx-value-tab={id}
-        class={[
-          "px-3 py-2 text-xs font-medium border-b-2 -mb-px transition-colors",
-          if(id == @active,
-            do: "border-primary text-foreground",
-            else:
-              "border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/50"
-          )
-        ]}
-      >
-        {label}
-      </button>
-    </div>
+    <.underline_tabs
+      tabs={@normalized_tabs}
+      active={@active}
+      click_event="set_properties_tab"
+      class="-mx-4 px-4"
+    />
     """
   end
 end

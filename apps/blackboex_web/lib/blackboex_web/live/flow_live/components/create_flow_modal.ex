@@ -6,6 +6,7 @@ defmodule BlackboexWeb.FlowLive.Components.CreateFlowModal do
   use BlackboexWeb, :html
 
   import BlackboexWeb.Components.Modal
+  import BlackboexWeb.Components.Shared.ModeToggle
   import BlackboexWeb.Components.UI.AlertBanner
 
   attr :show, :boolean, required: true
@@ -29,38 +30,15 @@ defmodule BlackboexWeb.FlowLive.Components.CreateFlowModal do
       </.alert_banner>
 
       <%!-- Mode Toggle --%>
-      <div class="flex gap-1 rounded-lg bg-muted p-1 mb-4">
-        <.button
-          type="button"
-          variant="ghost"
-          phx-click="set_create_mode"
-          phx-value-mode="template"
-          class={[
-            "h-auto flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors hover:bg-transparent",
-            if(@create_mode == :template,
-              do: "bg-background text-foreground shadow-sm",
-              else: "text-muted-foreground hover:text-foreground"
-            )
-          ]}
-        >
-          <.icon name="hero-squares-2x2" class="mr-1.5 size-4 inline" /> From template
-        </.button>
-        <.button
-          type="button"
-          variant="ghost"
-          phx-click="set_create_mode"
-          phx-value-mode="blank"
-          class={[
-            "h-auto flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors hover:bg-transparent",
-            if(@create_mode == :blank,
-              do: "bg-background text-foreground shadow-sm",
-              else: "text-muted-foreground hover:text-foreground"
-            )
-          ]}
-        >
-          <.icon name="hero-document-plus" class="mr-1.5 size-4 inline" /> Blank flow
-        </.button>
-      </div>
+      <.mode_toggle
+        options={[
+          {"template", "From template", "hero-squares-2x2"},
+          {"blank", "Blank flow", "hero-document-plus"}
+        ]}
+        active={@create_mode}
+        click_event="set_create_mode"
+        class="mb-4"
+      />
 
       <%!-- Template Picker --%>
       <div :if={@create_mode == :template} class="mb-4 space-y-3">
@@ -108,7 +86,7 @@ defmodule BlackboexWeb.FlowLive.Components.CreateFlowModal do
                 </div>
                 <div class="min-w-0">
                   <p class="text-xs font-medium leading-snug">{template.name}</p>
-                  <p class="text-xs text-muted-foreground line-clamp-2 leading-snug mt-0.5">
+                  <p class="text-muted-caption line-clamp-2 leading-snug mt-0.5">
                     {template.description}
                   </p>
                   <p class="text-xs text-muted-foreground/60 mt-1">
@@ -121,14 +99,15 @@ defmodule BlackboexWeb.FlowLive.Components.CreateFlowModal do
         </div>
 
         <%!-- Helper text --%>
-        <p :if={is_nil(@selected_template)} class="text-xs text-muted-foreground">
+        <p :if={is_nil(@selected_template)} class="text-muted-caption">
           Select a template above, or switch to
           <.button
             type="button"
-            variant="ghost"
+            variant="link"
+            size="icon-xs"
             phx-click="set_create_mode"
             phx-value-mode="blank"
-            class="h-auto w-auto p-0 underline hover:text-foreground hover:bg-transparent"
+            class="underline hover:text-foreground"
           >
             blank flow
           </.button>

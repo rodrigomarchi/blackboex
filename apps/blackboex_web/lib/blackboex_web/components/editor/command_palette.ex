@@ -70,7 +70,7 @@ defmodule BlackboexWeb.Components.Editor.CommandPalette do
           </.button>
           <p
             :if={@filtered_commands == []}
-            class="px-3 py-4 text-sm text-muted-foreground text-center"
+            class="px-3 py-4 text-muted-description text-center"
           >
             No commands found
           </p>

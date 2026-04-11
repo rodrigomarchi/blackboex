@@ -50,6 +50,7 @@ Violation of this rule creates inconsistent UI, breaks dark mode, bypasses seman
 | Period buttons (24h/7d/30d) | `<.period_selector>` | `shared/period_selector.ex` |
 | Dashboard page header | `<.dashboard_page_header>` | `shared/dashboard_page_header.ex` |
 | API key flash banner | `<.plain_key_banner>` | `shared/plain_key_banner.ex` |
+| Inline code snippet | `<.inline_code>` | `shared/inline_code.ex` |
 
 ---
 
@@ -113,8 +114,8 @@ Renders `<button>` by default. When `navigate`, `patch`, or `href` is provided, 
 | Attr | Type | Default | Description |
 |------|------|---------|-------------|
 | `type` | `:string` | `nil` | HTML button type (`"button"`, `"submit"`, `"reset"`) |
-| `variant` | `:string` | `"default"` | `default`, `primary`, `secondary`, `destructive`, `outline`, `ghost`, `ghost-muted`, `ghost-dark`, `link` |
-| `size` | `:string` | `"default"` | `default`, `sm`, `lg`, `icon`, `icon-sm`, `icon-xs` |
+| `variant` | `:string` | `"default"` | `default`, `primary`, `secondary`, `destructive`, `outline`, `ghost`, `ghost-muted`, `ghost-dark`, `success`, `info`, `link` |
+| `size` | `:string` | `"default"` | `default`, `sm`, `lg`, `icon`, `icon-sm`, `icon-xs`, `compact`, `pill`, `micro` |
 | `class` | `:any` | `nil` | Additional CSS classes |
 | `navigate` / `patch` / `href` | global | — | Renders as `<.link>` |
 | `disabled` / `phx-click` | global | — | Standard button attrs |
@@ -973,9 +974,17 @@ One-time API key display banner with copy-friendly code block and dismiss button
 ### Updated Components
 
 - **`<.stat_card>`** — added `href` attr (optional). When present, wraps card in a `<.link navigate={}>` with hover border.
-- **`<.badge>`** — added `variant="status"` and `size="xs"` variants.
+- **`<.badge>`** — added `variant="status"`, `size="xs"`, and semantic variants `success`, `warning`, `info`.
+- **`<.button>`** — added variants `success`, `info`, `ghost-dark`; sizes `compact`, `pill`, `micro`, `icon-sm`, `icon-xs`.
+- **`<.card_content>`** — added `standalone` boolean (restores top padding when no card_header), `size="compact"`.
+- **`<.card_header>`** — added `size="compact"` (tighter padding for dense layouts).
+- **`<.card_title>`** — added `size="label"` (small uppercase tracking style).
 - **StatusHelpers** — added `execution_status_text_class/1` for text color classes.
 - **DashboardHelpers** — added `format_latency/1`, extended `format_duration/1` to handle minutes (>60s).
+
+### New Components
+
+- **`<.inline_code>`** — `shared/inline_code.ex` — inline code display with `default` and `block` variants.
 
 ### New Helpers
 
@@ -988,3 +997,4 @@ One-time API key display banner with copy-friendly code block and dismiss button
 ### CSS Tokens
 
 - `text-2xs` (10px) and `text-micro` (11px) — custom font sizes defined in `@theme inline`. Use instead of `text-[10px]` / `text-[11px]`.
+- `bg-editor-bg` — editor dark background color. Use instead of `bg-[#1e1e2e]`.

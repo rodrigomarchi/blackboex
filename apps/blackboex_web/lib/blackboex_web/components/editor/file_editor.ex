@@ -29,7 +29,7 @@ defmodule BlackboexWeb.Components.Editor.FileEditor do
       )
 
     ~H"""
-    <div class={["flex flex-col h-full bg-[#1e1e2e]", @class]}>
+    <div class={["flex flex-col h-full bg-editor-bg", @class]}>
       <%= if @file do %>
         <div class="flex items-center h-8 px-3 border-b border-white/10 shrink-0">
           <span class="text-2xs text-white/60 font-mono truncate">{@file.path}</span>

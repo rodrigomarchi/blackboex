@@ -5,7 +5,7 @@ defmodule BlackboexWeb.Components.Editor.BottomPanel do
   """
   use BlackboexWeb, :html
 
-  import BlackboexWeb.Components.Badge
+  import BlackboexWeb.Components.Shared.UnderlineTabs
 
   attr :active_tab, :string, default: "test"
   attr :validation_report, :map, default: nil
@@ -16,38 +16,12 @@ defmodule BlackboexWeb.Components.Editor.BottomPanel do
     ~H"""
     <div class="flex flex-col border-t bg-card" style="height: 35vh; min-height: 200px;">
       <div class="flex items-center border-b px-2 shrink-0">
-        <.button
-          :for={tab <- ~w(test validation versions)}
-          variant="ghost"
-          phx-click="switch_bottom_tab"
-          phx-value-tab={tab}
-          class={[
-            "h-auto rounded-none px-3 py-1.5 text-xs font-medium border-b-2 transition-colors hover:bg-transparent",
-            if(tab == @active_tab,
-              do: "border-primary text-primary",
-              else: "border-transparent text-muted-foreground hover:text-foreground"
-            )
-          ]}
-        >
-          {bottom_tab_label(tab)}
-          <.badge
-            :if={tab == "validation" && @validation_report != nil}
-            size="xs"
-            variant="status"
-            class={
-              "ml-1 " <>
-                if(@validation_report.overall == :pass,
-                  do: "bg-success/10 text-success-foreground",
-                  else: "bg-destructive/10 text-destructive"
-                )
-            }
-          >
-            {if @validation_report.overall == :pass, do: "✓", else: "!"}
-          </.badge>
-        </.button>
-
-        <div class="flex-1" />
-
+        <.underline_tabs
+          tabs={bottom_tabs(assigns)}
+          active={@active_tab}
+          click_event="switch_bottom_tab"
+          class="flex-1 border-b-0"
+        />
         <.button
           variant="ghost-muted"
           size="icon-sm"
@@ -65,7 +39,12 @@ defmodule BlackboexWeb.Components.Editor.BottomPanel do
     """
   end
 
-  defp bottom_tab_label("test"), do: "Test"
-  defp bottom_tab_label("validation"), do: "Validation"
-  defp bottom_tab_label("versions"), do: "Versions"
+  defp bottom_tabs(%{validation_report: nil}) do
+    [{"test", "Test"}, {"validation", "Validation"}, {"versions", "Versions"}]
+  end
+
+  defp bottom_tabs(%{validation_report: report}) do
+    badge = if report.overall == :pass, do: "✓", else: "!"
+    [{"test", "Test"}, {"validation", "Validation", badge}, {"versions", "Versions"}]
+  end
 end

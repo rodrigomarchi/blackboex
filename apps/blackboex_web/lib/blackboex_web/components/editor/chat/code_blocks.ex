@@ -27,7 +27,7 @@ defmodule BlackboexWeb.Components.Editor.Chat.CodeBlocks do
       |> assign(:lines, Enum.with_index(lines, 1))
 
     ~H"""
-    <div class="rounded-md border bg-[#1e1e2e] overflow-hidden">
+    <div class="rounded-md border bg-editor-bg overflow-hidden">
       <div class="flex items-center justify-between px-2.5 py-1 border-b border-white/10 bg-white/5">
         <.code_label variant="dark">{@label}</.code_label>
         <%= if @streaming do %>

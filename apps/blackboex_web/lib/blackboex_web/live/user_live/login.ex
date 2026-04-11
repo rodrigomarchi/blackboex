@@ -70,7 +70,7 @@ defmodule BlackboexWeb.UserLive.Login do
 
       <div class="relative my-4 flex items-center">
         <div class="flex-grow border-t border-border"></div>
-        <span class="mx-3 text-xs text-muted-foreground">or</span>
+        <span class="mx-3 text-muted-caption">or</span>
         <div class="flex-grow border-t border-border"></div>
       </div>
 

@@ -68,7 +68,7 @@ defmodule BlackboexWeb.Layouts do
         <div class="flex items-center gap-3">
           <.theme_toggle />
           <%= if @current_scope && @current_scope.user do %>
-            <span class="hidden text-sm text-muted-foreground md:inline">
+            <span class="hidden text-muted-description md:inline">
               {@current_scope.user.email}
             </span>
             <.link
@@ -138,7 +138,7 @@ defmodule BlackboexWeb.Layouts do
         </nav>
         <%= if @current_scope && @current_scope.user do %>
           <div class="mt-3 border-t pt-3">
-            <span class="text-sm text-muted-foreground">{@current_scope.user.email}</span>
+            <span class="text-muted-description">{@current_scope.user.email}</span>
             <.link
               href={~p"/users/log-out"}
               method="delete"

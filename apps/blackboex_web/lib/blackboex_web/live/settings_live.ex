@@ -71,7 +71,7 @@ defmodule BlackboexWeb.SettingsLive do
   defp render_tab(%{active_tab: "profile"} = assigns) do
     ~H"""
     <.card>
-      <.card_content class="pt-6">
+      <.card_content standalone>
         <.section_heading
           icon="hero-user-circle"
           icon_class="size-4 text-accent-blue"
@@ -88,7 +88,7 @@ defmodule BlackboexWeb.SettingsLive do
           </.avatar>
           <div>
             <p class="font-medium">{@current_scope.user.email}</p>
-            <p class="text-sm text-muted-foreground">
+            <p class="text-muted-description">
               Member since {Calendar.strftime(@current_scope.user.inserted_at, "%B %Y")}
             </p>
           </div>
@@ -115,7 +115,7 @@ defmodule BlackboexWeb.SettingsLive do
   defp render_tab(%{active_tab: "organization", current_scope: %{organization: nil}} = assigns) do
     ~H"""
     <.card>
-      <.card_content class="pt-6">
+      <.card_content standalone>
         <.section_heading
           icon="hero-building-office-2"
           icon_class="size-4 text-accent-violet"
@@ -132,7 +132,7 @@ defmodule BlackboexWeb.SettingsLive do
   defp render_tab(%{active_tab: "organization"} = assigns) do
     ~H"""
     <.card>
-      <.card_content class="pt-6">
+      <.card_content standalone>
         <.section_heading
           icon="hero-building-office-2"
           icon_class="size-4 text-accent-violet"
@@ -182,7 +182,7 @@ defmodule BlackboexWeb.SettingsLive do
   defp render_tab(%{active_tab: "billing", current_scope: %{organization: nil}} = assigns) do
     ~H"""
     <.card>
-      <.card_content class="pt-6">
+      <.card_content standalone>
         <.section_heading
           icon="hero-credit-card"
           icon_class="size-4 text-accent-emerald"
@@ -199,7 +199,7 @@ defmodule BlackboexWeb.SettingsLive do
   defp render_tab(%{active_tab: "billing"} = assigns) do
     ~H"""
     <.card>
-      <.card_content class="pt-6">
+      <.card_content standalone>
         <.section_heading
           icon="hero-credit-card"
           icon_class="size-4 text-accent-emerald"
@@ -239,7 +239,7 @@ defmodule BlackboexWeb.SettingsLive do
   defp render_tab(%{active_tab: "security"} = assigns) do
     ~H"""
     <.card>
-      <.card_content class="pt-6">
+      <.card_content standalone>
         <.section_heading
           icon="hero-shield-check"
           icon_class="size-4 text-accent-teal"

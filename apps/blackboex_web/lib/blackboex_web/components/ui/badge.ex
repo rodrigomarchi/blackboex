@@ -15,7 +15,7 @@ defmodule BlackboexWeb.Components.Badge do
   attr :class, :string, default: nil
 
   attr :variant, :string,
-    values: ~w(default secondary destructive outline status),
+    values: ~w(default secondary destructive outline success warning info status),
     default: "default",
     doc: "the badge variant style"
 
@@ -37,6 +37,9 @@ defmodule BlackboexWeb.Components.Badge do
     "destructive" =>
       "border border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
     "outline" => "border text-foreground",
+    "success" => "border-success bg-success/10 text-success-foreground",
+    "warning" => "border-warning bg-warning/10 text-warning-foreground",
+    "info" => "border-info bg-info/10 text-info-foreground",
     "status" => "border-transparent"
   }
 

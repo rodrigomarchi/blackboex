@@ -5,6 +5,7 @@ defmodule BlackboexWeb.FlowLive.Executions do
 
   use BlackboexWeb, :live_view
 
+  import BlackboexWeb.Components.Badge
   import BlackboexWeb.Components.Card
   import BlackboexWeb.Components.Shared.EmptyState
   import BlackboexWeb.Components.UI.SectionHeading
@@ -51,9 +52,9 @@ defmodule BlackboexWeb.FlowLive.Executions do
             <.icon name="hero-arrow-left" class="size-5" />
           </.link>
           <.section_heading level="h2" compact>Executions</.section_heading>
-          <span class="text-xs text-muted-foreground">{@flow.name}</span>
+          <span class="text-muted-caption">{@flow.name}</span>
         </div>
-        <div :if={@executions != []} class="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <div :if={@executions != []} class="flex items-center gap-1.5 text-muted-caption">
           <.icon name="hero-bolt-mini" class="size-3.5 text-accent-amber" />
           {length(@executions)} total runs
         </div>
@@ -104,10 +105,10 @@ defmodule BlackboexWeb.FlowLive.Executions do
                 row_click={&JS.navigate(~p"/flows/#{@flow.id}/executions/#{&1.id}")}
               >
                 <:col :let={exec} label="Status">
-                  <div class={"inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium #{status_badge(exec.status)}"}>
+                  <.badge variant="status" class={status_badge(exec.status)}>
                     <.icon name={status_icon(exec.status)} class="size-3.5" />
                     {exec.status}
-                  </div>
+                  </.badge>
                 </:col>
                 <:col :let={exec} label="Execution ID">
                   <span class="text-xs font-mono text-muted-foreground">
@@ -118,7 +119,7 @@ defmodule BlackboexWeb.FlowLive.Executions do
                   <span class="text-xs font-mono">{format_duration(exec.duration_ms)}</span>
                 </:col>
                 <:col :let={exec} label="Started">
-                  <span class="text-xs text-muted-foreground">
+                  <span class="text-muted-caption">
                     {format_time(exec.inserted_at)}
                   </span>
                 </:col>
@@ -141,7 +142,7 @@ defmodule BlackboexWeb.FlowLive.Executions do
     <div class="flex items-center gap-3 rounded-lg border bg-card px-3 py-2.5">
       <.icon name={@icon} class={"size-4 #{@color}"} />
       <div>
-        <div class="text-xs text-muted-foreground">{@label}</div>
+        <div class="text-muted-caption">{@label}</div>
         <div class="text-sm font-semibold">{@value}</div>
       </div>
     </div>

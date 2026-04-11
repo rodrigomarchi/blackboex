@@ -44,11 +44,12 @@ defmodule BlackboexWeb.FlowLive.Components.SchemaBuilder do
         <.field_label class="mb-0">{@label}</.field_label>
         <.button
           type="button"
-          variant="ghost"
+          variant="ghost-muted"
+          size="micro"
           phx-click="schema_add_field"
           phx-value-schema-id={@schema_id}
           phx-value-path=""
-          class="h-auto w-auto inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-2xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
+          class="font-medium"
         >
           <.icon name="hero-plus-mini" class="size-3" /> Add
         </.button>

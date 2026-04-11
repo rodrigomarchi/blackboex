@@ -6,33 +6,29 @@ defmodule BlackboexWeb.Components.Editor.ValidationDashboard do
 
   use BlackboexWeb, :html
 
+  import BlackboexWeb.Components.Badge
+
   attr :report, :map, default: nil
   attr :loading, :boolean, default: false
 
   @spec validation_dashboard(map()) :: Phoenix.LiveView.Rendered.t()
   def validation_dashboard(assigns) do
     ~H"""
-    <div :if={@loading} class="flex items-center gap-2 text-sm text-muted-foreground p-4">
+    <div :if={@loading} class="flex items-center gap-2 text-muted-description p-4">
       <.icon name="hero-arrow-path" class="size-4 animate-spin" />
       <span>Running validations...</span>
     </div>
 
-    <div :if={!@loading && @report == nil} class="p-4 text-sm text-muted-foreground">
+    <div :if={!@loading && @report == nil} class="p-4 text-muted-description">
       No validation results yet. Save to run validations.
     </div>
 
     <div :if={!@loading && @report != nil} class="space-y-3 p-3">
       <%!-- Overall badge --%>
       <div class="flex items-center gap-2">
-        <span class={[
-          "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold",
-          if(@report.overall == :pass,
-            do: "bg-success/10 text-success-foreground",
-            else: "bg-destructive/10 text-destructive"
-          )
-        ]}>
+        <.badge variant={if @report.overall == :pass, do: "success", else: "destructive"}>
           {if @report.overall == :pass, do: "ALL PASS", else: "ISSUES FOUND"}
-        </span>
+        </.badge>
       </div>
 
       <%!-- Compilation --%>
@@ -72,14 +68,11 @@ defmodule BlackboexWeb.Components.Editor.ValidationDashboard do
   @spec validation_badge(map()) :: Phoenix.LiveView.Rendered.t()
   def validation_badge(assigns) do
     ~H"""
-    <span class={[
-      "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-2xs font-semibold",
-      badge_class(@status)
-    ]}>
+    <.badge size="xs" class={"gap-1 #{badge_class(@status)}"}>
       <span>{status_icon(@status)}</span>
       <span>{@check}</span>
       <span :if={@detail}>{@detail}</span>
-    </span>
+    </.badge>
     """
   end
 
@@ -95,14 +88,14 @@ defmodule BlackboexWeb.Components.Editor.ValidationDashboard do
       <div class="flex items-center gap-2">
         <span class={status_text_class(@status)}>{status_icon(@status)}</span>
         <span class="text-sm font-medium">{@name}</span>
-        <span :if={@issues != []} class="text-xs text-muted-foreground">
+        <span :if={@issues != []} class="text-muted-caption">
           ({length(@issues)} {if length(@issues) == 1, do: "issue", else: "issues"})
         </span>
       </div>
       <div :if={@issues != []} class="mt-1 space-y-0.5">
         <div
           :for={issue <- @issues}
-          class="text-xs text-muted-foreground font-mono pl-5 truncate"
+          class="text-muted-caption font-mono pl-5 truncate"
           title={issue}
         >
           {issue}
@@ -135,7 +128,7 @@ defmodule BlackboexWeb.Components.Editor.ValidationDashboard do
       <div class="flex items-center gap-2">
         <span class={status_text_class(@status)}>{status_icon(@status)}</span>
         <span class="text-sm font-medium">Tests</span>
-        <span :if={@status == :skipped} class="text-xs text-muted-foreground">(skipped)</span>
+        <span :if={@status == :skipped} class="text-muted-caption">(skipped)</span>
         <span
           :if={@status != :skipped}
           class={[

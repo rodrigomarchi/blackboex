@@ -18,7 +18,7 @@ defmodule BlackboexWeb.Components.Editor.Chat.ChatMessage do
     <div class="relative pb-3 pt-1">
       <%!-- Timeline node on the border-l line --%>
       <div class={[
-        "absolute -left-[7px] top-3 size-[9px] rounded-full border-2 bg-background",
+        "timeline-dot-sm top-3",
         if(@event.role == "user", do: "border-primary", else: "border-muted-foreground/50")
       ]} />
 

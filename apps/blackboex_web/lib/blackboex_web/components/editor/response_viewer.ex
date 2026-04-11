@@ -8,6 +8,7 @@ defmodule BlackboexWeb.Components.Editor.ResponseViewer do
 
   import BlackboexWeb.Components.Badge
   import BlackboexWeb.Components.Shared.CodeEditorField
+  import BlackboexWeb.Components.Shared.UnderlineTabs
   import BlackboexWeb.Components.Spinner
   import BlackboexWeb.Components.UI.AlertBanner
   import BlackboexWeb.Components.UI.SectionHeading
@@ -30,16 +31,16 @@ defmodule BlackboexWeb.Components.Editor.ResponseViewer do
             <.badge variant="status" class={status_color(@response.status)}>
               {@response.status}
             </.badge>
-            <span class="text-xs text-muted-foreground">
+            <span class="text-muted-caption">
               {@response.duration_ms}ms
             </span>
             <%= if @violations != [] do %>
-              <.badge variant="status" class="border-warning bg-warning/10 text-warning-foreground">
+              <.badge variant="warning">
                 {length(@violations)} violation(s)
               </.badge>
             <% else %>
               <%= if @response do %>
-                <.badge variant="status" class="border-success bg-success/10 text-success-foreground">
+                <.badge variant="success">
                   Valid
                 </.badge>
               <% end %>
@@ -60,27 +61,15 @@ defmodule BlackboexWeb.Components.Editor.ResponseViewer do
             </.alert_banner>
           <% @response -> %>
             <div class="space-y-3">
-              <div class="flex border-b">
-                <.button
-                  :for={tab <- ~w(body headers)}
-                  variant="ghost"
-                  phx-click="switch_response_tab"
-                  phx-value-tab={tab}
-                  class={[
-                    "h-auto rounded-none flex-1 px-3 py-2 text-xs font-medium border-b-2 hover:bg-transparent",
-                    if(tab == @response_tab,
-                      do: "border-primary text-primary",
-                      else: "border-transparent text-muted-foreground hover:text-foreground"
-                    )
-                  ]}
-                >
-                  {response_tab_label(tab)}
-                </.button>
-              </div>
+              <.underline_tabs
+                tabs={[{"body", "Body"}, {"headers", "Headers"}]}
+                active={@response_tab}
+                click_event="switch_response_tab"
+              />
               {render_response_content(assigns)}
             </div>
           <% true -> %>
-            <p class="text-sm text-muted-foreground text-center py-8">
+            <p class="text-muted-description text-center py-8">
               Envie um request para ver a resposta
             </p>
         <% end %>
@@ -133,7 +122,4 @@ defmodule BlackboexWeb.Components.Editor.ResponseViewer do
     do: "border-destructive bg-destructive/10 text-destructive"
 
   defp status_color(_), do: "border bg-muted text-muted-foreground"
-
-  defp response_tab_label("body"), do: "Body"
-  defp response_tab_label("headers"), do: "Headers"
 end

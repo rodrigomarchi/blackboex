@@ -36,8 +36,9 @@ defmodule BlackboexWeb.Components.FlowEditor.FlowHeader do
           </.badge>
           <.button
             variant="ghost"
+            size="pill"
             phx-click="deactivate_flow"
-            class="h-auto inline-flex items-center gap-1 rounded-full bg-muted/50 px-2.5 py-1 text-xs text-muted-foreground hover:bg-accent-orange/15 hover:text-accent-orange transition-colors"
+            class="bg-muted/50 text-muted-foreground hover:bg-accent-orange/15 hover:text-accent-orange transition-colors"
           >
             <.icon name="hero-pause-circle-mini" class="size-3.5" /> Pause
           </.button>
@@ -47,8 +48,9 @@ defmodule BlackboexWeb.Components.FlowEditor.FlowHeader do
           </.badge>
           <.button
             variant="ghost"
+            size="pill"
             phx-click="activate_flow"
-            class="h-auto inline-flex items-center gap-1 rounded-full bg-status-completed/15 px-2.5 py-1 text-xs text-status-completed-foreground hover:bg-status-completed/25 transition-colors"
+            class="bg-status-completed/15 text-status-completed-foreground hover:bg-status-completed/25 transition-colors"
           >
             <.icon name="hero-bolt-mini" class="size-3.5" /> Activate
           </.button>

@@ -7,8 +7,10 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLiveComponents do
   use BlackboexWeb, :html
 
   import BlackboexWeb.Components.Badge
+  import BlackboexWeb.Components.Shared.InlineCode
   import BlackboexWeb.Components.UI.FieldLabel
   import BlackboexWeb.Components.UI.SectionHeading
+  import BlackboexWeb.Components.Shared.StatMini
 
   import BlackboexWeb.ApiLive.Edit.Helpers, only: [time_ago: 1]
 
@@ -40,17 +42,20 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLiveComponents do
         </div>
         <.button
           :if={@api.status == "compiled"}
+          variant="info"
+          size="compact"
           phx-click="publish"
-          class="h-auto inline-flex items-center rounded-md bg-info px-3 py-1.5 text-xs font-medium text-info-foreground hover:bg-info/90"
+          class="font-medium"
         >
           <.icon name="hero-rocket-launch" class="mr-1.5 size-3.5" /> Publish API
         </.button>
         <.button
           :if={@api.status == "published"}
           variant="outline"
+          size="compact"
           phx-click="request_confirm"
           phx-value-action="unpublish"
-          class="h-auto inline-flex items-center rounded-md border-destructive px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10"
+          class="border-destructive text-destructive hover:bg-destructive/10 font-medium"
         >
           <.icon name="hero-arrow-down-circle" class="mr-1.5 size-3.5" /> Unpublish
         </.button>
@@ -58,11 +63,12 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLiveComponents do
 
       <div class="flex items-center gap-2 text-xs">
         <span class="text-muted-foreground">URL</span>
-        <code class="font-mono">/api/{@org.slug}/{@api.slug}</code>
+        <.inline_code>/api/{@org.slug}/{@api.slug}</.inline_code>
         <.button
-          variant="ghost"
+          variant="link"
+          size="icon-xs"
           phx-click="copy_url"
-          class="h-auto w-auto p-0 inline-flex items-center text-primary hover:underline text-2xs hover:bg-transparent"
+          class="text-2xs"
         >
           <.icon name="hero-clipboard-document-mini" class="mr-1 size-3 text-accent-sky" />Copy
         </.button>
@@ -73,7 +79,7 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLiveComponents do
 
       <%= if @api.status == "published" && @published_version do %>
         <div class="flex items-center gap-2 text-xs">
-          <.badge variant="status" class="gap-1 bg-success/10 text-success-foreground font-semibold">
+          <.badge variant="success" class="gap-1 font-semibold">
             <.icon name="hero-signal" class="size-3 text-accent-emerald" /> LIVE
           </.badge>
           <span>v{@published_version.version_number}</span>
@@ -148,20 +154,21 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLiveComponents do
 
               <div class="flex gap-2">
                 <.button
-                  variant="ghost"
+                  variant="link"
+                  size="icon-xs"
                   phx-click="view_version"
                   phx-value-number={version.version_number}
-                  class="h-auto w-auto p-0 inline-flex items-center text-primary hover:underline hover:bg-transparent"
                 >
                   <.icon name="hero-eye-mini" class="mr-1 size-3" />View
                 </.button>
                 <.button
                   :if={can_publish_version?(version, @published_version, @api_status)}
-                  variant="ghost"
+                  variant="link"
+                  size="icon-xs"
                   phx-click="request_confirm"
                   phx-value-action="publish_version"
                   phx-value-number={version.version_number}
-                  class="h-auto w-auto p-0 inline-flex items-center text-info hover:underline font-medium hover:bg-transparent"
+                  class="text-info font-medium"
                 >
                   <.icon name="hero-rocket-launch-mini" class="mr-1 size-3" />Publish this version
                 </.button>
@@ -184,28 +191,25 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLiveComponents do
     <div>
       <.section_heading level="h3" variant="label">Metrics (24h)</.section_heading>
       <div class="grid grid-cols-4 gap-3">
-        <div class="rounded-lg border p-3 text-center">
-          <p class="text-xl font-bold">{@metrics.count_24h}</p>
-          <p class="flex items-center justify-center gap-1 text-2xs text-muted-foreground">
-            <.icon name="hero-signal-mini" class="size-3.5 text-accent-sky" /> Total Calls
-          </p>
-        </div>
-        <div class="rounded-lg border p-3 text-center">
-          <p class="text-xl font-bold">{@metrics.success_rate}%</p>
-          <p class="text-2xs text-muted-foreground">Success Rate</p>
-        </div>
-        <div class="rounded-lg border p-3 text-center">
-          <p class="text-xl font-bold">{@metrics.avg_latency}ms</p>
-          <p class="flex items-center justify-center gap-1 text-2xs text-muted-foreground">
-            <.icon name="hero-clock-mini" class="size-3.5 text-accent-amber" /> Avg Latency
-          </p>
-        </div>
-        <div class="rounded-lg border p-3 text-center">
-          <p class="text-xl font-bold">{@metrics[:error_count] || 0}</p>
-          <p class="flex items-center justify-center gap-1 text-2xs text-muted-foreground">
-            <.icon name="hero-exclamation-circle-mini" class="size-3.5 text-accent-red" /> Errors
-          </p>
-        </div>
+        <.stat_mini
+          value={@metrics.count_24h}
+          label="Total Calls"
+          icon="hero-signal-mini"
+          icon_class="text-accent-sky"
+        />
+        <.stat_mini value={@metrics.success_rate} label="Success Rate" />
+        <.stat_mini
+          value={"#{@metrics.avg_latency}ms"}
+          label="Avg Latency"
+          icon="hero-clock-mini"
+          icon_class="text-accent-amber"
+        />
+        <.stat_mini
+          value={@metrics[:error_count] || 0}
+          label="Errors"
+          icon="hero-exclamation-circle-mini"
+          icon_class="text-accent-red"
+        />
       </div>
     </div>
     """
@@ -239,7 +243,8 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLiveComponents do
             <.button
               type="submit"
               variant="primary"
-              class="h-auto inline-flex items-center rounded-md px-3 py-1.5 text-xs font-medium"
+              size="compact"
+              class="font-medium"
             >
               <.icon name="hero-check" class="mr-1.5 size-3.5" /> Save
             </.button>

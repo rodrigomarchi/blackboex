@@ -29,10 +29,21 @@ defmodule BlackboexWeb.ShowcaseLive do
     {"section-heading", "Section Heading", :ui},
     {"header", "Header", :ui},
     {"icon", "Icon", :ui},
+    {"avatar", "Avatar", :ui},
+    {"inline-input", "Inline Input", :ui},
+    {"inline-textarea", "Inline Textarea", :ui},
+    {"inline-select", "Inline Select", :ui},
+    {"form-field", "Form Field", :ui},
+    {"confirm-dialog", "Confirm Dialog", :ui},
+    {"flash", "Flash", :ui},
+    {"sheet", "Sheet", :ui},
+    {"sidebar", "Sidebar", :ui},
     # Shared
     {"stat-card", "Stat Card", :shared},
     {"stat-mini", "Stat Mini", :shared},
     {"stat-grid", "Stat Grid", :shared},
+    {"stat-chip", "Stat Chip", :shared},
+    {"stat-figure", "Stat Figure", :shared},
     {"panel", "Panel", :shared},
     {"page", "Page", :shared},
     {"empty-state", "Empty State", :shared},
@@ -40,13 +51,33 @@ defmodule BlackboexWeb.ShowcaseLive do
     {"form-actions", "Form Actions", :shared},
     {"editor-tab-panel", "Editor Tab Panel", :shared},
     {"chart-grid", "Chart Grid", :shared},
+    {"charts", "Charts", :shared},
     {"category-pills", "Category Pills", :shared},
     {"underline-tabs", "Underline Tabs", :shared},
     {"dashboard-nav", "Dashboard Nav", :shared},
+    {"dashboard-page-header", "Dashboard Page Header", :shared},
+    {"dashboard-section", "Dashboard Section", :shared},
     {"description-list", "Description List", :shared},
     {"progress-bar", "Progress Bar", :shared},
     {"icon-badge", "Icon Badge", :shared},
-    {"inline-code", "Inline Code", :shared}
+    {"inline-code", "Inline Code", :shared},
+    {"template-grid", "Template Grid", :shared},
+    {"period-selector", "Period Selector", :shared},
+    {"mode-toggle", "Mode Toggle", :shared},
+    {"plain-key-banner", "Plain Key Banner", :shared},
+    {"code-editor-field", "Code Editor Field", :shared},
+    # Editor
+    {"code-viewer", "Code Viewer", :editor},
+    {"code-label", "Code Label", :editor},
+    {"validation-dashboard", "Validation Dashboard", :editor},
+    {"file-tree", "File Tree", :editor},
+    {"status-bar", "Status Bar", :editor},
+    {"editor-overview", "Editor Overview", :editor},
+    # Flow Editor
+    {"flow-header", "Flow Header", :flow_editor},
+    {"json-preview-modal", "JSON Preview Modal", :flow_editor},
+    {"run-modal", "Run Modal", :flow_editor},
+    {"flow-editor-overview", "Flow Editor Overview", :flow_editor}
   ]
 
   @section_modules %{
@@ -72,9 +103,20 @@ defmodule BlackboexWeb.ShowcaseLive do
     "section-heading" => BlackboexWeb.Showcase.Sections.SectionHeading,
     "header" => BlackboexWeb.Showcase.Sections.PageHeader,
     "icon" => BlackboexWeb.Showcase.Sections.IconShowcase,
+    "avatar" => BlackboexWeb.Showcase.Sections.AvatarShowcase,
+    "inline-input" => BlackboexWeb.Showcase.Sections.InlineInput,
+    "inline-textarea" => BlackboexWeb.Showcase.Sections.InlineTextarea,
+    "inline-select" => BlackboexWeb.Showcase.Sections.InlineSelect,
+    "form-field" => BlackboexWeb.Showcase.Sections.FormFieldShowcase,
+    "confirm-dialog" => BlackboexWeb.Showcase.Sections.ConfirmDialogShowcase,
+    "flash" => BlackboexWeb.Showcase.Sections.FlashShowcase,
+    "sheet" => BlackboexWeb.Showcase.Sections.SheetShowcase,
+    "sidebar" => BlackboexWeb.Showcase.Sections.SidebarShowcase,
     "stat-card" => BlackboexWeb.Showcase.Sections.StatCard,
     "stat-mini" => BlackboexWeb.Showcase.Sections.StatMini,
     "stat-grid" => BlackboexWeb.Showcase.Sections.StatGrid,
+    "stat-chip" => BlackboexWeb.Showcase.Sections.StatChip,
+    "stat-figure" => BlackboexWeb.Showcase.Sections.StatFigure,
     "panel" => BlackboexWeb.Showcase.Sections.PanelShowcase,
     "page" => BlackboexWeb.Showcase.Sections.PageShowcase,
     "empty-state" => BlackboexWeb.Showcase.Sections.EmptyState,
@@ -82,13 +124,31 @@ defmodule BlackboexWeb.ShowcaseLive do
     "form-actions" => BlackboexWeb.Showcase.Sections.FormActions,
     "editor-tab-panel" => BlackboexWeb.Showcase.Sections.EditorTabPanel,
     "chart-grid" => BlackboexWeb.Showcase.Sections.ChartGrid,
+    "charts" => BlackboexWeb.Showcase.Sections.Charts,
     "category-pills" => BlackboexWeb.Showcase.Sections.CategoryPills,
     "underline-tabs" => BlackboexWeb.Showcase.Sections.UnderlineTabs,
     "dashboard-nav" => BlackboexWeb.Showcase.Sections.DashboardNav,
+    "dashboard-page-header" => BlackboexWeb.Showcase.Sections.DashboardPageHeader,
+    "dashboard-section" => BlackboexWeb.Showcase.Sections.DashboardSection,
     "description-list" => BlackboexWeb.Showcase.Sections.DescriptionList,
     "progress-bar" => BlackboexWeb.Showcase.Sections.ProgressBar,
     "icon-badge" => BlackboexWeb.Showcase.Sections.IconBadge,
-    "inline-code" => BlackboexWeb.Showcase.Sections.InlineCode
+    "inline-code" => BlackboexWeb.Showcase.Sections.InlineCode,
+    "template-grid" => BlackboexWeb.Showcase.Sections.TemplateGrid,
+    "period-selector" => BlackboexWeb.Showcase.Sections.PeriodSelector,
+    "mode-toggle" => BlackboexWeb.Showcase.Sections.ModeToggle,
+    "plain-key-banner" => BlackboexWeb.Showcase.Sections.PlainKeyBanner,
+    "code-editor-field" => BlackboexWeb.Showcase.Sections.CodeEditorField,
+    "code-viewer" => BlackboexWeb.Showcase.Sections.CodeViewer,
+    "code-label" => BlackboexWeb.Showcase.Sections.CodeLabel,
+    "validation-dashboard" => BlackboexWeb.Showcase.Sections.ValidationDashboard,
+    "file-tree" => BlackboexWeb.Showcase.Sections.FileTree,
+    "status-bar" => BlackboexWeb.Showcase.Sections.StatusBar,
+    "editor-overview" => BlackboexWeb.Showcase.Sections.EditorOverview,
+    "flow-header" => BlackboexWeb.Showcase.Sections.FlowHeader,
+    "json-preview-modal" => BlackboexWeb.Showcase.Sections.JsonPreviewModal,
+    "run-modal" => BlackboexWeb.Showcase.Sections.RunModal,
+    "flow-editor-overview" => BlackboexWeb.Showcase.Sections.FlowEditorOverview
   }
 
   @valid_slugs MapSet.new(Map.keys(@section_modules))
@@ -189,6 +249,42 @@ defmodule BlackboexWeb.ShowcaseLive do
               Shared
             </p>
             <%= for {slug, title, _} <- @sections_by_cat[:shared] || [] do %>
+              <.link
+                navigate={~p"/showcase/#{slug}"}
+                class={[
+                  "flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors",
+                  @section == slug && "bg-accent text-accent-foreground font-medium",
+                  @section != slug &&
+                    "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                ]}
+              >
+                {title}
+              </.link>
+            <% end %>
+          </div>
+          <div>
+            <p class="px-2 mb-1 text-2xs font-medium text-muted-foreground uppercase tracking-wider">
+              Editor
+            </p>
+            <%= for {slug, title, _} <- @sections_by_cat[:editor] || [] do %>
+              <.link
+                navigate={~p"/showcase/#{slug}"}
+                class={[
+                  "flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors",
+                  @section == slug && "bg-accent text-accent-foreground font-medium",
+                  @section != slug &&
+                    "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                ]}
+              >
+                {title}
+              </.link>
+            <% end %>
+          </div>
+          <div>
+            <p class="px-2 mb-1 text-2xs font-medium text-muted-foreground uppercase tracking-wider">
+              Flow Editor
+            </p>
+            <%= for {slug, title, _} <- @sections_by_cat[:flow_editor] || [] do %>
               <.link
                 navigate={~p"/showcase/#{slug}"}
                 class={[

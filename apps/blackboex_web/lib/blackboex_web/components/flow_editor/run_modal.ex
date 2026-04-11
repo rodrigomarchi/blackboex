@@ -5,6 +5,8 @@ defmodule BlackboexWeb.Components.FlowEditor.RunModal do
 
   use BlackboexWeb, :html
 
+  import BlackboexWeb.Components.Shared.CodeEditorField
+  import BlackboexWeb.Components.UI.AlertBanner
   import BlackboexWeb.Components.UI.FieldLabel
   import BlackboexWeb.Components.UI.SectionHeading
 
@@ -25,10 +27,9 @@ defmodule BlackboexWeb.Components.FlowEditor.RunModal do
             Test Run
           </.section_heading>
           <.button
-            variant="ghost"
+            variant="ghost-muted"
             size="icon-sm"
             phx-click="close_run_modal"
-            class="text-muted-foreground hover:bg-accent hover:text-foreground"
           >
             <.icon name="hero-x-mark" class="size-5" />
           </.button>
@@ -36,14 +37,12 @@ defmodule BlackboexWeb.Components.FlowEditor.RunModal do
         <div class="flex-1 overflow-auto p-5 space-y-4">
           <div>
             <.field_label>Input (JSON)</.field_label>
-            <div
+            <.code_editor_field
               id="code-editor-run-input"
-              phx-hook="CodeEditor"
-              phx-update="ignore"
-              data-language="json"
-              data-event="update_run_input"
-              data-value={@run_input}
-              class="w-full rounded-lg border overflow-hidden"
+              value={@run_input}
+              readonly={false}
+              event="update_run_input"
+              class="w-full rounded-lg"
               style="height: 120px;"
             />
           </div>
@@ -60,44 +59,29 @@ defmodule BlackboexWeb.Components.FlowEditor.RunModal do
             <% end %>
           </.button>
 
-          <%= if @run_error do %>
-            <div class="rounded-lg border border-destructive/50 bg-destructive/5 p-3">
-              <p class="text-xs font-medium text-destructive">Error</p>
-              <div
-                id="flow-run-error"
-                phx-hook="CodeEditor"
-                data-language="json"
-                data-readonly="true"
-                data-minimal="true"
-                data-value={@run_error}
-                class="mt-1 rounded overflow-hidden [&_.cm-editor]:max-h-40"
-                phx-update="ignore"
-              >
-              </div>
-            </div>
-          <% end %>
+          <.alert_banner :if={@run_error} variant="destructive" icon="hero-exclamation-circle">
+            <p class="text-xs font-medium mb-1">Error</p>
+            <.code_editor_field
+              id="flow-run-error"
+              value={@run_error}
+              max_height="max-h-40"
+              class="mt-1"
+            />
+          </.alert_banner>
 
-          <%= if @run_result do %>
-            <div class="rounded-lg border border-success/50 bg-success/5 p-3 space-y-2">
-              <div class="flex items-center justify-between">
-                <p class="text-xs font-medium text-success-foreground">Success</p>
-                <span class="text-[0.65rem] text-muted-foreground">
-                  {@run_result[:duration_ms]}ms
-                </span>
-              </div>
-              <div
-                id="flow-run-result"
-                phx-hook="CodeEditor"
-                data-language="json"
-                data-readonly="true"
-                data-minimal="true"
-                data-value={Jason.encode!(@run_result[:output], pretty: true)}
-                class="rounded overflow-hidden [&_.cm-editor]:max-h-60"
-                phx-update="ignore"
-              >
-              </div>
+          <.alert_banner :if={@run_result} variant="success" icon="hero-check-circle">
+            <div class="flex items-center justify-between mb-1">
+              <p class="text-xs font-medium">Success</p>
+              <span class="text-[0.65rem] text-muted-foreground">
+                {@run_result[:duration_ms]}ms
+              </span>
             </div>
-          <% end %>
+            <.code_editor_field
+              id="flow-run-result"
+              value={Jason.encode!(@run_result[:output], pretty: true)}
+              max_height="max-h-60"
+            />
+          </.alert_banner>
         </div>
       </div>
     </div>

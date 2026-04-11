@@ -8,6 +8,8 @@ defmodule BlackboexWeb.Components.Editor.Chat.ChatMessage do
   import BlackboexWeb.Components.Editor.ChatPanelHelpers,
     only: [format_timestamp: 1]
 
+  import BlackboexWeb.Components.Editor.CodeLabel
+
   @doc "Renders a single user or agent message step in the timeline."
   attr :event, :map, required: true
 
@@ -37,11 +39,11 @@ defmodule BlackboexWeb.Components.Editor.Chat.ChatMessage do
               )
             }
           />
-          <span class="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+          <.code_label variant="dark">
             {if @event.role == "user", do: "You", else: "Agent"}
-          </span>
+          </.code_label>
           <span class="flex-1" />
-          <span class="text-[10px] text-muted-foreground">
+          <span class="text-2xs text-muted-foreground">
             {format_timestamp(@event[:timestamp])}
           </span>
         </div>

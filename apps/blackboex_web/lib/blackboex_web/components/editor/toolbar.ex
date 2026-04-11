@@ -31,26 +31,32 @@ defmodule BlackboexWeb.Components.Editor.Toolbar do
         {@api.status}
       </.badge>
 
-      <span
+      <.badge
         :if={@selected_version}
-        class="inline-flex items-center rounded-full bg-info/10 px-2 py-0.5 text-[10px] font-medium text-info-foreground"
+        size="xs"
+        variant="status"
+        class="bg-info/10 text-info-foreground"
       >
         v{@selected_version.version_number}
-      </span>
+      </.badge>
 
-      <span
+      <.badge
         :if={@generation_status in ~w(pending generating validating)}
-        class="inline-flex items-center gap-1 rounded-full bg-warning/10 px-2 py-0.5 text-[10px] font-medium text-warning-foreground animate-pulse"
+        size="xs"
+        variant="status"
+        class="bg-warning/10 text-warning-foreground animate-pulse"
       >
         <.icon name="hero-arrow-path" class="size-3 animate-spin" /> generating
-      </span>
+      </.badge>
 
-      <span
+      <.badge
         :if={@generation_status == "failed"}
-        class="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-medium text-destructive"
+        size="xs"
+        variant="status"
+        class="bg-destructive/10 text-destructive"
       >
         generation failed
-      </span>
+      </.badge>
 
       <div class="flex-1" />
 
@@ -62,7 +68,7 @@ defmodule BlackboexWeb.Components.Editor.Toolbar do
         title="Command Palette (⌘K)"
       >
         <.icon name="hero-command-line" class="size-3.5 text-accent-violet" />
-        <kbd class="hidden md:inline text-[10px] font-mono">⌘K</kbd>
+        <kbd class="hidden md:inline text-2xs font-mono">⌘K</kbd>
       </.button>
     </header>
     """

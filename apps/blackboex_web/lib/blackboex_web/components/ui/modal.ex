@@ -11,6 +11,7 @@ defmodule BlackboexWeb.Components.Modal do
   use BlackboexWeb.Component
 
   import BlackboexWeb.Components.Button
+  import BlackboexWeb.Components.Icon
 
   attr :show, :boolean, required: true
   attr :on_close, :string, required: true
@@ -49,16 +50,7 @@ defmodule BlackboexWeb.Components.Modal do
             phx-click={@on_close}
             aria-label="Close"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <.icon name="hero-x-mark" class="h-4 w-4" />
           </.button>
         </div>
         {render_slot(@inner_block)}

@@ -73,7 +73,7 @@ defmodule BlackboexWeb.Components.Editor.ValidationDashboard do
   def validation_badge(assigns) do
     ~H"""
     <span class={[
-      "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold",
+      "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-2xs font-semibold",
       badge_class(@status)
     ]}>
       <span>{status_icon(@status)}</span>

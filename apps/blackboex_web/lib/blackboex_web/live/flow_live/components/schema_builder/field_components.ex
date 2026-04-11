@@ -102,7 +102,7 @@ defmodule BlackboexWeb.FlowLive.Components.SchemaBuilder.FieldComponents do
           phx-value-schema-id={@schema_id}
           phx-value-path={@field_path}
           phx-value-prop="type"
-          class="w-auto rounded-none border-0 bg-transparent py-0 pl-0 pr-4 text-[10px] font-medium text-muted-foreground cursor-pointer focus-visible:ring-0 focus-visible:ring-offset-0"
+          class="w-auto rounded-none border-0 bg-transparent py-0 pl-0 pr-4 text-2xs font-medium text-muted-foreground cursor-pointer focus-visible:ring-0 focus-visible:ring-offset-0"
         />
 
         <%!-- Required toggle (asterisk) --%>
@@ -119,7 +119,7 @@ defmodule BlackboexWeb.FlowLive.Components.SchemaBuilder.FieldComponents do
               do: "Required (click to make optional)",
               else: "Optional (click to make required)"
           }
-          class={"h-auto w-auto rounded p-0.5 text-[10px] font-bold transition-colors hover:bg-transparent " <>
+          class={"h-auto w-auto rounded p-0.5 text-2xs font-bold transition-colors hover:bg-transparent " <>
             if(@field["required"] == true,
               do: "text-accent-red hover:text-accent-red/80",
               else: "text-muted-foreground/30 hover:text-muted-foreground"
@@ -161,7 +161,7 @@ defmodule BlackboexWeb.FlowLive.Components.SchemaBuilder.FieldComponents do
       <div
         :if={@field_type in ["string", "integer", "float", "array"] or @show_initial_value}
         id={"constraints-#{@schema_id}-#{@field_path}"}
-        class={"ml-5 mr-1 mb-1 mt-0.5 rounded-md bg-accent/30 p-2 space-y-2 text-[10px] " <> if(@has_constraints, do: "", else: "hidden")}
+        class={"ml-5 mr-1 mb-1 mt-0.5 rounded-md bg-accent/30 p-2 space-y-2 text-2xs " <> if(@has_constraints, do: "", else: "hidden")}
       >
         <.string_constraints
           :if={@field_type == "string"}
@@ -310,7 +310,7 @@ defmodule BlackboexWeb.FlowLive.Components.SchemaBuilder.FieldComponents do
             phx-value-schema-id={@schema_id}
             phx-value-path={@path}
             phx-value-prop="item_type"
-            class="w-auto rounded border-0 bg-background px-1 py-0 text-[10px] cursor-pointer focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0"
+            class="w-auto rounded border-0 bg-background px-1 py-0 text-2xs cursor-pointer focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0"
           />
         </div>
         <.inline_constraint
@@ -359,7 +359,7 @@ defmodule BlackboexWeb.FlowLive.Components.SchemaBuilder.FieldComponents do
     ~H"""
     <div class="ml-3 pl-2 border-l border-dashed border-border mt-0.5">
       <div class="flex items-center justify-between py-0.5 px-1">
-        <span class="text-[10px] text-muted-foreground flex items-center gap-1">
+        <span class="text-2xs text-muted-foreground flex items-center gap-1">
           <.icon name="hero-cube-mini" class="size-2.5" /> fields
         </span>
         <.button
@@ -368,7 +368,7 @@ defmodule BlackboexWeb.FlowLive.Components.SchemaBuilder.FieldComponents do
           phx-click="schema_add_field"
           phx-value-schema-id={@schema_id}
           phx-value-path={@path <> ".fields"}
-          class="h-auto w-auto inline-flex items-center gap-0.5 rounded px-1 py-0 text-[10px] text-muted-foreground hover:bg-accent hover:text-foreground"
+          class="h-auto w-auto inline-flex items-center gap-0.5 rounded px-1 py-0 text-2xs text-muted-foreground hover:bg-accent hover:text-foreground"
         >
           <.icon name="hero-plus-mini" class="size-2.5" />
         </.button>
@@ -410,7 +410,7 @@ defmodule BlackboexWeb.FlowLive.Components.SchemaBuilder.FieldComponents do
           phx-click="schema_add_field"
           phx-value-schema-id={@schema_id}
           phx-value-path={@path <> ".constraints.item_fields"}
-          class="h-auto w-auto inline-flex items-center gap-0.5 rounded px-1 py-0 text-[10px] text-muted-foreground hover:bg-accent hover:text-foreground"
+          class="h-auto w-auto inline-flex items-center gap-0.5 rounded px-1 py-0 text-2xs text-muted-foreground hover:bg-accent hover:text-foreground"
         >
           <.icon name="hero-plus-mini" class="size-2.5" />
         </.button>
@@ -447,11 +447,11 @@ defmodule BlackboexWeb.FlowLive.Components.SchemaBuilder.FieldComponents do
         phx-value-schema-id={@schema_id}
         phx-value-path={@path}
         phx-value-prop="initial_value"
-        class="flex-1 rounded border bg-background px-1.5 py-0 text-[10px] focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0"
+        class="flex-1 rounded border bg-background px-1.5 py-0 text-2xs focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0"
       />
       <.field_label
         :if={@field["type"] == "boolean"}
-        class="flex items-center gap-1 text-[10px] text-muted-foreground mb-0"
+        class="flex items-center gap-1 text-2xs text-muted-foreground mb-0"
       >
         <.input
           type="checkbox"
@@ -473,7 +473,7 @@ defmodule BlackboexWeb.FlowLive.Components.SchemaBuilder.FieldComponents do
         phx-value-schema-id={@schema_id}
         phx-value-path={@path}
         phx-value-prop="initial_value"
-        class="flex-1 rounded border bg-background px-1.5 py-0 text-[10px] font-mono focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0"
+        class="flex-1 rounded border bg-background px-1.5 py-0 text-2xs font-mono focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0"
       />
     </div>
     """
@@ -502,7 +502,7 @@ defmodule BlackboexWeb.FlowLive.Components.SchemaBuilder.FieldComponents do
         phx-value-schema-id={@schema_id}
         phx-value-path={@path}
         phx-value-prop={@prop}
-        class="w-12 flex-1 rounded border bg-background px-1.5 py-0 text-[10px] focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0"
+        class="w-12 flex-1 rounded border bg-background px-1.5 py-0 text-2xs focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0"
       />
     </div>
     """

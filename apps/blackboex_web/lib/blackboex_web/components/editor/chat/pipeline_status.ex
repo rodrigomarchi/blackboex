@@ -11,6 +11,8 @@ defmodule BlackboexWeb.Components.Editor.Chat.PipelineStatus do
   import BlackboexWeb.Components.Editor.Chat.CodeBlocks,
     only: [render_code_block: 1, render_streaming_code: 1, render_tool_output: 1]
 
+  import BlackboexWeb.Components.Shared.DashboardHelpers, only: [format_duration: 1]
+
   import BlackboexWeb.Components.Editor.ChatPanelHelpers,
     only: [
       tool_icon: 1,
@@ -44,23 +46,23 @@ defmodule BlackboexWeb.Components.Editor.Chat.PipelineStatus do
           <.run_status_badge status={@run.status} />
           <span class="flex-1" />
           <%= if @run.model do %>
-            <span class="text-[10px] text-muted-foreground">{short_model(@run.model)}</span>
+            <span class="text-2xs text-muted-foreground">{short_model(@run.model)}</span>
           <% end %>
         </div>
         <%!-- Timing --%>
-        <div class="flex items-center gap-1 text-[10px] text-muted-foreground">
+        <div class="flex items-center gap-1 text-2xs text-muted-foreground">
           <.icon name="hero-clock" class="size-3 text-accent-amber" />
           <span>{format_timestamp(@run.started_at)}</span>
           <%= if @run.completed_at do %>
             <span>&rarr;</span>
             <span>{format_timestamp(@run.completed_at)}</span>
             <span class="text-foreground font-medium ml-1">
-              {format_duration_ms_local(@run.duration_ms)}
+              {format_duration(@run.duration_ms)}
             </span>
           <% end %>
         </div>
         <%!-- Metrics row --%>
-        <div class="flex items-center gap-3 text-[10px] text-muted-foreground">
+        <div class="flex items-center gap-3 text-2xs text-muted-foreground">
           <span class="flex items-center gap-0.5">
             <.icon name="hero-arrow-down-tray" class="size-2.5 text-accent-blue" />
             {format_tokens(@run.input_tokens)} in
@@ -141,14 +143,14 @@ defmodule BlackboexWeb.Components.Editor.Chat.PipelineStatus do
           <% end %>
           <%= if @summary do %>
             <span class={[
-              "text-[10px]",
+              "text-2xs",
               summary_color(@call.tool, @result)
             ]}>
               {@summary}
             </span>
           <% end %>
           <span class="flex-1 border-b border-dotted border-muted-foreground/20 mx-1" />
-          <span class="text-[10px] text-muted-foreground font-mono">
+          <span class="text-2xs text-muted-foreground font-mono">
             {if @result, do: @duration, else: "..."}
           </span>
         </div>
@@ -175,7 +177,7 @@ defmodule BlackboexWeb.Components.Editor.Chat.PipelineStatus do
         <% end %>
 
         <%!-- Timestamps --%>
-        <div class="flex items-center gap-1 text-[10px] text-muted-foreground">
+        <div class="flex items-center gap-1 text-2xs text-muted-foreground">
           <.icon name="hero-clock" class="size-3 text-accent-amber" />
           <span>{format_timestamp(@call[:timestamp])}</span>
           <%= if @result && @result[:timestamp] do %>
@@ -241,7 +243,7 @@ defmodule BlackboexWeb.Components.Editor.Chat.PipelineStatus do
     ~H"""
     <div class="relative py-1">
       <div class="absolute -left-[5px] top-[9px] size-[5px] rounded-full bg-muted-foreground/30" />
-      <span class="text-[10px] text-muted-foreground italic ml-2">{@event.content || ""}</span>
+      <span class="text-2xs text-muted-foreground italic ml-2">{@event.content || ""}</span>
     </div>
     """
   end
@@ -251,7 +253,7 @@ defmodule BlackboexWeb.Components.Editor.Chat.PipelineStatus do
   defp run_status_badge(assigns) do
     ~H"""
     <span class={[
-      "rounded-full px-1.5 py-0.5 text-[10px] font-medium",
+      "rounded-full px-1.5 py-0.5 text-2xs font-medium",
       process_status_classes(@status)
     ]}>
       {@status}
@@ -268,10 +270,4 @@ defmodule BlackboexWeb.Components.Editor.Chat.PipelineStatus do
     <% end %>
     """
   end
-
-  # format_duration_ms is used locally in render_run_summary for @run.duration_ms
-  defp format_duration_ms_local(nil), do: ""
-  defp format_duration_ms_local(ms) when ms < 1000, do: "#{ms}ms"
-  defp format_duration_ms_local(ms) when ms < 60_000, do: "#{Float.round(ms / 1000, 1)}s"
-  defp format_duration_ms_local(ms), do: "#{div(ms, 60_000)}m #{rem(div(ms, 1000), 60)}s"
 end

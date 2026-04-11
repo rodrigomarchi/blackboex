@@ -6,8 +6,10 @@ defmodule BlackboexWeb.Components.Editor.RequestBuilder do
 
   use BlackboexWeb, :live_component
 
+  import BlackboexWeb.Components.Shared.CodeEditorField
   import BlackboexWeb.Components.UI.FieldLabel
   import BlackboexWeb.Components.UI.InlineInput
+  import BlackboexWeb.Components.Spinner
   import BlackboexWeb.Components.UI.InlineSelect
 
   @impl true
@@ -38,22 +40,7 @@ defmodule BlackboexWeb.Components.Editor.RequestBuilder do
           class="h-auto inline-flex items-center rounded-md px-4 py-1.5"
         >
           <%= if @loading do %>
-            <svg
-              class="animate-spin -ml-1 mr-2 h-4 w-4"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
-              </circle>
-              <path
-                class="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              >
-              </path>
-            </svg>
-            Sending...
+            <.spinner class="-ml-1 mr-2 size-4" /> Sending...
           <% else %>
             <.icon name="hero-paper-airplane-mini" class="size-3.5 text-accent-emerald" /> Send
           <% end %>
@@ -170,22 +157,14 @@ defmodule BlackboexWeb.Components.Editor.RequestBuilder do
   defp render_request_tab(%{active_tab: "body"} = assigns) do
     ~H"""
     <div class="space-y-2">
-      <div
+      <.code_editor_field
         id="request-body-editor"
-        phx-hook="CodeEditor"
-        data-language="json"
-        data-readonly="false"
-        data-minimal="true"
-        data-event="update_test_body"
-        data-field="test_body_json"
-        data-value={@body_json}
-        class={[
-          "rounded-md overflow-hidden border [&_.cm-editor]:min-h-[8rem]",
-          if(@body_error, do: "border-destructive", else: "")
-        ]}
-        phx-update="ignore"
-      >
-      </div>
+        value={@body_json}
+        readonly={false}
+        event="update_test_body"
+        field="test_body_json"
+        class={["[&_.cm-editor]:min-h-[8rem]", if(@body_error, do: "border-destructive", else: "")]}
+      />
       <%= if @body_error do %>
         <p class="text-xs text-destructive">{@body_error}</p>
       <% end %>

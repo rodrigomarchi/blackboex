@@ -6,8 +6,8 @@ defmodule BlackboexWeb.DashboardApisLive do
 
   import BlackboexWeb.Components.Shared.Charts
   import BlackboexWeb.Components.Shared.StatCard
-  import BlackboexWeb.Components.Shared.DashboardNav
   import BlackboexWeb.Components.Shared.DashboardHelpers
+  import BlackboexWeb.Components.Shared.DashboardPageHeader
   import BlackboexWeb.Components.Shared.DashboardSection
 
   alias Blackboex.Apis.DashboardQueries
@@ -53,28 +53,14 @@ defmodule BlackboexWeb.DashboardApisLive do
   def render(assigns) do
     ~H"""
     <div class="space-y-6">
-      <.header>
-        <span class="flex items-center gap-2">
-          <.icon name="hero-cube" class="size-5 text-accent-blue" /> API Metrics
-        </span>
-        <:subtitle>Performance and usage metrics for your APIs</:subtitle>
-        <:actions>
-          <div class="flex items-center gap-3">
-            <.dashboard_nav active="apis" />
-            <div class="flex gap-1">
-              <.button
-                :for={{value, label} <- [{"24h", "Today"}, {"7d", "7 days"}, {"30d", "30 days"}]}
-                phx-click="set_period"
-                phx-value-period={value}
-                variant={if value == @period, do: "primary", else: "default"}
-                size="sm"
-              >
-                {label}
-              </.button>
-            </div>
-          </div>
-        </:actions>
-      </.header>
+      <.dashboard_page_header
+        icon="hero-cube"
+        icon_class="text-accent-blue"
+        title="API Metrics"
+        subtitle="Performance and usage metrics for your APIs"
+        active_tab="apis"
+        period={@period}
+      />
 
       <%!-- Stat cards --%>
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -254,11 +240,6 @@ defmodule BlackboexWeb.DashboardApisLive do
       do: "#{Float.round(errors / calls * 100, 1)}%",
       else: "0%"
   end
-
-  @spec format_latency(float() | integer() | nil) :: String.t()
-  defp format_latency(nil), do: "- ms"
-  defp format_latency(ms) when is_float(ms), do: "#{Float.round(ms, 1)}ms"
-  defp format_latency(ms) when is_integer(ms), do: "#{ms}ms"
 
   @spec format_bytes(float() | integer() | nil) :: String.t()
   defp format_bytes(nil), do: "-"

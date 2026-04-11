@@ -5,6 +5,7 @@ defmodule BlackboexWeb.ApiLive.Edit.InfoLive do
 
   import BlackboexWeb.ApiLive.Edit.EditorShell
   import BlackboexWeb.ApiLive.Edit.Helpers, only: [count_lines: 1, format_json: 1]
+  import BlackboexWeb.Components.Shared.CodeEditorField
   import BlackboexWeb.Components.UI.SectionHeading
   import BlackboexWeb.Components.UI.InlineInput
   import BlackboexWeb.Components.UI.InlineTextarea
@@ -46,7 +47,7 @@ defmodule BlackboexWeb.ApiLive.Edit.InfoLive do
     ~H"""
     <.editor_shell {shared_shell_assigns(assigns)} active_tab="info">
       <div class="p-4 overflow-y-auto h-full max-w-3xl space-y-6">
-        <.section_heading level="h2" class="gap-0">API Information</.section_heading>
+        <.section_heading level="h2" compact>API Information</.section_heading>
 
         <%!-- General --%>
         <div>
@@ -118,20 +119,20 @@ defmodule BlackboexWeb.ApiLive.Edit.InfoLive do
           <div class="grid grid-cols-4 gap-3">
             <div class="rounded-lg border p-3 text-center">
               <p class="text-xl font-bold">{@source_lines}</p>
-              <p class="flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
+              <p class="flex items-center justify-center gap-1 text-2xs text-muted-foreground">
                 <.icon name="hero-code-bracket-mini" class="size-3.5 text-accent-purple" />
                 Source Lines
               </p>
             </div>
             <div class="rounded-lg border p-3 text-center">
               <p class="text-xl font-bold">{@test_lines}</p>
-              <p class="flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
+              <p class="flex items-center justify-center gap-1 text-2xs text-muted-foreground">
                 <.icon name="hero-beaker-mini" class="size-3.5 text-accent-emerald" /> Test Lines
               </p>
             </div>
             <div class="rounded-lg border p-3 text-center">
               <p class="text-xl font-bold">{length(@versions)}</p>
-              <p class="flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
+              <p class="flex items-center justify-center gap-1 text-2xs text-muted-foreground">
                 <.icon name="hero-clock-mini" class="size-3.5 text-accent-amber" /> Versions
               </p>
             </div>
@@ -139,7 +140,7 @@ defmodule BlackboexWeb.ApiLive.Edit.InfoLive do
               <p class="text-xl font-bold">
                 {if @versions != [], do: "v#{hd(@versions).version_number}", else: "-"}
               </p>
-              <p class="flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
+              <p class="flex items-center justify-center gap-1 text-2xs text-muted-foreground">
                 <.icon name="hero-tag-mini" class="size-3.5 text-accent-blue" /> Latest
               </p>
             </div>
@@ -162,50 +163,35 @@ defmodule BlackboexWeb.ApiLive.Edit.InfoLive do
               <%= if @api.param_schema do %>
                 <div>
                   <span class="text-xs font-medium">Param Schema</span>
-                  <div
+                  <.code_editor_field
                     id="info-param-schema"
-                    phx-hook="CodeEditor"
-                    data-language="json"
-                    data-readonly="true"
-                    data-minimal="true"
-                    data-value={format_json(@api.param_schema)}
-                    class="mt-1 rounded-md overflow-hidden border [&_.cm-editor]:max-h-60"
-                    phx-update="ignore"
-                  >
-                  </div>
+                    value={format_json(@api.param_schema)}
+                    max_height="max-h-60"
+                    class="mt-1"
+                  />
                 </div>
               <% end %>
               <div class="grid grid-cols-2 gap-3">
                 <%= if @api.example_request do %>
                   <div>
                     <span class="text-xs font-medium">Example Request</span>
-                    <div
+                    <.code_editor_field
                       id="info-example-request"
-                      phx-hook="CodeEditor"
-                      data-language="json"
-                      data-readonly="true"
-                      data-minimal="true"
-                      data-value={format_json(@api.example_request)}
-                      class="mt-1 rounded-md overflow-hidden border [&_.cm-editor]:max-h-60"
-                      phx-update="ignore"
-                    >
-                    </div>
+                      value={format_json(@api.example_request)}
+                      max_height="max-h-60"
+                      class="mt-1"
+                    />
                   </div>
                 <% end %>
                 <%= if @api.example_response do %>
                   <div>
                     <span class="text-xs font-medium">Example Response</span>
-                    <div
+                    <.code_editor_field
                       id="info-example-response"
-                      phx-hook="CodeEditor"
-                      data-language="json"
-                      data-readonly="true"
-                      data-minimal="true"
-                      data-value={format_json(@api.example_response)}
-                      class="mt-1 rounded-md overflow-hidden border [&_.cm-editor]:max-h-60"
-                      phx-update="ignore"
-                    >
-                    </div>
+                      value={format_json(@api.example_response)}
+                      max_height="max-h-60"
+                      class="mt-1"
+                    />
                   </div>
                 <% end %>
               </div>

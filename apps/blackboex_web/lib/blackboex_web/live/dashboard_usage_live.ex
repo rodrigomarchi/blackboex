@@ -6,8 +6,8 @@ defmodule BlackboexWeb.DashboardUsageLive do
 
   import BlackboexWeb.Components.Shared.Charts
   import BlackboexWeb.Components.Shared.StatCard
-  import BlackboexWeb.Components.Shared.DashboardNav
   import BlackboexWeb.Components.Shared.DashboardHelpers
+  import BlackboexWeb.Components.Shared.DashboardPageHeader
   import BlackboexWeb.Components.Shared.DashboardSection
   import BlackboexWeb.Components.Shared.ProgressBar
   import BlackboexWeb.Components.Card
@@ -55,28 +55,14 @@ defmodule BlackboexWeb.DashboardUsageLive do
   def render(assigns) do
     ~H"""
     <div class="space-y-6">
-      <.header>
-        <span class="flex items-center gap-2">
-          <.icon name="hero-chart-bar" class="size-5 text-accent-emerald" /> Usage
-        </span>
-        <:subtitle>Resource consumption and billing metrics</:subtitle>
-        <:actions>
-          <div class="flex items-center gap-3">
-            <.dashboard_nav active="usage" />
-            <div class="flex gap-1">
-              <.button
-                :for={{value, label} <- [{"24h", "Today"}, {"7d", "7 days"}, {"30d", "30 days"}]}
-                phx-click="set_period"
-                phx-value-period={value}
-                variant={if value == @period, do: "primary", else: "default"}
-                size="sm"
-              >
-                {label}
-              </.button>
-            </div>
-          </div>
-        </:actions>
-      </.header>
+      <.dashboard_page_header
+        icon="hero-chart-bar"
+        icon_class="text-accent-emerald"
+        title="Usage"
+        subtitle="Resource consumption and billing metrics"
+        active_tab="usage"
+        period={@period}
+      />
 
       <%!-- Stat cards --%>
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

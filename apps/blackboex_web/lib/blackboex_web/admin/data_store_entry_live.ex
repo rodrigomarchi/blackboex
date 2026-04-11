@@ -15,6 +15,8 @@ defmodule BlackboexWeb.Admin.DataStoreEntryLive do
     ],
     layout: {BlackboexWeb.Layouts, :admin}
 
+  import BlackboexWeb.Components.Shared.CodeEditorField
+
   @impl Backpex.LiveResource
   def singular_name, do: "Data Store Entry"
 
@@ -45,16 +47,7 @@ defmodule BlackboexWeb.Admin.DataStoreEntryLive do
           assigns = Phoenix.Component.assign(assigns, :text, text)
 
           ~H"""
-          <div
-            id="admin-datastore-value"
-            phx-hook="CodeEditor"
-            data-language="json"
-            data-readonly="true"
-            data-minimal="true"
-            data-value={@text}
-            class="rounded-md overflow-hidden border [&_.cm-editor]:max-h-96"
-            phx-update="ignore"
-          />
+          <.code_editor_field id="admin-datastore-value" value={@text} />
           """
         end
       },

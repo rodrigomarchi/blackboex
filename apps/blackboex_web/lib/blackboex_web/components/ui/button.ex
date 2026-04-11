@@ -22,6 +22,8 @@ defmodule BlackboexWeb.Components.Button do
     "destructive" => "bg-destructive text-destructive-foreground hover:bg-destructive/90",
     "outline" => "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
     "ghost" => "hover:bg-accent hover:text-accent-foreground",
+    "ghost-muted" => "text-muted-foreground hover:bg-accent hover:text-foreground",
+    "ghost-dark" => "text-white/40 hover:bg-white/10 hover:text-white/70",
     "link" => "text-primary underline-offset-4 hover:underline"
   }
 
@@ -30,17 +32,18 @@ defmodule BlackboexWeb.Components.Button do
     "sm" => "h-9 rounded-md px-3",
     "lg" => "h-11 rounded-md px-8",
     "icon" => "h-10 w-10",
-    "icon-sm" => "h-auto w-auto p-1"
+    "icon-sm" => "h-auto w-auto p-1",
+    "icon-xs" => "h-auto w-auto p-0.5"
   }
 
   attr :type, :string, default: nil
   attr :class, :any, default: nil
 
   attr :variant, :string,
-    values: ~w(default primary secondary destructive outline ghost link),
+    values: ~w(default primary secondary destructive outline ghost ghost-muted ghost-dark link),
     default: "default"
 
-  attr :size, :string, values: ~w(default sm lg icon icon-sm), default: "default"
+  attr :size, :string, values: ~w(default sm lg icon icon-sm icon-xs), default: "default"
   attr :rest, :global, include: ~w(href navigate patch method download disabled form name value)
 
   slot :inner_block, required: true

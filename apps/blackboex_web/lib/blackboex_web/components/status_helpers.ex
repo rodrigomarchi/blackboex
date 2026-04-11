@@ -186,6 +186,22 @@ defmodule BlackboexWeb.Components.StatusHelpers do
   def execution_status_dot("compensated"), do: "bg-warning"
   def execution_status_dot(_), do: "bg-muted-foreground"
 
+  @doc """
+  Returns CSS text color class for execution status (used in tables and detail views).
+
+  ## Examples
+
+      execution_status_text_class("completed") #=> "text-status-completed-foreground"
+  """
+  @spec execution_status_text_class(String.t()) :: String.t()
+  def execution_status_text_class("completed"), do: "text-status-completed-foreground"
+  def execution_status_text_class("success"), do: "text-status-completed-foreground"
+  def execution_status_text_class("failed"), do: "text-status-failed-foreground"
+  def execution_status_text_class("error"), do: "text-status-failed-foreground"
+  def execution_status_text_class("running"), do: "text-status-running-foreground"
+  def execution_status_text_class("halted"), do: "text-status-halted-foreground"
+  def execution_status_text_class(_), do: "text-muted-foreground"
+
   # ── Charts ─────────────────────────────────────────────────────────────
 
   @doc """

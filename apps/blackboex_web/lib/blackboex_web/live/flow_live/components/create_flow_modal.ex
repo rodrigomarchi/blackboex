@@ -6,6 +6,7 @@ defmodule BlackboexWeb.FlowLive.Components.CreateFlowModal do
   use BlackboexWeb, :html
 
   import BlackboexWeb.Components.Modal
+  import BlackboexWeb.Components.UI.AlertBanner
 
   attr :show, :boolean, required: true
   attr :create_mode, :atom, required: true
@@ -18,11 +19,14 @@ defmodule BlackboexWeb.FlowLive.Components.CreateFlowModal do
   def create_flow_modal(assigns) do
     ~H"""
     <.modal show={@show} on_close="close_create_modal" title="Create Flow">
-      <%= if @create_error do %>
-        <div class="mb-4 rounded-md border border-destructive bg-destructive/10 p-3 text-sm text-destructive">
-          {@create_error}
-        </div>
-      <% end %>
+      <.alert_banner
+        :if={@create_error}
+        variant="destructive"
+        icon="hero-exclamation-circle"
+        class="mb-4"
+      >
+        {@create_error}
+      </.alert_banner>
 
       <%!-- Mode Toggle --%>
       <div class="flex gap-1 rounded-lg bg-muted p-1 mb-4">

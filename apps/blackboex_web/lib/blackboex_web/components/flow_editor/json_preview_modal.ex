@@ -5,6 +5,7 @@ defmodule BlackboexWeb.Components.FlowEditor.JsonPreviewModal do
 
   use BlackboexWeb, :html
 
+  import BlackboexWeb.Components.Shared.CodeEditorField
   import BlackboexWeb.Components.UI.SectionHeading
 
   attr :flow, :map, required: true
@@ -51,23 +52,20 @@ defmodule BlackboexWeb.Components.FlowEditor.JsonPreviewModal do
               <.icon name="hero-arrow-down-tray" class="mr-1.5 size-4 text-accent-emerald" /> Download
             </.button>
             <.button
-              variant="ghost"
+              variant="ghost-muted"
               size="icon-sm"
               phx-click="close_json_modal"
-              class="text-muted-foreground hover:bg-accent hover:text-foreground"
             >
               <.icon name="hero-x-mark" class="size-5" />
             </.button>
           </div>
         </div>
         <div class="flex-1 overflow-auto p-5">
-          <div
+          <.code_editor_field
             id="code-editor-json-preview"
-            phx-hook="CodeEditor"
-            data-language="json"
-            data-readonly="true"
-            data-value={@json_preview}
-            class="w-full h-full rounded-lg overflow-hidden"
+            value={@json_preview}
+            max_height="h-full"
+            class="w-full h-full rounded-lg"
           />
         </div>
       </div>

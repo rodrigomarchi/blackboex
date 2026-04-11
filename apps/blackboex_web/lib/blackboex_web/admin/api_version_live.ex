@@ -16,6 +16,8 @@ defmodule BlackboexWeb.Admin.ApiVersionLive do
     layout: {BlackboexWeb.Layouts, :admin},
     init_order: %{by: :inserted_at, direction: :desc}
 
+  import BlackboexWeb.Components.Shared.CodeEditorField
+
   @impl Backpex.LiveResource
   def singular_name, do: "API Version"
 
@@ -64,16 +66,7 @@ defmodule BlackboexWeb.Admin.ApiVersionLive do
           assigns = Phoenix.Component.assign(assigns, :text, text)
 
           ~H"""
-          <div
-            id="admin-apiversion-errors"
-            phx-hook="CodeEditor"
-            data-language="json"
-            data-readonly="true"
-            data-minimal="true"
-            data-value={@text}
-            class="rounded-md overflow-hidden border [&_.cm-editor]:max-h-96"
-            phx-update="ignore"
-          />
+          <.code_editor_field id="admin-apiversion-errors" value={@text} />
           """
         end
       },

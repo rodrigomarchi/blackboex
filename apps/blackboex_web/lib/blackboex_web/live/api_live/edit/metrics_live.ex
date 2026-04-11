@@ -36,7 +36,7 @@ defmodule BlackboexWeb.ApiLive.Edit.MetricsLive do
     <.editor_shell {shared_shell_assigns(assigns)} active_tab="metrics">
       <div class="p-6 overflow-y-auto h-full space-y-6">
         <div class="flex items-center justify-between">
-          <.section_heading level="h2" class="gap-0">Metrics</.section_heading>
+          <.section_heading level="h2" compact>Metrics</.section_heading>
           <div class="flex gap-1">
             <.button
               :for={period <- ["24h", "7d", "30d"]}

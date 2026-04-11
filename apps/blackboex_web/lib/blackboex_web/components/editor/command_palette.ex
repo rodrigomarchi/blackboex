@@ -64,7 +64,7 @@ defmodule BlackboexWeb.Components.Editor.CommandPalette do
             ]}
           >
             <span>{cmd.label}</span>
-            <kbd :if={cmd.shortcut} class="text-[10px] font-mono text-muted-foreground">
+            <kbd :if={cmd.shortcut} class="text-2xs font-mono text-muted-foreground">
               {cmd.shortcut}
             </kbd>
           </.button>

@@ -42,7 +42,7 @@ defmodule BlackboexWeb.Components.Badge do
 
   @sizes %{
     "default" => "px-2.5 py-0.5 text-xs",
-    "xs" => "px-1.5 text-[10px]"
+    "xs" => "px-1.5 text-2xs"
   }
 
   @spec badge(map()) :: Phoenix.LiveView.Rendered.t()

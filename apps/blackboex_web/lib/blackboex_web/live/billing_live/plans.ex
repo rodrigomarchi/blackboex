@@ -121,7 +121,7 @@ defmodule BlackboexWeb.BillingLive.Plans do
         <.card>
           <.card_content class="pt-6">
             <div class="flex items-center justify-between mb-4">
-              <.section_heading heading_class="text-lg font-semibold">
+              <.section_heading level="h1" compact>
                 Current Plan: {@usage.plan}
               </.section_heading>
               <.button navigate={~p"/billing/manage"} variant="default" size="sm">
@@ -183,7 +183,7 @@ defmodule BlackboexWeb.BillingLive.Plans do
           class={plan.id == @current_plan && "border-primary ring-2 ring-primary"}
         >
           <.card_content class="pt-6">
-            <.section_heading heading_class="text-lg font-semibold">
+            <.section_heading level="h1" compact>
               {plan.name}
             </.section_heading>
             <div class="mt-2">

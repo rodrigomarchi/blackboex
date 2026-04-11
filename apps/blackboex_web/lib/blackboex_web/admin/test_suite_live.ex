@@ -15,6 +15,8 @@ defmodule BlackboexWeb.Admin.TestSuiteLive do
     ],
     layout: {BlackboexWeb.Layouts, :admin}
 
+  import BlackboexWeb.Components.Shared.CodeEditorField
+
   @impl Backpex.LiveResource
   def singular_name, do: "Test Suite"
 
@@ -76,16 +78,7 @@ defmodule BlackboexWeb.Admin.TestSuiteLive do
           assigns = Phoenix.Component.assign(assigns, :text, text)
 
           ~H"""
-          <div
-            id="admin-testsuite-results"
-            phx-hook="CodeEditor"
-            data-language="json"
-            data-readonly="true"
-            data-minimal="true"
-            data-value={@text}
-            class="rounded-md overflow-hidden border [&_.cm-editor]:max-h-96"
-            phx-update="ignore"
-          />
+          <.code_editor_field id="admin-testsuite-results" value={@text} />
           """
         end
       },

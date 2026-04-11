@@ -46,6 +46,10 @@ Violation of this rule creates inconsistent UI, breaks dark mode, bypasses seman
 | Form-free textarea | `<.inline_textarea>` | `ui/inline_textarea.ex` |
 | Status dot | `<.status_dot>` | `ui/status_dot.ex` |
 | Dashboard card section | `<.dashboard_section>` | `shared/dashboard_section.ex` |
+| Code editor (CodeMirror) | `<.code_editor_field>` | `shared/code_editor_field.ex` |
+| Period buttons (24h/7d/30d) | `<.period_selector>` | `shared/period_selector.ex` |
+| Dashboard page header | `<.dashboard_page_header>` | `shared/dashboard_page_header.ex` |
+| API key flash banner | `<.plain_key_banner>` | `shared/plain_key_banner.ex` |
 
 ---
 
@@ -55,7 +59,7 @@ Violation of this rule creates inconsistent UI, breaks dark mode, bypasses seman
 `Icon`, `Button`, `Flash`/`flash_group`, `FormField` (`<.input>`), `Table`, `Header`, `Helpers`, `StatusHelpers`, `Logo`, `JS`
 
 **Explicit import required** (add to LiveView module):
-`Badge`, `Card`, `Modal`, `DropdownMenu`, `Tabs`, `Avatar`, `Separator`, `Label`, `Input` (raw), `Sheet`, `Sidebar`, `Tooltip`, `Spinner`, `Skeleton`, `SectionHeading`, `FieldLabel`, `InlineInput`, `InlineSelect`, `InlineTextarea`, `StatusDot`, `Shared.DashboardSection`, `Shared.Charts`, `Shared.StatCard`, `Shared.EmptyState`, `Shared.ProgressBar`, `Shared.DescriptionList`
+`Badge`, `Card`, `Modal`, `DropdownMenu`, `Tabs`, `Avatar`, `Separator`, `Label`, `Input` (raw), `Sheet`, `Sidebar`, `Tooltip`, `Spinner`, `Skeleton`, `SectionHeading`, `FieldLabel`, `InlineInput`, `InlineSelect`, `InlineTextarea`, `StatusDot`, `Shared.CodeEditorField`, `Shared.DashboardPageHeader`, `Shared.DashboardSection`, `Shared.Charts`, `Shared.PeriodSelector`, `Shared.PlainKeyBanner`, `Shared.StatCard`, `Shared.EmptyState`, `Shared.ProgressBar`, `Shared.DescriptionList`
 
 All from `BlackboexWeb.Components.*`.
 
@@ -109,8 +113,8 @@ Renders `<button>` by default. When `navigate`, `patch`, or `href` is provided, 
 | Attr | Type | Default | Description |
 |------|------|---------|-------------|
 | `type` | `:string` | `nil` | HTML button type (`"button"`, `"submit"`, `"reset"`) |
-| `variant` | `:string` | `"default"` | `default`, `primary`, `secondary`, `destructive`, `outline`, `ghost`, `link` |
-| `size` | `:string` | `"default"` | `default`, `sm`, `lg`, `icon` |
+| `variant` | `:string` | `"default"` | `default`, `primary`, `secondary`, `destructive`, `outline`, `ghost`, `ghost-muted`, `ghost-dark`, `link` |
+| `size` | `:string` | `"default"` | `default`, `sm`, `lg`, `icon`, `icon-sm`, `icon-xs` |
 | `class` | `:any` | `nil` | Additional CSS classes |
 | `navigate` / `patch` / `href` | global | — | Renders as `<.link>` |
 | `disabled` / `phx-click` | global | — | Standard button attrs |
@@ -897,3 +901,90 @@ Server-side Makeup syntax highlighting with line numbers. Dark theme (`#1e1e2e`)
 | ChatPanel | `BlackboexWeb.Components.Editor.ChatPanel` | `events`, `pending_edit`, `streaming_tokens`, `loading`, `run`, `input`, `template_type` |
 | RequestBuilder | `BlackboexWeb.Components.Editor.RequestBuilder` | `method`, `url`, `loading`, `active_tab`, `params`, `headers`, `body_json`, `body_error`, `api_key` |
 | ResponseViewer | `BlackboexWeb.Components.Editor.ResponseViewer` | `response`, `loading`, `error`, `violations`, `response_tab` |
+
+---
+
+### New Shared Components (explicit import required)
+
+---
+
+#### `<.code_editor_field>`
+
+Module: `BlackboexWeb.Components.Shared.CodeEditorField`
+
+Wrapper for the CodeMirror `phx-hook="CodeEditor"` pattern. **All CodeMirror editors MUST use this component.**
+
+| Attr | Type | Default | Description |
+|------|------|---------|-------------|
+| `id` | `:string` | required | DOM id for the editor |
+| `value` | `:any` | required | Content to display |
+| `language` | `:string` | `"json"` | Syntax language |
+| `readonly` | `:boolean` | `true` | Whether editor is read-only |
+| `minimal` | `:boolean` | `true` | Minimal UI mode |
+| `max_height` | `:string` | `"max-h-96"` | Max height class for cm-editor. Pass `""` when using inline `style` height |
+| `event` | `:string` | `nil` | LiveView event name for changes |
+| `field` | `:string` | `nil` | Field identifier for event payload |
+| `class` | `:any` | `nil` | Additional CSS classes |
+| `style` | `:string` | `nil` | Inline style (for fixed heights) |
+
+---
+
+#### `<.period_selector>`
+
+Module: `BlackboexWeb.Components.Shared.PeriodSelector`
+
+Period toggle buttons (24h/7d/30d) for dashboard views. Emits `"set_period"` event.
+
+| Attr | Type | Default | Description |
+|------|------|---------|-------------|
+| `period` | `:string` | required | Currently active period |
+
+---
+
+#### `<.dashboard_page_header>`
+
+Module: `BlackboexWeb.Components.Shared.DashboardPageHeader`
+
+Standard dashboard page header with icon, title, subtitle, navigation tabs, and period selector.
+
+| Attr | Type | Default | Description |
+|------|------|---------|-------------|
+| `icon` | `:string` | required | Hero icon name |
+| `icon_class` | `:string` | required | Icon color class |
+| `title` | `:string` | required | Page title |
+| `subtitle` | `:string` | required | Page subtitle |
+| `active_tab` | `:string` | required | Active dashboard nav tab |
+| `period` | `:string` | required | Current period for selector |
+
+---
+
+#### `<.plain_key_banner>`
+
+Module: `BlackboexWeb.Components.Shared.PlainKeyBanner`
+
+One-time API key display banner with copy-friendly code block and dismiss button.
+
+| Attr | Type | Default | Description |
+|------|------|---------|-------------|
+| `plain_key` | `:string` | required | The API key to display |
+
+---
+
+### Updated Components
+
+- **`<.stat_card>`** — added `href` attr (optional). When present, wraps card in a `<.link navigate={}>` with hover border.
+- **`<.badge>`** — added `variant="status"` and `size="xs"` variants.
+- **StatusHelpers** — added `execution_status_text_class/1` for text color classes.
+- **DashboardHelpers** — added `format_latency/1`, extended `format_duration/1` to handle minutes (>60s).
+
+### New Helpers
+
+- **`FlowLive.ExecutionHelpers`** — shared `status_badge/1`, `status_icon/1`, `short_id/1`, `format_duration/1`, `format_time/1` for flow execution views.
+
+### Removed
+
+- `ui/sidebar/menu.ex` and `ui/sidebar/group.ex` — duplicates of functions in `ui/sidebar.ex`.
+
+### CSS Tokens
+
+- `text-2xs` (10px) and `text-micro` (11px) — custom font sizes defined in `@theme inline`. Use instead of `text-[10px]` / `text-[11px]`.

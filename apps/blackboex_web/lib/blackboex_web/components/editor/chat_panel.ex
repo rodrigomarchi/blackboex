@@ -47,10 +47,10 @@ defmodule BlackboexWeb.Components.Editor.ChatPanel do
           Agent Timeline
         </.section_heading>
         <.button
-          variant="ghost"
+          variant="ghost-muted"
           phx-click="request_confirm"
           phx-value-action="clear_conversation"
-          class="h-auto w-auto p-0 text-xs text-muted-foreground hover:text-foreground hover:bg-transparent"
+          class="h-auto w-auto p-0 text-xs"
         >
           New conversation
         </.button>
@@ -127,7 +127,7 @@ defmodule BlackboexWeb.Components.Editor.ChatPanel do
               variant="ghost"
               phx-click="quick_action"
               phx-value-text={action}
-              class="h-auto w-auto rounded-full border px-2 py-0.5 text-[11px] text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              class="h-auto w-auto rounded-full border px-2 py-0.5 text-micro text-muted-foreground hover:bg-accent hover:text-accent-foreground"
             >
               {action}
             </.button>
@@ -171,8 +171,8 @@ defmodule BlackboexWeb.Components.Editor.ChatPanel do
         <div class="space-y-2">
           <%= for file <- @pending_edit.files_changed do %>
             <div class="rounded border bg-background p-1.5">
-              <div class="text-[10px] font-semibold text-muted-foreground mb-1">{file.path}</div>
-              <div class="text-[11px] font-mono overflow-x-auto max-h-40 overflow-y-auto">
+              <div class="text-2xs font-semibold text-muted-foreground mb-1">{file.path}</div>
+              <div class="text-micro font-mono overflow-x-auto max-h-40 overflow-y-auto">
                 <%= for {op, lines} <- file.diff, line <- lines do %>
                   <div class={diff_line_class(op)}>
                     <span class="select-none text-muted-foreground mr-1">{diff_prefix(op)}</span>{line}
@@ -184,7 +184,7 @@ defmodule BlackboexWeb.Components.Editor.ChatPanel do
         </div>
       <% else %>
         <%= if @pending_edit[:diff] do %>
-          <div class="rounded border bg-background p-1.5 text-[11px] font-mono overflow-x-auto max-h-60 overflow-y-auto">
+          <div class="rounded border bg-background p-1.5 text-micro font-mono overflow-x-auto max-h-60 overflow-y-auto">
             <%= for {op, lines} <- @pending_edit.diff, line <- lines do %>
               <div class={diff_line_class(op)}>
                 <span class="select-none text-muted-foreground mr-1">{diff_prefix(op)}</span>{line}
@@ -206,13 +206,13 @@ defmodule BlackboexWeb.Components.Editor.ChatPanel do
           />
         </div>
       <% else %>
-        <p class="text-[10px] text-muted-foreground italic">
+        <p class="text-2xs text-muted-foreground italic">
           Validation will run after you accept.
         </p>
       <% end %>
 
       <%= if @pending_edit[:diff] do %>
-        <p class="text-[10px] text-muted-foreground">{format_diff_summary(@pending_edit.diff)}</p>
+        <p class="text-2xs text-muted-foreground">{format_diff_summary(@pending_edit.diff)}</p>
       <% end %>
 
       <div class="flex gap-2">

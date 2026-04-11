@@ -49,10 +49,9 @@ defmodule BlackboexWeb.Components.Editor.BottomPanel do
         <div class="flex-1" />
 
         <.button
-          variant="ghost"
+          variant="ghost-muted"
           size="icon-sm"
           phx-click="toggle_bottom_panel"
-          class="text-muted-foreground hover:text-foreground hover:bg-accent"
           title="Close"
         >
           <.icon name="hero-x-mark" class="size-3.5" />

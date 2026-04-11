@@ -32,34 +32,34 @@ defmodule BlackboexWeb.Components.Editor.FileEditor do
     <div class={["flex flex-col h-full bg-[#1e1e2e]", @class]}>
       <%= if @file do %>
         <div class="flex items-center h-8 px-3 border-b border-white/10 shrink-0">
-          <span class="text-[10px] text-white/60 font-mono truncate">{@file.path}</span>
+          <span class="text-2xs text-white/60 font-mono truncate">{@file.path}</span>
           <%= if @streaming do %>
-            <span class="ml-2 flex items-center gap-1 text-[10px] text-accent-amber/80">
+            <span class="ml-2 flex items-center gap-1 text-2xs text-accent-amber/80">
               <span class="inline-block w-1.5 h-1.5 rounded-full bg-warning animate-pulse"></span>
               generating
             </span>
           <% end %>
           <%= if @read_only do %>
-            <span class="ml-2 flex items-center gap-1 text-[10px] text-muted-foreground">
+            <span class="ml-2 flex items-center gap-1 text-2xs text-muted-foreground">
               <span class="hero-lock-closed size-2.5"></span> generated
             </span>
           <% end %>
           <div class="ml-auto flex items-center gap-1">
             <.button
               type="button"
-              variant="ghost"
+              variant="ghost-dark"
+              size="icon-sm"
               phx-click="copy_file"
               title="Copy to clipboard"
-              class="h-auto w-auto p-1 rounded hover:bg-white/10 text-white/40 hover:text-white/70 transition-colors"
             >
               <span class="hero-clipboard-document size-3.5"></span>
             </.button>
             <.button
               type="button"
-              variant="ghost"
+              variant="ghost-dark"
+              size="icon-sm"
               phx-click="download_file"
               title="Download file"
-              class="h-auto w-auto p-1 rounded hover:bg-white/10 text-white/40 hover:text-white/70 transition-colors"
             >
               <span class="hero-arrow-down-tray size-3.5"></span>
             </.button>

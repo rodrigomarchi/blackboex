@@ -8,6 +8,8 @@ defmodule BlackboexWeb.Components.Editor.CodeViewer do
 
   use Phoenix.Component
 
+  import BlackboexWeb.Components.Editor.CodeLabel
+
   @makeup_mod Makeup
   @elixir_lexer Makeup.Lexers.ElixirLexer
 
@@ -40,10 +42,8 @@ defmodule BlackboexWeb.Components.Editor.CodeViewer do
         :if={@label}
         class="flex items-center justify-between px-2.5 py-1 border-b border-white/10 bg-white/5 shrink-0"
       >
-        <span class="text-[10px] font-medium text-white/50 uppercase tracking-wider">
-          {@label}
-        </span>
-        <span class="text-[10px] text-white/40">{@line_count} lines</span>
+        <.code_label variant="dark">{@label}</.code_label>
+        <span class="text-2xs text-white/40">{@line_count} lines</span>
       </div>
       <div class="flex-1 overflow-y-auto overflow-x-auto text-sm font-mono leading-relaxed">
         <%= for {line, num} <- @lines do %>

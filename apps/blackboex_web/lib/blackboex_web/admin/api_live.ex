@@ -14,6 +14,8 @@ defmodule BlackboexWeb.Admin.ApiLive do
     ],
     layout: {BlackboexWeb.Layouts, :admin}
 
+  import BlackboexWeb.Components.Shared.CodeEditorField
+
   @impl Backpex.LiveResource
   def singular_name, do: "API"
 
@@ -85,16 +87,7 @@ defmodule BlackboexWeb.Admin.ApiLive do
           assigns = Phoenix.Component.assign(assigns, :text, text)
 
           ~H"""
-          <div
-            id="admin-param-schema"
-            phx-hook="CodeEditor"
-            data-language="json"
-            data-readonly="true"
-            data-minimal="true"
-            data-value={@text}
-            class="rounded-md overflow-hidden border [&_.cm-editor]:max-h-96"
-            phx-update="ignore"
-          />
+          <.code_editor_field id="admin-param-schema" value={@text} />
           """
         end
       },
@@ -114,16 +107,7 @@ defmodule BlackboexWeb.Admin.ApiLive do
           assigns = Phoenix.Component.assign(assigns, :text, text)
 
           ~H"""
-          <div
-            id="admin-example-request"
-            phx-hook="CodeEditor"
-            data-language="json"
-            data-readonly="true"
-            data-minimal="true"
-            data-value={@text}
-            class="rounded-md overflow-hidden border [&_.cm-editor]:max-h-96"
-            phx-update="ignore"
-          />
+          <.code_editor_field id="admin-example-request" value={@text} />
           """
         end
       },
@@ -143,16 +127,7 @@ defmodule BlackboexWeb.Admin.ApiLive do
           assigns = Phoenix.Component.assign(assigns, :text, text)
 
           ~H"""
-          <div
-            id="admin-example-response"
-            phx-hook="CodeEditor"
-            data-language="json"
-            data-readonly="true"
-            data-minimal="true"
-            data-value={@text}
-            class="rounded-md overflow-hidden border [&_.cm-editor]:max-h-96"
-            phx-update="ignore"
-          />
+          <.code_editor_field id="admin-example-response" value={@text} />
           """
         end
       },

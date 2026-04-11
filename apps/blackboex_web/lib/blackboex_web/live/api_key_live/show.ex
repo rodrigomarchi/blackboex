@@ -8,6 +8,8 @@ defmodule BlackboexWeb.ApiKeyLive.Show do
   import BlackboexWeb.Components.Card
   import BlackboexWeb.Components.Shared.StatCard
   import BlackboexWeb.Components.Shared.DescriptionList
+  import BlackboexWeb.Components.Shared.DashboardHelpers, only: [format_latency: 1]
+  import BlackboexWeb.Components.Shared.PlainKeyBanner
   import BlackboexWeb.Components.UI.SectionHeading
 
   alias Blackboex.Apis.Keys
@@ -42,7 +44,7 @@ defmodule BlackboexWeb.ApiKeyLive.Show do
       <%!-- Header --%>
       <.header>
         <div class="flex items-center gap-3">
-          <.link navigate={~p"/api-keys"} class="text-muted-foreground hover:text-foreground">
+          <.link navigate={~p"/api-keys"} class="link-muted">
             <.icon name="hero-arrow-left" class="size-5" />
           </.link>
           <span class="text-2xl font-bold tracking-tight font-mono">{@key.key_prefix}...</span>
@@ -53,7 +55,7 @@ defmodule BlackboexWeb.ApiKeyLive.Show do
         <:subtitle>
           {@key.label || "Unnamed key"} · API:
           <%= if @key.api do %>
-            <.link navigate={~p"/apis/#{@key.api_id}"} class="text-primary hover:underline">
+            <.link navigate={~p"/apis/#{@key.api_id}"} class="link-entity">
               {@key.api.name}
             </.link>
           <% else %>
@@ -84,22 +86,7 @@ defmodule BlackboexWeb.ApiKeyLive.Show do
       </.header>
 
       <%!-- Plain key flash --%>
-      <%= if @plain_key_flash do %>
-        <div class="rounded-lg border-2 border-primary bg-muted p-4 space-y-2">
-          <p class="font-semibold text-foreground">New key — copy now:</p>
-          <code class="block bg-accent text-accent-foreground p-2 rounded font-mono text-sm break-all select-all">
-            {@plain_key_flash}
-          </code>
-          <.button
-            phx-click="dismiss_flash"
-            variant="link"
-            size="sm"
-            class="text-primary hover:underline text-xs"
-          >
-            Dismiss
-          </.button>
-        </div>
-      <% end %>
+      <.plain_key_banner :if={@plain_key_flash} plain_key={@plain_key_flash} />
 
       <%!-- Metrics --%>
       <div class="space-y-4">
@@ -280,10 +267,6 @@ defmodule BlackboexWeb.ApiKeyLive.Show do
   end
 
   defp status_label(_), do: "Active"
-
-  defp format_latency(nil), do: "—"
-  defp format_latency(ms) when is_float(ms), do: "#{Float.round(ms, 1)}ms"
-  defp format_latency(ms), do: "#{ms}ms"
 
   defp format_last_used(nil), do: "Never"
 

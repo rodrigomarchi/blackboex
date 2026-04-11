@@ -62,7 +62,7 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLiveComponents do
         <.button
           variant="ghost"
           phx-click="copy_url"
-          class="h-auto w-auto p-0 inline-flex items-center text-primary hover:underline text-[10px] hover:bg-transparent"
+          class="h-auto w-auto p-0 inline-flex items-center text-primary hover:underline text-2xs hover:bg-transparent"
         >
           <.icon name="hero-clipboard-document-mini" class="mr-1 size-3 text-accent-sky" />Copy
         </.button>
@@ -99,7 +99,7 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLiveComponents do
   def version_timeline(assigns) do
     ~H"""
     <div>
-      <.section_heading level="h3" class="uppercase mb-3">Versions</.section_heading>
+      <.section_heading level="h3" variant="label">Versions</.section_heading>
       <%= if @versions == [] do %>
         <p class="text-muted-description">
           No versions yet. Save to create the first version.
@@ -182,27 +182,27 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLiveComponents do
   def metrics_grid(assigns) do
     ~H"""
     <div>
-      <.section_heading level="h3" class="uppercase mb-3">Metrics (24h)</.section_heading>
+      <.section_heading level="h3" variant="label">Metrics (24h)</.section_heading>
       <div class="grid grid-cols-4 gap-3">
         <div class="rounded-lg border p-3 text-center">
           <p class="text-xl font-bold">{@metrics.count_24h}</p>
-          <p class="flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
+          <p class="flex items-center justify-center gap-1 text-2xs text-muted-foreground">
             <.icon name="hero-signal-mini" class="size-3.5 text-accent-sky" /> Total Calls
           </p>
         </div>
         <div class="rounded-lg border p-3 text-center">
           <p class="text-xl font-bold">{@metrics.success_rate}%</p>
-          <p class="text-[10px] text-muted-foreground">Success Rate</p>
+          <p class="text-2xs text-muted-foreground">Success Rate</p>
         </div>
         <div class="rounded-lg border p-3 text-center">
           <p class="text-xl font-bold">{@metrics.avg_latency}ms</p>
-          <p class="flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
+          <p class="flex items-center justify-center gap-1 text-2xs text-muted-foreground">
             <.icon name="hero-clock-mini" class="size-3.5 text-accent-amber" /> Avg Latency
           </p>
         </div>
         <div class="rounded-lg border p-3 text-center">
           <p class="text-xl font-bold">{@metrics[:error_count] || 0}</p>
-          <p class="flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
+          <p class="flex items-center justify-center gap-1 text-2xs text-muted-foreground">
             <.icon name="hero-exclamation-circle-mini" class="size-3.5 text-accent-red" /> Errors
           </p>
         </div>
@@ -220,7 +220,7 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLiveComponents do
   def auth_section(assigns) do
     ~H"""
     <div>
-      <.section_heading level="h3" class="uppercase mb-3">Authentication</.section_heading>
+      <.section_heading level="h3" variant="label">Authentication</.section_heading>
       <div class="rounded-lg border p-4 space-y-3">
         <.form for={%{}} as={:publish_settings} phx-submit="save_publish_settings">
           <div class="flex items-center justify-between">
@@ -265,7 +265,7 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLiveComponents do
             <div class="flex flex-wrap gap-1">
               <span
                 :for={key <- @keys_summary.active_keys}
-                class="inline-flex items-center rounded bg-muted px-2 py-0.5 font-mono text-[10px]"
+                class="inline-flex items-center rounded bg-muted px-2 py-0.5 font-mono text-2xs"
               >
                 {key.key_prefix}...
               </span>
@@ -286,7 +286,7 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLiveComponents do
   def docs_section(assigns) do
     ~H"""
     <div>
-      <.section_heading level="h3" class="uppercase mb-3">Documentation</.section_heading>
+      <.section_heading level="h3" variant="label">Documentation</.section_heading>
       <div class="space-y-2">
         <div class="flex items-center justify-between rounded border p-3">
           <div class="flex items-center gap-2">

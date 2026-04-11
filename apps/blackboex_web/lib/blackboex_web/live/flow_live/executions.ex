@@ -7,8 +7,8 @@ defmodule BlackboexWeb.FlowLive.Executions do
 
   import BlackboexWeb.Components.Card
   import BlackboexWeb.Components.Shared.EmptyState
-  import BlackboexWeb.Components.StatusHelpers
   import BlackboexWeb.Components.UI.SectionHeading
+  import BlackboexWeb.FlowLive.ExecutionHelpers
 
   alias Blackboex.FlowExecutions
   alias Blackboex.Flows
@@ -46,11 +46,11 @@ defmodule BlackboexWeb.FlowLive.Executions do
           </.link>
           <.link
             navigate={~p"/flows/#{@flow.id}/edit"}
-            class="text-muted-foreground hover:text-foreground"
+            class="link-muted"
           >
             <.icon name="hero-arrow-left" class="size-5" />
           </.link>
-          <.section_heading level="h2" class="gap-0">Executions</.section_heading>
+          <.section_heading level="h2" compact>Executions</.section_heading>
           <span class="text-xs text-muted-foreground">{@flow.name}</span>
         </div>
         <div :if={@executions != []} class="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -164,28 +164,5 @@ defmodule BlackboexWeb.FlowLive.Executions do
       end
 
     %{total: total, completed: completed, failed: failed, avg_duration: avg}
-  end
-
-  defp status_badge("completed"), do: execution_status_classes("completed")
-  defp status_badge("failed"), do: execution_status_classes("failed")
-  defp status_badge("running"), do: execution_status_classes("running")
-  defp status_badge("halted"), do: execution_status_classes("halted")
-  defp status_badge(_), do: execution_status_classes("pending")
-
-  defp status_icon("completed"), do: "hero-check-circle-mini"
-  defp status_icon("failed"), do: "hero-x-circle-mini"
-  defp status_icon("running"), do: "hero-arrow-path-mini"
-  defp status_icon("halted"), do: "hero-pause-circle-mini"
-  defp status_icon(_), do: "hero-question-mark-circle-mini"
-
-  defp short_id(id) when is_binary(id), do: String.slice(id, 0, 8)
-  defp short_id(_), do: "—"
-
-  defp format_duration(nil), do: "—"
-  defp format_duration(ms) when ms < 1000, do: "#{ms}ms"
-  defp format_duration(ms), do: "#{Float.round(ms / 1000, 1)}s"
-
-  defp format_time(datetime) do
-    Calendar.strftime(datetime, "%Y-%m-%d %H:%M:%S")
   end
 end

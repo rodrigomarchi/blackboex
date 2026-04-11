@@ -8,8 +8,8 @@ defmodule BlackboexWeb.DashboardLlmLive do
   import BlackboexWeb.Components.Shared.Charts
   import BlackboexWeb.Components.Shared.StatCard
   import BlackboexWeb.Components.Shared.StatFigure
-  import BlackboexWeb.Components.Shared.DashboardNav
   import BlackboexWeb.Components.Shared.DashboardHelpers
+  import BlackboexWeb.Components.Shared.DashboardPageHeader
   import BlackboexWeb.Components.Shared.DashboardSection
 
   alias Blackboex.Apis.DashboardQueries
@@ -49,28 +49,14 @@ defmodule BlackboexWeb.DashboardLlmLive do
   def render(assigns) do
     ~H"""
     <div class="space-y-6">
-      <.header>
-        <span class="flex items-center gap-2">
-          <.icon name="hero-sparkles" class="size-5 text-accent-violet" /> LLM Metrics
-        </span>
-        <:subtitle>AI model usage, costs, and performance</:subtitle>
-        <:actions>
-          <div class="flex items-center gap-3">
-            <.dashboard_nav active="llm" />
-            <div class="flex gap-1">
-              <.button
-                :for={{value, label} <- [{"24h", "Today"}, {"7d", "7 days"}, {"30d", "30 days"}]}
-                phx-click="set_period"
-                phx-value-period={value}
-                variant={if value == @period, do: "primary", else: "default"}
-                size="sm"
-              >
-                {label}
-              </.button>
-            </div>
-          </div>
-        </:actions>
-      </.header>
+      <.dashboard_page_header
+        icon="hero-sparkles"
+        icon_class="text-accent-violet"
+        title="LLM Metrics"
+        subtitle="AI model usage, costs, and performance"
+        active_tab="llm"
+        period={@period}
+      />
 
       <%!-- Stat cards --%>
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">

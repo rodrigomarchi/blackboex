@@ -6,6 +6,7 @@ defmodule BlackboexWeb.Components.FlowEditor.FlowHeader do
 
   use BlackboexWeb, :html
 
+  import BlackboexWeb.Components.Badge
   import BlackboexWeb.Components.UI.SectionHeading
 
   attr :flow, :map, required: true
@@ -19,16 +20,20 @@ defmodule BlackboexWeb.Components.FlowEditor.FlowHeader do
         <.link navigate={~p"/"} class="text-foreground hover:text-foreground/80">
           <.logo_icon class="size-7" />
         </.link>
-        <.link navigate={~p"/flows"} class="text-muted-foreground hover:text-foreground">
+        <.link navigate={~p"/flows"} class="link-muted">
           <.icon name="hero-arrow-left" class="size-5" />
         </.link>
         <.section_heading level="h1" class="text-sm font-semibold truncate max-w-xs">
           {@flow.name}
         </.section_heading>
         <%= if @flow.status == "active" do %>
-          <span class="inline-flex items-center gap-1.5 rounded-full bg-status-completed/15 px-2.5 py-0.5 text-xs font-medium text-status-completed-foreground">
+          <.badge
+            variant="status"
+            size="xs"
+            class="bg-status-completed/15 text-status-completed-foreground"
+          >
             <span class="size-1.5 rounded-full bg-status-completed animate-pulse" /> active
-          </span>
+          </.badge>
           <.button
             variant="ghost"
             phx-click="deactivate_flow"
@@ -37,9 +42,9 @@ defmodule BlackboexWeb.Components.FlowEditor.FlowHeader do
             <.icon name="hero-pause-circle-mini" class="size-3.5" /> Pause
           </.button>
         <% else %>
-          <span class="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+          <.badge variant="status" size="xs" class="bg-muted text-muted-foreground">
             <span class="size-1.5 rounded-full bg-gray-400" /> draft
-          </span>
+          </.badge>
           <.button
             variant="ghost"
             phx-click="activate_flow"
@@ -58,18 +63,18 @@ defmodule BlackboexWeb.Components.FlowEditor.FlowHeader do
             /webhook/{String.slice(@flow.webhook_token, 0..7)}...
           </span>
           <.button
-            variant="ghost"
+            variant="ghost-muted"
+            size="icon-xs"
             phx-click={JS.dispatch("phx:copy_to_clipboard", detail: %{text: webhook_url(@flow)})}
-            class="h-auto w-auto p-0.5 text-muted-foreground hover:text-foreground hover:bg-transparent"
             title="Copy webhook URL"
           >
             <.icon name="hero-clipboard-document" class="size-3.5 text-accent-sky" />
           </.button>
           <.button
-            variant="ghost"
+            variant="ghost-muted"
+            size="icon-xs"
             phx-click="request_confirm"
             phx-value-action="regenerate_token"
-            class="h-auto w-auto p-0.5 text-muted-foreground hover:text-foreground hover:bg-transparent"
             title="Regenerate token"
           >
             <.icon name="hero-arrow-path" class="size-3.5 text-accent-amber" />

@@ -7,7 +7,11 @@ defmodule BlackboexWeb.FlowLive.ExecutionShow do
 
   import BlackboexWeb.Components.Badge
   import BlackboexWeb.Components.Card
+  import BlackboexWeb.Components.Shared.CodeEditorField
+  import BlackboexWeb.Components.Shared.StatChip
   import BlackboexWeb.Components.StatusHelpers
+  import BlackboexWeb.Components.UI.AlertBanner
+  import BlackboexWeb.FlowLive.ExecutionHelpers
   import BlackboexWeb.Components.UI.SectionHeading
 
   alias Blackboex.FlowExecutions
@@ -56,11 +60,11 @@ defmodule BlackboexWeb.FlowLive.ExecutionShow do
           </.link>
           <.link
             navigate={~p"/flows/#{@flow.id}/executions"}
-            class="text-muted-foreground hover:text-foreground"
+            class="link-muted"
           >
             <.icon name="hero-arrow-left" class="size-5" />
           </.link>
-          <.section_heading level="h2" class="gap-0">Execution</.section_heading>
+          <.section_heading level="h2" compact>Execution</.section_heading>
           <span class="text-xs font-mono text-muted-foreground">
             {short_id(@execution.id)}
           </span>
@@ -75,22 +79,29 @@ defmodule BlackboexWeb.FlowLive.ExecutionShow do
             <.icon name={status_icon(@execution.status)} class="size-3.5" />
             {@execution.status}
           </.badge>
-          <div class="flex items-center gap-1.5 rounded-lg border bg-card px-3 py-1.5 text-muted-foreground">
-            <.icon name="hero-clock-mini" class="size-3.5" />
-            <span class="text-xs font-mono">{format_duration(@execution.duration_ms)}</span>
-          </div>
-          <div class="flex items-center gap-1.5 rounded-lg border bg-card px-3 py-1.5 text-muted-foreground">
-            <.icon name="hero-play-mini" class="size-3.5 text-accent-emerald" />
-            <span class="text-xs">{format_time(@execution.inserted_at)}</span>
-          </div>
-          <div class="flex items-center gap-1.5 rounded-lg border bg-card px-3 py-1.5 text-muted-foreground">
-            <.icon name="hero-stop-mini" class="size-3.5 text-accent-red" />
-            <span class="text-xs">{format_time(@execution.finished_at)}</span>
-          </div>
-          <div class="flex items-center gap-1.5 rounded-lg border bg-card px-3 py-1.5 text-muted-foreground">
-            <.icon name="hero-squares-2x2-mini" class="size-3.5 text-accent-blue" />
-            <span class="text-xs">{length(@node_executions)} nodes</span>
-          </div>
+          <.stat_chip
+            icon="hero-clock-mini"
+            label="Duration"
+            value={format_duration(@execution.duration_ms)}
+          />
+          <.stat_chip
+            icon="hero-play-mini"
+            icon_class="text-accent-emerald"
+            label="Started"
+            value={format_time(@execution.inserted_at)}
+          />
+          <.stat_chip
+            icon="hero-stop-mini"
+            icon_class="text-accent-red"
+            label="Ended"
+            value={format_time(@execution.finished_at)}
+          />
+          <.stat_chip
+            icon="hero-squares-2x2-mini"
+            icon_class="text-accent-blue"
+            label="Nodes"
+            value={length(@node_executions)}
+          />
         </div>
 
         <%!-- Error banner --%>
@@ -102,37 +113,29 @@ defmodule BlackboexWeb.FlowLive.ExecutionShow do
             name="hero-exclamation-triangle-mini"
             class="size-4 text-destructive shrink-0 mt-0.5"
           />
-          <div
+          <.code_editor_field
             id="execution-error-viewer"
-            phx-hook="CodeEditor"
-            data-language="json"
-            data-readonly="true"
-            data-minimal="true"
-            data-value={@execution.error}
-            class="flex-1 rounded overflow-hidden [&_.cm-editor]:max-h-40"
-            phx-update="ignore"
-          >
-          </div>
+            value={@execution.error}
+            max_height="max-h-40"
+            class="flex-1"
+          />
         </div>
 
         <%!-- Halted banner --%>
-        <div
+        <.alert_banner
           :if={@execution.status == "halted" && @execution.wait_event_type}
-          class="flex items-start gap-2 rounded-lg border border-warning/50 bg-warning/10 px-3 py-2.5"
+          variant="warning"
+          icon="hero-pause-circle-mini"
         >
-          <.icon
-            name="hero-pause-circle-mini"
-            class="size-4 text-warning-foreground shrink-0 mt-0.5"
-          />
           <div class="text-xs space-y-1">
-            <div class="font-medium text-warning-foreground">
+            <div class="font-medium">
               Waiting for: <span class="font-mono">{@execution.wait_event_type}</span>
             </div>
-            <code class="text-[11px] font-mono text-warning-foreground bg-warning/20 px-1.5 py-0.5 rounded">
+            <code class="text-micro font-mono bg-warning/20 px-1.5 py-0.5 rounded">
               POST /webhook/{@flow.webhook_token}/resume/{@execution.wait_event_type}
             </code>
           </div>
-        </div>
+        </.alert_banner>
 
         <%!-- Input / Output --%>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -144,15 +147,11 @@ defmodule BlackboexWeb.FlowLive.ExecutionShow do
               </.card_title>
             </.card_header>
             <.card_content class="pt-0 px-4 pb-3">
-              <div
+              <.code_editor_field
                 id="exec-input-json"
-                phx-hook="CodeEditor"
-                phx-update="ignore"
-                data-language="json"
-                data-readonly="true"
-                data-value={format_json(@execution.input)}
-                class="w-full rounded-lg border overflow-hidden"
-                style="max-height: 240px;"
+                value={format_json(@execution.input)}
+                max_height="max-h-[240px]"
+                class="w-full rounded-lg"
               />
             </.card_content>
           </.card>
@@ -164,15 +163,11 @@ defmodule BlackboexWeb.FlowLive.ExecutionShow do
               </.card_title>
             </.card_header>
             <.card_content class="pt-0 px-4 pb-3">
-              <div
+              <.code_editor_field
                 id="exec-output-json"
-                phx-hook="CodeEditor"
-                phx-update="ignore"
-                data-language="json"
-                data-readonly="true"
-                data-value={format_json(@execution.output)}
-                class="w-full rounded-lg border overflow-hidden"
-                style="max-height: 240px;"
+                value={format_json(@execution.output)}
+                max_height="max-h-[240px]"
+                class="w-full rounded-lg"
               />
             </.card_content>
           </.card>
@@ -205,7 +200,7 @@ defmodule BlackboexWeb.FlowLive.ExecutionShow do
                   <div class="flex-1 min-w-0 flex items-center gap-2">
                     <span class="text-sm font-medium">{ne.node_id}</span>
                     <span
-                      class="text-[11px] px-1.5 py-0.5 rounded font-medium"
+                      class="text-micro px-1.5 py-0.5 rounded font-medium"
                       style={"background: #{meta.color}15; color: #{meta.color};"}
                     >
                       {meta.label}
@@ -213,7 +208,9 @@ defmodule BlackboexWeb.FlowLive.ExecutionShow do
                   </div>
                   <div class="flex items-center gap-1.5">
                     <div class={"size-1.5 rounded-full #{status_dot(ne.status)}"} />
-                    <span class={"text-xs #{status_text(ne.status)}"}>{ne.status}</span>
+                    <span class={"text-xs #{execution_status_text_class(ne.status)}"}>
+                      {ne.status}
+                    </span>
                   </div>
                   <span class="text-xs font-mono text-muted-foreground w-14 text-right">
                     {format_duration(ne.duration_ms)}
@@ -239,18 +236,14 @@ defmodule BlackboexWeb.FlowLive.ExecutionShow do
                   </div>
                   <div :if={ne.output} class="text-xs">
                     <span class="text-muted-foreground font-medium">Output:</span>
-                    <div
+                    <.code_editor_field
                       id={"node-output-#{ne.node_id}"}
-                      phx-hook="CodeEditor"
-                      phx-update="ignore"
-                      data-language="json"
-                      data-readonly="true"
-                      data-value={format_json(ne.output)}
-                      class="mt-1 w-full rounded-lg border overflow-hidden"
-                      style="max-height: 160px;"
+                      value={format_json(ne.output)}
+                      max_height="max-h-[160px]"
+                      class="mt-1 w-full rounded-lg"
                     />
                   </div>
-                  <div class="flex gap-4 text-[11px] text-muted-foreground">
+                  <div class="flex gap-4 text-micro text-muted-foreground">
                     <span :if={ne.started_at}>Started: {format_time(ne.started_at)}</span>
                     <span :if={ne.finished_at}>Finished: {format_time(ne.finished_at)}</span>
                   </div>
@@ -279,42 +272,7 @@ defmodule BlackboexWeb.FlowLive.ExecutionShow do
   defp node_icon(type),
     do: Map.get(@node_type_meta, type, %{icon: "hero-cube", color: "#6b7280", label: type})
 
-  defp status_badge("completed"), do: execution_status_classes("completed")
-  defp status_badge("failed"), do: execution_status_classes("failed")
-  defp status_badge("running"), do: execution_status_classes("running")
-  defp status_badge("halted"), do: execution_status_classes("halted")
-  defp status_badge(_), do: execution_status_classes("pending")
-
-  defp status_icon("completed"), do: "hero-check-circle-mini"
-  defp status_icon("failed"), do: "hero-x-circle-mini"
-  defp status_icon("running"), do: "hero-arrow-path-mini"
-  defp status_icon("halted"), do: "hero-pause-circle-mini"
-  defp status_icon(_), do: "hero-question-mark-circle-mini"
-
-  defp status_dot("completed"), do: execution_status_dot("completed")
-  defp status_dot("failed"), do: execution_status_dot("failed")
-  defp status_dot("running"), do: execution_status_dot("running")
-  defp status_dot("halted"), do: execution_status_dot("halted")
-  defp status_dot(_), do: execution_status_dot("pending")
-
-  defp status_text("completed"), do: "text-status-completed-foreground"
-  defp status_text("failed"), do: "text-status-failed-foreground"
-  defp status_text("running"), do: "text-status-running-foreground"
-  defp status_text("halted"), do: "text-status-halted-foreground"
-  defp status_text(_), do: "text-muted-foreground"
-
-  defp short_id(id) when is_binary(id), do: String.slice(id, 0, 8)
-  defp short_id(_), do: "—"
-
-  defp format_duration(nil), do: "—"
-  defp format_duration(ms) when ms < 1000, do: "#{ms}ms"
-  defp format_duration(ms), do: "#{Float.round(ms / 1000, 1)}s"
-
-  defp format_time(nil), do: "—"
-
-  defp format_time(datetime) do
-    Calendar.strftime(datetime, "%Y-%m-%d %H:%M:%S")
-  end
+  defp status_dot(status), do: execution_status_dot(status)
 
   defp format_json(nil), do: "—"
 

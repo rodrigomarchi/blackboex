@@ -25,7 +25,7 @@ defmodule BlackboexWeb.Admin.DashboardLive do
           <.header>Admin Dashboard</.header>
         </div>
 
-        <.section_heading class="mb-4" heading_class="text-lg font-semibold">
+        <.section_heading level="h1" class="mb-4" compact>
           Core
         </.section_heading>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -58,7 +58,7 @@ defmodule BlackboexWeb.Admin.DashboardLive do
           />
         </div>
 
-        <.section_heading class="mb-4" heading_class="text-lg font-semibold">
+        <.section_heading level="h1" class="mb-4" compact>
           API Data
         </.section_heading>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -100,7 +100,7 @@ defmodule BlackboexWeb.Admin.DashboardLive do
           />
         </div>
 
-        <.section_heading class="mb-4" heading_class="text-lg font-semibold">
+        <.section_heading level="h1" class="mb-4" compact>
           Billing
         </.section_heading>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -124,7 +124,7 @@ defmodule BlackboexWeb.Admin.DashboardLive do
           />
         </div>
 
-        <.section_heading class="mb-4" heading_class="text-lg font-semibold">
+        <.section_heading level="h1" class="mb-4" compact>
           Testing
         </.section_heading>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -142,7 +142,7 @@ defmodule BlackboexWeb.Admin.DashboardLive do
           />
         </div>
 
-        <.section_heading class="mb-4" heading_class="text-lg font-semibold">
+        <.section_heading level="h1" class="mb-4" compact>
           LLM & Audit
         </.section_heading>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

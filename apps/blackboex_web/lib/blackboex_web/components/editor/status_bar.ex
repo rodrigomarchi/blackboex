@@ -14,7 +14,7 @@ defmodule BlackboexWeb.Components.Editor.StatusBar do
     assigns = assign(assigns, :latest_version, List.first(assigns.versions))
 
     ~H"""
-    <div class="flex h-6 shrink-0 items-center border-t bg-card px-3 text-[11px] text-muted-foreground gap-3">
+    <div class="flex h-6 shrink-0 items-center border-t bg-card px-3 text-micro text-muted-foreground gap-3">
       <span>Elixir</span>
       <span class="opacity-30">│</span>
       <span :if={@latest_version}>v{@latest_version.version_number}</span>

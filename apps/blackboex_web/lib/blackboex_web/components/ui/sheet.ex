@@ -40,6 +40,7 @@ defmodule BlackboexWeb.Components.Sheet do
   use BlackboexWeb.Component
 
   import BlackboexWeb.Components.Button
+  import BlackboexWeb.Components.Icon
 
   attr :class, :string, default: "inline-block"
   slot :inner_block, required: true
@@ -142,17 +143,7 @@ defmodule BlackboexWeb.Components.Sheet do
               class="ring-offset-background absolute top-4 right-4 h-auto w-auto rounded-sm p-0 opacity-70 hover:bg-transparent hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
               phx-click={hide_sheet(@id, @side)}
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke-width="1.5"
-                stroke="currentColor"
-                class="size-6 no-collapse h-4 w-4"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
-              </svg>
-
+              <.icon name="hero-x-mark" class="h-4 w-4" />
               <span class="sr-only">Close</span>
             </.button>
           <% end %>

@@ -34,7 +34,7 @@ defmodule BlackboexWeb.Components.Shared.EmptyState do
       <div :if={@icon} class="mb-4">
         <.icon name={@icon} class={classes(["size-12", @icon_class])} />
       </div>
-      <.section_heading level="h3" class="!text-lg !font-semibold !text-foreground">
+      <.section_heading level="h1" compact>
         {@title}
       </.section_heading>
       <p :if={@description} class="mt-2 text-sm text-muted-foreground max-w-sm">

@@ -23,7 +23,7 @@ defmodule BlackboexWeb.ApiLive.Edit.RunLiveComponents do
           variant="ghost"
           phx-click="request_confirm"
           phx-value-action="clear_history"
-          class="h-auto w-auto p-0 inline-flex items-center text-[10px] text-destructive hover:underline hover:bg-transparent"
+          class="h-auto w-auto p-0 inline-flex items-center text-2xs text-destructive hover:underline hover:bg-transparent"
         >
           <.icon name="hero-trash-mini" class="mr-1 size-3" /> Clear
         </.button>
@@ -35,21 +35,21 @@ defmodule BlackboexWeb.ApiLive.Edit.RunLiveComponents do
           variant="outline"
           phx-click="copy_snippet"
           phx-value-language={lang}
-          class="h-auto w-auto rounded border px-1.5 py-0.5 text-[10px] hover:bg-accent"
+          class="h-auto w-auto rounded border px-1.5 py-0.5 text-2xs hover:bg-accent"
         >
           {lang}
         </.button>
       </div>
 
       <%= if @test_history == [] do %>
-        <p class="text-[10px] text-muted-foreground">No requests yet</p>
+        <p class="text-2xs text-muted-foreground">No requests yet</p>
       <% else %>
         <div class="space-y-1">
           <div
             :for={item <- @test_history}
             phx-click="load_history_item"
             phx-value-id={item.id}
-            class="rounded border p-1.5 text-[10px] cursor-pointer hover:bg-accent"
+            class="rounded border p-1.5 text-2xs cursor-pointer hover:bg-accent"
           >
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-1">

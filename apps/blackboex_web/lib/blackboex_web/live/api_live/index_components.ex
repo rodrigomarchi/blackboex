@@ -7,6 +7,8 @@ defmodule BlackboexWeb.ApiLive.IndexComponents do
 
   import BlackboexWeb.Components.Badge
   import BlackboexWeb.Components.Modal
+  import BlackboexWeb.Components.Shared.DashboardHelpers, only: [format_latency: 1]
+  import BlackboexWeb.Components.UI.AlertBanner
 
   # ── Generation Badge ─────────────────────────────────────────────────────
 
@@ -14,9 +16,13 @@ defmodule BlackboexWeb.ApiLive.IndexComponents do
 
   def generation_badge(assigns) do
     ~H"""
-    <span class="inline-flex items-center gap-1 rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-xs font-semibold text-warning-foreground animate-pulse">
+    <.badge
+      variant="status"
+      size="xs"
+      class="border border-warning/30 bg-warning/10 text-warning-foreground animate-pulse"
+    >
       <.icon name="hero-arrow-path" class="size-3 animate-spin" /> Generating...
-    </span>
+    </.badge>
     """
   end
 
@@ -80,7 +86,7 @@ defmodule BlackboexWeb.ApiLive.IndexComponents do
       </:col>
       <:col :let={row} label="Endpoint">
         <%= if row.api.status == "published" do %>
-          <code class="rounded bg-muted px-1.5 py-0.5 text-[11px] font-mono text-accent-emerald">
+          <code class="rounded bg-muted px-1.5 py-0.5 text-micro font-mono text-accent-emerald">
             POST /{@org_slug}/{row.api.slug}
           </code>
         <% else %>
@@ -123,11 +129,14 @@ defmodule BlackboexWeb.ApiLive.IndexComponents do
   def create_modal(assigns) do
     ~H"""
     <.modal show={@show_create_modal} on_close="close_create_modal" title="Create API">
-      <%= if @create_error do %>
-        <div class="mb-4 rounded-md border border-destructive bg-destructive/10 p-3 text-sm text-destructive">
-          {@create_error}
-        </div>
-      <% end %>
+      <.alert_banner
+        :if={@create_error}
+        variant="destructive"
+        icon="hero-exclamation-circle"
+        class="mb-4"
+      >
+        {@create_error}
+      </.alert_banner>
 
       <%!-- Mode toggle --%>
       <div class="flex gap-1 rounded-lg bg-muted p-1 mb-4">
@@ -236,9 +245,9 @@ defmodule BlackboexWeb.ApiLive.IndexComponents do
                   <p class="text-sm font-medium">{@selected_template.name}</p>
                   <.button
                     type="button"
-                    variant="ghost"
+                    variant="ghost-muted"
+                    size="icon-xs"
                     phx-click="clear_template"
-                    class="h-auto w-auto p-0 text-muted-foreground hover:text-foreground hover:bg-transparent"
                   >
                     <.icon name="hero-x-mark" class="size-4" />
                   </.button>
@@ -313,10 +322,4 @@ defmodule BlackboexWeb.ApiLive.IndexComponents do
     </.modal>
     """
   end
-
-  # ── Private helpers used in templates ────────────────────────────────────
-
-  defp format_latency(nil), do: "--"
-  defp format_latency(ms) when ms < 1, do: "<1ms"
-  defp format_latency(ms), do: "#{round(ms)}ms"
 end

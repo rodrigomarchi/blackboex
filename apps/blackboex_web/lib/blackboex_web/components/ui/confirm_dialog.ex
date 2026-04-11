@@ -65,7 +65,7 @@ defmodule BlackboexWeb.Components.ConfirmDialog do
     >
       <%!-- Backdrop --%>
       <div
-        class="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150"
+        class="absolute inset-0 bg-black/50 backdrop-blur-sm animate-in fade-in duration-150"
         phx-click="dismiss_confirm"
       />
 

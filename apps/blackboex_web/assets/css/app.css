@@ -475,6 +475,12 @@
   --color-status-skipped: hsl(var(--status-skipped));
   --color-status-skipped-foreground: hsl(var(--status-skipped-foreground));
 
+  /* ── Typography: sub-xs sizes ────────────────── */
+  --font-size-2xs: 0.625rem;
+  --font-size-2xs--line-height: 1rem;
+  --font-size-micro: 0.6875rem;
+  --font-size-micro--line-height: 1rem;
+
   /* ── Charts ─────────────────────────────────── */
   --color-chart-1: hsl(var(--chart-1));
   --color-chart-2: hsl(var(--chart-2));
@@ -560,6 +566,15 @@
 
 .text-muted-description {
   @apply text-sm text-muted-foreground;
+}
+
+/* ── Nav link utilities (breadcrumbs, entity refs) ───── */
+.link-muted {
+  @apply text-muted-foreground hover:text-foreground transition-colors;
+}
+
+.link-entity {
+  @apply text-primary hover:underline;
 }
 
 /* This file is for your main application CSS */

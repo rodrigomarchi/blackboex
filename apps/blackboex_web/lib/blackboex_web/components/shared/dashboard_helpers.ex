@@ -53,9 +53,19 @@ defmodule BlackboexWeb.Components.Shared.DashboardHelpers do
 
   def format_duration(%Decimal{} = ms), do: ms |> Decimal.to_float() |> format_duration()
 
+  def format_duration(ms) when is_number(ms) and ms >= 60_000,
+    do: "#{div(trunc(ms), 60_000)}m #{rem(div(trunc(ms), 1000), 60)}s"
+
   def format_duration(ms) when is_number(ms) and ms >= 1000,
     do: "#{Float.round(ms / 1000, 1)}s"
 
   def format_duration(ms) when is_float(ms), do: "#{Float.round(ms, 1)}ms"
   def format_duration(ms) when is_integer(ms), do: "#{ms}ms"
+
+  @doc "Format a latency value in milliseconds, returning a placeholder for nil."
+  @spec format_latency(float() | integer() | nil) :: String.t()
+  def format_latency(nil), do: "--"
+  def format_latency(ms) when is_number(ms) and ms < 1, do: "<1ms"
+  def format_latency(ms) when is_float(ms), do: "#{Float.round(ms, 1)}ms"
+  def format_latency(ms) when is_integer(ms), do: "#{ms}ms"
 end

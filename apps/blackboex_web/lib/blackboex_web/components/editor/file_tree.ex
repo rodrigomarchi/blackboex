@@ -21,7 +21,7 @@ defmodule BlackboexWeb.Components.Editor.FileTree do
 
     ~H"""
     <div class="flex flex-col h-full bg-card border-r">
-      <div class="flex items-center h-8 px-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground border-b shrink-0">
+      <div class="flex items-center h-8 px-3 text-2xs font-semibold uppercase tracking-wider text-muted-foreground border-b shrink-0">
         Explorer
       </div>
       <nav class="flex-1 overflow-y-auto py-1 text-xs" role="tree">

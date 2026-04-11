@@ -40,10 +40,9 @@ defmodule BlackboexWeb.Components.FlowEditor.PropertiesDrawer do
         </div>
         <div class="flex items-center gap-1">
           <.button
-            variant="ghost"
+            variant="ghost-muted"
             size="icon-sm"
             phx-click="toggle_drawer_expand"
-            class="text-muted-foreground hover:bg-accent hover:text-foreground"
             title={if @expanded, do: "Collapse", else: "Expand"}
           >
             <.icon
@@ -52,10 +51,9 @@ defmodule BlackboexWeb.Components.FlowEditor.PropertiesDrawer do
             />
           </.button>
           <.button
-            variant="ghost"
+            variant="ghost-muted"
             size="icon-sm"
             phx-click="close_drawer"
-            class="text-muted-foreground hover:bg-accent hover:text-foreground"
           >
             <.icon name="hero-x-mark" class="size-4" />
           </.button>

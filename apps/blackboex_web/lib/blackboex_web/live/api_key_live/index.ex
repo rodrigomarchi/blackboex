@@ -7,6 +7,7 @@ defmodule BlackboexWeb.ApiKeyLive.Index do
   import BlackboexWeb.Components.Modal
   import BlackboexWeb.Components.Badge
   import BlackboexWeb.Components.Shared.EmptyState
+  import BlackboexWeb.Components.Shared.PlainKeyBanner
 
   alias Blackboex.Apis
   alias Blackboex.Apis.Keys
@@ -45,24 +46,7 @@ defmodule BlackboexWeb.ApiKeyLive.Index do
       </.header>
 
       <%!-- Plain key flash (shown after create/rotate) --%>
-      <%= if @plain_key_flash do %>
-        <div class="rounded-lg border-2 border-primary bg-muted p-4 space-y-2">
-          <p class="font-semibold text-foreground">
-            Copy this key now — it won't be shown again:
-          </p>
-          <code class="block bg-accent text-accent-foreground p-2 rounded font-mono text-sm break-all select-all">
-            {@plain_key_flash}
-          </code>
-          <.button
-            phx-click="dismiss_flash"
-            variant="link"
-            size="sm"
-            class="text-primary hover:underline text-xs"
-          >
-            Dismiss
-          </.button>
-        </div>
-      <% end %>
+      <.plain_key_banner :if={@plain_key_flash} plain_key={@plain_key_flash} />
 
       <%!-- Keys table --%>
       <%= if @keys == [] do %>
@@ -80,7 +64,7 @@ defmodule BlackboexWeb.ApiKeyLive.Index do
           <:col :let={key} label="Label">{key.label || "—"}</:col>
           <:col :let={key} label="API">
             <%= if key.api do %>
-              <.link navigate={~p"/apis/#{key.api_id}"} class="text-primary hover:underline">
+              <.link navigate={~p"/apis/#{key.api_id}"} class="link-entity">
                 {key.api.name}
               </.link>
             <% else %>

@@ -16,6 +16,8 @@ defmodule BlackboexWeb.Admin.TestRequestLive do
     layout: {BlackboexWeb.Layouts, :admin},
     init_order: %{by: :inserted_at, direction: :desc}
 
+  import BlackboexWeb.Components.Shared.CodeEditorField
+
   @impl Backpex.LiveResource
   def singular_name, do: "Test Request"
 
@@ -59,16 +61,7 @@ defmodule BlackboexWeb.Admin.TestRequestLive do
           assigns = Phoenix.Component.assign(assigns, :text, text)
 
           ~H"""
-          <div
-            id="admin-req-headers"
-            phx-hook="CodeEditor"
-            data-language="json"
-            data-readonly="true"
-            data-minimal="true"
-            data-value={@text}
-            class="rounded-md overflow-hidden border [&_.cm-editor]:max-h-96"
-            phx-update="ignore"
-          />
+          <.code_editor_field id="admin-req-headers" value={@text} />
           """
         end
       },
@@ -92,16 +85,7 @@ defmodule BlackboexWeb.Admin.TestRequestLive do
           assigns = Phoenix.Component.assign(assigns, :text, text)
 
           ~H"""
-          <div
-            id="admin-resp-headers"
-            phx-hook="CodeEditor"
-            data-language="json"
-            data-readonly="true"
-            data-minimal="true"
-            data-value={@text}
-            class="rounded-md overflow-hidden border [&_.cm-editor]:max-h-96"
-            phx-update="ignore"
-          />
+          <.code_editor_field id="admin-resp-headers" value={@text} />
           """
         end
       },

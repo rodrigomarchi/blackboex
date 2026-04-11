@@ -7,8 +7,8 @@ defmodule BlackboexWeb.DashboardFlowsLive do
   import BlackboexWeb.Components.Shared.Charts
   import BlackboexWeb.Components.Shared.StatCard
   import BlackboexWeb.Components.Shared.StatFigure
-  import BlackboexWeb.Components.Shared.DashboardNav
   import BlackboexWeb.Components.Shared.DashboardHelpers
+  import BlackboexWeb.Components.Shared.DashboardPageHeader
   import BlackboexWeb.Components.Shared.DashboardSection
 
   alias Blackboex.Apis.DashboardQueries
@@ -54,28 +54,14 @@ defmodule BlackboexWeb.DashboardFlowsLive do
   def render(assigns) do
     ~H"""
     <div class="space-y-6">
-      <.header>
-        <span class="flex items-center gap-2">
-          <.icon name="hero-arrow-path" class="size-5 text-accent-violet" /> Flow Metrics
-        </span>
-        <:subtitle>Execution metrics for your automation flows</:subtitle>
-        <:actions>
-          <div class="flex items-center gap-3">
-            <.dashboard_nav active="flows" />
-            <div class="flex gap-1">
-              <.button
-                :for={{value, label} <- [{"24h", "Today"}, {"7d", "7 days"}, {"30d", "30 days"}]}
-                phx-click="set_period"
-                phx-value-period={value}
-                variant={if value == @period, do: "primary", else: "default"}
-                size="sm"
-              >
-                {label}
-              </.button>
-            </div>
-          </div>
-        </:actions>
-      </.header>
+      <.dashboard_page_header
+        icon="hero-arrow-path"
+        icon_class="text-accent-violet"
+        title="Flow Metrics"
+        subtitle="Execution metrics for your automation flows"
+        active_tab="flows"
+        period={@period}
+      />
 
       <%!-- Stat cards --%>
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -183,7 +169,7 @@ defmodule BlackboexWeb.DashboardFlowsLive do
         <.table id="slowest-execs" rows={@extended.longest_executions}>
           <:col :let={row} label="Flow">{row.flow_name}</:col>
           <:col :let={row} label="Status">
-            <span class={status_color(row.status)}>{row.status}</span>
+            <span class={execution_status_text_class(row.status)}>{row.status}</span>
           </:col>
           <:col :let={row} label="Duration">{format_duration(row.duration_ms)}</:col>
         </.table>
@@ -244,13 +230,6 @@ defmodule BlackboexWeb.DashboardFlowsLive do
   end
 
   # -- Template helpers --
-
-  @spec status_color(String.t()) :: String.t()
-  defp status_color("completed"), do: "text-status-completed-foreground"
-  defp status_color("failed"), do: "text-status-failed-foreground"
-  defp status_color("running"), do: "text-status-running-foreground"
-  defp status_color("halted"), do: "text-status-halted-foreground"
-  defp status_color(_), do: "text-muted-foreground"
 
   @spec truncate(String.t() | nil, non_neg_integer()) :: String.t()
   defp truncate(nil, _), do: "-"

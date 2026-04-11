@@ -14,6 +14,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
   import BlackboexWeb.Components.UI.InlineSelect
   import BlackboexWeb.Components.UI.InlineTextarea
   import BlackboexWeb.FlowLive.Components.SchemaBuilder
+  import BlackboexWeb.Components.Shared.CodeEditorField
 
   # ── Node-specific property forms ─────────────────────────────────────────
 
@@ -105,35 +106,24 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
   def node_properties(%{type: "elixir_code"} = assigns) do
     ~H"""
     <div class="space-y-4">
-      <.prop_field
-        label="Node Name"
-        field="name"
-        value={@data["name"] || "Elixir Code"}
-        placeholder="Elixir Code"
-        icon="hero-tag"
-        icon_color="text-accent-violet"
-      />
-      <.prop_field
-        label="Description"
-        field="description"
-        value={@data["description"] || ""}
-        placeholder="What does this step do?"
-        type="textarea"
-        icon="hero-chat-bubble-bottom-center-text"
-        icon_color="text-accent-sky"
+      <.node_common_fields
+        data={@data}
+        name_default="Elixir Code"
+        name_placeholder="Elixir Code"
+        description_placeholder="What does this step do?"
       />
       <div>
         <.field_label icon="hero-code-bracket" icon_color="text-accent-purple">Code</.field_label>
-        <div
+        <.code_editor_field
           id={"code-editor-#{@node_id}-code"}
-          phx-hook="CodeEditor"
-          phx-update="ignore"
-          data-language="elixir"
-          data-event="update_node_data"
-          data-field="code"
-          data-value={@data["code"] || ""}
-          class="w-full rounded-lg border overflow-hidden"
+          value={@data["code"] || ""}
+          language="elixir"
+          readonly={false}
+          event="update_node_data"
+          field="code"
+          class="w-full rounded-lg"
           style="height: 240px;"
+          max_height=""
         />
       </div>
       <.prop_field
@@ -145,23 +135,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
         icon="hero-clock"
         icon_color="text-accent-orange"
       />
-      <div class="border-t pt-4 mt-4">
-        <.field_label icon="hero-funnel" icon_color="text-yellow-400">Skip Condition</.field_label>
-        <p class="text-muted-caption mb-1.5">
-          Skip this node when expression is true
-        </p>
-        <div
-          id={"code-editor-#{@node_id}-skip_condition"}
-          phx-hook="CodeEditor"
-          phx-update="ignore"
-          data-language="elixir"
-          data-event="update_node_data"
-          data-field="skip_condition"
-          data-value={@data["skip_condition"] || ""}
-          class="w-full rounded-lg border overflow-hidden"
-          style="height: 60px;"
-        />
-      </div>
+      <.skip_condition_fields node_id={@node_id} skip_condition={@data["skip_condition"] || ""} />
       <div class="border-t pt-4 mt-4">
         <.field_label icon="hero-arrow-uturn-left" icon_color="text-accent-rose">
           Undo Code
@@ -171,16 +145,16 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
           <code class="text-xs bg-muted px-1 rounded">result</code>
           binding.
         </p>
-        <div
+        <.code_editor_field
           id={"code-editor-#{@node_id}-undo_code"}
-          phx-hook="CodeEditor"
-          phx-update="ignore"
-          data-language="elixir"
-          data-event="update_node_data"
-          data-field="undo_code"
-          data-value={@data["undo_code"] || ""}
-          class="w-full rounded-lg border overflow-hidden"
+          value={@data["undo_code"] || ""}
+          language="elixir"
+          readonly={false}
+          event="update_node_data"
+          field="undo_code"
+          class="w-full rounded-lg"
           style="height: 100px;"
+          max_height=""
         />
       </div>
     </div>
@@ -190,35 +164,24 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
   def node_properties(%{type: "condition"} = assigns) do
     ~H"""
     <div class="space-y-4">
-      <.prop_field
-        label="Node Name"
-        field="name"
-        value={@data["name"] || "Condition"}
-        placeholder="Condition"
-        icon="hero-tag"
-        icon_color="text-accent-violet"
-      />
-      <.prop_field
-        label="Description"
-        field="description"
-        value={@data["description"] || ""}
-        placeholder="Describe the branching logic"
-        type="textarea"
-        icon="hero-chat-bubble-bottom-center-text"
-        icon_color="text-accent-sky"
+      <.node_common_fields
+        data={@data}
+        name_default="Condition"
+        name_placeholder="Condition"
+        description_placeholder="Describe the branching logic"
       />
       <div>
         <.field_label icon="hero-code-bracket" icon_color="text-accent-blue">Expression</.field_label>
-        <div
+        <.code_editor_field
           id={"code-editor-#{@node_id}-expression"}
-          phx-hook="CodeEditor"
-          phx-update="ignore"
-          data-language="elixir"
-          data-event="update_node_data"
-          data-field="expression"
-          data-value={@data["expression"] || ""}
-          class="w-full rounded-lg border overflow-hidden"
+          value={@data["expression"] || ""}
+          language="elixir"
+          readonly={false}
+          event="update_node_data"
+          field="expression"
+          class="w-full rounded-lg"
           style="height: 120px;"
+          max_height=""
         />
       </div>
       <div>
@@ -248,22 +211,11 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
       />
 
       <div :if={@tab == "settings"} class="space-y-4">
-        <.prop_field
-          label="Node Name"
-          field="name"
-          value={@data["name"] || "End"}
-          placeholder="End"
-          icon="hero-tag"
-          icon_color="text-accent-violet"
-        />
-        <.prop_field
-          label="Description"
-          field="description"
-          value={@data["description"] || ""}
-          placeholder="Describe how the flow ends"
-          type="textarea"
-          icon="hero-chat-bubble-bottom-center-text"
-          icon_color="text-accent-sky"
+        <.node_common_fields
+          data={@data}
+          name_default="End"
+          name_placeholder="End"
+          description_placeholder="Describe how the flow ends"
         />
         <.prop_select
           label="Output Mode"
@@ -337,16 +289,16 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
           <.field_label icon="hero-document-text" icon_color="text-accent-emerald">
             Body Template
           </.field_label>
-          <div
+          <.code_editor_field
             id={"code-editor-#{@node_id}-body_template"}
-            phx-hook="CodeEditor"
-            phx-update="ignore"
-            data-language="json"
-            data-event="update_node_data"
-            data-field="body_template"
-            data-value={@data["body_template"] || ""}
-            class="w-full rounded-lg border overflow-hidden"
+            value={@data["body_template"] || ""}
+            language="json"
+            readonly={false}
+            event="update_node_data"
+            field="body_template"
+            class="w-full rounded-lg"
             style="height: 120px;"
+            max_height=""
           />
         </div>
       </div>
@@ -434,23 +386,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
           icon="hero-check-badge"
           icon_color="text-accent-emerald"
         />
-        <div class="border-t pt-4 mt-4">
-          <.field_label icon="hero-funnel" icon_color="text-yellow-400">Skip Condition</.field_label>
-          <p class="text-muted-caption mb-1.5">
-            Skip this node when expression is true
-          </p>
-          <div
-            id={"code-editor-#{@node_id}-skip_condition"}
-            phx-hook="CodeEditor"
-            phx-update="ignore"
-            data-language="elixir"
-            data-event="update_node_data"
-            data-field="skip_condition"
-            data-value={@data["skip_condition"] || ""}
-            class="w-full rounded-lg border overflow-hidden"
-            style="height: 60px;"
-          />
-        </div>
+        <.skip_condition_fields node_id={@node_id} skip_condition={@data["skip_condition"] || ""} />
         <div class="border-t pt-4 mt-4">
           <.field_label icon="hero-arrow-uturn-left" icon_color="text-accent-rose">
             Undo Request
@@ -525,23 +461,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
         icon="hero-chat-bubble-bottom-center-text"
         icon_color="text-accent-sky"
       />
-      <div class="border-t pt-4 mt-4">
-        <.field_label icon="hero-funnel" icon_color="text-yellow-400">Skip Condition</.field_label>
-        <p class="text-muted-caption mb-1.5">
-          Skip this node when expression is true
-        </p>
-        <div
-          id={"code-editor-#{@node_id}-skip_condition"}
-          phx-hook="CodeEditor"
-          phx-update="ignore"
-          data-language="elixir"
-          data-event="update_node_data"
-          data-field="skip_condition"
-          data-value={@data["skip_condition"] || ""}
-          class="w-full rounded-lg border overflow-hidden"
-          style="height: 60px;"
-        />
-      </div>
+      <.skip_condition_fields node_id={@node_id} skip_condition={@data["skip_condition"] || ""} />
     </div>
     """
   end
@@ -593,17 +513,16 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
                 <span class="text-muted-caption">({field["type"]})</span>
                 <span class="text-muted-caption">&larr;</span>
               </div>
-              <div
+              <.code_editor_field
                 id={"code-editor-#{@node_id}-mapping-#{field["name"]}"}
-                phx-hook="CodeEditor"
-                phx-update="ignore"
-                data-language="elixir"
-                data-minimal="true"
-                data-event="update_input_mapping"
-                data-field={field["name"]}
-                data-value={get_in(@data, ["input_mapping", field["name"]]) || ""}
-                class="w-full rounded-lg border overflow-hidden"
+                value={get_in(@data, ["input_mapping", field["name"]]) || ""}
+                language="elixir"
+                readonly={false}
+                event="update_input_mapping"
+                field={field["name"]}
+                class="w-full rounded-lg"
                 style="height: 36px;"
+                max_height=""
               />
             </div>
           </div>
@@ -619,23 +538,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
         icon="hero-clock"
         icon_color="text-accent-orange"
       />
-      <div class="border-t pt-4 mt-4">
-        <.field_label icon="hero-funnel" icon_color="text-yellow-400">Skip Condition</.field_label>
-        <p class="text-muted-caption mb-1.5">
-          Skip this node when expression is true
-        </p>
-        <div
-          id={"code-editor-#{@node_id}-skip_condition"}
-          phx-hook="CodeEditor"
-          phx-update="ignore"
-          data-language="elixir"
-          data-event="update_node_data"
-          data-field="skip_condition"
-          data-value={@data["skip_condition"] || ""}
-          class="w-full rounded-lg border overflow-hidden"
-          style="height: 60px;"
-        />
-      </div>
+      <.skip_condition_fields node_id={@node_id} skip_condition={@data["skip_condition"] || ""} />
     </div>
     """
   end
@@ -657,16 +560,16 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
           <.field_label icon="hero-funnel" icon_color="text-accent-teal">
             Source Expression
           </.field_label>
-          <div
+          <.code_editor_field
             id={"code-editor-#{@node_id}-source_expression"}
-            phx-hook="CodeEditor"
-            phx-update="ignore"
-            data-language="elixir"
-            data-event="update_node_data"
-            data-field="source_expression"
-            data-value={@data["source_expression"] || ""}
-            class="w-full rounded-lg border overflow-hidden"
+            value={@data["source_expression"] || ""}
+            language="elixir"
+            readonly={false}
+            event="update_node_data"
+            field="source_expression"
+            class="w-full rounded-lg"
             style="height: 60px;"
+            max_height=""
           />
         </div>
         <.prop_field
@@ -703,39 +606,23 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
           icon="hero-clock"
           icon_color="text-accent-orange"
         />
-        <div class="border-t pt-4 mt-4">
-          <.field_label icon="hero-funnel" icon_color="text-yellow-400">Skip Condition</.field_label>
-          <p class="text-muted-caption mb-1.5">
-            Skip this node when expression is true
-          </p>
-          <div
-            id={"code-editor-#{@node_id}-skip_condition"}
-            phx-hook="CodeEditor"
-            phx-update="ignore"
-            data-language="elixir"
-            data-event="update_node_data"
-            data-field="skip_condition"
-            data-value={@data["skip_condition"] || ""}
-            class="w-full rounded-lg border overflow-hidden"
-            style="height: 60px;"
-          />
-        </div>
+        <.skip_condition_fields node_id={@node_id} skip_condition={@data["skip_condition"] || ""} />
       </div>
 
       <div :if={@tab == "code"}>
         <.field_label icon="hero-code-bracket" icon_color="text-accent-purple">
           Body Code
         </.field_label>
-        <div
+        <.code_editor_field
           id={"code-editor-#{@node_id}-body_code"}
-          phx-hook="CodeEditor"
-          phx-update="ignore"
-          data-language="elixir"
-          data-event="update_node_data"
-          data-field="body_code"
-          data-value={@data["body_code"] || ""}
-          class="w-full rounded-lg border overflow-hidden"
+          value={@data["body_code"] || ""}
+          language="elixir"
+          readonly={false}
+          event="update_node_data"
+          field="body_code"
+          class="w-full rounded-lg"
           style="height: 200px;"
+          max_height=""
         />
       </div>
     </div>
@@ -783,23 +670,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
           POST /webhook/:token/resume/{@data["event_type"] || "<event_type>"}
         </p>
       </div>
-      <div class="border-t pt-4 mt-4">
-        <.field_label icon="hero-funnel" icon_color="text-yellow-400">Skip Condition</.field_label>
-        <p class="text-muted-caption mb-1.5">
-          Skip this node when expression is true
-        </p>
-        <div
-          id={"code-editor-#{@node_id}-skip_condition"}
-          phx-hook="CodeEditor"
-          phx-update="ignore"
-          data-language="elixir"
-          data-event="update_node_data"
-          data-field="skip_condition"
-          data-value={@data["skip_condition"] || ""}
-          class="w-full rounded-lg border overflow-hidden"
-          style="height: 60px;"
-        />
-      </div>
+      <.skip_condition_fields node_id={@node_id} skip_condition={@data["skip_condition"] || ""} />
     </div>
     """
   end
@@ -807,22 +678,11 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
   def node_properties(%{type: "fail"} = assigns) do
     ~H"""
     <div class="space-y-4">
-      <.prop_field
-        label="Node Name"
-        field="name"
-        value={@data["name"] || "Fail"}
-        placeholder="Fail"
-        icon="hero-tag"
-        icon_color="text-accent-violet"
-      />
-      <.prop_field
-        label="Description"
-        field="description"
-        value={@data["description"] || ""}
-        placeholder="When does this error occur?"
-        type="textarea"
-        icon="hero-chat-bubble-bottom-center-text"
-        icon_color="text-accent-sky"
+      <.node_common_fields
+        data={@data}
+        name_default="Fail"
+        name_placeholder="Fail"
+        description_placeholder="When does this error occur?"
       />
       <div>
         <.field_label icon="hero-exclamation-triangle" icon_color="text-accent-red">
@@ -833,16 +693,16 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
           and <code class="text-xs bg-muted px-1 rounded">state</code>
           bindings
         </p>
-        <div
+        <.code_editor_field
           id={"code-editor-#{@node_id}-message"}
-          phx-hook="CodeEditor"
-          phx-update="ignore"
-          data-language="elixir"
-          data-event="update_node_data"
-          data-field="message"
-          data-value={@data["message"] || ~S|"Error: #{input["reason"]}"|}
-          class="w-full rounded-lg border overflow-hidden"
+          value={@data["message"] || ~S|"Error: #{input["reason"]}"|}
+          language="elixir"
+          readonly={false}
+          event="update_node_data"
+          field="message"
+          class="w-full rounded-lg"
           style="height: 100px;"
+          max_height=""
         />
       </div>
       <.prop_select
@@ -873,16 +733,16 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
         <p class="text-muted-caption mb-1.5">
           Elixir expression to inspect. Leave empty to log the input.
         </p>
-        <div
+        <.code_editor_field
           id={"code-editor-#{@node_id}-expression"}
-          phx-hook="CodeEditor"
-          phx-update="ignore"
-          data-language="elixir"
-          data-event="update_node_data"
-          data-field="expression"
-          data-value={@data["expression"] || ""}
-          class="w-full rounded-lg border overflow-hidden"
+          value={@data["expression"] || ""}
+          language="elixir"
+          readonly={false}
+          event="update_node_data"
+          field="expression"
+          class="w-full rounded-lg"
           style="height: 100px;"
+          max_height=""
         />
       </div>
       <.prop_select
@@ -915,6 +775,60 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
         placeholder="Node name"
       />
     </div>
+    """
+  end
+
+  # ── Private helper components ─────────────────────────────────────────────
+
+  attr :node_id, :string, required: true
+  attr :skip_condition, :string, default: ""
+
+  defp skip_condition_fields(assigns) do
+    ~H"""
+    <div class="border-t pt-4 mt-4">
+      <.field_label icon="hero-funnel" icon_color="text-yellow-400">Skip Condition</.field_label>
+      <p class="text-muted-caption mb-1.5">
+        Skip this node when expression is true
+      </p>
+      <.code_editor_field
+        id={"code-editor-#{@node_id}-skip_condition"}
+        value={@skip_condition}
+        language="elixir"
+        readonly={false}
+        event="update_node_data"
+        field="skip_condition"
+        class="w-full rounded-lg"
+        style="height: 60px;"
+        max_height=""
+      />
+    </div>
+    """
+  end
+
+  attr :data, :map, required: true
+  attr :name_default, :string, required: true
+  attr :name_placeholder, :string, default: ""
+  attr :description_placeholder, :string, required: true
+
+  defp node_common_fields(assigns) do
+    ~H"""
+    <.prop_field
+      label="Node Name"
+      field="name"
+      value={@data["name"] || @name_default}
+      placeholder={@name_placeholder}
+      icon="hero-tag"
+      icon_color="text-accent-violet"
+    />
+    <.prop_field
+      label="Description"
+      field="description"
+      value={@data["description"] || ""}
+      placeholder={@description_placeholder}
+      type="textarea"
+      icon="hero-chat-bubble-bottom-center-text"
+      icon_color="text-accent-sky"
+    />
     """
   end
 

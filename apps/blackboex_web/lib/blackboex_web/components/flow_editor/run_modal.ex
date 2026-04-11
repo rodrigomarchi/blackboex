@@ -43,7 +43,7 @@ defmodule BlackboexWeb.Components.FlowEditor.RunModal do
               readonly={false}
               event="update_run_input"
               class="w-full rounded-lg"
-              style="height: 120px;"
+              height="120px"
             />
           </div>
           <.button
@@ -72,7 +72,7 @@ defmodule BlackboexWeb.Components.FlowEditor.RunModal do
           <.alert_banner :if={@run_result} variant="success" icon="hero-check-circle">
             <div class="flex items-center justify-between mb-1">
               <p class="text-xs font-medium">Success</p>
-              <span class="text-[0.65rem] text-muted-foreground">
+              <span class="text-2xs text-muted-foreground">
                 {@run_result[:duration_ms]}ms
               </span>
             </div>

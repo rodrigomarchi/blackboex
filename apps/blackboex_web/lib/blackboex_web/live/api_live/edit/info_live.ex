@@ -6,6 +6,7 @@ defmodule BlackboexWeb.ApiLive.Edit.InfoLive do
   import BlackboexWeb.ApiLive.Edit.EditorShell
   import BlackboexWeb.ApiLive.Edit.Helpers, only: [count_lines: 1, format_json: 1]
   import BlackboexWeb.Components.Shared.CodeEditorField
+  import BlackboexWeb.Components.UI.ActionRow
   import BlackboexWeb.Components.UI.SectionHeading
   import BlackboexWeb.Components.Shared.StatMini
   import BlackboexWeb.Components.UI.InlineInput
@@ -148,10 +149,10 @@ defmodule BlackboexWeb.ApiLive.Edit.InfoLive do
           <div>
             <.section_heading
               level="h3"
+              variant="label"
               icon="hero-document-text"
               icon_class="size-3.5 text-accent-blue"
               class="mb-3"
-              heading_class="text-xs font-semibold text-muted-foreground uppercase"
             >
               Request/Response Schema
             </.section_heading>
@@ -205,23 +206,23 @@ defmodule BlackboexWeb.ApiLive.Edit.InfoLive do
           >
             Danger Zone
           </.section_heading>
-          <div class="rounded-lg border border-destructive/30 p-4 flex items-center justify-between">
-            <div>
-              <p class="text-sm font-medium">Archive this API</p>
-              <p class="text-muted-caption">
-                Removes from active list. Published APIs will be unpublished first.
-              </p>
-            </div>
-            <.button
-              phx-click="request_confirm"
-              phx-value-action="archive_api"
-              variant="outline"
-              size="sm"
-              class="border-destructive text-destructive hover:bg-destructive/10"
-            >
-              <.icon name="hero-archive-box" class="mr-1.5 size-3.5" /> Archive API
-            </.button>
-          </div>
+          <.action_row variant="destructive">
+            <:title>Archive this API</:title>
+            <:description>
+              Removes from active list. Published APIs will be unpublished first.
+            </:description>
+            <:action>
+              <.button
+                phx-click="request_confirm"
+                phx-value-action="archive_api"
+                variant="outline"
+                size="sm"
+                class="border-destructive text-destructive hover:bg-destructive/10"
+              >
+                <.icon name="hero-archive-box" class="mr-1.5 size-3.5" /> Archive API
+              </.button>
+            </:action>
+          </.action_row>
         </div>
       </div>
 

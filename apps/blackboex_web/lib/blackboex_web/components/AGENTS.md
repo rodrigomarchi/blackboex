@@ -54,6 +54,20 @@ Violation of this rule creates inconsistent UI, breaks dark mode, bypasses seman
 | Compact metric box | `<.stat_mini>` | `shared/stat_mini.ex` |
 | Template category pills | `<.category_pills>` | `shared/category_pills.ex` |
 | Selectable template grid | `<.template_grid>` | `shared/template_grid.ex` |
+| Icon marker (colored chip) | `<.icon_badge>` | `shared/icon_badge.ex` |
+
+### CSS Utilities (defined in `assets/css/app.css`)
+
+| Utility | Purpose |
+|---------|---------|
+| `.text-muted-caption` | `text-xs text-muted-foreground` — compact muted text |
+| `.text-muted-description` | `text-sm text-muted-foreground` — description text |
+| `.link-muted` | Muted link with hover transition (breadcrumbs, refs) |
+| `.link-entity` | Primary-colored entity link with hover underline |
+| `.link-primary` | `text-xs text-primary hover:underline` — inline primary action link |
+| `.link-destructive` | `text-xs text-destructive hover:underline` — inline destructive action link |
+| `.section-label` | `flex items-center gap-1.5 text-sm font-medium text-muted-foreground` — icon+label section header (combine with `mb-3`/`mb-4`) |
+| `.clickable-item` | `rounded border p-1.5 text-2xs cursor-pointer hover:bg-accent` — clickable list row (e.g. history items) |
 
 ---
 
@@ -335,10 +349,13 @@ Semantic heading for in-page section titles. Replaces repeated `<h2>`/`<h3>` + i
 | Attr | Type | Default | Description |
 |------|------|---------|-------------|
 | `level` | `:string` | `"h2"` | `h1`, `h2`, `h3` |
+| `variant` | `:string` | `"default"` | `default`, `label` (uppercase tracked caption) |
+| `tone` | `:string` | `"default"` | `default`, `muted` (forces `text-muted-foreground`) |
 | `icon` | `:string` | `nil` | Hero icon name |
 | `icon_class` | `:string` | `"size-4 text-muted-foreground"` | Icon CSS classes |
+| `compact` | `:boolean` | `false` | Removes wrapper gap |
 | `class` | `:any` | `nil` | Wrapper div classes |
-| `heading_class` | `:any` | `nil` | Override heading element classes |
+| `heading_class` | `:any` | `nil` | Override heading element classes (escape hatch — prefer `level`/`variant`/`tone`) |
 
 Slot: `:inner_block` (required), `:description` (optional)
 
@@ -925,11 +942,12 @@ Wrapper for the CodeMirror `phx-hook="CodeEditor"` pattern. **All CodeMirror edi
 | `language` | `:string` | `"json"` | Syntax language |
 | `readonly` | `:boolean` | `true` | Whether editor is read-only |
 | `minimal` | `:boolean` | `true` | Minimal UI mode |
-| `max_height` | `:string` | `"max-h-96"` | Max height class for cm-editor. Pass `""` when using inline `style` height |
+| `max_height` | `:string` | `"max-h-96"` | Max height class for cm-editor. Pass `""` when using fixed `height` |
 | `event` | `:string` | `nil` | LiveView event name for changes |
 | `field` | `:string` | `nil` | Field identifier for event payload |
 | `class` | `:any` | `nil` | Additional CSS classes |
-| `style` | `:string` | `nil` | Inline style (for fixed heights) |
+| `height` | `:string` | `nil` | Fixed pixel/viewport height (e.g. `"240px"`, `"35vh"`) — preferred over `style` |
+| `style` | `:string` | `nil` | Inline style escape hatch (prefer `height` attr) |
 
 ---
 
@@ -978,7 +996,7 @@ One-time API key display banner with copy-friendly code block and dismiss button
 
 - **`<.stat_card>`** — added `href` attr (optional). When present, wraps card in a `<.link navigate={}>` with hover border.
 - **`<.badge>`** — added `variant="status"`, `size="xs"`, and semantic variants `success`, `warning`, `info`.
-- **`<.button>`** — added variants `success`, `info`, `ghost-dark`; sizes `compact`, `pill`, `micro`, `icon-sm`, `icon-xs`, `list-item`.
+- **`<.button>`** — added variants `success`, `info`, `ghost-dark`, `outline-destructive`; sizes `compact`, `pill`, `micro`, `icon-sm`, `icon-xs`, `list-item`.
 - **`<.card_content>`** — added `standalone` boolean (restores top padding when no card_header), `size="compact"`.
 - **`<.card_header>`** — added `size="compact"` (tighter padding for dense layouts).
 - **`<.card_title>`** — added `size="label"` (small uppercase tracking style).
@@ -988,6 +1006,11 @@ One-time API key display banner with copy-friendly code block and dismiss button
 ### New Components
 
 - **`<.inline_code>`** — `shared/inline_code.ex` — inline code display with `default` and `block` variants.
+- **`<.action_row>`** — `ui/action_row.ex` — horizontal row with `title`/`description`/`action` slots for danger-zone and settings rows. Variants: `default`, `destructive`. Explicit import: `BlackboexWeb.Components.UI.ActionRow`.
+
+### Updated Components (Round 7)
+
+- **`<.alert_banner>`** — added variants `neutral` (transparent border-only) and `primary` (primary-tinted). Full variant set: `destructive`, `warning`, `info`, `success`, `neutral`, `primary`.
 
 ### New Helpers
 

@@ -1,6 +1,8 @@
 defmodule BlackboexWeb.Components.UI.AlertBanner do
   @moduledoc """
-  Contextual feedback banner for inline alerts (error, warning, info, success).
+  Contextual feedback banner for inline alerts.
+
+  Variants: `destructive`, `warning`, `info`, `success`, `neutral`, `primary`.
 
   ## Examples
 
@@ -9,6 +11,8 @@ defmodule BlackboexWeb.Components.UI.AlertBanner do
         This action cannot be undone.
       </.alert_banner>
       <.alert_banner variant="success">Operation completed successfully</.alert_banner>
+      <.alert_banner variant="neutral">Neutral tip without tinted background</.alert_banner>
+      <.alert_banner variant="primary">Highlighted primary-colored banner</.alert_banner>
   """
   use BlackboexWeb.Component
 
@@ -18,10 +22,15 @@ defmodule BlackboexWeb.Components.UI.AlertBanner do
     "destructive" => "border-destructive/50 bg-destructive/5 text-destructive",
     "warning" => "border-warning/50 bg-warning/10 text-warning-foreground",
     "info" => "border-info/50 bg-info/10 text-info-foreground",
-    "success" => "border-success/50 bg-success/5 text-success-foreground"
+    "success" => "border-success/50 bg-success/5 text-success-foreground",
+    "neutral" => "border-border bg-transparent text-foreground",
+    "primary" => "border-primary/30 bg-primary/5 text-foreground"
   }
 
-  attr :variant, :string, values: ~w(destructive warning info success), default: "info"
+  attr :variant, :string,
+    values: ~w(destructive warning info success neutral primary),
+    default: "info"
+
   attr :icon, :string, default: nil
   attr :class, :any, default: nil
   attr :rest, :global

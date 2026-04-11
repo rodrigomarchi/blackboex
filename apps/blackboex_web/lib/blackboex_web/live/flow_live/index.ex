@@ -8,6 +8,7 @@ defmodule BlackboexWeb.FlowLive.Index do
 
   import BlackboexWeb.Components.Badge
   import BlackboexWeb.Components.Shared.EmptyState
+  import BlackboexWeb.Components.Shared.IconBadge
   import BlackboexWeb.FlowLive.Components.CreateFlowModal
 
   alias Blackboex.Flows
@@ -249,9 +250,7 @@ defmodule BlackboexWeb.FlowLive.Index do
         <.table id="flows" rows={@flows}>
           <:col :let={flow} label="Flow">
             <div class="flex items-center gap-3">
-              <div class="flex size-8 items-center justify-center rounded-lg bg-accent-violet/15">
-                <.icon name="hero-arrow-path" class="size-4 text-accent-violet" />
-              </div>
+              <.icon_badge icon="hero-arrow-path" color="accent-violet" />
               <div class="min-w-0">
                 <.link
                   navigate={~p"/flows/#{flow.id}/edit"}
@@ -287,7 +286,7 @@ defmodule BlackboexWeb.FlowLive.Index do
                 phx-value-id={flow.id}
                 variant="link"
                 size="sm"
-                class="inline-flex items-center text-xs text-destructive hover:underline"
+                class="link-destructive"
               >
                 <.icon name="hero-trash-mini" class="mr-1 size-3" /> Delete
               </.button>

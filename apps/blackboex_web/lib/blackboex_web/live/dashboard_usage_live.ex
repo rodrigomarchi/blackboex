@@ -95,7 +95,7 @@ defmodule BlackboexWeb.DashboardUsageLive do
       <%!-- Plan limits --%>
       <.card :if={@usage}>
         <.card_content class="p-4">
-          <p class="flex items-center gap-1.5 text-sm font-medium text-muted-foreground mb-4">
+          <p class="section-label mb-4">
             <.icon name="hero-shield-check-mini" class="size-3.5 text-accent-emerald" /> Plan Limits
           </p>
           <div class="space-y-3">

@@ -1,6 +1,8 @@
 defmodule BlackboexWeb.UserLive.Login do
   use BlackboexWeb, :live_view
 
+  import BlackboexWeb.Components.UI.AlertBanner
+
   alias Blackboex.Accounts
 
   @impl true
@@ -24,18 +26,16 @@ defmodule BlackboexWeb.UserLive.Login do
         </.header>
       </div>
 
-      <div
+      <.alert_banner
         :if={local_mail_adapter?()}
-        class="flex items-center gap-3 rounded-lg border border-info bg-info/10 p-4 text-info-foreground text-sm"
+        variant="info"
+        icon="hero-information-circle"
       >
-        <.icon name="hero-information-circle" class="size-5 shrink-0" />
-        <div>
-          <p>Local mail adapter active.</p>
-          <p>
-            Visit <.link href="/dev/mailbox" class="underline">the mailbox</.link> for emails.
-          </p>
-        </div>
-      </div>
+        <p>Local mail adapter active.</p>
+        <p>
+          Visit <.link href="/dev/mailbox" class="underline">the mailbox</.link> for emails.
+        </p>
+      </.alert_banner>
 
       <.form
         :let={f}

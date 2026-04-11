@@ -34,6 +34,11 @@ defmodule BlackboexWeb.Components.UI.SectionHeading do
     default: "default",
     doc: "label variant adds uppercase tracking and bottom margin (for sidebar sections)"
 
+  attr :tone, :string,
+    values: ~w(default muted),
+    default: "default",
+    doc: "muted tone forces text-muted-foreground (for subheaders inside cards)"
+
   attr :class, :any, default: nil
   attr :heading_class, :any, default: nil
   attr :rest, :global
@@ -47,6 +52,7 @@ defmodule BlackboexWeb.Components.UI.SectionHeading do
       assigns
       |> assign(:base_class, @base_classes[assigns.level])
       |> assign(:is_label, assigns.variant == "label")
+      |> assign(:tone_class, assigns.tone == "muted" && "text-muted-foreground")
 
     ~H"""
     <div
@@ -62,7 +68,14 @@ defmodule BlackboexWeb.Components.UI.SectionHeading do
     >
       <.dynamic_tag
         tag_name={@level}
-        class={classes([@base_class, @icon && "flex items-center gap-1.5", @heading_class])}
+        class={
+          classes([
+            @base_class,
+            @icon && "flex items-center gap-1.5",
+            @tone_class,
+            @heading_class
+          ])
+        }
       >
         <Icon.icon :if={@icon} name={@icon} class={@icon_class} />
         {render_slot(@inner_block)}

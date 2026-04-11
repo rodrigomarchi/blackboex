@@ -106,21 +106,18 @@ defmodule BlackboexWeb.FlowLive.ExecutionShow do
         </div>
 
         <%!-- Error banner --%>
-        <div
+        <.alert_banner
           :if={@execution.error}
-          class="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2.5"
+          variant="destructive"
+          icon="hero-exclamation-triangle-mini"
         >
-          <.icon
-            name="hero-exclamation-triangle-mini"
-            class="size-4 text-destructive shrink-0 mt-0.5"
-          />
           <.code_editor_field
             id="execution-error-viewer"
             value={@execution.error}
             max_height="max-h-40"
             class="flex-1"
           />
-        </div>
+        </.alert_banner>
 
         <%!-- Halted banner --%>
         <.alert_banner
@@ -230,12 +227,9 @@ defmodule BlackboexWeb.FlowLive.ExecutionShow do
                   :if={@expanded_node == ne.node_id}
                   class="px-4 pb-3 pt-1 pl-10 bg-muted/10 space-y-2"
                 >
-                  <div
-                    :if={ne.error}
-                    class="text-xs text-destructive bg-destructive/10 rounded px-2 py-1.5"
-                  >
+                  <.alert_banner :if={ne.error} variant="destructive" class="py-1 px-2 text-xs">
                     {ne.error}
-                  </div>
+                  </.alert_banner>
                   <div :if={ne.output} class="text-xs">
                     <span class="text-muted-foreground font-medium">Output:</span>
                     <.code_editor_field

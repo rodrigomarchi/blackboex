@@ -1,6 +1,8 @@
 defmodule BlackboexWeb.UserLive.Confirmation do
   use BlackboexWeb, :live_view
 
+  import BlackboexWeb.Components.UI.AlertBanner
+
   alias Blackboex.Accounts
 
   @impl true
@@ -68,9 +70,9 @@ defmodule BlackboexWeb.UserLive.Confirmation do
         <% end %>
       </.form>
 
-      <p :if={!@user.confirmed_at} class="flex items-center gap-2 rounded-lg border p-4 mt-8 text-sm">
+      <.alert_banner :if={!@user.confirmed_at} variant="neutral" class="mt-8">
         Tip: If you prefer passwords, you can enable them in the user settings.
-      </p>
+      </.alert_banner>
     </div>
     """
   end

@@ -84,7 +84,7 @@ defmodule BlackboexWeb.Components.Editor.Chat.CodeBlocks do
           <div class="flex items-center gap-1 mb-1">
             <.code_label>Output</.code_label>
             <%= if !@success do %>
-              <span class="text-[9px] rounded bg-destructive/10 text-destructive px-1 py-0.5 font-medium">
+              <span class="text-2xs rounded bg-destructive/10 text-destructive px-1 py-0.5 font-medium">
                 ERROR
               </span>
             <% end %>

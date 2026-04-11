@@ -7,6 +7,7 @@ defmodule BlackboexWeb.Components.Editor.ChatPanel do
 
   use BlackboexWeb, :live_component
 
+  import BlackboexWeb.Components.UI.AlertBanner
   import BlackboexWeb.Components.UI.InlineInput
   import BlackboexWeb.Components.UI.SectionHeading
 
@@ -48,9 +49,10 @@ defmodule BlackboexWeb.Components.Editor.ChatPanel do
         </.section_heading>
         <.button
           variant="ghost-muted"
+          size="compact"
           phx-click="request_confirm"
           phx-value-action="clear_conversation"
-          class="h-auto w-auto p-0 text-xs"
+          class="px-0"
         >
           New conversation
         </.button>
@@ -161,80 +163,79 @@ defmodule BlackboexWeb.Components.Editor.ChatPanel do
 
   defp render_pending_edit(assigns) do
     ~H"""
-    <div class="rounded-lg border border-info/30 bg-info/10 p-3 space-y-2.5">
-      <div class="flex items-center gap-1.5">
-        <.icon name="hero-pencil-square" class="size-4 text-info-foreground" />
+    <.alert_banner variant="info" icon="hero-pencil-square">
+      <div class="space-y-2.5">
         <span class="text-xs font-semibold text-info-foreground">Proposed Change</span>
-      </div>
-      <p class="text-xs text-info-foreground">{@pending_edit[:explanation] || ""}</p>
+        <p class="text-xs text-info-foreground">{@pending_edit[:explanation] || ""}</p>
 
-      <%= if @pending_edit[:files_changed] && @pending_edit[:files_changed] != [] do %>
-        <div class="space-y-2">
-          <%= for file <- @pending_edit.files_changed do %>
-            <div class="rounded border bg-background p-1.5">
-              <div class="text-2xs font-semibold text-muted-foreground mb-1">{file.path}</div>
-              <div class="text-micro font-mono overflow-x-auto max-h-40 overflow-y-auto">
-                <%= for {op, lines} <- file.diff, line <- lines do %>
-                  <div class={diff_line_class(op)}>
-                    <span class="select-none text-muted-foreground mr-1">{diff_prefix(op)}</span>{line}
-                  </div>
-                <% end %>
-              </div>
-            </div>
-          <% end %>
-        </div>
-      <% else %>
-        <%= if @pending_edit[:diff] do %>
-          <div class="rounded border bg-background p-1.5 text-micro font-mono overflow-x-auto max-h-60 overflow-y-auto">
-            <%= for {op, lines} <- @pending_edit.diff, line <- lines do %>
-              <div class={diff_line_class(op)}>
-                <span class="select-none text-muted-foreground mr-1">{diff_prefix(op)}</span>{line}
+        <%= if @pending_edit[:files_changed] && @pending_edit[:files_changed] != [] do %>
+          <div class="space-y-2">
+            <%= for file <- @pending_edit.files_changed do %>
+              <div class="rounded border bg-background p-1.5">
+                <div class="text-2xs font-semibold text-muted-foreground mb-1">{file.path}</div>
+                <div class="text-micro font-mono overflow-x-auto max-h-40 overflow-y-auto">
+                  <%= for {op, lines} <- file.diff, line <- lines do %>
+                    <div class={diff_line_class(op)}>
+                      <span class="select-none text-muted-foreground mr-1">{diff_prefix(op)}</span>{line}
+                    </div>
+                  <% end %>
+                </div>
               </div>
             <% end %>
           </div>
+        <% else %>
+          <%= if @pending_edit[:diff] do %>
+            <div class="rounded border bg-background p-1.5 text-micro font-mono overflow-x-auto max-h-60 overflow-y-auto">
+              <%= for {op, lines} <- @pending_edit.diff, line <- lines do %>
+                <div class={diff_line_class(op)}>
+                  <span class="select-none text-muted-foreground mr-1">{diff_prefix(op)}</span>{line}
+                </div>
+              <% end %>
+            </div>
+          <% end %>
         <% end %>
-      <% end %>
 
-      <%= if @pending_edit[:validation] do %>
-        <div class="flex flex-wrap gap-1">
-          <.validation_badge check="Compile" status={@pending_edit.validation.compilation} />
-          <.validation_badge check="Format" status={@pending_edit.validation.format} />
-          <.validation_badge check="Credo" status={@pending_edit.validation.credo} />
-          <.validation_badge
-            check="Tests"
-            status={@pending_edit.validation.tests}
-            detail={test_summary(@pending_edit.validation.test_results)}
-          />
+        <%= if @pending_edit[:validation] do %>
+          <div class="flex flex-wrap gap-1">
+            <.validation_badge check="Compile" status={@pending_edit.validation.compilation} />
+            <.validation_badge check="Format" status={@pending_edit.validation.format} />
+            <.validation_badge check="Credo" status={@pending_edit.validation.credo} />
+            <.validation_badge
+              check="Tests"
+              status={@pending_edit.validation.tests}
+              detail={test_summary(@pending_edit.validation.test_results)}
+            />
+          </div>
+        <% else %>
+          <p class="text-2xs text-muted-foreground italic">
+            Validation will run after you accept.
+          </p>
+        <% end %>
+
+        <%= if @pending_edit[:diff] do %>
+          <p class="text-2xs text-muted-foreground">{format_diff_summary(@pending_edit.diff)}</p>
+        <% end %>
+
+        <div class="flex gap-2">
+          <.button
+            variant="success"
+            size="compact"
+            phx-click="accept_edit"
+            class="flex items-center gap-1 font-medium"
+          >
+            <.icon name="hero-check" class="size-3" /> Accept
+          </.button>
+          <.button
+            variant="outline-destructive"
+            size="compact"
+            phx-click="reject_edit"
+            class="flex items-center gap-1 font-medium"
+          >
+            <.icon name="hero-x-mark" class="size-3" /> Reject
+          </.button>
         </div>
-      <% else %>
-        <p class="text-2xs text-muted-foreground italic">
-          Validation will run after you accept.
-        </p>
-      <% end %>
-
-      <%= if @pending_edit[:diff] do %>
-        <p class="text-2xs text-muted-foreground">{format_diff_summary(@pending_edit.diff)}</p>
-      <% end %>
-
-      <div class="flex gap-2">
-        <.button
-          variant="success"
-          size="compact"
-          phx-click="accept_edit"
-          class="flex items-center gap-1 font-medium"
-        >
-          <.icon name="hero-check" class="size-3" /> Accept
-        </.button>
-        <.button
-          variant="outline"
-          size="compact"
-          phx-click="reject_edit"
-          class="border-destructive/50 text-destructive hover:bg-destructive/10 flex items-center gap-1 font-medium"
-        >
-          <.icon name="hero-x-mark" class="size-3" /> Reject
-        </.button>
       </div>
-    </div>
+    </.alert_banner>
     """
   end
 end

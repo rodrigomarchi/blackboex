@@ -130,11 +130,7 @@ defmodule BlackboexWeb.BillingLive.Plans do
               </.button>
             </div>
 
-            <.section_heading
-              level="h3"
-              class="mb-3"
-              heading_class="text-sm font-semibold text-muted-foreground"
-            >
+            <.section_heading level="h2" tone="muted" class="mb-3">
               Usage this month
             </.section_heading>
             <div class="space-y-4">

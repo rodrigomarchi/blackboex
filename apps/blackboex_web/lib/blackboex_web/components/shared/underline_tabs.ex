@@ -2,6 +2,8 @@ defmodule BlackboexWeb.Components.Shared.UnderlineTabs do
   @moduledoc "Underline-style tab bar for switching between content panels."
   use BlackboexWeb.Component
 
+  import BlackboexWeb.Components.Badge
+
   attr :tabs, :list,
     required: true,
     doc: "List of {id, label} tuples or {id, label, badge} triples"
@@ -30,12 +32,9 @@ defmodule BlackboexWeb.Components.Shared.UnderlineTabs do
         }
       >
         {tab_label(tab)}
-        <span
-          :if={tab_badge(tab)}
-          class="ml-1.5 inline-flex items-center rounded-full bg-destructive/10 px-1.5 text-2xs text-destructive"
-        >
+        <.badge :if={tab_badge(tab)} variant="destructive" size="xs" class="ml-1.5">
           {tab_badge(tab)}
-        </span>
+        </.badge>
       </button>
     </div>
     """

@@ -7,6 +7,7 @@ defmodule BlackboexWeb.FlowLive.Components.CreateFlowModal do
 
   import BlackboexWeb.Components.Modal
   import BlackboexWeb.Components.Shared.CategoryPills
+  import BlackboexWeb.Components.Shared.IconBadge
   import BlackboexWeb.Components.Shared.ModeToggle
   import BlackboexWeb.Components.Shared.TemplateGrid
   import BlackboexWeb.Components.UI.AlertBanner
@@ -56,9 +57,7 @@ defmodule BlackboexWeb.FlowLive.Components.CreateFlowModal do
           selected={@selected_template}
         >
           <:card :let={template}>
-            <div class="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary mt-0.5">
-              <.icon name={template.icon} class="size-4" />
-            </div>
+            <.icon_badge icon={template.icon} color="primary" class="mt-0.5" />
             <div class="min-w-0">
               <p class="text-xs font-medium leading-snug">{template.name}</p>
               <p class="text-muted-caption line-clamp-2 leading-snug mt-0.5">

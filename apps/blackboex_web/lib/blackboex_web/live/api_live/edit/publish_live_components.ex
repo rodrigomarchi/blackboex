@@ -51,11 +51,11 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLiveComponents do
         </.button>
         <.button
           :if={@api.status == "published"}
-          variant="outline"
+          variant="outline-destructive"
           size="compact"
           phx-click="request_confirm"
           phx-value-action="unpublish"
-          class="border-destructive text-destructive hover:bg-destructive/10 font-medium"
+          class="font-medium"
         >
           <.icon name="hero-arrow-down-circle" class="mr-1.5 size-3.5" /> Unpublish
         </.button>
@@ -261,19 +261,16 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLiveComponents do
             </span>
             <.link
               href="/api-keys"
-              class="inline-flex items-center text-primary hover:underline text-xs font-medium"
+              class="link-primary font-medium"
             >
               <.icon name="hero-key-mini" class="mr-1 size-3 text-accent-amber" />Manage Keys
             </.link>
           </div>
           <%= if @keys_summary.active_keys != [] do %>
             <div class="flex flex-wrap gap-1">
-              <span
-                :for={key <- @keys_summary.active_keys}
-                class="inline-flex items-center rounded bg-muted px-2 py-0.5 font-mono text-2xs"
-              >
+              <.inline_code :for={key <- @keys_summary.active_keys} class="px-2 text-2xs">
                 {key.key_prefix}...
-              </span>
+              </.inline_code>
             </div>
           <% end %>
         </div>

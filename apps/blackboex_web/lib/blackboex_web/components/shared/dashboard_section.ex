@@ -29,7 +29,7 @@ defmodule BlackboexWeb.Components.Shared.DashboardSection do
     ~H"""
     <.card class={@class} {@rest}>
       <.card_content class="p-4">
-        <p class="flex items-center gap-1.5 text-sm font-medium text-muted-foreground mb-3">
+        <p class="section-label mb-3">
           <.icon name={@icon} class={classes(["size-3.5", @icon_class])} />
           {@title}
         </p>

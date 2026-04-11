@@ -7,6 +7,7 @@ defmodule BlackboexWeb.ApiLive.IndexComponents do
 
   import BlackboexWeb.Components.Badge
   import BlackboexWeb.Components.Shared.CategoryPills
+  import BlackboexWeb.Components.Shared.IconBadge
   import BlackboexWeb.Components.Shared.InlineCode
   import BlackboexWeb.Components.Shared.ModeToggle
   import BlackboexWeb.Components.Shared.TemplateGrid
@@ -40,9 +41,7 @@ defmodule BlackboexWeb.ApiLive.IndexComponents do
     <.table id="apis" rows={@api_rows}>
       <:col :let={row} label="API">
         <div class="flex items-center gap-3">
-          <div class="flex size-8 items-center justify-center rounded-lg bg-accent-blue/15">
-            <.icon name="hero-cube" class="size-4 text-accent-blue" />
-          </div>
+          <.icon_badge icon="hero-cube" color="accent-blue" />
           <div class="min-w-0">
             <.link
               navigate={~p"/apis/#{row.api.id}/edit"}
@@ -196,28 +195,30 @@ defmodule BlackboexWeb.ApiLive.IndexComponents do
 
             <%!-- Selected template preview --%>
             <%= if @selected_template do %>
-              <div class="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-1">
-                <div class="flex items-center justify-between">
-                  <p class="text-sm font-medium">{@selected_template.name}</p>
-                  <.button
-                    type="button"
-                    variant="ghost-muted"
-                    size="icon-xs"
-                    phx-click="clear_template"
-                  >
-                    <.icon name="hero-x-mark" class="size-4" />
-                  </.button>
+              <.alert_banner variant="primary">
+                <div class="space-y-1">
+                  <div class="flex items-center justify-between">
+                    <p class="text-sm font-medium">{@selected_template.name}</p>
+                    <.button
+                      type="button"
+                      variant="ghost-muted"
+                      size="icon-xs"
+                      phx-click="clear_template"
+                    >
+                      <.icon name="hero-x-mark" class="size-4" />
+                    </.button>
+                  </div>
+                  <p class="text-muted-caption">{@selected_template.description}</p>
+                  <div class="flex flex-wrap gap-1 pt-1">
+                    <.inline_code>handler.ex</.inline_code>
+                    <.inline_code>helpers.ex</.inline_code>
+                    <.inline_code>request_schema.ex</.inline_code>
+                    <.inline_code>response_schema.ex</.inline_code>
+                    <.inline_code>handler_test.ex</.inline_code>
+                    <.inline_code>README.md</.inline_code>
+                  </div>
                 </div>
-                <p class="text-muted-caption">{@selected_template.description}</p>
-                <div class="flex flex-wrap gap-1 pt-1">
-                  <.inline_code>handler.ex</.inline_code>
-                  <.inline_code>helpers.ex</.inline_code>
-                  <.inline_code>request_schema.ex</.inline_code>
-                  <.inline_code>response_schema.ex</.inline_code>
-                  <.inline_code>handler_test.ex</.inline_code>
-                  <.inline_code>README.md</.inline_code>
-                </div>
-              </div>
+              </.alert_banner>
             <% else %>
               <p class="text-muted-caption">
                 Select a template above, or

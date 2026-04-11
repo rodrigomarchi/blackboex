@@ -6,6 +6,7 @@ defmodule BlackboexWeb.ApiLive.Edit.RunLiveComponents do
   use BlackboexWeb, :html
 
   import BlackboexWeb.ApiLive.Edit.Helpers, only: [history_status_color: 1]
+  import BlackboexWeb.Components.UI.SectionHeading
 
   # ── Test History Sidebar ───────────────────────────────────────────────
 
@@ -15,9 +16,16 @@ defmodule BlackboexWeb.ApiLive.Edit.RunLiveComponents do
     ~H"""
     <div class="w-52 shrink-0 border-l pl-3 overflow-y-auto">
       <div class="flex items-center justify-between mb-2">
-        <h4 class="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase">
-          <.icon name="hero-clock-mini" class="size-3.5 text-accent-amber" /> History
-        </h4>
+        <.section_heading
+          level="h3"
+          variant="label"
+          icon="hero-clock-mini"
+          icon_class="size-3.5 text-accent-amber"
+          class="mb-0"
+          heading_class="font-semibold"
+        >
+          History
+        </.section_heading>
         <.button
           :if={@test_history != []}
           variant="link"
@@ -50,7 +58,7 @@ defmodule BlackboexWeb.ApiLive.Edit.RunLiveComponents do
             :for={item <- @test_history}
             phx-click="load_history_item"
             phx-value-id={item.id}
-            class="rounded border p-1.5 text-2xs cursor-pointer hover:bg-accent"
+            class="clickable-item"
           >
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-1">

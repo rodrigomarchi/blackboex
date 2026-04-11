@@ -124,7 +124,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
           event="update_node_data"
           field="code"
           class="w-full rounded-lg"
-          style="height: 240px;"
+          height="240px"
           max_height=""
         />
       </div>
@@ -155,7 +155,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
           event="update_node_data"
           field="undo_code"
           class="w-full rounded-lg"
-          style="height: 100px;"
+          height="100px"
           max_height=""
         />
       </div>
@@ -182,7 +182,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
           event="update_node_data"
           field="expression"
           class="w-full rounded-lg"
-          style="height: 120px;"
+          height="120px"
           max_height=""
         />
       </div>
@@ -299,7 +299,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
             event="update_node_data"
             field="body_template"
             class="w-full rounded-lg"
-            style="height: 120px;"
+            height="120px"
             max_height=""
           />
         </div>
@@ -523,7 +523,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
                 event="update_input_mapping"
                 field={field["name"]}
                 class="w-full rounded-lg"
-                style="height: 36px;"
+                height="36px"
                 max_height=""
               />
             </div>
@@ -570,7 +570,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
             event="update_node_data"
             field="source_expression"
             class="w-full rounded-lg"
-            style="height: 60px;"
+            height="60px"
             max_height=""
           />
         </div>
@@ -623,7 +623,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
           event="update_node_data"
           field="body_code"
           class="w-full rounded-lg"
-          style="height: 200px;"
+          height="200px"
           max_height=""
         />
       </div>
@@ -705,7 +705,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
           event="update_node_data"
           field="message"
           class="w-full rounded-lg"
-          style="height: 100px;"
+          height="100px"
           max_height=""
         />
       </div>
@@ -745,7 +745,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
           event="update_node_data"
           field="expression"
           class="w-full rounded-lg"
-          style="height: 100px;"
+          height="100px"
           max_height=""
         />
       </div>
@@ -802,7 +802,7 @@ defmodule BlackboexWeb.Components.FlowEditor.NodeProperties do
         event="update_node_data"
         field="skip_condition"
         class="w-full rounded-lg"
-        style="height: 60px;"
+        height="60px"
         max_height=""
       />
     </div>

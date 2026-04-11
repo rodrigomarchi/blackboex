@@ -22,6 +22,11 @@ defmodule BlackboexWeb.Components.Shared.CodeEditorField do
   attr :event, :string, default: nil
   attr :field, :string, default: nil
   attr :class, :any, default: nil
+
+  attr :height, :string,
+    default: nil,
+    doc: "fixed pixel/viewport height (e.g. \"240px\", \"35vh\")"
+
   attr :style, :string, default: nil
 
   @spec code_editor_field(map()) :: Phoenix.LiveView.Rendered.t()
@@ -37,9 +42,14 @@ defmodule BlackboexWeb.Components.Shared.CodeEditorField do
       data-value={@value}
       data-event={@event}
       data-field={@field}
-      style={@style}
+      style={style_attr(@height, @style)}
       class={classes(["rounded-md overflow-hidden border", "[&_.cm-editor]:#{@max_height}", @class])}
     />
     """
   end
+
+  defp style_attr(nil, nil), do: nil
+  defp style_attr(nil, style), do: style
+  defp style_attr(height, nil), do: "height: #{height};"
+  defp style_attr(height, style), do: "height: #{height}; #{style}"
 end

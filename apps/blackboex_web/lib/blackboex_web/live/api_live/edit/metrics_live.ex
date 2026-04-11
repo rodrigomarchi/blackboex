@@ -127,9 +127,7 @@ defmodule BlackboexWeb.ApiLive.Edit.MetricsLive do
         <%!-- Recent Errors --%>
         <%= if @recent_errors != [] do %>
           <div class="space-y-3">
-            <.section_heading level="h3" heading_class="text-sm font-semibold text-foreground">
-              Recent Errors
-            </.section_heading>
+            <.section_heading level="h2">Recent Errors</.section_heading>
             <div class="rounded-lg border divide-y">
               <div
                 :for={error <- @recent_errors}

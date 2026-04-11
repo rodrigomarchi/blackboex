@@ -590,6 +590,18 @@
   @apply text-xs text-primary hover:underline;
 }
 
+.link-destructive {
+  @apply text-xs text-destructive hover:underline;
+}
+
+.section-label {
+  @apply flex items-center gap-1.5 text-sm font-medium text-muted-foreground;
+}
+
+.clickable-item {
+  @apply rounded border p-1.5 text-2xs cursor-pointer hover:bg-accent;
+}
+
 /* ── Timeline dots (chat/pipeline timeline) ────── */
 .timeline-dot {
   @apply absolute -left-[9px] size-[13px] rounded-full border-2 border-background bg-background flex items-center justify-center;

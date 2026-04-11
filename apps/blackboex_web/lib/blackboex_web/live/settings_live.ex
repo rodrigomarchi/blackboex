@@ -157,10 +157,10 @@ defmodule BlackboexWeb.SettingsLive do
 
         <div :if={@members != []} class="mt-6">
           <.section_heading
-            level="h3"
+            level="h2"
             icon="hero-user-group"
             icon_class="size-4 text-accent-blue"
-            heading_class="font-semibold text-foreground mb-2"
+            class="mb-2"
           >
             Members
           </.section_heading>
@@ -254,10 +254,10 @@ defmodule BlackboexWeb.SettingsLive do
 
         <div :if={@audit_logs != []} class="mt-4">
           <.section_heading
-            level="h3"
+            level="h2"
             icon="hero-clock"
             icon_class="size-4 text-accent-amber"
-            heading_class="font-semibold text-foreground mb-2"
+            class="mb-2"
           >
             Recent Activity
           </.section_heading>

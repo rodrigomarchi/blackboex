@@ -48,7 +48,7 @@ defmodule BlackboexWeb.DashboardLlmLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="space-y-6">
+    <.page>
       <.dashboard_page_header
         icon="hero-sparkles"
         icon_class="text-accent-violet"
@@ -59,7 +59,7 @@ defmodule BlackboexWeb.DashboardLlmLive do
       />
 
       <%!-- Stat cards --%>
-      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <.stat_grid cols="5">
         <.stat_card
           label={"LLM Calls (#{period_label(@period)})"}
           value={format_number(@metrics.total_calls)}
@@ -90,10 +90,10 @@ defmodule BlackboexWeb.DashboardLlmLive do
           icon="hero-clock-mini"
           icon_class="text-accent-sky"
         />
-      </div>
+      </.stat_grid>
 
       <%!-- Charts --%>
-      <div class="grid gap-4 lg:grid-cols-2">
+      <.chart_grid>
         <.dashboard_section
           icon="hero-sparkles-mini"
           icon_class="text-accent-violet"
@@ -108,9 +108,9 @@ defmodule BlackboexWeb.DashboardLlmLive do
         >
           <.line_chart data={@metrics.cost_series} color="var(--color-chart-5)" />
         </.dashboard_section>
-      </div>
+      </.chart_grid>
 
-      <div class="grid gap-4 lg:grid-cols-2">
+      <.chart_grid>
         <.dashboard_section
           icon="hero-arrow-down-tray-mini"
           icon_class="text-accent-blue"
@@ -125,7 +125,7 @@ defmodule BlackboexWeb.DashboardLlmLive do
         >
           <.line_chart data={@metrics.duration_series} color="var(--color-chart-3)" />
         </.dashboard_section>
-      </div>
+      </.chart_grid>
 
       <%!-- Usage by Model table --%>
       <.dashboard_section
@@ -177,7 +177,7 @@ defmodule BlackboexWeb.DashboardLlmLive do
       </.dashboard_section>
 
       <%!-- Conversations & Runs summary --%>
-      <div class="grid gap-4 lg:grid-cols-2">
+      <.chart_grid>
         <.dashboard_section
           icon="hero-chat-bubble-left-right-mini"
           icon_class="text-accent-purple"
@@ -223,8 +223,8 @@ defmodule BlackboexWeb.DashboardLlmLive do
             />
           </div>
         </.dashboard_section>
-      </div>
-    </div>
+      </.chart_grid>
+    </.page>
     """
   end
 

@@ -19,9 +19,20 @@ defmodule BlackboexWeb.Components.Shared.EmptyState do
   attr :icon_class, :string, default: "text-muted-foreground/60"
   attr :title, :string, required: true
   attr :description, :string, default: nil
+  attr :compact, :boolean, default: false, doc: "inline variant: no border, no icon, small text"
   attr :class, :string, default: nil
 
   slot :actions
+
+  def empty_state(%{compact: true} = assigns) do
+    ~H"""
+    <div class={classes(["py-4 text-center text-sm text-muted-foreground", @class])}>
+      {@title}
+      <p :if={@description} class="mt-1 text-xs">{@description}</p>
+      <div :if={@actions != []} class="mt-3">{render_slot(@actions)}</div>
+    </div>
+    """
+  end
 
   def empty_state(assigns) do
     ~H"""

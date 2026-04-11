@@ -48,7 +48,7 @@ defmodule BlackboexWeb.ApiLive.Edit.InfoLive do
   def render(assigns) do
     ~H"""
     <.editor_shell {shared_shell_assigns(assigns)} active_tab="info">
-      <div class="p-4 overflow-y-auto h-full max-w-3xl space-y-6">
+      <.editor_tab_panel max_width="3xl" padding="sm">
         <.section_heading level="h2" compact>API Information</.section_heading>
 
         <%!-- General --%>
@@ -116,7 +116,7 @@ defmodule BlackboexWeb.ApiLive.Edit.InfoLive do
           >
             Code Stats
           </.section_heading>
-          <div class="grid grid-cols-4 gap-3">
+          <.stat_grid cols="4" gap="3">
             <.stat_mini
               value={@source_lines}
               label="Source Lines"
@@ -141,7 +141,7 @@ defmodule BlackboexWeb.ApiLive.Edit.InfoLive do
               icon="hero-tag-mini"
               icon_class="text-accent-blue"
             />
-          </div>
+          </.stat_grid>
         </div>
 
         <%!-- Request/Response Schema --%>
@@ -224,7 +224,7 @@ defmodule BlackboexWeb.ApiLive.Edit.InfoLive do
             </:action>
           </.action_row>
         </div>
-      </div>
+      </.editor_tab_panel>
 
       <.confirm_dialog
         :if={@confirm}

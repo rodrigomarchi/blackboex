@@ -37,14 +37,14 @@ defmodule BlackboexWeb.SettingsLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="py-8">
+    <.page>
       <.header>
         <span class="flex items-center gap-2">
           <.icon name="hero-cog-6-tooth" class="size-5 text-slate-400" /> Settings
         </span>
       </.header>
 
-      <div class="border-b mb-6">
+      <div class="border-b -mt-2">
         <nav class="flex gap-1">
           <.link
             :for={tab <- tabs()}
@@ -64,7 +64,7 @@ defmodule BlackboexWeb.SettingsLive do
       </div>
 
       {render_tab(assigns)}
-    </div>
+    </.page>
     """
   end
 
@@ -164,15 +164,12 @@ defmodule BlackboexWeb.SettingsLive do
           >
             Members
           </.section_heading>
-          <div class="space-y-2">
-            <div
-              :for={member <- @members}
-              class="flex items-center justify-between p-2 border rounded"
-            >
+          <.page_section spacing="tight">
+            <.list_row :for={member <- @members}>
               <span class="text-sm">{member.user.email}</span>
               <.badge variant="outline">{to_string(member.role)}</.badge>
-            </div>
-          </div>
+            </.list_row>
+          </.page_section>
         </div>
       </.card_content>
     </.card>
@@ -222,7 +219,7 @@ defmodule BlackboexWeb.SettingsLive do
           </.description_list>
         </div>
 
-        <div class="flex gap-2 mt-4">
+        <.form_actions>
           <.button navigate={~p"/billing"} variant="primary" size="sm">
             <.icon name="hero-sparkles" class="mr-1.5 size-3.5 text-accent-amber" /> View Plans
           </.button>
@@ -230,7 +227,7 @@ defmodule BlackboexWeb.SettingsLive do
             <.icon name="hero-credit-card" class="mr-1.5 size-3.5 text-accent-emerald" />
             Manage Subscription
           </.button>
-        </div>
+        </.form_actions>
       </.card_content>
     </.card>
     """
@@ -248,9 +245,7 @@ defmodule BlackboexWeb.SettingsLive do
           Security & Audit
         </.section_heading>
 
-        <div :if={@audit_logs == []} class="mt-4 text-muted-foreground">
-          No recent activity.
-        </div>
+        <.empty_state :if={@audit_logs == []} compact title="No recent activity." />
 
         <div :if={@audit_logs != []} class="mt-4">
           <.section_heading
@@ -261,11 +256,8 @@ defmodule BlackboexWeb.SettingsLive do
           >
             Recent Activity
           </.section_heading>
-          <div class="space-y-2">
-            <div
-              :for={log <- @audit_logs}
-              class="flex items-center justify-between p-2 border rounded text-sm"
-            >
+          <.page_section spacing="tight">
+            <.list_row :for={log <- @audit_logs} class="text-sm">
               <div>
                 <span class="font-medium">{log.action}</span>
                 <span :if={log.resource_type} class="text-muted-foreground ml-2">
@@ -275,16 +267,16 @@ defmodule BlackboexWeb.SettingsLive do
               <span class="text-muted-foreground text-xs">
                 {Calendar.strftime(log.inserted_at, "%b %d, %H:%M")}
               </span>
-            </div>
-          </div>
+            </.list_row>
+          </.page_section>
         </div>
 
-        <div class="mt-6">
+        <.form_actions align="start">
           <.button navigate={~p"/users/settings"} variant="default" size="sm">
             <.icon name="hero-lock-closed" class="mr-1.5 size-3.5 text-accent-amber" />
             Change Password
           </.button>
-        </div>
+        </.form_actions>
       </.card_content>
     </.card>
     """

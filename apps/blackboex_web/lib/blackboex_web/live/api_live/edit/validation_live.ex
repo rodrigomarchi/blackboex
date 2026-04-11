@@ -26,12 +26,12 @@ defmodule BlackboexWeb.ApiLive.Edit.ValidationLive do
   def render(assigns) do
     ~H"""
     <.editor_shell {shared_shell_assigns(assigns)} active_tab="validation">
-      <div class="p-4 overflow-y-auto h-full">
+      <.editor_tab_panel padding="sm" spacing="none">
         <.validation_dashboard
           report={@validation_report}
           loading={@pipeline_status != nil && @pipeline_status != :done}
         />
-      </div>
+      </.editor_tab_panel>
     </.editor_shell>
     """
   end

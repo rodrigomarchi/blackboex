@@ -53,7 +53,7 @@ defmodule BlackboexWeb.DashboardFlowsLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="space-y-6">
+    <.page>
       <.dashboard_page_header
         icon="hero-arrow-path"
         icon_class="text-accent-violet"
@@ -64,7 +64,7 @@ defmodule BlackboexWeb.DashboardFlowsLive do
       />
 
       <%!-- Stat cards --%>
-      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <.stat_grid cols="4">
         <.stat_card
           label={"Executions (#{period_label(@period)})"}
           value={format_number(@metrics.total_executions)}
@@ -89,17 +89,17 @@ defmodule BlackboexWeb.DashboardFlowsLive do
           icon="hero-clock-mini"
           icon_class="text-accent-amber"
         />
-      </div>
+      </.stat_grid>
 
       <%!-- Charts --%>
-      <div class="grid gap-4 lg:grid-cols-2">
+      <.chart_grid>
         <.dashboard_section icon="hero-bolt-mini" icon_class="text-accent-sky" title="Executions">
           <.bar_chart data={@metrics.executions_series} />
         </.dashboard_section>
         <.dashboard_section icon="hero-x-circle-mini" icon_class="text-accent-red" title="Failures">
           <.bar_chart data={@metrics.failures_series} color="var(--color-chart-2)" />
         </.dashboard_section>
-      </div>
+      </.chart_grid>
 
       <.dashboard_section
         icon="hero-clock-mini"
@@ -189,7 +189,7 @@ defmodule BlackboexWeb.DashboardFlowsLive do
           </:col>
         </.table>
       </.dashboard_section>
-    </div>
+    </.page>
     """
   end
 

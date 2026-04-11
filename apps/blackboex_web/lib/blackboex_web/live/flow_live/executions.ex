@@ -7,7 +7,6 @@ defmodule BlackboexWeb.FlowLive.Executions do
 
   import BlackboexWeb.Components.Badge
   import BlackboexWeb.Components.Card
-  import BlackboexWeb.Components.Shared.EmptyState
   import BlackboexWeb.Components.Shared.StatMini
   import BlackboexWeb.Components.UI.SectionHeading
   import BlackboexWeb.FlowLive.ExecutionHelpers

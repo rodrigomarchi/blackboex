@@ -40,7 +40,7 @@ defmodule BlackboexWeb.ApiKeyLive.Show do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="space-y-6">
+    <.page>
       <%!-- Header --%>
       <.header>
         <div class="flex items-center gap-3">
@@ -89,7 +89,7 @@ defmodule BlackboexWeb.ApiKeyLive.Show do
       <.plain_key_banner :if={@plain_key_flash} plain_key={@plain_key_flash} />
 
       <%!-- Metrics --%>
-      <div class="space-y-4">
+      <.page_section>
         <div class="flex items-center justify-between">
           <.section_heading
             icon="hero-chart-bar"
@@ -111,7 +111,7 @@ defmodule BlackboexWeb.ApiKeyLive.Show do
           </div>
         </div>
 
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <.stat_grid cols="4">
           <.stat_card label="Total Requests" value={@metrics.total_requests} />
           <.stat_card
             label="Errors"
@@ -120,8 +120,8 @@ defmodule BlackboexWeb.ApiKeyLive.Show do
           />
           <.stat_card label="Avg Latency" value={format_latency(@metrics.avg_latency)} />
           <.stat_card label="Success Rate" value={"#{@metrics.success_rate}%"} />
-        </div>
-      </div>
+        </.stat_grid>
+      </.page_section>
 
       <%!-- Details --%>
       <.card>
@@ -159,7 +159,7 @@ defmodule BlackboexWeb.ApiKeyLive.Show do
           </.description_list>
         </.card_content>
       </.card>
-    </div>
+    </.page>
     """
   end
 

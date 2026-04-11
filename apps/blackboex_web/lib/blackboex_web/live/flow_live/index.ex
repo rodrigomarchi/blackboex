@@ -7,7 +7,6 @@ defmodule BlackboexWeb.FlowLive.Index do
   use BlackboexWeb, :live_view
 
   import BlackboexWeb.Components.Badge
-  import BlackboexWeb.Components.Shared.EmptyState
   import BlackboexWeb.Components.Shared.IconBadge
   import BlackboexWeb.FlowLive.Components.CreateFlowModal
 
@@ -209,7 +208,7 @@ defmodule BlackboexWeb.FlowLive.Index do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="space-y-6">
+    <.page>
       <.header>
         <span class="flex items-center gap-2">
           <.icon name="hero-arrow-path" class="size-5 text-accent-violet" /> Flows
@@ -312,7 +311,7 @@ defmodule BlackboexWeb.FlowLive.Index do
         create_form={@create_form}
         create_error={@create_error}
       />
-    </div>
+    </.page>
     """
   end
 end

@@ -109,7 +109,7 @@ defmodule BlackboexWeb.BillingLive.Plans do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="max-w-5xl mx-auto py-8">
+    <.page>
       <.header>
         <span class="flex items-center gap-2">
           <.icon name="hero-sparkles" class="size-5 text-accent-amber" /> Choose your plan
@@ -117,7 +117,7 @@ defmodule BlackboexWeb.BillingLive.Plans do
         <:subtitle>Scale your API platform with the right plan</:subtitle>
       </.header>
 
-      <div :if={@usage} class="mb-8">
+      <.page_section :if={@usage}>
         <.card>
           <.card_content standalone>
             <div class="flex items-center justify-between mb-4">
@@ -171,7 +171,7 @@ defmodule BlackboexWeb.BillingLive.Plans do
             </div>
           </.card_content>
         </.card>
-      </div>
+      </.page_section>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <.card
@@ -194,7 +194,7 @@ defmodule BlackboexWeb.BillingLive.Plans do
               </li>
             </ul>
 
-            <div class="flex gap-2 pt-2 mt-6">
+            <.form_actions>
               <%= if plan.id == @current_plan do %>
                 <.button variant="default" disabled class="w-full">
                   <.icon name="hero-check-circle" class="mr-1.5 size-3.5 text-slate-400" />
@@ -222,11 +222,11 @@ defmodule BlackboexWeb.BillingLive.Plans do
                   </.button>
                 <% end %>
               <% end %>
-            </div>
+            </.form_actions>
           </.card_content>
         </.card>
       </div>
-    </div>
+    </.page>
     """
   end
 end

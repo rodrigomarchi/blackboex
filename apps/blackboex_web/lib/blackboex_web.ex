@@ -94,6 +94,14 @@ defmodule BlackboexWeb do
       import BlackboexWeb.Components.Helpers
       import BlackboexWeb.Components.StatusHelpers
       import BlackboexWeb.Components.ConfirmDialog
+      import BlackboexWeb.Components.Shared.Page
+      import BlackboexWeb.Components.Shared.EmptyState
+      import BlackboexWeb.Components.Shared.Panel
+      import BlackboexWeb.Components.Shared.StatGrid
+      import BlackboexWeb.Components.Shared.ChartGrid
+      import BlackboexWeb.Components.Shared.FormActions
+      import BlackboexWeb.Components.Shared.ListRow
+      import BlackboexWeb.Components.Shared.EditorTabPanel
       import BlackboexWeb.Logo
 
       # Common modules used in templates

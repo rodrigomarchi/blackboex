@@ -32,7 +32,7 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLiveComponents do
   @spec status_header(map()) :: Phoenix.LiveView.Rendered.t()
   def status_header(assigns) do
     ~H"""
-    <div class="rounded-lg border p-4 space-y-3">
+    <.panel class="space-y-3">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
           <span class="text-muted-caption">Status</span>
@@ -91,7 +91,7 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLiveComponents do
           </span>
         </div>
       <% end %>
-    </div>
+    </.panel>
     """
   end
 
@@ -190,7 +190,7 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLiveComponents do
     ~H"""
     <div>
       <.section_heading level="h3" variant="label">Metrics (24h)</.section_heading>
-      <div class="grid grid-cols-4 gap-3">
+      <.stat_grid cols="4" gap="3">
         <.stat_mini
           value={@metrics.count_24h}
           label="Total Calls"
@@ -210,7 +210,7 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLiveComponents do
           icon="hero-exclamation-circle-mini"
           icon_class="text-accent-red"
         />
-      </div>
+      </.stat_grid>
     </div>
     """
   end
@@ -225,7 +225,7 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLiveComponents do
     ~H"""
     <div>
       <.section_heading level="h3" variant="label">Authentication</.section_heading>
-      <div class="rounded-lg border p-4 space-y-3">
+      <.panel class="space-y-3">
         <.form for={%{}} as={:publish_settings} phx-submit="save_publish_settings">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
@@ -274,7 +274,7 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLiveComponents do
             </div>
           <% end %>
         </div>
-      </div>
+      </.panel>
     </div>
     """
   end
@@ -290,7 +290,7 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLiveComponents do
     <div>
       <.section_heading level="h3" variant="label">Documentation</.section_heading>
       <div class="space-y-2">
-        <div class="flex items-center justify-between rounded border p-3">
+        <.list_row class="p-3">
           <div class="flex items-center gap-2">
             <.icon name="hero-document-text" class="size-4 text-accent-blue" />
             <span class="text-sm">Swagger UI</span>
@@ -302,8 +302,8 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLiveComponents do
           >
             Open
           </.link>
-        </div>
-        <div class="flex items-center justify-between rounded border p-3">
+        </.list_row>
+        <.list_row class="p-3">
           <div class="flex items-center gap-2">
             <.icon name="hero-code-bracket" class="size-4 text-accent-purple" />
             <span class="text-sm">OpenAPI JSON</span>
@@ -315,7 +315,7 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLiveComponents do
           >
             Open
           </.link>
-        </div>
+        </.list_row>
       </div>
     </div>
     """

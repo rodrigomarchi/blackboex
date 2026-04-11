@@ -54,7 +54,7 @@ defmodule BlackboexWeb.DashboardUsageLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="space-y-6">
+    <.page>
       <.dashboard_page_header
         icon="hero-chart-bar"
         icon_class="text-accent-emerald"
@@ -65,7 +65,7 @@ defmodule BlackboexWeb.DashboardUsageLive do
       />
 
       <%!-- Stat cards --%>
-      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <.stat_grid cols="4">
         <.stat_card
           label={"API Invocations (#{period_label(@period)})"}
           value={format_number(@metrics.api_invocations_total)}
@@ -90,7 +90,7 @@ defmodule BlackboexWeb.DashboardUsageLive do
           icon="hero-currency-dollar-mini"
           icon_class="text-accent-amber"
         />
-      </div>
+      </.stat_grid>
 
       <%!-- Plan limits --%>
       <.card :if={@usage}>
@@ -110,7 +110,7 @@ defmodule BlackboexWeb.DashboardUsageLive do
       </.card>
 
       <%!-- Charts --%>
-      <div class="grid gap-4 lg:grid-cols-2">
+      <.chart_grid>
         <.dashboard_section
           icon="hero-signal-mini"
           icon_class="text-accent-sky"
@@ -125,9 +125,9 @@ defmodule BlackboexWeb.DashboardUsageLive do
         >
           <.bar_chart data={@metrics.generations_series} color="var(--color-chart-4)" />
         </.dashboard_section>
-      </div>
+      </.chart_grid>
 
-      <div class="grid gap-4 lg:grid-cols-2">
+      <.chart_grid>
         <.dashboard_section
           icon="hero-arrow-down-tray-mini"
           icon_class="text-accent-blue"
@@ -142,7 +142,7 @@ defmodule BlackboexWeb.DashboardUsageLive do
         >
           <.line_chart data={@metrics.tokens_out_series} color="var(--color-chart-3)" />
         </.dashboard_section>
-      </div>
+      </.chart_grid>
 
       <.dashboard_section
         icon="hero-currency-dollar-mini"
@@ -151,7 +151,7 @@ defmodule BlackboexWeb.DashboardUsageLive do
       >
         <.line_chart data={@metrics.cost_series} color="var(--color-chart-5)" />
       </.dashboard_section>
-    </div>
+    </.page>
     """
   end
 

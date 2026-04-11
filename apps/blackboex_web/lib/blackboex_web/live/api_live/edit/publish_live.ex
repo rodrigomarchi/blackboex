@@ -27,7 +27,7 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLive do
   def render(assigns) do
     ~H"""
     <.editor_shell {shared_shell_assigns(assigns)} active_tab="publish">
-      <div class="p-4 overflow-y-auto h-full max-w-3xl space-y-6">
+      <.editor_tab_panel max_width="3xl" padding="sm">
         <.status_header api={@api} org={@org} published_version={@published_version} />
 
         <%= if @api.status == "draft" do %>
@@ -57,7 +57,7 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLive do
         <%= if @api.status in ["compiled", "published"] do %>
           <.docs_section org={@org} api={@api} />
         <% end %>
-      </div>
+      </.editor_tab_panel>
 
       <.confirm_dialog
         :if={@confirm}

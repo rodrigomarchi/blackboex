@@ -52,7 +52,7 @@ defmodule BlackboexWeb.DashboardApisLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="space-y-6">
+    <.page>
       <.dashboard_page_header
         icon="hero-cube"
         icon_class="text-accent-blue"
@@ -63,7 +63,7 @@ defmodule BlackboexWeb.DashboardApisLive do
       />
 
       <%!-- Stat cards --%>
-      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <.stat_grid cols="4">
         <.stat_card
           label={"Calls (#{period_label(@period)})"}
           value={format_number(total_calls(@metrics))}
@@ -88,10 +88,10 @@ defmodule BlackboexWeb.DashboardApisLive do
           icon="hero-exclamation-triangle-mini"
           icon_class="text-accent-orange"
         />
-      </div>
+      </.stat_grid>
 
       <%!-- Charts --%>
-      <div class="grid gap-4 lg:grid-cols-2">
+      <.chart_grid>
         <.dashboard_section icon="hero-signal-mini" icon_class="text-accent-sky" title="API Calls">
           <.bar_chart data={@metrics.calls_series} />
         </.dashboard_section>
@@ -102,9 +102,9 @@ defmodule BlackboexWeb.DashboardApisLive do
         >
           <.bar_chart data={@metrics.errors_series} color="var(--color-chart-2)" />
         </.dashboard_section>
-      </div>
+      </.chart_grid>
 
-      <div class="grid gap-4 lg:grid-cols-2">
+      <.chart_grid>
         <.dashboard_section
           icon="hero-clock-mini"
           icon_class="text-accent-amber"
@@ -119,10 +119,10 @@ defmodule BlackboexWeb.DashboardApisLive do
         >
           <.line_chart data={@metrics.latency_p95_series} color="var(--color-chart-4)" />
         </.dashboard_section>
-      </div>
+      </.chart_grid>
 
       <%!-- Extended metrics row --%>
-      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <.stat_grid cols="4">
         <.stat_card
           label={"Unique Consumers (#{period_label(@period)})"}
           value={format_number(@extended.unique_consumers)}
@@ -147,7 +147,7 @@ defmodule BlackboexWeb.DashboardApisLive do
           icon="hero-arrows-right-left-mini"
           icon_class="text-accent-cyan"
         />
-      </div>
+      </.stat_grid>
 
       <%!-- Top APIs table --%>
       <.dashboard_section
@@ -180,7 +180,7 @@ defmodule BlackboexWeb.DashboardApisLive do
           <:col :let={row} label="Avg Latency">{format_latency(row.avg_latency)}</:col>
         </.table>
       </.dashboard_section>
-    </div>
+    </.page>
     """
   end
 

@@ -6,7 +6,6 @@ defmodule BlackboexWeb.ApiKeyLive.Index do
 
   import BlackboexWeb.Components.Modal
   import BlackboexWeb.Components.Badge
-  import BlackboexWeb.Components.Shared.EmptyState
   import BlackboexWeb.Components.Shared.PlainKeyBanner
 
   alias Blackboex.Apis
@@ -32,7 +31,7 @@ defmodule BlackboexWeb.ApiKeyLive.Index do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="space-y-6">
+    <.page>
       <.header>
         <span class="flex items-center gap-2">
           <.icon name="hero-key" class="size-5 text-accent-amber" /> API Keys
@@ -112,17 +111,17 @@ defmodule BlackboexWeb.ApiKeyLive.Index do
             value="API Key"
             maxlength="200"
           />
-          <div class="flex justify-end gap-2">
+          <.form_actions spacing="tight">
             <.button type="button" variant="outline" phx-click="toggle_create_modal">
               Cancel
             </.button>
             <.button type="submit" variant="primary">
               <.icon name="hero-key" class="mr-1.5 size-3.5 text-accent-amber" /> Create Key
             </.button>
-          </div>
+          </.form_actions>
         </.form>
       </.modal>
-    </div>
+    </.page>
     """
   end
 

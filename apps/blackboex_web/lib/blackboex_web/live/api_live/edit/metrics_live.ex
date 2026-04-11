@@ -35,28 +35,30 @@ defmodule BlackboexWeb.ApiLive.Edit.MetricsLive do
   def render(assigns) do
     ~H"""
     <.editor_shell {shared_shell_assigns(assigns)} active_tab="metrics">
-      <div class="p-6 overflow-y-auto h-full space-y-6">
-        <div class="flex items-center justify-between">
-          <.section_heading level="h2" compact>Metrics</.section_heading>
-          <div class="flex gap-1">
-            <.button
-              :for={period <- ["24h", "7d", "30d"]}
-              phx-click="change_metrics_period"
-              phx-value-period={period}
-              variant={if @metrics_period == period, do: "primary", else: "ghost"}
-              size="sm"
-              class={[
-                "px-3 py-1 rounded-md text-xs font-medium",
-                @metrics_period != period && "bg-muted text-muted-foreground hover:bg-accent"
-              ]}
-            >
-              {period}
-            </.button>
-          </div>
-        </div>
+      <.editor_tab_panel>
+        <.section_heading level="h2" compact>
+          Metrics
+          <:actions>
+            <div class="flex gap-1">
+              <.button
+                :for={period <- ["24h", "7d", "30d"]}
+                phx-click="change_metrics_period"
+                phx-value-period={period}
+                variant={if @metrics_period == period, do: "primary", else: "ghost"}
+                size="sm"
+                class={[
+                  "px-3 py-1 rounded-md text-xs font-medium",
+                  @metrics_period != period && "bg-muted text-muted-foreground hover:bg-accent"
+                ]}
+              >
+                {period}
+              </.button>
+            </div>
+          </:actions>
+        </.section_heading>
 
         <%!-- Stat Cards --%>
-        <div class="grid grid-cols-4 gap-4">
+        <.stat_grid cols="4">
           <.stat_mini
             value={@total_invocations}
             label="Invocations"
@@ -89,46 +91,46 @@ defmodule BlackboexWeb.ApiLive.Edit.MetricsLive do
             size="lg"
             label_position="above"
           />
-        </div>
+        </.stat_grid>
 
         <%= if @invocation_data == [] do %>
-          <div class="rounded-lg border border-dashed p-8 text-center">
+          <.panel variant="dashed" padding="lg" class="text-center">
             <.icon name="hero-chart-bar" class="size-10 mx-auto text-accent-sky mb-3" />
             <p class="text-sm font-medium">No metrics data yet</p>
             <p class="text-muted-caption mt-1">
               Publish and call your API to see stats. Data is aggregated hourly.
             </p>
-          </div>
+          </.panel>
         <% else %>
           <div class="grid grid-cols-2 gap-4">
-            <div class="rounded-lg border p-4">
+            <.panel>
               <BlackboexWeb.Components.Shared.Charts.bar_chart
                 data={@invocation_data}
                 title="Invocations"
               />
-            </div>
-            <div class="rounded-lg border p-4">
+            </.panel>
+            <.panel>
               <BlackboexWeb.Components.Shared.Charts.line_chart
                 data={@latency_data}
                 title="P95 Latency (ms)"
                 color="var(--color-chart-3)"
               />
-            </div>
+            </.panel>
           </div>
-          <div class="rounded-lg border p-4">
+          <.panel>
             <BlackboexWeb.Components.Shared.Charts.bar_chart
               data={@error_data}
               title="Errors"
               color="var(--color-chart-2)"
             />
-          </div>
+          </.panel>
         <% end %>
 
         <%!-- Recent Errors --%>
         <%= if @recent_errors != [] do %>
           <div class="space-y-3">
             <.section_heading level="h2">Recent Errors</.section_heading>
-            <div class="rounded-lg border divide-y">
+            <.panel variant="divided" padding="none">
               <div
                 :for={error <- @recent_errors}
                 class="px-4 py-3 flex items-start gap-3 text-xs"
@@ -154,10 +156,10 @@ defmodule BlackboexWeb.ApiLive.Edit.MetricsLive do
                   {format_time_ago(error.inserted_at)}
                 </span>
               </div>
-            </div>
+            </.panel>
           </div>
         <% end %>
-      </div>
+      </.editor_tab_panel>
     </.editor_shell>
     """
   end

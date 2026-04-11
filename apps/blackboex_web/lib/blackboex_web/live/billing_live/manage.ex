@@ -7,7 +7,6 @@ defmodule BlackboexWeb.BillingLive.Manage do
   import BlackboexWeb.Components.Card
   import BlackboexWeb.Components.Badge
   import BlackboexWeb.Components.Spinner
-  import BlackboexWeb.Components.Shared.EmptyState
   import BlackboexWeb.Components.Shared.DescriptionList
 
   alias Blackboex.Billing
@@ -46,7 +45,7 @@ defmodule BlackboexWeb.BillingLive.Manage do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="max-w-2xl mx-auto py-8">
+    <.page>
       <.header>
         <span class="flex items-center gap-2">
           <.icon name="hero-credit-card" class="size-5 text-accent-emerald" /> Subscription Management
@@ -82,7 +81,7 @@ defmodule BlackboexWeb.BillingLive.Manage do
               </:item>
             </.description_list>
 
-            <div class="flex gap-2 pt-2 mt-6">
+            <.form_actions>
               <.button variant="primary" phx-click="manage" disabled={@loading_portal}>
                 <%= if @loading_portal do %>
                   <.spinner />
@@ -96,7 +95,7 @@ defmodule BlackboexWeb.BillingLive.Manage do
                 <.icon name="hero-arrows-up-down" class="mr-1.5 size-3.5 text-accent-amber" />
                 Change Plan
               </.button>
-            </div>
+            </.form_actions>
           </.card_content>
         </.card>
       <% else %>
@@ -113,7 +112,7 @@ defmodule BlackboexWeb.BillingLive.Manage do
           </:actions>
         </.empty_state>
       <% end %>
-    </div>
+    </.page>
     """
   end
 end

@@ -5,7 +5,6 @@ defmodule BlackboexWeb.DashboardLive do
   use BlackboexWeb, :live_view
 
   import BlackboexWeb.Components.Shared.StatCard
-  import BlackboexWeb.Components.Shared.EmptyState
   import BlackboexWeb.Components.Shared.DashboardNav
   import BlackboexWeb.Components.Shared.DashboardHelpers
   import BlackboexWeb.Components.Shared.DashboardSection
@@ -34,7 +33,7 @@ defmodule BlackboexWeb.DashboardLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="space-y-6">
+    <.page>
       <.header>
         <span class="flex items-center gap-2">
           <.icon name="hero-home" class="size-5 text-accent-sky" /> Dashboard
@@ -61,7 +60,7 @@ defmodule BlackboexWeb.DashboardLive do
         </.empty_state>
       <% else %>
         <%!-- Big number stat cards --%>
-        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <.stat_grid cols="3">
           <.stat_card
             label="Total APIs"
             value={format_number(@summary.total_apis)}
@@ -116,7 +115,7 @@ defmodule BlackboexWeb.DashboardLive do
             icon="hero-currency-dollar-mini"
             icon_class="text-accent-emerald"
           />
-        </div>
+        </.stat_grid>
 
         <%!-- Recent Activity --%>
         <.dashboard_section
@@ -124,23 +123,18 @@ defmodule BlackboexWeb.DashboardLive do
           icon_class="text-accent-amber"
           title="Recent Activity"
         >
-          <div :if={@recent_activity == []} class="py-4 text-center text-muted-description">
-            No recent activity
-          </div>
+          <.empty_state :if={@recent_activity == []} compact title="No recent activity" />
           <div :if={@recent_activity != []} class="divide-y">
-            <div
-              :for={activity <- @recent_activity}
-              class="flex items-center justify-between py-2"
-            >
+            <.list_row :for={activity <- @recent_activity} bordered={false} compact>
               <span class="text-sm">{format_action(activity.action)}</span>
               <span class="text-muted-caption">
                 {relative_time(activity.timestamp)}
               </span>
-            </div>
+            </.list_row>
           </div>
         </.dashboard_section>
       <% end %>
-    </div>
+    </.page>
     """
   end
 

@@ -6,7 +6,6 @@ defmodule BlackboexWeb.ApiLive.Index do
 
   use BlackboexWeb, :live_view
 
-  import BlackboexWeb.Components.Shared.EmptyState
   import BlackboexWeb.ApiLive.IndexComponents
 
   alias Blackboex.Apis
@@ -288,7 +287,7 @@ defmodule BlackboexWeb.ApiLive.Index do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="space-y-6">
+    <.page>
       <.header>
         <span class="flex items-center gap-2">
           <.icon name="hero-cube" class="size-5 text-accent-blue" /> APIs
@@ -346,7 +345,7 @@ defmodule BlackboexWeb.ApiLive.Index do
         variant={@confirm[:variant] || :warning}
         confirm_label={@confirm[:confirm_label] || "Confirm"}
       />
-    </div>
+    </.page>
     """
   end
 end

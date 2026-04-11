@@ -45,6 +45,7 @@ defmodule BlackboexWeb.Components.UI.SectionHeading do
 
   slot :inner_block, required: true
   slot :description
+  slot :actions, doc: "trailing action(s) rendered to the right of the heading"
 
   @spec section_heading(map()) :: Phoenix.LiveView.Rendered.t()
   def section_heading(assigns) do
@@ -53,36 +54,40 @@ defmodule BlackboexWeb.Components.UI.SectionHeading do
       |> assign(:base_class, @base_classes[assigns.level])
       |> assign(:is_label, assigns.variant == "label")
       |> assign(:tone_class, assigns.tone == "muted" && "text-muted-foreground")
+      |> assign(:has_actions, assigns.actions != [])
 
     ~H"""
     <div
       class={
         classes([
-          "flex flex-col",
-          if(@compact, do: "gap-0", else: "gap-1"),
+          if(@has_actions, do: "flex items-center justify-between gap-4", else: "flex flex-col"),
+          if(@has_actions or @compact, do: "gap-0", else: "gap-1"),
           @is_label && "uppercase tracking-wider mb-3",
           @class
         ])
       }
       {@rest}
     >
-      <.dynamic_tag
-        tag_name={@level}
-        class={
-          classes([
-            @base_class,
-            @icon && "flex items-center gap-1.5",
-            @tone_class,
-            @heading_class
-          ])
-        }
-      >
-        <Icon.icon :if={@icon} name={@icon} class={@icon_class} />
-        {render_slot(@inner_block)}
-      </.dynamic_tag>
-      <p :if={@description != []} class="text-muted-caption">
-        {render_slot(@description)}
-      </p>
+      <div class={classes(["flex flex-col", if(@compact, do: "gap-0", else: "gap-1")])}>
+        <.dynamic_tag
+          tag_name={@level}
+          class={
+            classes([
+              @base_class,
+              @icon && "flex items-center gap-1.5",
+              @tone_class,
+              @heading_class
+            ])
+          }
+        >
+          <Icon.icon :if={@icon} name={@icon} class={@icon_class} />
+          {render_slot(@inner_block)}
+        </.dynamic_tag>
+        <p :if={@description != []} class="text-muted-caption">
+          {render_slot(@description)}
+        </p>
+      </div>
+      <div :if={@has_actions} class="shrink-0">{render_slot(@actions)}</div>
     </div>
     """
   end

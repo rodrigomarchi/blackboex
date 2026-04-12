@@ -9,7 +9,7 @@ config :blackboex, Blackboex.Repo,
   database: "blackboex_dev",
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
-  pool_size: 10
+  pool_size: String.to_integer(System.get_env("DB_POOL_SIZE", "10"))
 
 # For development, we disable any cache and enable
 # debugging and code reloading.
@@ -22,7 +22,7 @@ config :blackboex_web, BlackboexWeb.Endpoint,
   # Change to `ip: {0, 0, 0, 0}` to allow access from other machines.
   http: [ip: {127, 0, 0, 1}],
   check_origin: false,
-  code_reloader: true,
+  code_reloader: System.get_env("DISABLE_CODE_RELOAD") != "true",
   debug_errors: true,
   secret_key_base: "1R2CsayqIa9hKa7syZAcBkUB84/JNZSaEuiRiRoU4prFcgzKfvo+bq2L+VrG61ef",
   watchers: [

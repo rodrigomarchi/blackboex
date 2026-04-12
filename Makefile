@@ -1,4 +1,5 @@
-.PHONY: help setup deps server iex routes \
+.PHONY: help setup deps server stress-server iex routes \
+       e2e e2e.stress e2e.full-stress \
        test test.unit test.integration test.liveview test.all test.cover \
        test.domain test.web test.failed test.file test.line \
        lint format format.check credo dialyzer precommit compile \
@@ -74,6 +75,9 @@ db.gen.migration: ## Generate a migration (usage: make db.gen.migration NAME=cre
 server: ## Start Phoenix dev server at localhost:4000
 	mix phx.server
 
+stress-server: ## Start Phoenix without code reloader + high fd/db limits (for stress tests)
+	ulimit -n 65536 && DISABLE_CODE_RELOAD=true DB_POOL_SIZE=200 mix phx.server
+
 iex: ## Start Phoenix dev server inside IEx
 	iex -S mix phx.server
 
@@ -113,6 +117,16 @@ test.file: ## Run a specific test file (usage: make test.file FILE=path/to/test.
 
 test.line: ## Run a specific test by file:line (usage: make test.line TARGET=path/to/test.exs:42)
 	mix test $(TARGET)
+
+# ── E2E Scripts ────────────────────────────────────────────────────────
+e2e: ## Run full e2e suite (requires make server)
+	mix run apps/blackboex/priv/scripts/e2e_flows.exs
+
+e2e.stress: ## Run normal + per-flow stress (requires make stress-server)
+	ulimit -n 65536 && DISABLE_CODE_RELOAD=true DB_POOL_SIZE=200 mix run apps/blackboex/priv/scripts/e2e_flows.exs -- --stress
+
+e2e.full-stress: ## Run all flows in parallel max stress (requires make stress-server)
+	ulimit -n 65536 && DISABLE_CODE_RELOAD=true DB_POOL_SIZE=200 mix run apps/blackboex/priv/scripts/e2e_flows.exs -- --full-stress --requests 200 --concurrency 50
 
 # ── Static Analysis ───────────────────────────────────────────────────
 lint: format.check credo dialyzer ## Run all static analysis checks

@@ -207,15 +207,17 @@ const DrawflowEditor = {
 
     // ── Server pushes updated data back to a node ──
     this.handleEvent("set_node_data", ({ id, data }) => {
-      const node = this.editor.getNodeFromId(id)
-      if (node) {
-        // Merge data into node
-        node.data = { ...node.data, ...data }
+      // getNodeFromId returns a deep clone (JSON.parse/stringify), so we must
+      // write directly into the internal store to actually mutate Drawflow state.
+      const module = this.editor.getModuleFromNodeId(id)
+      const internalNode = this.editor.drawflow.drawflow[module]?.data[id]
+      if (internalNode) {
+        internalNode.data = { ...internalNode.data, ...data }
 
         // Update the node label when name changes
-        const cfg = nodeConfig[node.class] || {}
+        const cfg = nodeConfig[internalNode.class] || {}
         const labelEl = document.querySelector(`#node-${id} .df-node-label`)
-        if (labelEl) labelEl.textContent = node.data.name || cfg.label || node.class
+        if (labelEl) labelEl.textContent = internalNode.data.name || cfg.label || internalNode.class
 
         // Update output labels if branch_labels changed
         if (data.branch_labels) {

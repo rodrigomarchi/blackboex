@@ -111,7 +111,8 @@ defmodule BlackboexWeb.Showcase.Sections.ValidationDashboard do
 
       <.showcase_block title="No report (empty)" code={@code_nil}>
         <p class="text-sm text-muted-foreground italic">
-          Pass <code class="bg-muted px-1 py-0.5 rounded text-xs">loading={true}</code> while fetching,
+          Pass <code class="bg-muted px-1 py-0.5 rounded text-xs">loading={true}</code>
+          while fetching,
           or omit the report entirely. The component expects a map; use the loading state to cover
           the nil/pending case.
         </p>

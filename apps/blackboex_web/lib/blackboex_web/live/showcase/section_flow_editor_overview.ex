@@ -8,37 +8,43 @@ defmodule BlackboexWeb.Showcase.Sections.FlowEditorOverview do
     %{
       name: "FlowHeader",
       module: "BlackboexWeb.Components.FlowEditor.FlowHeader",
-      description: "Flow editor header bar. Shows flow name, status badge, webhook URL, and save/run/JSON action buttons.",
+      description:
+        "Flow editor header bar. Shows flow name, status badge, webhook URL, and save/run/JSON action buttons.",
       complex: false
     },
     %{
       name: "JsonPreviewModal",
       module: "BlackboexWeb.Components.FlowEditor.JsonPreviewModal",
-      description: "Modal for previewing the JSON representation of a flow definition. Includes copy and download actions.",
+      description:
+        "Modal for previewing the JSON representation of a flow definition. Includes copy and download actions.",
       complex: false
     },
     %{
       name: "RunModal",
       module: "BlackboexWeb.Components.FlowEditor.RunModal",
-      description: "Modal for manually running a flow with JSON test input. Shows result and error output.",
+      description:
+        "Modal for manually running a flow with JSON test input. Shows result and error output.",
       complex: false
     },
     %{
       name: "NodePalette",
       module: "BlackboexWeb.Components.FlowEditor.NodePalette",
-      description: "Draggable node types panel for adding trigger, action, and condition nodes to the flow canvas.",
+      description:
+        "Draggable node types panel for adding trigger, action, and condition nodes to the flow canvas.",
       complex: true
     },
     %{
       name: "NodeProperties",
       module: "BlackboexWeb.Components.FlowEditor.NodeProperties",
-      description: "Properties editor for the currently selected node. Form fields vary by node type.",
+      description:
+        "Properties editor for the currently selected node. Form fields vary by node type.",
       complex: true
     },
     %{
       name: "PropertiesDrawer",
       module: "BlackboexWeb.Components.FlowEditor.PropertiesDrawer",
-      description: "Collapsible drawer that wraps NodeProperties and slides in from the right when a node is selected.",
+      description:
+        "Collapsible drawer that wraps NodeProperties and slides in from the right when a node is selected.",
       complex: true
     }
   ]

@@ -196,7 +196,8 @@ defmodule BlackboexWeb.Showcase.Sections.ConfirmDialogShowcase do
 
       <.showcase_block title="Usage pattern (code only)" code={@code_usage_pattern}>
         <p class="text-sm text-muted-foreground">
-          The dialog is controlled via the <code class="font-mono text-xs bg-muted px-1 rounded">@confirm</code>
+          The dialog is controlled via the
+          <code class="font-mono text-xs bg-muted px-1 rounded">@confirm</code>
           assign. See the code example above for the full LiveView integration pattern.
         </p>
       </.showcase_block>

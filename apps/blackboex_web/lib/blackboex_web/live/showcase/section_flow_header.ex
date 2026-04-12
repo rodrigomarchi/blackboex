@@ -100,13 +100,15 @@ defmodule BlackboexWeb.Showcase.Sections.FlowHeader do
       <.showcase_block title="Mock flow data — active with full webhook">
         <div class="rounded-lg overflow-hidden border -mx-6 -mt-6 mb-0">
           <.flow_header
-            flow={%{
-              name: "Payment Retry Automation",
-              slug: "payment-retry",
-              status: "active",
-              id: "flow-2",
-              webhook_token: "tok_xyz789uvw012"
-            }}
+            flow={
+              %{
+                name: "Payment Retry Automation",
+                slug: "payment-retry",
+                status: "active",
+                id: "flow-2",
+                webhook_token: "tok_xyz789uvw012"
+              }
+            }
             saving={false}
             saved={false}
           />

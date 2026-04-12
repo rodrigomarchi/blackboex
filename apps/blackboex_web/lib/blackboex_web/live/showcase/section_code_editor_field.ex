@@ -89,8 +89,7 @@ defmodule BlackboexWeb.Showcase.Sections.CodeEditorField do
           readonly={true}
         />
         <p class="mt-2 text-xs text-muted-foreground">
-          Default: <code class="bg-muted px-1 py-0.5 rounded">readonly=true</code>,
-          <code class="bg-muted px-1 py-0.5 rounded">language="json"</code>.
+          Default: <code class="bg-muted px-1 py-0.5 rounded">readonly=true</code>, <code class="bg-muted px-1 py-0.5 rounded">language="json"</code>.
           The editor requires the Monaco JS hook to render — see note below.
         </p>
       </.showcase_block>
@@ -111,7 +110,7 @@ defmodule BlackboexWeb.Showcase.Sections.CodeEditorField do
             <p class="text-xs text-muted-foreground mb-1">language="elixir"</p>
             <.code_editor_field
               id="showcase-elixir"
-              value={"defmodule MyHandler do\n  def call(request) do\n    {:ok, %{status: 200, body: request.body}}\n  end\nend"}
+              value="defmodule MyHandler do\n  def call(request) do\n    {:ok, %{status: 200, body: request.body}}\n  end\nend"
               language="elixir"
               readonly={true}
             />
@@ -120,7 +119,7 @@ defmodule BlackboexWeb.Showcase.Sections.CodeEditorField do
             <p class="text-xs text-muted-foreground mb-1">language="javascript"</p>
             <.code_editor_field
               id="showcase-js"
-              value={"async function handler(req) {\n  return { status: 200, body: req.body };\n}"}
+              value="async function handler(req) {\n  return { status: 200, body: req.body };\n}"
               language="javascript"
               readonly={true}
             />
@@ -138,8 +137,9 @@ defmodule BlackboexWeb.Showcase.Sections.CodeEditorField do
           event="validate"
         />
         <p class="mt-2 text-xs text-muted-foreground">
-          <code class="bg-muted px-1 py-0.5 rounded">field=</code> sets
-          <code class="bg-muted px-1 py-0.5 rounded">data-field</code> on the hook element,
+          <code class="bg-muted px-1 py-0.5 rounded">field=</code>
+          sets <code class="bg-muted px-1 py-0.5 rounded">data-field</code>
+          on the hook element,
           allowing the editor to include the field name in event params for form integration.
         </p>
       </.showcase_block>
@@ -179,10 +179,8 @@ defmodule BlackboexWeb.Showcase.Sections.CodeEditorField do
             <div class="space-y-1.5 text-sm">
               <p class="font-semibold text-foreground">CodeEditor LiveView Hook Required</p>
               <p class="text-muted-foreground">
-                This component uses
-                <code class="bg-muted px-1 py-0.5 rounded text-xs">phx-hook="CodeEditor"</code>.
-                The hook must be registered in your
-                <code class="bg-muted px-1 py-0.5 rounded text-xs">app.js</code>:
+                This component uses <code class="bg-muted px-1 py-0.5 rounded text-xs">phx-hook="CodeEditor"</code>.
+                The hook must be registered in your <code class="bg-muted px-1 py-0.5 rounded text-xs">app.js</code>:
               </p>
               <pre class="text-xs bg-muted rounded p-2 mt-1">{"import CodeEditor from \"./hooks/code_editor\"\nlet liveSocket = new LiveSocket(\"/live\", Socket, {\n  hooks: { CodeEditor }\n})"}</pre>
               <p class="text-muted-foreground">

@@ -76,7 +76,9 @@ defmodule BlackboexWeb.Showcase.Sections.DataTable do
           <:col :let={row} label="Status">{row.status}</:col>
           <:col :let={row} label="Calls">{row.calls}</:col>
         </.table>
-        <p class="mt-2 text-xs text-muted-foreground">Click any row to navigate to the Button section.</p>
+        <p class="mt-2 text-xs text-muted-foreground">
+          Click any row to navigate to the Button section.
+        </p>
       </.showcase_block>
 
       <.showcase_block title="row_id & row_item">

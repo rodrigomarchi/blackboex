@@ -20,6 +20,7 @@ defmodule Blackboex.Flows.Templates do
     "Data Processing",
     "Integrations",
     "Advanced",
+    "AI & LLM",
     "Payments & Billing",
     "Customer Support",
     "Business Operations",
@@ -51,7 +52,16 @@ defmodule Blackboex.Flows.Templates do
     Blackboex.Flows.Templates.IncidentAlertPipeline.template(),
     Blackboex.Flows.Templates.CustomerOnboarding.template(),
     Blackboex.Flows.Templates.WebhookIdempotent.template(),
-    Blackboex.Flows.Templates.AbandonedCartRecovery.template()
+    Blackboex.Flows.Templates.AbandonedCartRecovery.template(),
+    # Wave 2 templates
+    Blackboex.Flows.Templates.LlmRouter.template(),
+    Blackboex.Flows.Templates.ApprovalWithTimeout.template(),
+    Blackboex.Flows.Templates.SagaCompensation.template(),
+    Blackboex.Flows.Templates.NotificationFanout.template(),
+    Blackboex.Flows.Templates.SlaMonitor.template(),
+    Blackboex.Flows.Templates.AsyncJobPoller.template(),
+    Blackboex.Flows.Templates.GithubCiResponder.template(),
+    Blackboex.Flows.Templates.SubFlowOrchestrator.template()
   ]
 
   @doc "Returns all available flow templates."

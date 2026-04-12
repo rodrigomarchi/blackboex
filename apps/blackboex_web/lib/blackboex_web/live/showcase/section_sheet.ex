@@ -203,7 +203,10 @@ defmodule BlackboexWeb.Showcase.Sections.SheetShowcase do
         </.sheet_content>
       </.showcase_block>
 
-      <.showcase_block title="With custom close button (custom_close_btn slot)" code={@code_custom_close}>
+      <.showcase_block
+        title="With custom close button (custom_close_btn slot)"
+        code={@code_custom_close}
+      >
         <.sheet>
           <.sheet_trigger target="demo-sheet-6">
             <.button variant="outline">Open with custom close</.button>

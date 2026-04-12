@@ -61,7 +61,9 @@ defmodule BlackboexWeb.Showcase.Sections.RunModal do
             <div class="flex-1 overflow-auto p-5 space-y-4">
               <p class="text-xs text-muted-foreground">
                 Input (JSON) editor + Execute button rendered here.
-                Trigger via <code class="font-mono bg-muted px-1 rounded">phx-click="open_run_modal"</code> in FlowHeader.
+                Trigger via
+                <code class="font-mono bg-muted px-1 rounded">phx-click="open_run_modal"</code>
+                in FlowHeader.
               </p>
               <.button variant="primary" size="sm">
                 <.icon name="hero-play" class="mr-1.5 size-4 text-accent-emerald" /> Execute
@@ -82,8 +84,7 @@ defmodule BlackboexWeb.Showcase.Sections.RunModal do
         <div class="rounded-lg border bg-success/10 border-success/20 p-4 space-y-2">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2 text-success-foreground text-sm font-medium">
-              <.icon name="hero-check-circle" class="size-4" />
-              Success
+              <.icon name="hero-check-circle" class="size-4" /> Success
             </div>
             <span class="text-2xs text-muted-foreground">312ms</span>
           </div>
@@ -94,8 +95,7 @@ defmodule BlackboexWeb.Showcase.Sections.RunModal do
       <.showcase_block title="With error" code={@code_error}>
         <div class="rounded-lg border bg-destructive/10 border-destructive/20 p-4 space-y-2">
           <div class="flex items-center gap-2 text-destructive text-sm font-medium">
-            <.icon name="hero-exclamation-circle" class="size-4" />
-            Error
+            <.icon name="hero-exclamation-circle" class="size-4" /> Error
           </div>
           <pre class="text-xs font-mono text-destructive/80 bg-muted/50 rounded p-2">Execution failed: timeout after 30000ms</pre>
         </div>

@@ -104,8 +104,7 @@ defmodule BlackboexWeb.Showcase.Sections.FlashShowcase do
       <.showcase_block title="With custom id" code={@code_custom_id}>
         <p class="text-sm text-muted-foreground">
           Pass <code class="font-mono text-xs bg-muted px-1 rounded">id=</code>
-          to target the flash element with JS commands (e.g.
-          <code class="font-mono text-xs bg-muted px-1 rounded">JS.hide("#my-custom-flash")</code>).
+          to target the flash element with JS commands (e.g. <code class="font-mono text-xs bg-muted px-1 rounded">JS.hide("#my-custom-flash")</code>).
           Defaults to <code class="font-mono text-xs bg-muted px-1 rounded">flash-:kind</code>.
         </p>
       </.showcase_block>

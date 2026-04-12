@@ -201,7 +201,10 @@ defmodule BlackboexWeb.Showcase.Sections.SidebarShowcase do
       </.showcase_block>
 
       <%!-- Block 2: Sidebar variants (code only) --%>
-      <.showcase_block title="Sidebar variants — sidebar / floating / inset" code={@code_variant_sidebar}>
+      <.showcase_block
+        title="Sidebar variants — sidebar / floating / inset"
+        code={@code_variant_sidebar}
+      >
         <div class="grid grid-cols-3 gap-4">
           <div>
             <p class="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">

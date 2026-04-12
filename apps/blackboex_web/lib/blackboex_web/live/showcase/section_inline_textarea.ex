@@ -70,7 +70,7 @@ defmodule BlackboexWeb.Showcase.Sections.InlineTextarea do
       <.showcase_block title="With value" code={@code_with_value}>
         <div class="max-w-md">
           <.inline_textarea
-            value={"This is some prefilled content.\nLine two of the content."}
+            value="This is some prefilled content.\nLine two of the content."
             rows="4"
           />
         </div>

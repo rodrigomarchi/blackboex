@@ -63,14 +63,19 @@ defmodule BlackboexWeb.Showcase.Sections.Modal do
 
       <.showcase_block title="Without Title" code={@code_no_title}>
         <p class="text-sm text-muted-foreground">
-          Omit the <.inline_code>title</.inline_code> attr to render a modal with only content and a close button.
+          Omit the
+          <.inline_code>title</.inline_code>
+          attr to render a modal with only content and a close button.
         </p>
       </.showcase_block>
 
       <.showcase_block title="Custom Width (class attr)" code={@code_custom_width}>
         <p class="text-sm text-muted-foreground">
-          Pass <.inline_code>class="max-w-2xl"</.inline_code> to override the default
-          <.inline_code>max-w-lg</.inline_code> width.
+          Pass
+          <.inline_code>class="max-w-2xl"</.inline_code>
+          to override the default
+          <.inline_code>max-w-lg</.inline_code>
+          width.
         </p>
       </.showcase_block>
 

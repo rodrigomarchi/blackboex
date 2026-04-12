@@ -61,7 +61,10 @@ defmodule BlackboexWeb.Showcase.Sections.JsonPreviewModal do
       module="BlackboexWeb.Components.FlowEditor.JsonPreviewModal"
     />
     <div class="space-y-10">
-      <.showcase_block title="Static preview — rendered inline (without overlay)" code={@code_static}>
+      <.showcase_block
+        title="Static preview — rendered inline (without overlay)"
+        code={@code_static}
+      >
         <div class="flex flex-col w-full h-[400px] rounded-xl border bg-card shadow-2xl overflow-hidden">
           <div class="flex items-center justify-between border-b px-5 py-3">
             <div class="flex items-center gap-2">
@@ -73,7 +76,8 @@ defmodule BlackboexWeb.Showcase.Sections.JsonPreviewModal do
                 <.icon name="hero-clipboard-document" class="mr-1.5 size-4 text-accent-sky" /> Copy
               </.button>
               <.button variant="outline" size="sm">
-                <.icon name="hero-arrow-down-tray" class="mr-1.5 size-4 text-accent-emerald" /> Download
+                <.icon name="hero-arrow-down-tray" class="mr-1.5 size-4 text-accent-emerald" />
+                Download
               </.button>
               <.button variant="ghost-muted" size="icon-sm">
                 <.icon name="hero-x-mark" class="size-5" />
@@ -91,12 +95,14 @@ defmodule BlackboexWeb.Showcase.Sections.JsonPreviewModal do
       <.showcase_block title="Usage pattern — triggering from LiveView" code={@code_usage}>
         <div class="rounded-lg bg-muted/50 p-4 text-sm text-muted-foreground">
           The modal is conditionally rendered via <code class="font-mono text-xs bg-muted px-1 rounded">:if={@show_json_preview}</code>.
-          Trigger it with <code class="font-mono text-xs bg-muted px-1 rounded">phx-click="request_json_preview"</code>
+          Trigger it with
+          <code class="font-mono text-xs bg-muted px-1 rounded">
+            phx-click="request_json_preview"
+          </code>
           in the flow header. See the full usage example in the code block above.
         </div>
       </.showcase_block>
     </div>
     """
   end
-
 end

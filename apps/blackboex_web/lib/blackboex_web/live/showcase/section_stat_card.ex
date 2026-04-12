@@ -48,8 +48,18 @@ defmodule BlackboexWeb.Showcase.Sections.StatCard do
 
       <.showcase_block title="With icon_class">
         <div class="grid grid-cols-3 gap-4">
-          <.stat_card label="Revenue" value="$4,200" icon="hero-currency-dollar" icon_class="text-status-completed" />
-          <.stat_card label="Warnings" value="7" icon="hero-exclamation-triangle" icon_class="text-accent-amber" />
+          <.stat_card
+            label="Revenue"
+            value="$4,200"
+            icon="hero-currency-dollar"
+            icon_class="text-status-completed"
+          />
+          <.stat_card
+            label="Warnings"
+            value="7"
+            icon="hero-exclamation-triangle"
+            icon_class="text-accent-amber"
+          />
           <.stat_card label="Errors" value="2" icon="hero-x-circle" icon_class="text-destructive" />
         </div>
       </.showcase_block>

@@ -20,7 +20,8 @@ defmodule BlackboexWeb.Showcase.Sections.EditorOverview do
     %{
       name: "ValidationDashboard",
       module: "BlackboexWeb.Components.Editor.ValidationDashboard",
-      description: "API code quality check results panel. Shows compilation, format, Credo, and test results.",
+      description:
+        "API code quality check results panel. Shows compilation, format, Credo, and test results.",
       complex: false
     },
     %{
@@ -32,7 +33,8 @@ defmodule BlackboexWeb.Showcase.Sections.EditorOverview do
     %{
       name: "FileTree",
       module: "BlackboexWeb.Components.Editor.FileTree",
-      description: "File navigator for the API code workspace. Hierarchical with folder/file icons and selection state.",
+      description:
+        "File navigator for the API code workspace. Hierarchical with folder/file icons and selection state.",
       complex: false
     },
     %{

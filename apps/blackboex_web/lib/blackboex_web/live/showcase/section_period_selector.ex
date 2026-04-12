@@ -60,8 +60,7 @@ defmodule BlackboexWeb.Showcase.Sections.PeriodSelector do
             The component emits
             <code class="text-xs bg-muted px-1 py-0.5 rounded">phx-click="set_period"</code>
             with <code class="text-xs bg-muted px-1 py-0.5 rounded">phx-value-period</code>
-            set to the selected value. Handle it in your LiveView with
-            <code class="text-xs bg-muted px-1 py-0.5 rounded">handle_event("set_period", params, socket)</code>.
+            set to the selected value. Handle it in your LiveView with <code class="text-xs bg-muted px-1 py-0.5 rounded">handle_event("set_period", params, socket)</code>.
           </p>
         </.panel>
       </.showcase_block>

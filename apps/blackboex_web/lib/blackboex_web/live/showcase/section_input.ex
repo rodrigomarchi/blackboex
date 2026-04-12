@@ -5,6 +5,9 @@ defmodule BlackboexWeb.Showcase.Sections.Input do
   import BlackboexWeb.Showcase.Helpers
   import BlackboexWeb.Components.Label
   import BlackboexWeb.Components.UI.FieldLabel
+
+  alias BlackboexWeb.Components.Input
+
   @code_raw_input ~S"""
   <%!-- Raw Input (BlackboexWeb.Components.Input) --%>
   <.raw_input type="text" name="name" value="" placeholder="Text" />
@@ -27,7 +30,7 @@ defmodule BlackboexWeb.Showcase.Sections.Input do
 
   # Alias the raw Input to avoid conflict with FormField's auto-imported input/1
   defp raw_input(assigns) do
-    BlackboexWeb.Components.Input.input(assigns)
+    Input.input(assigns)
   end
 
   def render(assigns) do
@@ -74,7 +77,13 @@ defmodule BlackboexWeb.Showcase.Sections.Input do
             label="Role"
             options={[{"Admin", "admin"}, {"User", "user"}]}
           />
-          <.input type="textarea" name="ff_bio" value="" label="Bio" placeholder="Tell us about yourself..." />
+          <.input
+            type="textarea"
+            name="ff_bio"
+            value=""
+            label="Bio"
+            placeholder="Tell us about yourself..."
+          />
           <.input type="checkbox" name="ff_active" value="true" label="Active" />
           <.input type="text" name="ff_error" value="" label="With Error" errors={["is required"]} />
         </div>

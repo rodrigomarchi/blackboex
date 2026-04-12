@@ -202,7 +202,7 @@ defmodule BlackboexWeb.ShowcaseLive do
     ~H"""
     <div class="flex h-screen overflow-hidden">
       <%!-- Sidebar --%>
-      <aside class="w-52 shrink-0 border-r bg-card flex flex-col overflow-y-auto">
+      <aside class="w-52 shrink-0 border-r bg-card flex flex-col">
         <div class="px-4 py-3 border-b shrink-0">
           <p class="text-sm font-semibold">Design System</p>
           <p class="text-2xs text-muted-foreground">Component Showcase</p>

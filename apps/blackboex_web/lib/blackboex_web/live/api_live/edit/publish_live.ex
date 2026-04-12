@@ -12,7 +12,7 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLive do
   alias Blackboex.Apis.Keys
   alias BlackboexWeb.ApiLive.Edit.Shared
 
-  @command_palette_events ~w(toggle_command_palette close_panels command_palette_search
+  @command_palette_events ~w(toggle_command_palette toggle_chat close_panels command_palette_search
     command_palette_navigate command_palette_exec command_palette_exec_first)
 
   @impl true

@@ -570,13 +570,22 @@ defmodule BlackboexWeb.FlowLive.Edit do
   defp node_execution_to_map(ne) do
     %{
       id: ne.node_id,
-      status: ne.status,
+      status: normalize_execution_status(ne),
       duration_ms: ne.duration_ms,
       input: ne.input,
       output: ne.output,
       error: ne.error
     }
   end
+
+  # Normalizes status for nodes that were branch-skipped but persisted as
+  # "completed" (pre-fix data). New executions already save "skipped" directly.
+  defp normalize_execution_status(%{status: "skipped"}), do: "skipped"
+
+  defp normalize_execution_status(%{output: %{"output" => "__branch_skipped__"}}),
+    do: "skipped"
+
+  defp normalize_execution_status(%{status: status}), do: status
 
   defp extract_payload_schema("", _socket), do: []
   defp extract_payload_schema(nil, _socket), do: []

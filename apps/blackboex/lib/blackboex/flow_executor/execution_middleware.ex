@@ -143,9 +143,17 @@ defmodule Blackboex.FlowExecutor.ExecutionMiddleware do
 
       node_exec ->
         duration_ms = compute_duration(node_exec.started_at)
-        FlowExecutions.complete_node_execution(node_exec, result, duration_ms)
+
+        if branch_skipped?(result) do
+          FlowExecutions.skip_node_execution(node_exec, duration_ms)
+        else
+          FlowExecutions.complete_node_execution(node_exec, result, duration_ms)
+        end
     end
   end
+
+  defp branch_skipped?(%{output: :__branch_skipped__}), do: true
+  defp branch_skipped?(_), do: false
 
   defp fail_node_record(execution_id, node_id, errors) do
     case get_node_execution(execution_id, node_id) do

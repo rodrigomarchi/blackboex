@@ -164,61 +164,164 @@ defmodule BlackboexWeb.FlowLive.ExecutionGraphMergerTest do
     end
   end
 
-  describe "merge/2 with partial execution (only some nodes executed)" do
+  describe "merge/2 with real async_job_poller condition flow" do
     setup do
+      # Real flow from DB: async_job_poller with two nested conditions.
+      # n8 (condition, chose branch 1): 3 branches
+      #   n8:0 → n9 → n10         (SKIPPED)
+      #   n8:1 → n11 → n12 → n13 → n14  (TAKEN)
+      #   n8:2 → n19              (SKIPPED)
+      # n14 (condition, chose branch 0): 3 branches
+      #   n14:0 → n15 → n16       (TAKEN)
+      #   n14:1 → n17 → n18       (SKIPPED)
+      #   n14:2 → n20             (SKIPPED)
       definition =
         build_definition(
           [
             node("n1", "start"),
-            node("n2", "http_request"),
-            node("n3", "condition"),
-            node("n4", "end"),
-            node("n5", "end")
+            node("n2", "elixir_code"),
+            node("n3", "http_request"),
+            node("n4", "elixir_code"),
+            node("n5", "delay"),
+            node("n6", "http_request"),
+            node("n7", "elixir_code"),
+            node("n8", "condition"),
+            node("n9", "elixir_code"),
+            node("n10", "end"),
+            node("n11", "delay"),
+            node("n12", "http_request"),
+            node("n13", "elixir_code"),
+            node("n14", "condition"),
+            node("n15", "elixir_code"),
+            node("n16", "end"),
+            node("n17", "elixir_code"),
+            node("n18", "fail"),
+            node("n19", "fail"),
+            node("n20", "fail")
           ],
-          [edge("n1", "n2"), edge("n2", "n3"), edge("n3", "n4", 0, 0), edge("n3", "n5", 1, 0)]
+          [
+            edge("n1", "n2"),
+            edge("n2", "n3"),
+            edge("n3", "n4"),
+            edge("n4", "n5"),
+            edge("n5", "n6"),
+            edge("n6", "n7"),
+            edge("n7", "n8"),
+            edge("n8", "n9", 0, 0),
+            edge("n9", "n10"),
+            edge("n8", "n11", 1, 0),
+            edge("n11", "n12"),
+            edge("n12", "n13"),
+            edge("n13", "n14"),
+            edge("n8", "n19", 2, 0),
+            edge("n14", "n15", 0, 0),
+            edge("n15", "n16"),
+            edge("n14", "n17", 1, 0),
+            edge("n17", "n18"),
+            edge("n14", "n20", 2, 0)
+          ]
         )
 
-      # Only n1 → n2 → n3 → n4 executed (n5 branch not taken)
+      # Real execution data from DB — skipped nodes have output with
+      # "__branch_skipped__" sentinel string (serialized from atom via JSONB)
+      skipped_output = %{
+        "output" => "__branch_skipped__",
+        "state" => %{"job_id" => "job_8073"}
+      }
+
       executions = [
-        exec_node("n1", "completed", %{"a" => 1}),
-        exec_node("n2", "completed", %{"b" => 2}),
-        exec_node("n3", "completed", %{"c" => 3}),
-        exec_node("n4", "completed", %{"d" => 4})
+        exec_node("n1", "completed", %{"output" => %{"job_type" => "ml_inference"}}),
+        exec_node("n2", "completed", %{"output" => %{"job_id" => "job_8073"}}),
+        exec_node("n3", "completed", %{"output" => %{"status" => 200}}),
+        exec_node("n4", "completed", %{"output" => %{"status" => 200}}),
+        exec_node("n5", "completed", %{"output" => %{"status" => 200}}),
+        exec_node("n6", "completed", %{"output" => %{"status" => 200}}),
+        exec_node("n7", "completed", %{"output" => %{"status" => 200}}),
+        exec_node("n8", "completed", %{"branch" => 1, "value" => %{"status" => 200}}),
+        # n8 branch 0: SKIPPED
+        exec_node("n9", "completed", skipped_output),
+        exec_node("n10", "completed", skipped_output),
+        # n8 branch 1: TAKEN
+        exec_node("n11", "completed", %{"output" => %{"status" => 200}}),
+        exec_node("n12", "completed", %{"output" => %{"status" => 200}}),
+        exec_node("n13", "completed", %{"output" => %{"status" => 200}}),
+        exec_node("n14", "completed", %{"branch" => 0, "value" => %{"status" => 200}}),
+        # n14 branch 0: TAKEN
+        exec_node("n15", "completed", %{"output" => %{"result_url" => "https://example.com"}}),
+        exec_node("n16", "completed", %{"output" => %{"done" => true}}),
+        # n14 branch 1: SKIPPED
+        exec_node("n17", "completed", skipped_output),
+        exec_node("n18", "completed", skipped_output),
+        # n8 branch 2: SKIPPED
+        exec_node("n19", "completed", skipped_output),
+        # n14 branch 2: SKIPPED
+        exec_node("n20", "completed", skipped_output)
       ]
 
       %{definition: definition, executions: executions}
     end
 
-    test "only inserts data nodes on edges between executed nodes",
+    test "does NOT insert exec_data nodes on skipped branches",
          %{definition: def_, executions: execs} do
       merged = ExecutionGraphMerger.merge(def_, execs)
 
       data_nodes = Enum.filter(merged["nodes"], fn n -> n["type"] == "exec_data" end)
 
-      # n1→n2, n2→n3, n3→n4 = 3 data nodes. n3→n5 NOT included (n5 not executed)
-      assert length(data_nodes) == 3
+      # Taken path: n1→n2→n3→n4→n5→n6→n7→n8→n11→n12→n13→n14→n15→n16
+      # That's 13 edges on taken path = 13 exec_data nodes
+      # Skipped edges: n8→n9, n9→n10, n8→n19, n14→n17, n17→n18, n14→n20
+      # Those 6 edges must NOT get exec_data nodes
+      assert length(data_nodes) == 13
     end
 
-    test "non-executed nodes are preserved as-is",
+    test "skipped branch edges remain direct (not split through exec_data)",
          %{definition: def_, executions: execs} do
       merged = ExecutionGraphMerger.merge(def_, execs)
 
-      n5 = Enum.find(merged["nodes"], fn n -> n["id"] == "n5" end)
-      assert n5 != nil
-      assert n5["type"] == "end"
+      # All skipped edges should remain as direct edges
+      skipped_edges = [
+        {"n8", "n9"},
+        {"n9", "n10"},
+        {"n8", "n19"},
+        {"n14", "n17"},
+        {"n17", "n18"},
+        {"n14", "n20"}
+      ]
+
+      for {src, tgt} <- skipped_edges do
+        direct_edge =
+          Enum.find(merged["edges"], fn e ->
+            e["source"] == src and e["target"] == tgt
+          end)
+
+        assert direct_edge != nil,
+               "Skipped edge #{src} → #{tgt} should remain direct, not split"
+      end
     end
 
-    test "edge to non-executed node is preserved unchanged",
+    test "taken branch edges are split through exec_data nodes",
          %{definition: def_, executions: execs} do
       merged = ExecutionGraphMerger.merge(def_, execs)
 
-      # The edge n3→n5 should still exist directly (not split)
-      n3_to_n5 =
-        Enum.find(merged["edges"], fn e ->
-          e["source"] == "n3" and e["target"] == "n5"
-        end)
+      # On the taken path, no direct original→original edge should remain
+      taken_pairs = [
+        {"n1", "n2"},
+        {"n7", "n8"},
+        {"n8", "n11"},
+        {"n13", "n14"},
+        {"n14", "n15"},
+        {"n15", "n16"}
+      ]
 
-      assert n3_to_n5 != nil
+      for {src, tgt} <- taken_pairs do
+        direct_edge =
+          Enum.find(merged["edges"], fn e ->
+            e["source"] == src and e["target"] == tgt
+          end)
+
+        assert direct_edge == nil,
+               "Taken edge #{src} → #{tgt} should be split through exec_data node"
+      end
     end
   end
 
@@ -230,29 +333,42 @@ defmodule BlackboexWeb.FlowLive.ExecutionGraphMergerTest do
           [edge("n1", "n2"), edge("n2", "n3")]
         )
 
+      # When a node fails, downstream nodes don't execute (absent from list)
       executions = [
         exec_node("n1", "completed", %{"ok" => true}),
-        exec_node("n2", "failed", nil, error: "timeout"),
-        exec_node("n3", "skipped", nil)
+        exec_node("n2", "failed", nil, error: "timeout")
       ]
 
       %{definition: definition, executions: executions}
     end
 
-    test "inserts data node for error (no output but has error)",
+    test "inserts data node for source output on edge to failed node",
          %{definition: def_, executions: execs} do
       merged = ExecutionGraphMerger.merge(def_, execs)
 
       data_nodes = Enum.filter(merged["nodes"], fn n -> n["type"] == "exec_data" end)
 
-      # n1→n2: n1 has output → data node inserted
-      # n2→n3: n2 has error → data node inserted
-      assert length(data_nodes) == 2
+      # n1→n2: n1 has output, n2 is executed → data node inserted
+      # n2→n3: n3 not executed → no data node
+      assert length(data_nodes) == 1
     end
 
-    test "error data node carries the error field",
-         %{definition: def_, executions: execs} do
-      merged = ExecutionGraphMerger.merge(def_, execs)
+    test "error data node carries the error field when both nodes are executed",
+         _context do
+      definition =
+        build_definition(
+          [node("n1", "start"), node("n2", "http_request"), node("n3", "end")],
+          [edge("n1", "n2"), edge("n2", "n3")]
+        )
+
+      # Scenario where n3 was also tracked (e.g. it started before n2 errored)
+      executions = [
+        exec_node("n1", "completed", %{"ok" => true}),
+        exec_node("n2", "failed", nil, error: "timeout"),
+        exec_node("n3", "completed", %{"result" => "ignored"})
+      ]
+
+      merged = ExecutionGraphMerger.merge(definition, executions)
 
       error_dn =
         Enum.find(merged["nodes"], fn n ->
@@ -290,7 +406,7 @@ defmodule BlackboexWeb.FlowLive.ExecutionGraphMergerTest do
 
       data_nodes = Enum.filter(merged["nodes"], fn n -> n["type"] == "exec_data" end)
       # n2 not executed, so no data node on n1→n2
-      assert length(data_nodes) == 0
+      assert data_nodes == []
     end
 
     test "preserves version field" do

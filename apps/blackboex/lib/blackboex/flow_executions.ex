@@ -146,6 +146,19 @@ defmodule Blackboex.FlowExecutions do
     |> Repo.update()
   end
 
+  @spec skip_node_execution(NodeExecution.t(), integer()) ::
+          {:ok, NodeExecution.t()} | {:error, Ecto.Changeset.t()}
+  def skip_node_execution(%NodeExecution{} = node_exec, duration_ms) do
+    node_exec
+    |> NodeExecution.changeset(%{
+      status: "skipped",
+      output: nil,
+      finished_at: DateTime.utc_now(),
+      duration_ms: duration_ms
+    })
+    |> Repo.update()
+  end
+
   @spec fail_node_execution(NodeExecution.t(), String.t()) ::
           {:ok, NodeExecution.t()} | {:error, Ecto.Changeset.t()}
   def fail_node_execution(%NodeExecution{} = node_exec, error) do

@@ -23,9 +23,13 @@ defmodule BlackboexWeb.FlowLive.ExecutionGraphMerger do
     nodes = definition["nodes"]
     edges = definition["edges"] || []
 
-    # Build a lookup of executed node data by ID
+    # Build a lookup of executed node data by ID, excluding skipped nodes
     exec_map = Map.new(executions, fn ex -> {ex.id, ex} end)
-    executed_ids = MapSet.new(Map.keys(exec_map))
+
+    executed_ids =
+      executions
+      |> Enum.reject(&skipped?/1)
+      |> MapSet.new(& &1.id)
 
     # Find the max numeric ID to generate unique data node IDs
     max_num =
@@ -49,7 +53,8 @@ defmodule BlackboexWeb.FlowLive.ExecutionGraphMerger do
 
     # Generate data nodes and replacement edges
     {new_nodes, new_edges, _next_id} =
-      Enum.reduce(edges_to_split, {[], [], next_id_start}, fn edge, {acc_nodes, acc_edges, next_id} ->
+      Enum.reduce(edges_to_split, {[], [], next_id_start}, fn edge,
+                                                              {acc_nodes, acc_edges, next_id} ->
         source_exec = exec_map[edge["source"]]
         data_node_id = "n#{next_id}"
 
@@ -100,4 +105,8 @@ defmodule BlackboexWeb.FlowLive.ExecutionGraphMerger do
   defp has_output_or_error?(exec) do
     exec.output != nil or exec.error != nil
   end
+
+  defp skipped?(%{status: "skipped"}), do: true
+  defp skipped?(%{output: %{"output" => "__branch_skipped__"}}), do: true
+  defp skipped?(_), do: false
 end

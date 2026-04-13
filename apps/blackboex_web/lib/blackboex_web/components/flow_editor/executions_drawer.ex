@@ -271,26 +271,4 @@ defmodule BlackboexWeb.Components.FlowEditor.ExecutionsDrawer do
     </div>
     """
   end
-
-  # ── Helpers ───────────────────────────────────────────────────────────────
-
-  @node_type_meta %{
-    "start" => %{icon: "hero-play", color: "#10b981"},
-    "elixir_code" => %{icon: "hero-code-bracket", color: "#8b5cf6"},
-    "condition" => %{icon: "hero-arrows-right-left", color: "#3b82f6"},
-    "end" => %{icon: "hero-stop", color: "#6b7280"},
-    "http_request" => %{icon: "hero-globe-alt", color: "#f97316"},
-    "delay" => %{icon: "hero-clock", color: "#eab308"},
-    "webhook_wait" => %{icon: "hero-arrow-path", color: "#ec4899"},
-    "sub_flow" => %{icon: "hero-squares-2x2", color: "#6366f1"},
-    "for_each" => %{icon: "hero-arrow-path-rounded-square", color: "#14b8a6"},
-    "fail" => %{icon: "hero-x-circle", color: "#ef4444"},
-    "debug" => %{icon: "hero-bug-ant", color: "#a855f7"}
-  }
-
-  defp node_icon(type),
-    do: Map.get(@node_type_meta, type, %{icon: "hero-cube", color: "#6b7280"})
-
-  defp format_json(nil), do: "—"
-  defp format_json(data), do: Jason.encode!(data, pretty: true)
 end

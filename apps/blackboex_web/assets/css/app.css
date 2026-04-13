@@ -16,11 +16,14 @@
 @import "../vendor/drawflow.min.css";
 
 /* ── Canvas: dot grid background (n8n style) ── */
-#drawflow-canvas,
-.drawflow {
+#drawflow-canvas {
   background-color: hsl(var(--background));
   background-image: radial-gradient(circle, hsl(var(--border)) 1px, transparent 1px);
   background-size: 20px 20px;
+}
+
+.drawflow {
+  background: transparent !important;
 }
 
 /* ── Node card ── */
@@ -599,7 +602,9 @@
 }
 
 .clickable-item {
-  @apply rounded border p-1.5 text-2xs cursor-pointer hover:bg-accent;
+  @apply rounded border p-1.5 cursor-pointer hover:bg-accent;
+  font-size: var(--font-size-2xs);
+  line-height: var(--font-size-2xs--line-height);
 }
 
 /* ── Timeline dots (chat/pipeline timeline) ────── */

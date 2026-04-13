@@ -1,9 +1,31 @@
 defmodule BlackboexWeb.FlowLive.ExecutionHelpers do
   @moduledoc """
   Shared template helpers for flow execution views.
+
+  Node type metadata (icon, color, label) is derived from the canonical
+  `EditHelpers.node_types/0` — no duplication.
   """
 
   import BlackboexWeb.Components.StatusHelpers, only: [execution_status_classes: 1]
+
+  alias BlackboexWeb.FlowLive.EditHelpers
+
+  # Derived from the canonical node type list — single source of truth
+  @node_type_meta Map.new(EditHelpers.node_types(), fn n ->
+                    {n.type, %{icon: n.icon, color: n.color, label: n.label}}
+                  end)
+
+  # ── Node type helpers ─────────────────────────────────────────────────
+
+  @spec node_icon(String.t()) :: %{icon: String.t(), color: String.t(), label: String.t()}
+  def node_icon(type),
+    do: Map.get(@node_type_meta, type, %{icon: "hero-cube", color: "#6b7280", label: type})
+
+  @spec format_json(any()) :: String.t()
+  def format_json(nil), do: "—"
+  def format_json(data), do: Jason.encode!(data, pretty: true)
+
+  # ── Status helpers ────────────────────────────────────────────────────
 
   @spec status_badge(String.t()) :: String.t()
   def status_badge("completed"), do: execution_status_classes("completed")
@@ -18,6 +40,8 @@ defmodule BlackboexWeb.FlowLive.ExecutionHelpers do
   def status_icon("running"), do: "hero-arrow-path-mini"
   def status_icon("halted"), do: "hero-pause-circle-mini"
   def status_icon(_), do: "hero-question-mark-circle-mini"
+
+  # ── Formatting helpers ────────────────────────────────────────────────
 
   @spec short_id(String.t() | nil) :: String.t()
   def short_id(id) when is_binary(id), do: String.slice(id, 0, 8)

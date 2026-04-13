@@ -14,6 +14,7 @@ defmodule BlackboexWeb.FlowLive.Edit do
   alias Blackboex.Policy
   alias BlackboexWeb.FlowLive.EditHelpers
 
+  import BlackboexWeb.Components.FlowEditor.CanvasToolbar
   import BlackboexWeb.Components.FlowEditor.ExecutionsDrawer
   import BlackboexWeb.Components.FlowEditor.FlowHeader
   import BlackboexWeb.Components.FlowEditor.JsonPreviewModal
@@ -86,22 +87,15 @@ defmodule BlackboexWeb.FlowLive.Edit do
         execution ->
           sorted = (execution.node_executions || []) |> Enum.sort_by(& &1.inserted_at)
           execution = %{execution | node_executions: sorted}
-
-          node_map =
-            Enum.map(sorted, fn ne ->
-              %{
-                id: ne.node_id,
-                status: ne.status,
-                duration_ms: ne.duration_ms,
-                input: ne.input,
-                output: ne.output,
-                error: ne.error
-              }
-            end)
+          node_map = Enum.map(sorted, &node_execution_to_map/1)
 
           {:noreply,
            socket
-           |> assign(selected_execution: execution, expanded_exec_node: nil, show_executions_drawer: true)
+           |> assign(
+             selected_execution: execution,
+             expanded_exec_node: nil,
+             show_executions_drawer: true
+           )
            |> push_event("load_execution_view", %{nodes: node_map})}
       end
     end
@@ -534,7 +528,8 @@ defmodule BlackboexWeb.FlowLive.Edit do
 
   @impl true
   def handle_event("toggle_executions_drawer_expand", _params, socket) do
-    {:noreply, assign(socket, executions_drawer_expanded: !socket.assigns.executions_drawer_expanded)}
+    {:noreply,
+     assign(socket, executions_drawer_expanded: !socket.assigns.executions_drawer_expanded)}
   end
 
   @impl true
@@ -564,6 +559,17 @@ defmodule BlackboexWeb.FlowLive.Edit do
   end
 
   # ── Private helpers ─────────────────────────────────────────────────────
+
+  defp node_execution_to_map(ne) do
+    %{
+      id: ne.node_id,
+      status: ne.status,
+      duration_ms: ne.duration_ms,
+      input: ne.input,
+      output: ne.output,
+      error: ne.error
+    }
+  end
 
   defp extract_payload_schema("", _socket), do: []
   defp extract_payload_schema(nil, _socket), do: []
@@ -652,9 +658,10 @@ defmodule BlackboexWeb.FlowLive.Edit do
             phx-hook="DrawflowEditor"
             phx-update="ignore"
             data-definition={Jason.encode!(@flow.definition)}
-            class="h-full w-full"
-          />
-
+            class="parent-drawflow h-full w-full relative"
+          >
+            <.canvas_toolbar />
+          </div>
         </div>
 
         <%!-- Properties drawer --%>

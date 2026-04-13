@@ -1,4 +1,5 @@
 import Drawflow from "../../vendor/drawflow.min.js"
+import dagre from "../../vendor/dagre.min.js"
 import { drawflowToBlackboex, blackboexToDrawflow } from "./drawflow_converter.js"
 import { EditorState } from "@codemirror/state"
 import { EditorView } from "@codemirror/view"
@@ -152,6 +153,98 @@ function updateConditionLabel(editor, nodeId) {
   if (badge) badge.textContent = count
 }
 
+
+// Fit canvas so all nodes are visible with padding
+function fitView(editor) {
+  const data = editor.export()
+  const homeData = data.drawflow?.Home?.data
+  if (!homeData || Object.keys(homeData).length === 0) return
+
+  const nodes = Object.values(homeData)
+  const padding = 80
+
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+  nodes.forEach(n => {
+    const el = document.querySelector(`#node-${n.id}`)
+    const w = el ? el.offsetWidth : 200
+    const h = el ? el.offsetHeight : 80
+    if (n.pos_x < minX) minX = n.pos_x
+    if (n.pos_y < minY) minY = n.pos_y
+    if (n.pos_x + w > maxX) maxX = n.pos_x + w
+    if (n.pos_y + h > maxY) maxY = n.pos_y + h
+  })
+
+  const graphW = maxX - minX + padding * 2
+  const graphH = maxY - minY + padding * 2
+  const container = editor.container
+  const containerW = container.clientWidth
+  const containerH = container.clientHeight
+
+  const scaleX = containerW / graphW
+  const scaleY = containerH / graphH
+  const scale = Math.min(scaleX, scaleY, editor.zoom_max)
+  const clampedScale = Math.max(scale, editor.zoom_min)
+
+  editor.zoom = clampedScale
+  editor.canvas_x = -(minX - padding) * clampedScale + (containerW - graphW * clampedScale) / 2
+  editor.canvas_y = -(minY - padding) * clampedScale + (containerH - graphH * clampedScale) / 2
+
+  const precanvas = editor.precanvas
+  precanvas.style.transform = `translate(${editor.canvas_x}px, ${editor.canvas_y}px) scale(${clampedScale})`
+  editor.dispatch("zoom", clampedScale)
+}
+
+// Auto-layout using dagre (left-to-right hierarchy)
+function autoLayout(editor) {
+  const data = editor.export()
+  const homeData = data.drawflow?.Home?.data
+  if (!homeData || Object.keys(homeData).length === 0) return
+
+  const g = new dagre.graphlib.Graph()
+  g.setGraph({ rankdir: "LR", nodesep: 60, ranksep: 120, marginx: 80, marginy: 80 })
+  g.setDefaultEdgeLabel(() => ({}))
+
+  // Add nodes with measured dimensions
+  Object.entries(homeData).forEach(([id, node]) => {
+    const el = document.querySelector(`#node-${id}`)
+    const w = el ? el.offsetWidth : 200
+    const h = el ? el.offsetHeight : 80
+    g.setNode(id, { width: w + 20, height: h + 20 })
+  })
+
+  // Add edges from connections
+  Object.entries(homeData).forEach(([id, node]) => {
+    Object.values(node.outputs || {}).forEach(output => {
+      output.connections.forEach(conn => {
+        g.setEdge(id, conn.node)
+      })
+    })
+  })
+
+  dagre.layout(g)
+
+  // Apply positions — dagre gives center coords, drawflow uses top-left
+  g.nodes().forEach(nodeId => {
+    const layoutNode = g.node(nodeId)
+    const dfNode = homeData[nodeId]
+    if (dfNode && layoutNode) {
+      dfNode.pos_x = layoutNode.x - layoutNode.width / 2
+      dfNode.pos_y = layoutNode.y - layoutNode.height / 2
+    }
+  })
+
+  editor.clear()
+  editor.import(data)
+
+  // Re-render condition branch labels after import
+  setTimeout(() => updateAllOutputLabels(editor), 100)
+}
+
+function updateZoomLabel(editor, toolbar) {
+  const label = toolbar.querySelector("[data-zoom-label]")
+  if (label) label.textContent = `${Math.round(editor.zoom * 100)}%`
+}
+
 const DrawflowEditor = {
   mounted() {
     this.editor = new Drawflow(this.el)
@@ -160,6 +253,60 @@ const DrawflowEditor = {
     this.editor.reroute_curvature_start_end = 0.5
     this.editor.reroute_curvature = 0.5
     this.editor.start()
+
+    // ── Canvas toolbar ──────────────────────────────────────────────────
+    // Bind to server-rendered toolbar (sibling of #drawflow-canvas)
+    const toolbar = document.getElementById("df-canvas-toolbar")
+    this._toolbar = toolbar
+    if (toolbar) updateZoomLabel(this.editor, toolbar)
+
+    this.editor.on("zoom", () => updateZoomLabel(this.editor, toolbar))
+
+    toolbar.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-action]")
+      if (!btn) return
+      e.stopPropagation()
+
+      switch (btn.dataset.action) {
+        case "zoom-in":
+          this.editor.zoom_in()
+          break
+        case "zoom-out":
+          this.editor.zoom_out()
+          break
+        case "zoom-reset":
+          this.editor.zoom = 1
+          this.editor.canvas_x = 0
+          this.editor.canvas_y = 0
+          this.editor.precanvas.style.transform = "translate(0px, 0px) scale(1)"
+          this.editor.dispatch("zoom", 1)
+          break
+        case "fit-view":
+          fitView(this.editor)
+          break
+        case "auto-layout":
+          autoLayout(this.editor)
+          requestAnimationFrame(() => fitView(this.editor))
+          break
+        case "toggle-lock": {
+          const isEdit = this.editor.editor_mode === "edit"
+          this.editor.editor_mode = isEdit ? "fixed" : "edit"
+          btn.classList.toggle("df-toolbar-btn-active", !isEdit)
+          btn.title = isEdit ? "Unlock (view mode)" : "Toggle lock (edit/view)"
+          const wrap = btn.querySelector("[data-lock-icon]")
+          if (wrap) {
+            const icon = wrap.querySelector("span")
+            if (icon) {
+              icon.className = icon.className.replace(
+                /hero-lock-\w+/,
+                isEdit ? "hero-lock-closed" : "hero-lock-open"
+              )
+            }
+          }
+          break
+        }
+      }
+    })
 
     // Load existing definition (BlackboexFlow format from server)
     const definition = this.el.dataset.definition
@@ -516,9 +663,7 @@ const DrawflowEditor = {
   },
 
   destroyed() {
-    if (this.editor) {
-      this.editor.clear()
-    }
+    if (this.editor) this.editor.clear()
   }
 }
 

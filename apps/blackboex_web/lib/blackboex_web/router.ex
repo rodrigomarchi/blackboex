@@ -203,8 +203,6 @@ defmodule BlackboexWeb.Router do
       live "/apis/:id/edit/publish", ApiLive.Edit.PublishLive
       live "/apis/:id/edit/info", ApiLive.Edit.InfoLive
       live "/flows/:id/edit", FlowLive.Edit, :edit
-      live "/flows/:id/executions", FlowLive.Executions, :index
-      live "/flows/:id/executions/:execution_id", FlowLive.ExecutionShow, :show
     end
 
     post "/users/update-password", UserSessionController, :update_password

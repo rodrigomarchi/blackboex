@@ -7,12 +7,14 @@ defmodule BlackboexWeb.FlowLive.Edit do
 
   use BlackboexWeb, :live_view
 
+  alias Blackboex.FlowExecutions
   alias Blackboex.FlowExecutor
   alias Blackboex.FlowExecutor.BlackboexFlow
   alias Blackboex.Flows
   alias Blackboex.Policy
   alias BlackboexWeb.FlowLive.EditHelpers
 
+  import BlackboexWeb.Components.FlowEditor.ExecutionsDrawer
   import BlackboexWeb.Components.FlowEditor.FlowHeader
   import BlackboexWeb.Components.FlowEditor.JsonPreviewModal
   import BlackboexWeb.Components.FlowEditor.NodePalette
@@ -58,8 +60,62 @@ defmodule BlackboexWeb.FlowLive.Edit do
            running: false,
            run_task_ref: nil,
            drawer_expanded: false,
-           confirm: nil
+           confirm: nil,
+           show_executions_drawer: false,
+           executions: [],
+           selected_execution: nil,
+           expanded_exec_node: nil,
+           executions_drawer_expanded: false
          )}
+    end
+  end
+
+  # ── handle_params ────────────────────────────────────────────────────────
+
+  @impl true
+  def handle_params(%{"execution" => exec_id} = _params, _uri, socket) do
+    if socket.assigns.selected_execution && socket.assigns.selected_execution.id == exec_id do
+      {:noreply, socket}
+    else
+      org = socket.assigns.current_scope.organization
+
+      case FlowExecutions.get_execution_for_org(org.id, exec_id) do
+        nil ->
+          {:noreply, push_patch(socket, to: ~p"/flows/#{socket.assigns.flow.id}/edit")}
+
+        execution ->
+          sorted = (execution.node_executions || []) |> Enum.sort_by(& &1.inserted_at)
+          execution = %{execution | node_executions: sorted}
+
+          node_map =
+            Enum.map(sorted, fn ne ->
+              %{
+                id: ne.node_id,
+                status: ne.status,
+                duration_ms: ne.duration_ms,
+                input: ne.input,
+                output: ne.output,
+                error: ne.error
+              }
+            end)
+
+          {:noreply,
+           socket
+           |> assign(selected_execution: execution, expanded_exec_node: nil, show_executions_drawer: true)
+           |> push_event("load_execution_view", %{nodes: node_map})}
+      end
+    end
+  end
+
+  @impl true
+  def handle_params(_params, _uri, socket) do
+    if socket.assigns.selected_execution do
+      {:noreply,
+       socket
+       |> assign(selected_execution: nil, expanded_exec_node: nil)
+       |> push_event("clear_execution_view", %{})}
+    else
+      {:noreply, socket}
     end
   end
 
@@ -461,6 +517,52 @@ defmodule BlackboexWeb.FlowLive.Edit do
     end
   end
 
+  # ── Executions Drawer ────────────────────────────────────────────────────
+
+  @impl true
+  def handle_event("open_executions_drawer", _params, socket) do
+    executions = FlowExecutions.list_executions_for_flow(socket.assigns.flow.id)
+
+    {:noreply,
+     assign(socket,
+       show_executions_drawer: true,
+       executions: executions,
+       selected_execution: nil,
+       expanded_exec_node: nil
+     )}
+  end
+
+  @impl true
+  def handle_event("toggle_executions_drawer_expand", _params, socket) do
+    {:noreply, assign(socket, executions_drawer_expanded: !socket.assigns.executions_drawer_expanded)}
+  end
+
+  @impl true
+  def handle_event("close_executions_drawer", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(show_executions_drawer: false, executions_drawer_expanded: false)
+     |> push_patch(to: ~p"/flows/#{socket.assigns.flow.id}/edit")}
+  end
+
+  @impl true
+  def handle_event("select_execution", %{"id" => id}, socket) do
+    {:noreply, push_patch(socket, to: ~p"/flows/#{socket.assigns.flow.id}/edit?execution=#{id}")}
+  end
+
+  @impl true
+  def handle_event("deselect_execution", _params, socket) do
+    {:noreply, push_patch(socket, to: ~p"/flows/#{socket.assigns.flow.id}/edit")}
+  end
+
+  @impl true
+  def handle_event("toggle_exec_node", %{"node-id" => node_id}, socket) do
+    expanded =
+      if socket.assigns.expanded_exec_node == node_id, do: nil, else: node_id
+
+    {:noreply, assign(socket, expanded_exec_node: expanded)}
+  end
+
   # ── Private helpers ─────────────────────────────────────────────────────
 
   defp extract_payload_schema("", _socket), do: []
@@ -552,6 +654,7 @@ defmodule BlackboexWeb.FlowLive.Edit do
             data-definition={Jason.encode!(@flow.definition)}
             class="h-full w-full"
           />
+
         </div>
 
         <%!-- Properties drawer --%>
@@ -562,6 +665,15 @@ defmodule BlackboexWeb.FlowLive.Edit do
           state_variables={EditHelpers.get_state_variables(@flow, @selected_node)}
           org_flows={@org_flows}
           sub_flow_schema={@sub_flow_schema}
+        />
+
+        <%!-- Executions drawer (right of canvas) --%>
+        <.executions_drawer
+          show={@show_executions_drawer}
+          executions={@executions}
+          selected_execution={@selected_execution}
+          expanded_exec_node={@expanded_exec_node}
+          expanded={@executions_drawer_expanded}
         />
       </div>
 

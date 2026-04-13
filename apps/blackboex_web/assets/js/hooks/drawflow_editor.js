@@ -1,5 +1,8 @@
 import Drawflow from "../../vendor/drawflow.min.js"
 import { drawflowToBlackboex, blackboexToDrawflow } from "./drawflow_converter.js"
+import { EditorState } from "@codemirror/state"
+import { EditorView } from "@codemirror/view"
+import { buildExtensions } from "../lib/codemirror_setup"
 
 // Node type visual config
 const nodeConfig = {
@@ -299,6 +302,216 @@ const DrawflowEditor = {
       const drawflowData = this.editor.export()
       const blackboexData = drawflowToBlackboex(drawflowData)
       this.pushEvent("show_json_preview", { definition: blackboexData })
+    })
+
+    // ── Execution view ───────────────────────────────────────────────────────
+    let execOriginalData = null
+    let execCmViews = []
+
+    const execStatusColors = {
+      completed: "#10b981",
+      failed:    "#ef4444",
+      running:   "#3b82f6",
+      pending:   "#6b7280",
+      halted:    "#f59e0b",
+      skipped:   "#a855f7",
+    }
+
+    const execStatusLabels = {
+      completed: "completed",
+      failed:    "failed",
+      running:   "running",
+      pending:   "pending",
+      halted:    "halted",
+      skipped:   "skipped",
+    }
+
+    function fmtDuration(ms) {
+      if (ms == null) return ""
+      return ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(1)}s`
+    }
+
+    // Build HTML for a data node. JSON is base64-encoded as a data attribute
+    // so CodeMirror can be mounted after DOM render.
+    function dataNodeHtml({ status, duration_ms, output, error }, nodeKey) {
+      const color = execStatusColors[status] || execStatusColors.pending
+      const dur   = fmtDuration(duration_ms)
+      const json  = output != null ? JSON.stringify(output, null, 2) : null
+      const b64   = json ? btoa(unescape(encodeURIComponent(json))) : null
+
+      return `<div class="df-exec-dn">
+        <div class="df-exec-dn-header">
+          <span class="df-exec-dn-dot" style="background:${color}"></span>
+          <span class="df-exec-dn-id" style="color:${color}">output</span>
+          ${dur ? `<span class="df-exec-dn-dur">${dur}</span>` : ""}
+        </div>
+        ${error ? `<div class="df-exec-dn-error">${String(error).slice(0, 200)}</div>` : ""}
+        ${b64 ? `<div class="df-exec-dn-cm" data-exec-key="${nodeKey}" data-b64="${b64}"></div>` : ""}
+      </div>`
+    }
+
+    // Mount read-only CodeMirror JSON editors in data node placeholders.
+    function mountExecCmViews() {
+      document.querySelectorAll(".df-exec-dn-cm:not([data-cm-mounted])").forEach(el => {
+        el.dataset.cmMounted = "1"
+        let json = ""
+        try { json = decodeURIComponent(escape(atob(el.dataset.b64 || ""))) } catch (_) {}
+        const extensions = buildExtensions({ language: "json", readOnly: true, minimal: true, onBlur: null })
+        const view = new EditorView({
+          state: EditorState.create({ doc: json, extensions }),
+          parent: el,
+        })
+        execCmViews.push(view)
+      })
+    }
+
+    // Zoom + pan the canvas so all nodes fit in the viewport with padding.
+    const clearExecView = () => {
+      execCmViews.forEach(v => v.destroy())
+      execCmViews = []
+      if (execOriginalData) {
+        this.editor.clear()
+        this.editor.import(execOriginalData)
+        execOriginalData = null
+      }
+    }
+
+    this.handleEvent("load_execution_view", ({ nodes }) => {
+      if (!nodes || nodes.length === 0) return
+
+      // ── Phase 1: restore original graph & measure ──────────────────────────
+      clearExecView()
+
+      // Measure real node widths from the original DOM (nodes are rendered now)
+      const nodeWidths = {}
+      nodes.forEach(({ id }) => {
+        const dfId = id.startsWith("n") ? id.slice(1) : id
+        const el   = document.querySelector(`#node-${dfId}`)
+        if (el) nodeWidths[dfId] = el.offsetWidth
+      })
+
+      // Backup graph data
+      execOriginalData = JSON.parse(JSON.stringify(this.editor.drawflow))
+      const modData = JSON.parse(JSON.stringify(this.editor.drawflow))
+      const module  = this.editor.module
+      const gNodes  = modData.drawflow[module].data
+
+      // ── Phase 2: insert data nodes + rewire connections ────────────────────
+      const maxId = Math.max(0, ...Object.keys(gNodes).map(Number))
+      let nextId  = Math.max(maxId + 1, 10000)
+      const dataNodeIds = new Array(nodes.length).fill(null)
+
+      for (let i = 0; i < nodes.length - 1; i++) {
+        const curr = nodes[i], next = nodes[i + 1]
+        if (curr.output == null && !curr.error) continue
+
+        const currDfId = curr.id.startsWith("n") ? curr.id.slice(1) : curr.id
+        const nextDfId = next.id.startsWith("n") ? next.id.slice(1) : next.id
+        const currNode = gNodes[currDfId], nextNode = gNodes[nextDfId]
+        if (!currNode || !nextNode) continue
+
+        // Find connection: curr → next
+        let outClass = null, inClass = null
+        outer: for (const [oc, od] of Object.entries(currNode.outputs || {})) {
+          for (const conn of od.connections) {
+            if (conn.node === nextDfId) { outClass = oc; inClass = conn.output; break outer }
+          }
+        }
+        if (!outClass) continue
+
+        const dataId    = nextId++
+        const dataIdStr = String(dataId)
+
+        // Insert data node with placeholder pos (overwritten below)
+        gNodes[dataIdStr] = {
+          id: dataId, name: "exec_data", data: {}, class: "df-exec-data-node",
+          html: dataNodeHtml(curr, dataIdStr), typenode: false,
+          inputs:  { input_1:  { connections: [{ node: currDfId, input: outClass }] } },
+          outputs: { output_1: { connections: [{ node: nextDfId, output: inClass }] } },
+          pos_x: 0, pos_y: 0
+        }
+
+        // Rewire: curr output → data node (was curr → next)
+        for (const conn of currNode.outputs[outClass].connections) {
+          if (conn.node === nextDfId && conn.output === inClass) {
+            conn.node = dataIdStr; conn.output = "input_1"; break
+          }
+        }
+        // Rewire: next input ← data node (was next ← curr)
+        if (nextNode.inputs?.[inClass]) {
+          for (const conn of nextNode.inputs[inClass].connections) {
+            if (conn.node === currDfId) { conn.node = dataIdStr; conn.input = "output_1"; break }
+          }
+        }
+
+        dataNodeIds[i] = dataIdStr
+      }
+
+      // ── Phase 3: auto-layout — horizontal line with measured widths ────────
+      const GAP    = 60
+      const DATA_W = 260   // CSS min-width / max-width of .df-exec-data-node
+      const firstDfId = nodes[0].id.startsWith("n") ? nodes[0].id.slice(1) : nodes[0].id
+      const baseY  = gNodes[firstDfId]?.pos_y ?? 200
+      let curX     = gNodes[firstDfId]?.pos_x ?? 80
+
+      nodes.forEach(({ id }, i) => {
+        const dfId = id.startsWith("n") ? id.slice(1) : id
+        if (gNodes[dfId]) { gNodes[dfId].pos_x = curX; gNodes[dfId].pos_y = baseY }
+        curX += (nodeWidths[dfId] || 200) + GAP
+
+        const dnId = dataNodeIds[i]
+        if (dnId && gNodes[dnId]) {
+          gNodes[dnId].pos_x = curX
+          gNodes[dnId].pos_y = baseY
+          curX += DATA_W + GAP
+        }
+      })
+
+      // ── Phase 4: single import with final positions ────────────────────────
+      this.editor.clear()
+      this.editor.import(modData)
+
+      // ── Phase 5: post-render — CodeMirror + highlights ─────────────────────
+      requestAnimationFrame(() => {
+        // Mount CodeMirror instances
+        mountExecCmViews()
+
+        // Apply status highlight + pill on original executed nodes
+        nodes.forEach(({ id, status, duration_ms }) => {
+          const dfId = id.startsWith("n") ? id.slice(1) : id
+          const el   = document.querySelector(`#node-${dfId}`)
+          if (!el) return
+
+          const color = execStatusColors[status] || execStatusColors.pending
+          const label = execStatusLabels[status]  || status
+          const dur   = fmtDuration(duration_ms)
+
+          el.classList.add("df-exec-highlight")
+          el.style.setProperty("--exec-color", color)
+
+          const pill = document.createElement("div")
+          pill.className = "df-exec-status-pill"
+          pill.style.cssText = [
+            "position:absolute", "top:-20px", "left:50%", "transform:translateX(-50%)",
+            "display:inline-flex", "align-items:center", "gap:4px",
+            `background:hsl(var(--card))`, `border:1.5px solid ${color}55`,
+            "border-radius:999px", "padding:2px 8px",
+            "font-size:9px", "font-weight:700", "font-family:ui-sans-serif,system-ui,sans-serif",
+            "white-space:nowrap", "pointer-events:none", "z-index:20",
+            "box-shadow:0 2px 8px rgba(0,0,0,.5)", "line-height:1.8"
+          ].join(";")
+          pill.innerHTML =
+            `<span style="width:5px;height:5px;border-radius:50%;background:${color};display:inline-block;flex-shrink:0"></span>` +
+            `<span style="color:${color}">${label}</span>` +
+            (dur ? `<span style="color:#94a3b8;font-size:8px;font-family:ui-monospace,monospace">${dur}</span>` : "")
+          el.appendChild(pill)
+        })
+
+      })
+    })
+
+    this.handleEvent("clear_execution_view", () => {
+      clearExecView()
     })
   },
 

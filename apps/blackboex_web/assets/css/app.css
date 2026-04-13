@@ -611,4 +611,122 @@
   @apply absolute -left-[5px] size-[7px] rounded-full border-2 border-background;
 }
 
+/* ── Execution view ── */
+
+/* Colored outline on original executed nodes */
+.drawflow-node.df-exec-highlight {
+  outline: 2px solid var(--exec-color);
+  outline-offset: 2px;
+  pointer-events: none; /* pass clicks through to canvas for pan */
+}
+
+/* Drawflow data node — inserted between executed nodes in exec view */
+.drawflow-node.df-exec-data-node {
+  background: hsl(var(--card)) !important;
+  border: 1px solid rgba(255,255,255,.12) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 24px rgba(0,0,0,.6) !important;
+  pointer-events: none;
+  min-width: 260px;
+  max-width: 260px;
+}
+
+/* Suppress default selected glow on data nodes */
+.drawflow-node.df-exec-data-node.selected {
+  box-shadow: 0 4px 24px rgba(0,0,0,.6) !important;
+}
+
+/* Make data node ports tiny wire-connection dots */
+.drawflow-node.df-exec-data-node .input,
+.drawflow-node.df-exec-data-node .output {
+  width: 8px !important;
+  height: 8px !important;
+  background: rgba(148,163,184,.3) !important;
+  border: 1px solid rgba(148,163,184,.5) !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+}
+
+/* ── data node inner layout ──────────────────────────────── */
+
+.df-exec-dn {
+  padding: 2px 0;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+
+.df-exec-dn-header {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 6px;
+}
+
+.df-exec-dn-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-block;
+}
+
+.df-exec-dn-id {
+  font-size: 9px;
+  font-weight: 700;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.df-exec-dn-dur {
+  font-size: 9px;
+  color: #64748b;
+  font-family: ui-monospace, monospace;
+}
+
+.df-exec-dn-error {
+  background: rgba(239,68,68,.08);
+  border-radius: 4px;
+  padding: 4px 6px;
+  margin-bottom: 4px;
+  font-size: 9px;
+  font-family: ui-monospace, monospace;
+  color: #f87171;
+  word-break: break-word;
+}
+
+.df-exec-dn-section {
+  margin-top: 2px;
+}
+
+.df-exec-dn-label {
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: .07em;
+  color: #34d399;
+  text-transform: uppercase;
+  margin-bottom: 3px;
+}
+
+/* CodeMirror instance mounted inside data node */
+.df-exec-dn-cm .cm-editor {
+  border-radius: 4px;
+  max-height: 220px;
+  font-size: 9px !important;
+  background: rgba(0,0,0,.25) !important;
+}
+
+.df-exec-dn-cm .cm-scroller {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,.15) transparent;
+}
+
+.df-exec-dn-cm .cm-content {
+  padding: 4px 6px !important;
+}
+
+/* Suppress cursor blink in read-only mode */
+.df-exec-dn-cm .cm-cursor { display: none !important; }
+
 /* This file is for your main application CSS */

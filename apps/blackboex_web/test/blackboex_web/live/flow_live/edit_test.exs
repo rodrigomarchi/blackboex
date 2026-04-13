@@ -154,13 +154,13 @@ defmodule BlackboexWeb.FlowLive.EditTest do
       assert html =~ "Cannot activate"
     end
 
-    test "shows History button linking to executions", %{conn: conn, user: user} do
+    test "shows History button that opens executions drawer", %{conn: conn, user: user} do
       [org | _] = Blackboex.Organizations.list_user_organizations(user)
       flow = flow_fixture(%{user: user, org: org})
 
-      {:ok, _view, html} = live(conn, ~p"/flows/#{flow.id}/edit")
+      {:ok, view, html} = live(conn, ~p"/flows/#{flow.id}/edit")
       assert html =~ "History"
-      assert html =~ "/flows/#{flow.id}/executions"
+      assert has_element?(view, "button[phx-click='open_executions_drawer']")
     end
 
     # ── Schema tab & event tests ──────────────────────────────────────────

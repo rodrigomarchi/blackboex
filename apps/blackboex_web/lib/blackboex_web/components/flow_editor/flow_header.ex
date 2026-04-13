@@ -85,7 +85,7 @@ defmodule BlackboexWeb.Components.FlowEditor.FlowHeader do
 
         <span :if={@saved} class="text-xs text-success-foreground">Saved</span>
 
-        <.button variant="outline" size="sm" navigate={~p"/flows/#{@flow.id}/executions"}>
+        <.button variant="outline" size="sm" phx-click="open_executions_drawer">
           <.icon name="hero-clock" class="mr-1.5 size-4 text-accent-sky" /> History
         </.button>
         <.button variant="outline" size="sm" phx-click="open_run_modal">

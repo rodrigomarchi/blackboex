@@ -11,6 +11,7 @@ defmodule BlackboexWeb.FlowLive.Edit do
   alias Blackboex.FlowExecutor
   alias Blackboex.FlowExecutor.BlackboexFlow
   alias Blackboex.Flows
+  alias Blackboex.Flows.SampleInput
   alias Blackboex.Policy
   alias BlackboexWeb.FlowLive.EditHelpers
   alias BlackboexWeb.FlowLive.ExecutionGraphMerger
@@ -416,7 +417,16 @@ defmodule BlackboexWeb.FlowLive.Edit do
 
   @impl true
   def handle_event("open_run_modal", _params, socket) do
-    {:noreply, assign(socket, show_run_modal: true, run_result: nil, run_error: nil)}
+    example = SampleInput.generate(socket.assigns.flow)
+    run_input = if example == %{}, do: "{}", else: Jason.encode!(example, pretty: true)
+
+    {:noreply,
+     assign(socket,
+       show_run_modal: true,
+       run_result: nil,
+       run_error: nil,
+       run_input: run_input
+     )}
   end
 
   @impl true

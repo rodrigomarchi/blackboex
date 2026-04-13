@@ -469,6 +469,53 @@ defmodule BlackboexWeb.FlowLive.EditTest do
       assert hd(end_node["data"]["response_mapping"])["state_variable"] == "counter"
     end
 
+    # ── Test Run modal ──────────────────────────────────────────────────
+
+    test "run modal opens with pre-filled example input from payload_schema", %{
+      conn: conn,
+      user: user
+    } do
+      [org | _] = Blackboex.Organizations.list_user_organizations(user)
+      flow = flow_from_template_fixture(%{user: user, org: org})
+
+      {:ok, view, _html} = live(conn, ~p"/flows/#{flow.id}/edit")
+
+      html = render_click(view, "open_run_modal")
+
+      # The hello_world template has payload_schema with name (min_length: 1),
+      # email, and phone fields — the code editor data-value should contain
+      # the pre-filled JSON with these field names
+      assert html =~ "Test Run"
+      assert html =~ "name"
+      assert html =~ "email"
+      assert html =~ "phone"
+
+      # Verify the data-value attribute contains actual JSON (not just "{}")
+      refute html =~ ~s(data-value="{}")
+    end
+
+    test "run modal opens with empty JSON when flow has no payload_schema", %{
+      conn: conn,
+      user: user
+    } do
+      [org | _] = Blackboex.Organizations.list_user_organizations(user)
+
+      {:ok, flow} =
+        Blackboex.Flows.create_flow(%{
+          name: "Empty Schema Flow",
+          organization_id: org.id,
+          user_id: user.id
+        })
+
+      {:ok, view, _html} = live(conn, ~p"/flows/#{flow.id}/edit")
+
+      html = render_click(view, "open_run_modal")
+
+      assert html =~ "Test Run"
+      # With no payload_schema, the data-value should be empty JSON object
+      assert html =~ ~s(data-value="{}")
+    end
+
     test "rejects invalid definition on save", %{conn: conn, user: user} do
       [org | _] = Blackboex.Organizations.list_user_organizations(user)
 

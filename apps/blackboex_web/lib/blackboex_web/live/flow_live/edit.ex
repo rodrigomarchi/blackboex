@@ -22,7 +22,7 @@ defmodule BlackboexWeb.FlowLive.Edit do
   import BlackboexWeb.Components.FlowEditor.JsonPreviewModal
   import BlackboexWeb.Components.FlowEditor.NodePalette
   import BlackboexWeb.Components.FlowEditor.PropertiesDrawer
-  import BlackboexWeb.Components.FlowEditor.RunModal
+  import BlackboexWeb.Components.FlowEditor.RunDrawer
 
   @impl true
   def mount(%{"id" => id}, _session, socket) do
@@ -56,9 +56,8 @@ defmodule BlackboexWeb.FlowLive.Edit do
            properties_tab: "settings",
            show_json_modal: false,
            json_preview: "",
-           show_run_modal: false,
+           show_run_drawer: false,
            run_input: "{}",
-           run_result: nil,
            run_error: nil,
            running: false,
            run_task_ref: nil,
@@ -422,16 +421,16 @@ defmodule BlackboexWeb.FlowLive.Edit do
 
     {:noreply,
      assign(socket,
-       show_run_modal: true,
-       run_result: nil,
+       show_run_drawer: true,
+       show_executions_drawer: false,
        run_error: nil,
        run_input: run_input
      )}
   end
 
   @impl true
-  def handle_event("close_run_modal", _params, socket) do
-    {:noreply, assign(socket, show_run_modal: false)}
+  def handle_event("close_run_drawer", _params, socket) do
+    {:noreply, assign(socket, show_run_drawer: false)}
   end
 
   @impl true
@@ -452,7 +451,7 @@ defmodule BlackboexWeb.FlowLive.Edit do
 
         {:noreply,
          socket
-         |> assign(running: true, run_result: nil, run_error: nil, run_task_ref: task.ref)}
+         |> assign(running: true, run_error: nil, run_task_ref: task.ref)}
 
       {:ok, _} ->
         {:noreply, assign(socket, run_error: "Input must be a JSON object")}
@@ -657,8 +656,13 @@ defmodule BlackboexWeb.FlowLive.Edit do
     Process.demonitor(ref, [:flush])
 
     case result do
-      {:ok, run_result} ->
-        {:noreply, assign(socket, running: false, run_result: run_result, run_task_ref: nil)}
+      {:ok, %{execution_id: execution_id}} ->
+        {:noreply,
+         socket
+         |> assign(running: false, run_task_ref: nil, show_run_drawer: false)
+         |> push_patch(
+           to: ~p"/flows/#{socket.assigns.flow.id}/edit?execution=#{execution_id}"
+         )}
 
       {:error, %{error: error_msg}} ->
         {:noreply, assign(socket, running: false, run_error: error_msg, run_task_ref: nil)}
@@ -723,17 +727,17 @@ defmodule BlackboexWeb.FlowLive.Edit do
           expanded={@executions_drawer_expanded}
           node_names={node_names(@flow.definition)}
         />
+
+        <%!-- Test Run drawer (right of canvas) --%>
+        <.run_drawer
+          show={@show_run_drawer}
+          run_input={@run_input}
+          running={@running}
+          run_error={@run_error}
+        />
       </div>
 
       <.json_preview_modal :if={@show_json_modal} flow={@flow} json_preview={@json_preview} />
-
-      <.run_modal
-        :if={@show_run_modal}
-        run_input={@run_input}
-        running={@running}
-        run_result={@run_result}
-        run_error={@run_error}
-      />
 
       <.confirm_dialog
         :if={@confirm}

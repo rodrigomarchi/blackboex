@@ -20,10 +20,10 @@ defmodule BlackboexWeb.Showcase.Sections.FlowEditorOverview do
       complex: false
     },
     %{
-      name: "RunModal",
-      module: "BlackboexWeb.Components.FlowEditor.RunModal",
+      name: "RunDrawer",
+      module: "BlackboexWeb.Components.FlowEditor.RunDrawer",
       description:
-        "Modal for manually running a flow with JSON test input. Shows result and error output.",
+        "Right-side drawer for manually running a flow with JSON test input. On success navigates to ?execution=id.",
       complex: false
     },
     %{

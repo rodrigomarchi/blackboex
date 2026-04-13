@@ -415,4 +415,81 @@ defmodule BlackboexWeb.FlowLive.ExecutionGraphMergerTest do
       assert merged["version"] == "1.0"
     end
   end
+
+  describe "merge/3 boundary data nodes (execution input/output)" do
+    setup do
+      definition =
+        build_definition(
+          [node("n1", "start"), node("n2", "http_request"), node("n3", "end")],
+          [edge("n1", "n2"), edge("n2", "n3")]
+        )
+
+      executions = [
+        exec_node("n1", "completed", %{"output" => %{"job" => "test"}}),
+        exec_node("n2", "completed", %{"output" => %{"status" => 200}}),
+        exec_node("n3", "completed", %{"output" => %{"done" => true}})
+      ]
+
+      execution_io = %{
+        input: %{"event_type" => "payment.succeeded", "amount" => 4999},
+        output: %{"action" => "fulfill_order", "status" => "succeeded"}
+      }
+
+      %{definition: definition, executions: executions, execution_io: execution_io}
+    end
+
+    test "adds input data node before start node",
+         %{definition: def_, executions: execs, execution_io: io} do
+      merged = ExecutionGraphMerger.merge(def_, execs, io)
+
+      input_dn =
+        Enum.find(merged["nodes"], fn n ->
+          n["type"] == "exec_data" and n["data"]["source_node"] == "input"
+        end)
+
+      assert input_dn != nil
+      assert input_dn["data"]["output"] == io.input
+
+      # Edge from input data node to start
+      edge_to_start =
+        Enum.find(merged["edges"], fn e ->
+          e["source"] == input_dn["id"] and e["target"] == "n1"
+        end)
+
+      assert edge_to_start != nil
+    end
+
+    test "adds output data node after end node",
+         %{definition: def_, executions: execs, execution_io: io} do
+      merged = ExecutionGraphMerger.merge(def_, execs, io)
+
+      output_dn =
+        Enum.find(merged["nodes"], fn n ->
+          n["type"] == "exec_data" and n["data"]["source_node"] == "output"
+        end)
+
+      assert output_dn != nil
+      assert output_dn["data"]["output"] == io.output
+
+      # Edge from end to output data node
+      edge_from_end =
+        Enum.find(merged["edges"], fn e ->
+          e["source"] == "n3" and e["target"] == output_dn["id"]
+        end)
+
+      assert edge_from_end != nil
+    end
+
+    test "does not add boundary nodes when execution_io is empty",
+         %{definition: def_, executions: execs} do
+      merged = ExecutionGraphMerger.merge(def_, execs, %{})
+
+      boundary_dns =
+        Enum.filter(merged["nodes"], fn n ->
+          n["type"] == "exec_data" and n["data"]["source_node"] in ["input", "output"]
+        end)
+
+      assert boundary_dns == []
+    end
+  end
 end

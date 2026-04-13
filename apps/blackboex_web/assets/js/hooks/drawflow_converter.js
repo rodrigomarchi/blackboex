@@ -121,12 +121,14 @@ export function blackboexToDrawflow(blackboex, buildHTML) {
     let inputCount, outputCount
     switch (node.type) {
       case "start":
-        inputCount = 0
+        // Allow input port if an edge targets this start (e.g. boundary input data node)
+        inputCount = inputConnectionMap[node.id] ? 1 : 0
         outputCount = Math.max(1, nodeOutputMaxPort[node.id] || 1)
         break
       case "end":
         inputCount = 1
-        outputCount = 0
+        // Allow output port if an edge leaves this end (e.g. boundary output data node)
+        outputCount = nodeOutputMaxPort[node.id] ? 1 : 0
         break
       case "condition":
         inputCount = 1
@@ -142,7 +144,7 @@ export function blackboexToDrawflow(blackboex, buildHTML) {
         break
       case "fail":
         inputCount = 1
-        outputCount = 0
+        outputCount = nodeOutputMaxPort[node.id] ? 1 : 0
         break
       default:
         inputCount = 1

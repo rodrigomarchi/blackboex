@@ -90,8 +90,13 @@ defmodule BlackboexWeb.FlowLive.Edit do
           execution = %{execution | node_executions: sorted}
           node_map = Enum.map(sorted, &node_execution_to_map/1)
 
+          execution_io = %{
+            input: execution.input,
+            output: execution.output
+          }
+
           merged_definition =
-            ExecutionGraphMerger.merge(socket.assigns.flow.definition, node_map)
+            ExecutionGraphMerger.merge(socket.assigns.flow.definition, node_map, execution_io)
 
           {:noreply,
            socket

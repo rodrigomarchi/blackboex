@@ -13,6 +13,7 @@ defmodule BlackboexWeb.FlowLive.Edit do
   alias Blackboex.Flows
   alias Blackboex.Policy
   alias BlackboexWeb.FlowLive.EditHelpers
+  alias BlackboexWeb.FlowLive.ExecutionGraphMerger
 
   import BlackboexWeb.Components.FlowEditor.CanvasToolbar
   import BlackboexWeb.Components.FlowEditor.ExecutionsDrawer
@@ -89,6 +90,9 @@ defmodule BlackboexWeb.FlowLive.Edit do
           execution = %{execution | node_executions: sorted}
           node_map = Enum.map(sorted, &node_execution_to_map/1)
 
+          merged_definition =
+            ExecutionGraphMerger.merge(socket.assigns.flow.definition, node_map)
+
           {:noreply,
            socket
            |> assign(
@@ -96,7 +100,10 @@ defmodule BlackboexWeb.FlowLive.Edit do
              expanded_exec_node: nil,
              show_executions_drawer: true
            )
-           |> push_event("load_execution_view", %{nodes: node_map})}
+           |> push_event("load_execution_view", %{
+             definition: merged_definition,
+             nodes: node_map
+           })}
       end
     end
   end

@@ -626,30 +626,27 @@
 }
 
 /* Drawflow data node — inserted between executed nodes in exec view */
-.drawflow-node.df-exec-data-node {
-  background: hsl(var(--card)) !important;
-  border: 1px solid rgba(255,255,255,.12) !important;
-  border-radius: 8px !important;
-  box-shadow: 0 4px 24px rgba(0,0,0,.6) !important;
-  pointer-events: none;
-  min-width: 260px;
-  max-width: 260px;
+.drawflow .drawflow-node.df-exec-data-node {
+  background: hsl(var(--card));
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 8px;
+  box-shadow: 0 4px 24px rgba(0,0,0,.6);
+  width: 320px;
+  min-height: 120px;
+  cursor: default;
 }
 
-/* Suppress default selected glow on data nodes */
-.drawflow-node.df-exec-data-node.selected {
-  box-shadow: 0 4px 24px rgba(0,0,0,.6) !important;
+.drawflow .drawflow-node.df-exec-data-node.selected {
+  box-shadow: 0 4px 24px rgba(0,0,0,.6);
 }
 
-/* Make data node ports tiny wire-connection dots */
-.drawflow-node.df-exec-data-node .input,
-.drawflow-node.df-exec-data-node .output {
-  width: 8px !important;
-  height: 8px !important;
-  background: rgba(148,163,184,.3) !important;
-  border: 1px solid rgba(148,163,184,.5) !important;
-  top: 50% !important;
-  transform: translateY(-50%) !important;
+/* Data node ports — small subtle dots */
+.drawflow .drawflow-node.df-exec-data-node .input,
+.drawflow .drawflow-node.df-exec-data-node .output {
+  width: 8px;
+  height: 8px;
+  background: rgba(148,163,184,.4);
+  border: 1px solid rgba(148,163,184,.6);
 }
 
 /* ── data node inner layout ──────────────────────────────── */
@@ -711,6 +708,12 @@
   color: #34d399;
   text-transform: uppercase;
   margin-bottom: 3px;
+}
+
+/* Pre-allocate height so Dagre measures data nodes correctly before CodeMirror mounts */
+.df-exec-dn-cm {
+  height: 150px;
+  overflow: hidden;
 }
 
 /* CodeMirror instance mounted inside data node */

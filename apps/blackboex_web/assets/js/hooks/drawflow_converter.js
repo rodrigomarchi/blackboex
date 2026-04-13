@@ -171,7 +171,7 @@ export function blackboexToDrawflow(blackboex, buildHTML) {
       id: parseInt(numericId, 10),
       name: node.type,
       data: node.data || {},
-      class: node.type,
+      class: node.type === "exec_data" ? "df-exec-data-node" : node.type,
       html: html,
       typenode: false,
       inputs: inputs,

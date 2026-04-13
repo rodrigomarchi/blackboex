@@ -195,13 +195,16 @@ function fitView(editor) {
 }
 
 // Auto-layout using dagre (left-to-right hierarchy)
-function autoLayout(editor) {
+function autoLayout(editor, opts = {}) {
   const data = editor.export()
   const homeData = data.drawflow?.Home?.data
   if (!homeData || Object.keys(homeData).length === 0) return
 
+  const nodesep = opts.nodesep || 60
+  const ranksep = opts.ranksep || 120
+
   const g = new dagre.graphlib.Graph()
-  g.setGraph({ rankdir: "LR", nodesep: 60, ranksep: 120, marginx: 80, marginy: 80 })
+  g.setGraph({ rankdir: "LR", nodesep, ranksep, marginx: 80, marginy: 80 })
   g.setDefaultEdgeLabel(() => ({}))
 
   // Add nodes with measured dimensions
@@ -523,104 +526,37 @@ const DrawflowEditor = {
       }
     }
 
-    this.handleEvent("load_execution_view", ({ nodes }) => {
-      if (!nodes || nodes.length === 0) return
+    this.handleEvent("load_execution_view", ({ definition, nodes }) => {
+      if (!definition || !nodes || nodes.length === 0) return
 
-      // ── Phase 1: restore original graph & measure ──────────────────────────
+      // ── Phase 1: backup original graph ────────────────────────────────────
       clearExecView()
-
-      // Measure real node widths from the original DOM (nodes are rendered now)
-      const nodeWidths = {}
-      nodes.forEach(({ id }) => {
-        const dfId = id.startsWith("n") ? id.slice(1) : id
-        const el   = document.querySelector(`#node-${dfId}`)
-        if (el) nodeWidths[dfId] = el.offsetWidth
-      })
-
-      // Backup graph data
       execOriginalData = JSON.parse(JSON.stringify(this.editor.drawflow))
-      const modData = JSON.parse(JSON.stringify(this.editor.drawflow))
-      const module  = this.editor.module
-      const gNodes  = modData.drawflow[module].data
 
-      // ── Phase 2: insert data nodes + rewire connections ────────────────────
-      const maxId = Math.max(0, ...Object.keys(gNodes).map(Number))
-      let nextId  = Math.max(maxId + 1, 10000)
-      const dataNodeIds = new Array(nodes.length).fill(null)
-
-      for (let i = 0; i < nodes.length - 1; i++) {
-        const curr = nodes[i], next = nodes[i + 1]
-        if (curr.output == null && !curr.error) continue
-
-        const currDfId = curr.id.startsWith("n") ? curr.id.slice(1) : curr.id
-        const nextDfId = next.id.startsWith("n") ? next.id.slice(1) : next.id
-        const currNode = gNodes[currDfId], nextNode = gNodes[nextDfId]
-        if (!currNode || !nextNode) continue
-
-        // Find connection: curr → next
-        let outClass = null, inClass = null
-        outer: for (const [oc, od] of Object.entries(currNode.outputs || {})) {
-          for (const conn of od.connections) {
-            if (conn.node === nextDfId) { outClass = oc; inClass = conn.output; break outer }
-          }
-        }
-        if (!outClass) continue
-
-        const dataId    = nextId++
-        const dataIdStr = String(dataId)
-
-        // Insert data node with placeholder pos (overwritten below)
-        gNodes[dataIdStr] = {
-          id: dataId, name: "exec_data", data: {}, class: "df-exec-data-node",
-          html: dataNodeHtml(curr, dataIdStr), typenode: false,
-          inputs:  { input_1:  { connections: [{ node: currDfId, input: outClass }] } },
-          outputs: { output_1: { connections: [{ node: nextDfId, output: inClass }] } },
-          pos_x: 0, pos_y: 0
-        }
-
-        // Rewire: curr output → data node (was curr → next)
-        for (const conn of currNode.outputs[outClass].connections) {
-          if (conn.node === nextDfId && conn.output === inClass) {
-            conn.node = dataIdStr; conn.output = "input_1"; break
-          }
-        }
-        // Rewire: next input ← data node (was next ← curr)
-        if (nextNode.inputs?.[inClass]) {
-          for (const conn of nextNode.inputs[inClass].connections) {
-            if (conn.node === currDfId) { conn.node = dataIdStr; conn.input = "output_1"; break }
-          }
-        }
-
-        dataNodeIds[i] = dataIdStr
+      // ── Phase 2: build HTML for exec_data nodes, then convert & import ────
+      const execHtmlBuilder = (type, outputs, data) => {
+        if (type === "exec_data") return dataNodeHtml(data, data.source_node || "")
+        return buildNodeHTML(type, outputs, data)
       }
 
-      // ── Phase 3: auto-layout — horizontal line with measured widths ────────
-      const GAP    = 60
-      const DATA_W = 260   // CSS min-width / max-width of .df-exec-data-node
-      const firstDfId = nodes[0].id.startsWith("n") ? nodes[0].id.slice(1) : nodes[0].id
-      const baseY  = gNodes[firstDfId]?.pos_y ?? 200
-      let curX     = gNodes[firstDfId]?.pos_x ?? 80
-
-      nodes.forEach(({ id }, i) => {
-        const dfId = id.startsWith("n") ? id.slice(1) : id
-        if (gNodes[dfId]) { gNodes[dfId].pos_x = curX; gNodes[dfId].pos_y = baseY }
-        curX += (nodeWidths[dfId] || 200) + GAP
-
-        const dnId = dataNodeIds[i]
-        if (dnId && gNodes[dnId]) {
-          gNodes[dnId].pos_x = curX
-          gNodes[dnId].pos_y = baseY
-          curX += DATA_W + GAP
-        }
-      })
-
-      // ── Phase 4: single import with final positions ────────────────────────
+      const drawflowData = blackboexToDrawflow(definition, execHtmlBuilder)
       this.editor.clear()
-      this.editor.import(modData)
+      this.editor.import(drawflowData)
 
-      // ── Phase 5: post-render — CodeMirror + highlights ─────────────────────
+      // Let Drawflow render the DOM so dagre can measure real node sizes
       requestAnimationFrame(() => {
-        // Mount CodeMirror instances
+        autoLayout(this.editor, { nodesep: 80, ranksep: 180 })
+
+        // Recalculate SVG connection paths — Drawflow needs a frame after
+        // import to measure actual port positions in the DOM (issue #914)
+        const ed = this.editor
+        setTimeout(() => {
+          const homeData = ed.export().drawflow[ed.module].data
+          Object.keys(homeData).forEach(id => ed.updateConnectionNodes(`node-${id}`))
+        }, 100)
+
+        // ── Phase 4: post-render — CodeMirror + highlights ─────────────────
+        // Mount CodeMirror instances (after layout so nodes are in final position)
         mountExecCmViews()
 
         // Apply status highlight + pill on original executed nodes

@@ -17,6 +17,7 @@ defmodule BlackboexWeb.Components.FlowEditor.ExecutionsDrawer do
   attr :selected_execution, :map, default: nil
   attr :expanded_exec_node, :string, default: nil
   attr :expanded, :boolean, default: false
+  attr :node_names, :map, default: %{}
 
   def executions_drawer(%{show: false} = assigns) do
     ~H"""
@@ -79,6 +80,7 @@ defmodule BlackboexWeb.Components.FlowEditor.ExecutionsDrawer do
           <.execution_detail
             execution={@selected_execution}
             expanded_node={@expanded_exec_node}
+            node_names={@node_names}
           />
         <% else %>
           <.execution_list executions={@executions} />
@@ -142,6 +144,7 @@ defmodule BlackboexWeb.Components.FlowEditor.ExecutionsDrawer do
 
   attr :execution, :map, required: true
   attr :expanded_node, :string, default: nil
+  attr :node_names, :map, default: %{}
 
   defp execution_detail(assigns) do
     ~H"""
@@ -215,7 +218,9 @@ defmodule BlackboexWeb.Components.FlowEditor.ExecutionsDrawer do
               >
                 <.icon name={meta.icon} class="size-3" />
               </div>
-              <span class="flex-1 text-xs font-medium truncate">{ne.node_id}</span>
+              <span class="flex-1 text-xs font-medium truncate">
+                {Map.get(@node_names, ne.node_id, ne.node_id)}
+              </span>
               <div class={"size-1.5 rounded-full shrink-0 #{execution_status_dot(ne.status)}"} />
               <span class="text-micro font-mono text-muted-foreground w-10 text-right shrink-0">
                 {format_duration(ne.duration_ms)}

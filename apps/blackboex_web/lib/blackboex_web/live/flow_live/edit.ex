@@ -587,6 +587,12 @@ defmodule BlackboexWeb.FlowLive.Edit do
 
   defp normalize_execution_status(%{status: status}), do: status
 
+  defp node_names(definition) do
+    definition
+    |> Map.get("nodes", [])
+    |> Map.new(fn n -> {n["id"], get_in(n, ["data", "name"]) || n["id"]} end)
+  end
+
   defp extract_payload_schema("", _socket), do: []
   defp extract_payload_schema(nil, _socket), do: []
 
@@ -697,6 +703,7 @@ defmodule BlackboexWeb.FlowLive.Edit do
           selected_execution={@selected_execution}
           expanded_exec_node={@expanded_exec_node}
           expanded={@executions_drawer_expanded}
+          node_names={node_names(@flow.definition)}
         />
       </div>
 

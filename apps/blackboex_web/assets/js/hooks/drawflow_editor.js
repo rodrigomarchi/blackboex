@@ -483,18 +483,12 @@ const DrawflowEditor = {
 
     // Build HTML for a data node. JSON is base64-encoded as a data attribute
     // so CodeMirror can be mounted after DOM render.
-    function dataNodeHtml({ status, duration_ms, output, error }, nodeKey) {
+    function dataNodeHtml({ status, output, error }, nodeKey) {
       const color = execStatusColors[status] || execStatusColors.pending
-      const dur   = fmtDuration(duration_ms)
       const json  = output != null ? JSON.stringify(output, null, 2) : null
       const b64   = json ? btoa(unescape(encodeURIComponent(json))) : null
 
       return `<div class="df-exec-dn">
-        <div class="df-exec-dn-header">
-          <span class="df-exec-dn-dot" style="background:${color}"></span>
-          <span class="df-exec-dn-id" style="color:${color}">output</span>
-          ${dur ? `<span class="df-exec-dn-dur">${dur}</span>` : ""}
-        </div>
         ${error ? `<div class="df-exec-dn-error">${String(error).slice(0, 200)}</div>` : ""}
         ${b64 ? `<div class="df-exec-dn-cm" data-exec-key="${nodeKey}" data-b64="${b64}"></div>` : ""}
       </div>`

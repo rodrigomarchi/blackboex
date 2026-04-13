@@ -147,7 +147,7 @@ defmodule BlackboexWeb.ShowcaseLive do
     "editor-overview" => BlackboexWeb.Showcase.Sections.EditorOverview,
     "flow-header" => BlackboexWeb.Showcase.Sections.FlowHeader,
     "json-preview-modal" => BlackboexWeb.Showcase.Sections.JsonPreviewModal,
-    "run-modal" => BlackboexWeb.Showcase.Sections.RunModal,
+    "run-drawer" => BlackboexWeb.Showcase.Sections.RunModal,
     "flow-editor-overview" => BlackboexWeb.Showcase.Sections.FlowEditorOverview
   }
 

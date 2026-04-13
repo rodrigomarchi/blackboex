@@ -480,7 +480,7 @@ defmodule BlackboexWeb.FlowLive.EditTest do
 
       {:ok, view, _html} = live(conn, ~p"/flows/#{flow.id}/edit")
 
-      html = render_click(view, "open_run_modal")
+      html = render_click(view, "open_run_drawer")
 
       # The hello_world template has payload_schema with name (min_length: 1),
       # email, and phone fields — the code editor data-value should contain
@@ -509,7 +509,7 @@ defmodule BlackboexWeb.FlowLive.EditTest do
 
       {:ok, view, _html} = live(conn, ~p"/flows/#{flow.id}/edit")
 
-      html = render_click(view, "open_run_modal")
+      html = render_click(view, "open_run_drawer")
 
       assert html =~ "Test Run"
       # With no payload_schema, the data-value should be empty JSON object

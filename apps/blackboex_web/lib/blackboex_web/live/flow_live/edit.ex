@@ -415,7 +415,7 @@ defmodule BlackboexWeb.FlowLive.Edit do
   # ── Test Run ─────────────────────────────────────────────────────────────
 
   @impl true
-  def handle_event("open_run_modal", _params, socket) do
+  def handle_event("open_run_drawer", _params, socket) do
     example = SampleInput.generate(socket.assigns.flow)
     run_input = if example == %{}, do: "{}", else: Jason.encode!(example, pretty: true)
 

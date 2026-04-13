@@ -56,7 +56,7 @@ defmodule BlackboexWeb.Showcase.Sections.RunModal do
               <p class="text-xs text-muted-foreground">
                 Input (JSON) editor + Execute button rendered here.
                 Trigger via
-                <code class="font-mono bg-muted px-1 rounded">phx-click="open_run_modal"</code>
+                <code class="font-mono bg-muted px-1 rounded">phx-click="open_run_drawer"</code>
                 in FlowHeader. On success navigates to
                 <code class="font-mono bg-muted px-1 rounded">?execution=id</code>.
               </p>

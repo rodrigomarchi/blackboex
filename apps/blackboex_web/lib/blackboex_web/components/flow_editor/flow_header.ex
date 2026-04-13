@@ -88,7 +88,7 @@ defmodule BlackboexWeb.Components.FlowEditor.FlowHeader do
         <.button variant="outline" size="sm" phx-click="open_executions_drawer">
           <.icon name="hero-clock" class="mr-1.5 size-4 text-accent-sky" /> History
         </.button>
-        <.button variant="outline" size="sm" phx-click="open_run_modal">
+        <.button variant="outline" size="sm" phx-click="open_run_drawer">
           <.icon name="hero-play" class="mr-1.5 size-4 text-accent-emerald" /> Run
         </.button>
         <.button variant="outline" size="sm" phx-click="request_json_preview">

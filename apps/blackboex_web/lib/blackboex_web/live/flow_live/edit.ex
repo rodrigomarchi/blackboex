@@ -196,6 +196,9 @@ defmodule BlackboexWeb.FlowLive.Edit do
 
   @impl true
   def handle_event("node_selected", %{"id" => id, "type" => type, "data" => data}, socket) do
+    # Normalize Drawflow class back to canonical type
+    type = if type == "df-exec-data-node", do: "exec_data", else: type
+
     node_meta =
       Map.get(EditHelpers.node_type_map(), type, %{
         label: type,

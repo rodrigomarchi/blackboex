@@ -30,6 +30,14 @@ defmodule BlackboexWeb.Router do
     plug BlackboexWeb.Plugs.SetOrganization
   end
 
+  pipeline :set_organization_from_url do
+    plug BlackboexWeb.Plugs.SetOrganizationFromUrl
+  end
+
+  pipeline :set_project_from_url do
+    plug BlackboexWeb.Plugs.SetProjectFromUrl
+  end
+
   pipeline :admin_layout do
     plug :put_root_layout, html: {BlackboexWeb.Layouts, :admin_root}
   end
@@ -43,6 +51,7 @@ defmodule BlackboexWeb.Router do
   # Public API landing pages — no auth required
   scope "/p", BlackboexWeb do
     pipe_through :browser
+    get "/:org_slug/:project_slug/:api_slug", PublicApiController, :show_project
     get "/:org_slug/:api_slug", PublicApiController, :show
   end
 
@@ -146,6 +155,10 @@ defmodule BlackboexWeb.Router do
       live_resources "/usage-events", UsageEventLive
       live_resources "/processed-events", ProcessedEventLive
 
+      # Projects
+      live_resources "/projects", ProjectLive
+      live_resources "/project-memberships", ProjectMembershipLive
+
       # Testing
       live_resources "/test-requests", TestRequestLive
       live_resources "/test-suites", TestSuiteLive
@@ -156,6 +169,80 @@ defmodule BlackboexWeb.Router do
       # Audit
       live_resources "/audit-logs", AuditLogLive
       live_resources "/versions", VersionLive
+    end
+  end
+
+  ## Org-scoped routes: /orgs/:org_slug/...
+
+  scope "/orgs/:org_slug", BlackboexWeb do
+    pipe_through [
+      :browser,
+      :require_authenticated_user,
+      :set_organization_from_url,
+      :audit_context
+    ]
+
+    live_session :org_scoped,
+      layout: {BlackboexWeb.Layouts, :app},
+      on_mount: [
+        {BlackboexWeb.UserAuth, :require_authenticated},
+        {BlackboexWeb.Hooks.SetOrganizationFromUrl, :default}
+      ] do
+      live "/", OrgDashboardLive, :index
+      live "/billing", BillingLive.Plans, :index
+      live "/billing/manage", BillingLive.Manage, :manage
+      live "/settings", OrgSettingsLive, :index
+      live "/members", OrgMemberLive.Index, :index
+      live "/projects", ProjectLive.Index, :index
+      live "/projects/new", ProjectLive.New, :new
+    end
+  end
+
+  ## Project-scoped routes: /orgs/:org_slug/projects/:project_slug/...
+
+  scope "/orgs/:org_slug/projects/:project_slug", BlackboexWeb do
+    pipe_through [
+      :browser,
+      :require_authenticated_user,
+      :set_organization_from_url,
+      :set_project_from_url,
+      :audit_context
+    ]
+
+    live_session :project_scoped,
+      layout: {BlackboexWeb.Layouts, :app},
+      on_mount: [
+        {BlackboexWeb.UserAuth, :require_authenticated},
+        {BlackboexWeb.Hooks.SetOrganizationFromUrl, :default},
+        {BlackboexWeb.Hooks.SetProjectFromUrl, :default}
+      ] do
+      live "/", ProjectDashboardLive, :index
+      live "/apis", ApiLive.Index, :index
+      live "/apis/new", ApiLive.New, :new
+      live "/apis/:api_slug", ApiLive.Show, :show
+      live "/apis/:api_slug/analytics", ApiLive.Analytics, :analytics
+      live "/flows", FlowLive.Index, :index
+      live "/api-keys", ApiKeyLive.Index, :index
+      live "/api-keys/:id", ApiKeyLive.Show, :show
+      live "/members", ProjectMemberLive.Index, :index
+      live "/settings", ProjectSettingsLive, :index
+    end
+
+    live_session :project_editor,
+      layout: {BlackboexWeb.Layouts, :editor},
+      on_mount: [
+        {BlackboexWeb.UserAuth, :require_authenticated},
+        {BlackboexWeb.Hooks.SetOrganizationFromUrl, :default},
+        {BlackboexWeb.Hooks.SetProjectFromUrl, :default}
+      ] do
+      live "/apis/:api_slug/edit", ApiLive.Edit.RedirectLive
+      live "/apis/:api_slug/edit/chat", ApiLive.Edit.ChatLive
+      live "/apis/:api_slug/edit/validation", ApiLive.Edit.ValidationLive
+      live "/apis/:api_slug/edit/run", ApiLive.Edit.RunLive
+      live "/apis/:api_slug/edit/metrics", ApiLive.Edit.MetricsLive
+      live "/apis/:api_slug/edit/publish", ApiLive.Edit.PublishLive
+      live "/apis/:api_slug/edit/info", ApiLive.Edit.InfoLive
+      live "/flows/:id/edit", FlowLive.Edit, :edit
     end
   end
 
@@ -170,11 +257,6 @@ defmodule BlackboexWeb.Router do
         {BlackboexWeb.UserAuth, :require_authenticated},
         {BlackboexWeb.Hooks.SetOrganization, :default}
       ] do
-      live "/dashboard", DashboardLive, :index
-      live "/dashboard/apis", DashboardApisLive, :index
-      live "/dashboard/flows", DashboardFlowsLive, :index
-      live "/dashboard/usage", DashboardUsageLive, :index
-      live "/dashboard/llm", DashboardLlmLive, :index
       live "/apis", ApiLive.Index, :index
       live "/apis/new", ApiLive.New, :new
       live "/apis/:id", ApiLive.Show, :show
@@ -184,7 +266,6 @@ defmodule BlackboexWeb.Router do
       live "/api-keys/:id", ApiKeyLive.Show, :show
       live "/billing", BillingLive.Plans, :index
       live "/billing/manage", BillingLive.Manage, :manage
-      live "/settings", SettingsLive, :index
       live "/users/settings", UserLive.Settings, :edit
       live "/users/settings/confirm-email/:token", UserLive.Settings, :confirm_email
     end

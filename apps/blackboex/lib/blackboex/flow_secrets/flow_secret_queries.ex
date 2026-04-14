@@ -19,4 +19,11 @@ defmodule Blackboex.FlowSecrets.FlowSecretQueries do
     FlowSecret
     |> where([s], s.organization_id == ^organization_id and s.name == ^name)
   end
+
+  @spec list_for_project(Ecto.UUID.t()) :: Ecto.Query.t()
+  def list_for_project(project_id) do
+    FlowSecret
+    |> where([s], s.project_id == ^project_id)
+    |> order_by([s], asc: s.name)
+  end
 end

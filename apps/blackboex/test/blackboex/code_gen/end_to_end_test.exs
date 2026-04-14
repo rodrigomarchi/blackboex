@@ -34,6 +34,7 @@ defmodule Blackboex.CodeGen.EndToEndTest do
           slug: "calculator",
           template_type: "computation",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 
@@ -92,6 +93,7 @@ defmodule Blackboex.CodeGen.EndToEndTest do
           slug: "todos",
           template_type: "crud",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 

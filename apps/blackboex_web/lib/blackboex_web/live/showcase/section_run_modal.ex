@@ -57,8 +57,7 @@ defmodule BlackboexWeb.Showcase.Sections.RunModal do
                 Input (JSON) editor + Execute button rendered here.
                 Trigger via
                 <code class="font-mono bg-muted px-1 rounded">phx-click="open_run_drawer"</code>
-                in FlowHeader. On success navigates to
-                <code class="font-mono bg-muted px-1 rounded">?execution=id</code>.
+                in FlowHeader. On success navigates to <code class="font-mono bg-muted px-1 rounded">?execution=id</code>.
               </p>
               <.button variant="primary" size="sm" class="w-full">
                 <.icon name="hero-play" class="mr-1.5 size-4 text-accent-emerald" /> Execute

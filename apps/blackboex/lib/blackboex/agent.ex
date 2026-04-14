@@ -17,6 +17,7 @@ defmodule Blackboex.Agent do
     args = %{
       "api_id" => api.id,
       "organization_id" => api.organization_id,
+      "project_id" => api.project_id,
       "user_id" => user_id,
       "run_type" => "generation",
       "trigger_message" => description
@@ -43,6 +44,7 @@ defmodule Blackboex.Agent do
     args = %{
       "api_id" => api.id,
       "organization_id" => api.organization_id,
+      "project_id" => api.project_id,
       "user_id" => user_id,
       "run_type" => "edit",
       "trigger_message" => instruction,

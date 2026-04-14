@@ -17,6 +17,7 @@ defmodule BlackboexWeb.ApiLive.Edit.MetricsLiveTest do
     defaults = %{
       id: Ecto.UUID.dump!(Ecto.UUID.generate()),
       api_id: Ecto.UUID.dump!(api.id),
+      project_id: Ecto.UUID.dump!(api.project_id),
       method: "POST",
       path: "/api/test",
       status_code: 500,

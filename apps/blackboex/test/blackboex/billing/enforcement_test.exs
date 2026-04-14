@@ -13,23 +13,43 @@ defmodule Blackboex.Billing.EnforcementTest do
     end
 
     test "returns :pro from active pro subscription", %{org: org} do
-      subscription_fixture(%{organization_id: org.id, plan: "pro"})
+      subscription_fixture(%{
+        organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
+        plan: "pro"
+      })
+
       assert :pro = Enforcement.effective_plan(org)
     end
 
     test "returns :enterprise from active enterprise subscription", %{org: org} do
-      subscription_fixture(%{organization_id: org.id, plan: "enterprise"})
+      subscription_fixture(%{
+        organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
+        plan: "enterprise"
+      })
+
       assert :enterprise = Enforcement.effective_plan(org)
     end
 
     test "returns :free when subscription is not active", %{org: org} do
-      subscription_fixture(%{organization_id: org.id, plan: "pro", status: "canceled"})
+      subscription_fixture(%{
+        organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
+        plan: "pro",
+        status: "canceled"
+      })
 
       assert :free = Enforcement.effective_plan(org)
     end
 
     test "returns :free when subscription status is past_due", %{org: org} do
-      subscription_fixture(%{organization_id: org.id, plan: "pro", status: "past_due"})
+      subscription_fixture(%{
+        organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
+        plan: "pro",
+        status: "past_due"
+      })
 
       assert :free = Enforcement.effective_plan(org)
     end
@@ -57,12 +77,22 @@ defmodule Blackboex.Billing.EnforcementTest do
     end
 
     test "pro plan allows up to 500 APIs", %{org: org} do
-      subscription_fixture(%{organization_id: org.id, plan: "pro"})
+      subscription_fixture(%{
+        organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
+        plan: "pro"
+      })
+
       assert {:ok, 500} = Enforcement.check_limit(org, :create_api)
     end
 
     test "enterprise plan is unlimited", %{org: org} do
-      subscription_fixture(%{organization_id: org.id, plan: "enterprise"})
+      subscription_fixture(%{
+        organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
+        plan: "enterprise"
+      })
+
       assert {:ok, :unlimited} = Enforcement.check_limit(org, :create_api)
     end
 
@@ -90,12 +120,22 @@ defmodule Blackboex.Billing.EnforcementTest do
     end
 
     test "pro plan allows 500_000 invocations/day", %{org: org} do
-      subscription_fixture(%{organization_id: org.id, plan: "pro"})
+      subscription_fixture(%{
+        organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
+        plan: "pro"
+      })
+
       assert {:ok, 500_000} = Enforcement.check_limit(org, :api_invocation)
     end
 
     test "enterprise plan is unlimited", %{org: org} do
-      subscription_fixture(%{organization_id: org.id, plan: "enterprise"})
+      subscription_fixture(%{
+        organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
+        plan: "enterprise"
+      })
+
       assert {:ok, :unlimited} = Enforcement.check_limit(org, :api_invocation)
     end
 
@@ -110,6 +150,7 @@ defmodule Blackboex.Billing.EnforcementTest do
         {:ok, _} =
           Billing.record_usage_event(%{
             organization_id: org.id,
+            project_id: Blackboex.Projects.get_default_project(org.id).id,
             event_type: "api_invocation"
           })
       end
@@ -125,6 +166,7 @@ defmodule Blackboex.Billing.EnforcementTest do
         {:ok, _} =
           Billing.record_usage_event(%{
             organization_id: org.id,
+            project_id: Blackboex.Projects.get_default_project(org.id).id,
             event_type: "api_invocation"
           })
       end
@@ -141,12 +183,22 @@ defmodule Blackboex.Billing.EnforcementTest do
     end
 
     test "pro plan allows 5_000 LLM generations/month", %{org: org} do
-      subscription_fixture(%{organization_id: org.id, plan: "pro"})
+      subscription_fixture(%{
+        organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
+        plan: "pro"
+      })
+
       assert {:ok, 5_000} = Enforcement.check_limit(org, :llm_generation)
     end
 
     test "enterprise plan is unlimited", %{org: org} do
-      subscription_fixture(%{organization_id: org.id, plan: "enterprise"})
+      subscription_fixture(%{
+        organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
+        plan: "enterprise"
+      })
+
       assert {:ok, :unlimited} = Enforcement.check_limit(org, :llm_generation)
     end
 
@@ -159,6 +211,7 @@ defmodule Blackboex.Billing.EnforcementTest do
         {:ok, _} =
           Billing.record_usage_event(%{
             organization_id: org.id,
+            project_id: Blackboex.Projects.get_default_project(org.id).id,
             event_type: "llm_generation"
           })
       end
@@ -174,6 +227,7 @@ defmodule Blackboex.Billing.EnforcementTest do
         {:ok, _} =
           Billing.record_usage_event(%{
             organization_id: org.id,
+            project_id: Blackboex.Projects.get_default_project(org.id).id,
             event_type: "llm_generation"
           })
       end
@@ -250,6 +304,7 @@ defmodule Blackboex.Billing.EnforcementTest do
         {:ok, _} =
           Billing.record_usage_event(%{
             organization_id: org.id,
+            project_id: Blackboex.Projects.get_default_project(org.id).id,
             event_type: "api_invocation"
           })
       end
@@ -266,6 +321,7 @@ defmodule Blackboex.Billing.EnforcementTest do
         {:ok, _} =
           Billing.record_usage_event(%{
             organization_id: org.id,
+            project_id: Blackboex.Projects.get_default_project(org.id).id,
             event_type: "llm_generation"
           })
       end
@@ -278,7 +334,11 @@ defmodule Blackboex.Billing.EnforcementTest do
     end
 
     test "enterprise plan shows :unlimited limits with 0.0 pct", %{org: org} do
-      subscription_fixture(%{organization_id: org.id, plan: "enterprise"})
+      subscription_fixture(%{
+        organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
+        plan: "enterprise"
+      })
 
       details = Enforcement.get_usage_details(org)
 
@@ -292,7 +352,11 @@ defmodule Blackboex.Billing.EnforcementTest do
     end
 
     test "pro plan shows correct limits", %{org: org} do
-      subscription_fixture(%{organization_id: org.id, plan: "pro"})
+      subscription_fixture(%{
+        organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
+        plan: "pro"
+      })
 
       details = Enforcement.get_usage_details(org)
 

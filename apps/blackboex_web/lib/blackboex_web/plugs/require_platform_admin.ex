@@ -23,7 +23,7 @@ defmodule BlackboexWeb.Plugs.RequirePlatformAdmin do
       _ ->
         conn
         |> put_flash(:error, "You are not authorized to access this page.")
-        |> redirect(to: ~p"/dashboard")
+        |> redirect(to: ~p"/")
         |> halt()
     end
   end

@@ -21,10 +21,11 @@ defmodule Blackboex.Agent.RecoveryWorkerTest do
         description: "API for recovery worker tests",
         template_type: "computation",
         organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
         user_id: user.id
       })
 
-    conversation = conversation_fixture(api.id, org.id)
+    conversation = conversation_fixture(api.id, org.id, api.project_id)
 
     %{user: user, org: org, api: api, conversation: conversation}
   end

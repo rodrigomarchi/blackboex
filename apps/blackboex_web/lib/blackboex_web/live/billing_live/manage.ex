@@ -27,7 +27,10 @@ defmodule BlackboexWeb.BillingLive.Manage do
     else
       socket = assign(socket, loading_portal: true)
       org = socket.assigns.current_scope.organization
-      return_url = url(socket, ~p"/billing/manage")
+
+      return_url =
+        BlackboexWeb.Endpoint.url() <>
+          ~p"/billing/manage"
 
       case Billing.create_portal_session(org, return_url) do
         {:ok, %{url: url}} ->

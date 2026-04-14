@@ -83,7 +83,10 @@ defmodule BlackboexWeb.FlowLive.Edit do
 
       case FlowExecutions.get_execution_for_org(org.id, exec_id) do
         nil ->
-          {:noreply, push_patch(socket, to: ~p"/flows/#{socket.assigns.flow.id}/edit")}
+          {:noreply,
+           push_patch(socket,
+             to: ~p"/flows/#{socket.assigns.flow.id}/edit"
+           )}
 
         execution ->
           sorted = (execution.node_executions || []) |> Enum.sort_by(& &1.inserted_at)
@@ -566,12 +569,18 @@ defmodule BlackboexWeb.FlowLive.Edit do
 
   @impl true
   def handle_event("select_execution", %{"id" => id}, socket) do
-    {:noreply, push_patch(socket, to: ~p"/flows/#{socket.assigns.flow.id}/edit?execution=#{id}")}
+    {:noreply,
+     push_patch(socket,
+       to: ~p"/flows/#{socket.assigns.flow.id}/edit?execution=#{id}"
+     )}
   end
 
   @impl true
   def handle_event("deselect_execution", _params, socket) do
-    {:noreply, push_patch(socket, to: ~p"/flows/#{socket.assigns.flow.id}/edit")}
+    {:noreply,
+     push_patch(socket,
+       to: ~p"/flows/#{socket.assigns.flow.id}/edit"
+     )}
   end
 
   @impl true
@@ -660,9 +669,7 @@ defmodule BlackboexWeb.FlowLive.Edit do
         {:noreply,
          socket
          |> assign(running: false, run_task_ref: nil, show_run_drawer: false)
-         |> push_patch(
-           to: ~p"/flows/#{socket.assigns.flow.id}/edit?execution=#{execution_id}"
-         )}
+         |> push_patch(to: ~p"/flows/#{socket.assigns.flow.id}/edit?execution=#{execution_id}")}
 
       {:error, %{error: error_msg}} ->
         {:noreply, assign(socket, running: false, run_error: error_msg, run_task_ref: nil)}

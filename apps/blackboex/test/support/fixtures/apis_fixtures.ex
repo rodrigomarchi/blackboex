@@ -37,7 +37,11 @@ defmodule Blackboex.ApisFixtures do
           {user, org}
       end
 
-    known_keys = [:user, :org, :name, :template_type]
+    project =
+      attrs[:project] || Blackboex.Projects.get_default_project(org.id) ||
+        Blackboex.ProjectsFixtures.project_fixture(%{user: user, org: org})
+
+    known_keys = [:user, :org, :project, :name, :template_type]
     extra = Map.drop(attrs, known_keys)
 
     {:ok, api} =
@@ -47,6 +51,7 @@ defmodule Blackboex.ApisFixtures do
             name: attrs[:name] || "Test API #{System.unique_integer([:positive])}",
             template_type: attrs[:template_type] || "computation",
             organization_id: org.id,
+            project_id: project.id,
             user_id: user.id
           },
           extra
@@ -64,9 +69,13 @@ defmodule Blackboex.ApisFixtures do
   Usage: `setup [:register_and_log_in_user, :create_org, :create_api]`
   """
   @spec create_api(map()) :: map()
-  def create_api(%{user: user, org: org}) do
-    api = api_fixture(%{user: user, org: org})
-    %{api: api}
+  def create_api(%{user: user, org: org} = context) do
+    project =
+      context[:project] || Blackboex.Projects.get_default_project(org.id) ||
+        Blackboex.ProjectsFixtures.project_fixture(%{user: user, org: org})
+
+    api = api_fixture(%{user: user, org: org, project: project})
+    %{api: api, project: project}
   end
 
   @doc """
@@ -79,8 +88,13 @@ defmodule Blackboex.ApisFixtures do
   @spec create_org_and_api(map()) :: map()
   def create_org_and_api(%{user: user}) do
     org = Blackboex.OrganizationsFixtures.org_fixture(%{user: user})
-    api = api_fixture(%{user: user, org: org})
-    %{org: org, api: api}
+
+    project =
+      Blackboex.Projects.get_default_project(org.id) ||
+        Blackboex.ProjectsFixtures.project_fixture(%{user: user, org: org})
+
+    api = api_fixture(%{user: user, org: org, project: project})
+    %{org: org, api: api, project: project}
   end
 
   @doc """
@@ -93,7 +107,10 @@ defmodule Blackboex.ApisFixtures do
     {:ok, plain_key, api_key} =
       Apis.Keys.create_key(
         api,
-        Map.merge(%{label: "Test Key", organization_id: api.organization_id}, attrs)
+        Map.merge(
+          %{label: "Test Key", organization_id: api.organization_id, project_id: api.project_id},
+          attrs
+        )
       )
 
     {plain_key, api_key}
@@ -119,6 +136,20 @@ defmodule Blackboex.ApisFixtures do
   """
   @spec invocation_log_fixture(map()) :: InvocationLog.t()
   def invocation_log_fixture(attrs) do
+    attrs =
+      if Map.has_key?(attrs, :project_id) do
+        attrs
+      else
+        case attrs[:api_id] do
+          nil ->
+            attrs
+
+          api_id ->
+            api = Blackboex.Repo.get!(Blackboex.Apis.Api, api_id)
+            Map.put(attrs, :project_id, api.project_id)
+        end
+      end
+
     %InvocationLog{}
     |> InvocationLog.changeset(
       Map.merge(

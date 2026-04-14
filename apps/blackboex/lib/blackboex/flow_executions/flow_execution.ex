@@ -25,6 +25,7 @@ defmodule Blackboex.FlowExecutions.FlowExecution do
 
     belongs_to :flow, Blackboex.Flows.Flow
     belongs_to :organization, Blackboex.Organizations.Organization
+    belongs_to :project, Blackboex.Projects.Project
 
     has_many :node_executions, Blackboex.FlowExecutions.NodeExecution
 
@@ -37,6 +38,7 @@ defmodule Blackboex.FlowExecutions.FlowExecution do
     |> cast(attrs, [
       :flow_id,
       :organization_id,
+      :project_id,
       :status,
       :input,
       :output,
@@ -48,7 +50,7 @@ defmodule Blackboex.FlowExecutions.FlowExecution do
       :finished_at,
       :duration_ms
     ])
-    |> validate_required([:flow_id, :organization_id, :status])
+    |> validate_required([:flow_id, :organization_id, :project_id, :status])
     |> validate_inclusion(:status, @valid_statuses)
     |> foreign_key_constraint(:flow_id)
     |> foreign_key_constraint(:organization_id)

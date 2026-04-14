@@ -49,56 +49,119 @@ defmodule Blackboex.Policy do
     end
   end
 
+  object :project do
+    action :create do
+      allow org_role: :owner
+      allow org_role: :admin
+      allow org_role: :member
+    end
+
+    action :read do
+      allow org_role: :owner
+      allow org_role: :admin
+      allow org_role: :member
+      allow project_role: :viewer
+    end
+
+    action :update do
+      allow org_role: :owner
+      allow org_role: :admin
+      allow project_role: :admin
+    end
+
+    action :delete do
+      allow org_role: :owner
+      allow org_role: :admin
+      allow project_role: :admin
+    end
+  end
+
+  object :project_membership do
+    action :create do
+      allow org_role: :owner
+      allow org_role: :admin
+      allow project_role: :admin
+    end
+
+    action :read do
+      allow org_role: :owner
+      allow org_role: :admin
+      allow org_role: :member
+      allow project_role: :viewer
+    end
+
+    action :update do
+      allow org_role: :owner
+      allow org_role: :admin
+      allow project_role: :admin
+    end
+
+    action :delete do
+      allow org_role: :owner
+      allow org_role: :admin
+      allow project_role: :admin
+    end
+  end
+
   object :api do
     action :create do
       allow role: :owner
       allow role: :admin
       allow role: :member
+      allow project_role: :editor
     end
 
     action :read do
       allow role: :owner
       allow role: :admin
       allow role: :member
+      allow project_role: :viewer
     end
 
     action :update do
       allow role: :owner
       allow role: :admin
       allow role: :member
+      allow project_role: :editor
     end
 
     action :delete do
       allow role: :owner
       allow role: :admin
+      allow project_role: :admin
     end
 
     action :publish do
       allow role: :owner
       allow role: :admin
+      allow project_role: :admin
     end
 
     action :unpublish do
       allow role: :owner
       allow role: :admin
+      allow project_role: :admin
     end
 
     action :generate_tests do
       allow role: :owner
       allow role: :admin
       allow role: :member
+      allow project_role: :editor
     end
 
     action :run_tests do
       allow role: :owner
       allow role: :admin
       allow role: :member
+      allow project_role: :editor
     end
 
     action :generate_docs do
       allow role: :owner
       allow role: :admin
       allow role: :member
+      allow project_role: :editor
     end
   end
 

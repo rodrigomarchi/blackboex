@@ -34,6 +34,11 @@ defmodule Blackboex.Flows do
     organization_id |> FlowQueries.list_for_org() |> Repo.all()
   end
 
+  @spec list_flows_for_project(Ecto.UUID.t()) :: [Flow.t()]
+  def list_flows_for_project(project_id) do
+    project_id |> FlowQueries.list_for_project() |> Repo.all()
+  end
+
   @spec list_flows(Ecto.UUID.t(), keyword()) :: [Flow.t()]
   def list_flows(organization_id, opts) do
     query = FlowQueries.list_for_org(organization_id)
@@ -56,7 +61,7 @@ defmodule Blackboex.Flows do
   @spec update_flow(Flow.t(), map()) :: {:ok, Flow.t()} | {:error, Ecto.Changeset.t()}
   def update_flow(%Flow{} = flow, attrs) do
     flow
-    |> Flow.changeset(attrs)
+    |> Flow.update_changeset(attrs)
     |> Repo.update()
   end
 
@@ -75,6 +80,11 @@ defmodule Blackboex.Flows do
   @spec get_flow_by_slug(Ecto.UUID.t(), String.t()) :: Flow.t() | nil
   def get_flow_by_slug(organization_id, slug) do
     organization_id |> FlowQueries.by_org_and_slug(slug) |> Repo.one()
+  end
+
+  @spec get_flow_by_project_slug(Ecto.UUID.t(), String.t()) :: Flow.t() | nil
+  def get_flow_by_project_slug(project_id, slug) do
+    project_id |> FlowQueries.by_project_and_slug(slug) |> Repo.one()
   end
 
   # ── Activation ─────────────────────────────────────────────

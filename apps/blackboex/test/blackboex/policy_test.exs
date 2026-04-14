@@ -4,6 +4,7 @@ defmodule Blackboex.PolicyTest do
   alias Blackboex.Accounts.Scope
   alias Blackboex.Organizations
   alias Blackboex.Policy
+  alias Blackboex.Projects
 
   @moduletag :unit
 
@@ -281,6 +282,133 @@ defmodule Blackboex.PolicyTest do
 
       refute Policy.authorize?(:api_key_create, scope, other_org)
       refute Policy.authorize?(:api_key_revoke, scope, other_org)
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Project hierarchy permissions (Fase 3)
+  # ---------------------------------------------------------------------------
+
+  defp scope_with_org_role(org_role) do
+    owner = user_fixture()
+
+    {:ok, %{organization: org}} =
+      Organizations.create_organization(owner, %{
+        name: "proj org #{abs(System.unique_integer())}"
+      })
+
+    {user, membership} =
+      if org_role == :owner do
+        {owner, Organizations.get_user_membership(org, owner)}
+      else
+        member = user_fixture()
+        {:ok, _} = Organizations.add_member(org, member, org_role)
+        {member, Organizations.get_user_membership(org, member)}
+      end
+
+    project = Projects.get_default_project(org.id)
+
+    scope =
+      user
+      |> Scope.for_user()
+      |> Scope.with_organization(org, membership)
+      |> Scope.with_project(project, nil)
+
+    {scope, org, project}
+  end
+
+  defp scope_with_project_role(project_role) do
+    owner = user_fixture()
+
+    {:ok, %{organization: org}} =
+      Organizations.create_organization(owner, %{
+        name: "proj org #{abs(System.unique_integer())}"
+      })
+
+    project = Projects.get_default_project(org.id)
+    member = user_fixture()
+    {:ok, _} = Organizations.add_member(org, member, :member)
+    member_org_membership = Organizations.get_user_membership(org, member)
+    {:ok, project_membership} = Projects.add_project_member(project, member, project_role)
+
+    scope =
+      member
+      |> Scope.for_user()
+      |> Scope.with_organization(org, member_org_membership)
+      |> Scope.with_project(project, project_membership)
+
+    {scope, org, project}
+  end
+
+  describe "project creation permissions" do
+    test "org owner pode criar project" do
+      {scope, org, _project} = scope_with_org_role(:owner)
+      assert Policy.authorize?(:project_create, scope, org)
+    end
+
+    test "org admin pode criar project" do
+      {scope, org, _project} = scope_with_org_role(:admin)
+      assert Policy.authorize?(:project_create, scope, org)
+    end
+
+    test "org member pode criar project" do
+      {scope, org, _project} = scope_with_org_role(:member)
+      assert Policy.authorize?(:project_create, scope, org)
+    end
+  end
+
+  describe "api permissions via project roles" do
+    test "project viewer NAO pode criar api" do
+      {scope, org, _project} = scope_with_project_role(:viewer)
+      refute Policy.authorize?(:api_create, scope, org)
+    end
+
+    test "project editor pode criar api" do
+      {scope, org, _project} = scope_with_project_role(:editor)
+      assert Policy.authorize?(:api_create, scope, org)
+    end
+
+    test "project editor NAO pode deletar api" do
+      {scope, org, _project} = scope_with_project_role(:editor)
+      refute Policy.authorize?(:api_delete, scope, org)
+    end
+
+    test "project admin pode deletar api" do
+      {scope, org, _project} = scope_with_project_role(:admin)
+      assert Policy.authorize?(:api_delete, scope, org)
+    end
+
+    test "org owner pode tudo no project sem membership explicita" do
+      {scope, org, _project} = scope_with_org_role(:owner)
+      assert Policy.authorize?(:api_create, scope, org)
+      assert Policy.authorize?(:api_read, scope, org)
+      assert Policy.authorize?(:api_update, scope, org)
+      assert Policy.authorize?(:api_delete, scope, org)
+    end
+
+    test "org admin pode tudo no project sem membership explicita" do
+      {scope, org, _project} = scope_with_org_role(:admin)
+      assert Policy.authorize?(:api_create, scope, org)
+      assert Policy.authorize?(:api_read, scope, org)
+      assert Policy.authorize?(:api_update, scope, org)
+      assert Policy.authorize?(:api_delete, scope, org)
+    end
+  end
+
+  describe "project membership management permissions" do
+    test "project admin pode adicionar membros ao project" do
+      {scope, org, _project} = scope_with_project_role(:admin)
+      assert Policy.authorize?(:project_membership_create, scope, org)
+    end
+
+    test "project editor NAO pode adicionar membros" do
+      {scope, org, _project} = scope_with_project_role(:editor)
+      refute Policy.authorize?(:project_membership_create, scope, org)
+    end
+
+    test "project viewer NAO pode atualizar project" do
+      {scope, org, _project} = scope_with_project_role(:viewer)
+      refute Policy.authorize?(:project_update, scope, org)
     end
   end
 end

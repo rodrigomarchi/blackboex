@@ -25,6 +25,7 @@ defmodule Blackboex.Testing.TestSuite do
     field :duration_ms, :integer, default: 0
 
     belongs_to :api, Blackboex.Apis.Api
+    belongs_to :project, Blackboex.Projects.Project
 
     timestamps()
   end
@@ -34,6 +35,7 @@ defmodule Blackboex.Testing.TestSuite do
     suite
     |> cast(attrs, [
       :api_id,
+      :project_id,
       :version_number,
       :test_code,
       :status,
@@ -43,7 +45,7 @@ defmodule Blackboex.Testing.TestSuite do
       :failed_tests,
       :duration_ms
     ])
-    |> validate_required([:api_id, :test_code])
+    |> validate_required([:api_id, :project_id, :test_code])
     |> validate_inclusion(:status, @valid_statuses)
     |> validate_number(:total_tests, greater_than_or_equal_to: 0)
     |> validate_number(:passed_tests, greater_than_or_equal_to: 0)

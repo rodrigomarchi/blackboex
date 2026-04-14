@@ -7,6 +7,7 @@ defmodule Blackboex.Billing.BillingQueries do
   def daily_usage_for_period(organization_id, start_date, end_date) do
     DailyUsage
     |> where([d], d.organization_id == ^organization_id)
+    |> where([d], is_nil(d.project_id))
     |> where([d], d.date >= ^start_date and d.date <= ^end_date)
     |> order_by([d], asc: d.date)
   end
@@ -23,6 +24,22 @@ defmodule Blackboex.Billing.BillingQueries do
   def monthly_daily_usage(organization_id, month_start, end_date) do
     DailyUsage
     |> where([d], d.organization_id == ^organization_id)
+    |> where([d], is_nil(d.project_id))
     |> where([d], d.date >= ^month_start and d.date <= ^end_date)
+  end
+
+  @spec org_usage_summary(binary(), Date.t()) :: Ecto.Query.t()
+  def org_usage_summary(organization_id, since_date) do
+    DailyUsage
+    |> where([d], d.organization_id == ^organization_id)
+    |> where([d], is_nil(d.project_id))
+    |> where([d], d.date >= ^since_date)
+  end
+
+  @spec project_usage_summary(binary(), Date.t()) :: Ecto.Query.t()
+  def project_usage_summary(project_id, since_date) do
+    DailyUsage
+    |> where([d], d.project_id == ^project_id)
+    |> where([d], d.date >= ^since_date)
   end
 end

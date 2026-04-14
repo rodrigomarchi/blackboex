@@ -20,6 +20,7 @@ defmodule BlackboexWeb.ApiLive.EditTest do
         slug: "calculator",
         template_type: "computation",
         organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
         user_id: user.id
       })
 
@@ -97,6 +98,7 @@ defmodule BlackboexWeb.ApiLive.EditTest do
           slug: "secret",
           template_type: "computation",
           organization_id: other_org.id,
+          project_id: Blackboex.Projects.get_default_project(other_org.id).id,
           user_id: other_user.id
         })
 

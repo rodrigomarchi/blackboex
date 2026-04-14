@@ -28,6 +28,7 @@ defmodule Blackboex.CodeGen.HotReloadTest do
           slug: "hot-api",
           template_type: "computation",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 
@@ -78,6 +79,7 @@ defmodule Blackboex.CodeGen.HotReloadTest do
           slug: "dual-api",
           template_type: "computation",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 
@@ -111,6 +113,7 @@ defmodule Blackboex.CodeGen.HotReloadTest do
           slug: "purge-api",
           template_type: "computation",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 

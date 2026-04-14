@@ -19,6 +19,7 @@ defmodule Blackboex.FlowExecutions do
     |> FlowExecution.changeset(%{
       flow_id: flow.id,
       organization_id: flow.organization_id,
+      project_id: flow.project_id,
       input: input,
       status: "pending"
     })

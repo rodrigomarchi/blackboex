@@ -13,6 +13,7 @@ defmodule Blackboex.LLMTest do
                LLM.record_usage(%{
                  user_id: user.id,
                  organization_id: org.id,
+                 project_id: Blackboex.Projects.get_default_project(org.id).id,
                  provider: "anthropic",
                  model: "anthropic:claude-sonnet-4-20250514",
                  input_tokens: 100,

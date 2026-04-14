@@ -25,6 +25,7 @@ defmodule BlackboexWeb.ApiLive.Edit.RunLiveTest do
         slug: "run-test-#{System.unique_integer([:positive])}",
         template_type: "computation",
         organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
         user_id: user.id,
         example_request: %{"a" => 1, "b" => 2}
       })
@@ -151,6 +152,7 @@ defmodule BlackboexWeb.ApiLive.Edit.RunLiveTest do
           slug: "other-api-#{System.unique_integer([:positive])}",
           template_type: "computation",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 

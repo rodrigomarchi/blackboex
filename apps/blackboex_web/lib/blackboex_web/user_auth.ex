@@ -40,7 +40,7 @@ defmodule BlackboexWeb.UserAuth do
 
     conn
     |> create_or_extend_session(user, params)
-    |> redirect(to: user_return_to || signed_in_path(conn))
+    |> redirect(to: user_return_to || signed_in_path(conn, user))
   end
 
   @doc """
@@ -262,12 +262,30 @@ defmodule BlackboexWeb.UserAuth do
   end
 
   @doc "Returns the path to redirect to after log in."
-  # the user was already logged in, redirect to settings
-  def signed_in_path(%Plug.Conn{assigns: %{current_scope: %Scope{user: %Accounts.User{}}}}) do
-    ~p"/users/settings"
+  def signed_in_path(conn_or_any, user \\ nil)
+
+  def signed_in_path(
+        %Plug.Conn{assigns: %{current_scope: %Scope{user: %Accounts.User{} = user}}},
+        _user
+      ) do
+    default_org_path(user)
   end
 
-  def signed_in_path(_), do: ~p"/dashboard"
+  def signed_in_path(_conn, %Accounts.User{} = user), do: default_org_path(user)
+  def signed_in_path(_conn, _user), do: "/"
+
+  defp default_org_path(user) do
+    case Blackboex.Organizations.list_user_organizations(user) do
+      [org | _] ->
+        case Blackboex.Projects.get_default_project(org.id) do
+          nil -> "/orgs/#{org.slug}"
+          project -> "/orgs/#{org.slug}/projects/#{project.slug}"
+        end
+
+      [] ->
+        "/"
+    end
+  end
 
   @doc """
   Plug for routes that require the user to be authenticated.

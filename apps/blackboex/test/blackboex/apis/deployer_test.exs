@@ -22,6 +22,7 @@ defmodule Blackboex.Apis.DeployerTest do
         name: "Deploy API",
         status: "published",
         organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
         user_id: user.id
       })
 
@@ -46,6 +47,7 @@ defmodule Blackboex.Apis.DeployerTest do
         Apis.create_api(%{
           name: "Draft",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 

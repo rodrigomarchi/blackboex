@@ -15,10 +15,11 @@ defmodule Blackboex.Agent.CodePipelineTest do
       Apis.create_api(%{
         name: "pipeline-test-api",
         organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
         user_id: user.id
       })
 
-    conversation = conversation_fixture(api.id, org.id)
+    conversation = conversation_fixture(api.id, org.id, api.project_id)
 
     run =
       run_fixture(%{
@@ -26,6 +27,7 @@ defmodule Blackboex.Agent.CodePipelineTest do
         api_id: api.id,
         user_id: user.id,
         organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
         trigger_message: "test"
       })
 

@@ -7,27 +7,27 @@ defmodule BlackboexWeb.AdminLiveTest do
     setup :register_and_log_in_user
 
     test "non-admin cannot access /admin dashboard", %{conn: conn} do
-      assert {:error, {:redirect, %{to: "/dashboard"}}} = live(conn, "/admin")
+      assert {:error, {:redirect, %{to: "/"}}} = live(conn, "/admin")
     end
 
     test "non-admin cannot access /admin/users", %{conn: conn} do
-      assert {:error, {:redirect, %{to: "/dashboard"}}} = live(conn, "/admin/users")
+      assert {:error, {:redirect, %{to: "/"}}} = live(conn, "/admin/users")
     end
 
     test "non-admin cannot access /admin/organizations", %{conn: conn} do
-      assert {:error, {:redirect, %{to: "/dashboard"}}} = live(conn, "/admin/organizations")
+      assert {:error, {:redirect, %{to: "/"}}} = live(conn, "/admin/organizations")
     end
 
     test "non-admin cannot access /admin/apis", %{conn: conn} do
-      assert {:error, {:redirect, %{to: "/dashboard"}}} = live(conn, "/admin/apis")
+      assert {:error, {:redirect, %{to: "/"}}} = live(conn, "/admin/apis")
     end
 
     test "non-admin cannot access /admin/subscriptions", %{conn: conn} do
-      assert {:error, {:redirect, %{to: "/dashboard"}}} = live(conn, "/admin/subscriptions")
+      assert {:error, {:redirect, %{to: "/"}}} = live(conn, "/admin/subscriptions")
     end
 
     test "non-admin cannot access /admin/audit-logs", %{conn: conn} do
-      assert {:error, {:redirect, %{to: "/dashboard"}}} = live(conn, "/admin/audit-logs")
+      assert {:error, {:redirect, %{to: "/"}}} = live(conn, "/admin/audit-logs")
     end
   end
 
@@ -72,6 +72,21 @@ defmodule BlackboexWeb.AdminLiveTest do
     test "admin can access /admin/organizations", %{conn: conn} do
       {:ok, _lv, html} = live(conn, "/admin/organizations")
       assert html =~ "Organizations"
+    end
+
+    test "admin lista projects", %{conn: conn} do
+      {:ok, _lv, html} = live(conn, "/admin/projects")
+      assert html =~ "Project"
+    end
+
+    test "admin lista project memberships", %{conn: conn} do
+      {:ok, _lv, html} = live(conn, "/admin/project-memberships")
+      assert html =~ "Project"
+    end
+
+    test "admin exibe coluna project em APIs", %{conn: conn} do
+      {:ok, _lv, html} = live(conn, "/admin/apis")
+      assert html =~ "Project"
     end
   end
 end

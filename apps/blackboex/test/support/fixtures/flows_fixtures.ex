@@ -34,7 +34,11 @@ defmodule Blackboex.FlowsFixtures do
           {user, org}
       end
 
-    known_keys = [:user, :org, :name]
+    project =
+      attrs[:project] || Blackboex.Projects.get_default_project(org.id) ||
+        Blackboex.ProjectsFixtures.project_fixture(%{user: user, org: org})
+
+    known_keys = [:user, :org, :project, :name]
     extra = Map.drop(attrs, known_keys)
 
     {:ok, flow} =
@@ -43,6 +47,7 @@ defmodule Blackboex.FlowsFixtures do
           %{
             name: attrs[:name] || "Test Flow #{System.unique_integer([:positive])}",
             organization_id: org.id,
+            project_id: project.id,
             user_id: user.id
           },
           extra
@@ -81,6 +86,10 @@ defmodule Blackboex.FlowsFixtures do
           {user, org}
       end
 
+    project =
+      attrs[:project] || Blackboex.Projects.get_default_project(org.id) ||
+        Blackboex.ProjectsFixtures.project_fixture(%{user: user, org: org})
+
     template_id = attrs[:template_id] || "hello_world"
 
     {:ok, flow} =
@@ -88,6 +97,7 @@ defmodule Blackboex.FlowsFixtures do
         %{
           name: attrs[:name] || "Template Flow #{System.unique_integer([:positive])}",
           organization_id: org.id,
+          project_id: project.id,
           user_id: user.id
         },
         template_id

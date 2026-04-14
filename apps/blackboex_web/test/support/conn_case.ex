@@ -37,6 +37,7 @@ defmodule BlackboexWeb.ConnCase do
       import Blackboex.ConversationsFixtures
       import Blackboex.TestingFixtures
       import Blackboex.ApiFilesFixtures
+      import Blackboex.ProjectsFixtures
       import Blackboex.FlowsFixtures
       import Blackboex.FlowExecutionsFixtures
       import Blackboex.MockDefaults

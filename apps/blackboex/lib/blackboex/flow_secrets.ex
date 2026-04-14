@@ -13,6 +13,11 @@ defmodule Blackboex.FlowSecrets do
     organization_id |> FlowSecretQueries.list_for_org() |> Repo.all()
   end
 
+  @spec list_secrets_for_project(Ecto.UUID.t()) :: [FlowSecret.t()]
+  def list_secrets_for_project(project_id) do
+    project_id |> FlowSecretQueries.list_for_project() |> Repo.all()
+  end
+
   @spec get_secret(Ecto.UUID.t(), String.t()) :: FlowSecret.t() | nil
   def get_secret(organization_id, name) do
     organization_id |> FlowSecretQueries.by_org_and_name(name) |> Repo.one()

@@ -17,6 +17,7 @@ defmodule Blackboex.Organizations.Organization do
 
     has_many :memberships, Blackboex.Organizations.Membership
     has_many :users, through: [:memberships, :user]
+    has_many :projects, Blackboex.Projects.Project
 
     timestamps()
   end

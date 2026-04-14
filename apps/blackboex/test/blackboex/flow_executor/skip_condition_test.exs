@@ -60,6 +60,7 @@ defmodule Blackboex.FlowExecutor.SkipConditionTest do
         Flows.create_flow(%{
           name: "Skip Test",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id,
           definition: definition
         })
@@ -82,6 +83,7 @@ defmodule Blackboex.FlowExecutor.SkipConditionTest do
         Flows.create_flow(%{
           name: "No Skip Test",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id,
           definition: definition
         })
@@ -129,6 +131,7 @@ defmodule Blackboex.FlowExecutor.SkipConditionTest do
         Flows.create_flow(%{
           name: "No Skip Condition",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id,
           definition: definition
         })

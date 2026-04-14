@@ -131,6 +131,10 @@ defmodule BlackboexWeb.Admin.ApiLive do
           """
         end
       },
+      project_id: %{
+        module: Backpex.Fields.Text,
+        label: "Project ID"
+      },
       organization_id: %{
         module: Backpex.Fields.Text,
         label: "Organization ID"

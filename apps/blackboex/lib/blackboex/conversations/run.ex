@@ -47,6 +47,7 @@ defmodule Blackboex.Conversations.Run do
     belongs_to :api, Blackboex.Apis.Api
     belongs_to :user, Blackboex.Accounts.User, type: :id
     belongs_to :organization, Blackboex.Organizations.Organization
+    belongs_to :project, Blackboex.Projects.Project
     belongs_to :api_version, Blackboex.Apis.ApiVersion
 
     has_many :events, Blackboex.Conversations.Event
@@ -62,12 +63,20 @@ defmodule Blackboex.Conversations.Run do
       :api_id,
       :user_id,
       :organization_id,
+      :project_id,
       :run_type,
       :status,
       :trigger_message,
       :config
     ])
-    |> validate_required([:conversation_id, :api_id, :user_id, :organization_id, :run_type])
+    |> validate_required([
+      :conversation_id,
+      :api_id,
+      :user_id,
+      :organization_id,
+      :project_id,
+      :run_type
+    ])
     |> validate_inclusion(:run_type, @valid_run_types)
     |> validate_inclusion(:status, @valid_statuses)
     |> foreign_key_constraint(:conversation_id)

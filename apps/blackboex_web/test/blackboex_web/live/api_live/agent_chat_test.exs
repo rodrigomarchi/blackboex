@@ -24,6 +24,7 @@ defmodule BlackboexWeb.ApiLive.AgentChatTest do
         slug: "calculator",
         template_type: "computation",
         organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
         user_id: user.id
       })
 
@@ -536,6 +537,7 @@ defmodule BlackboexWeb.ApiLive.AgentChatTest do
       Enum.each(1..3, fn _ ->
         Blackboex.Billing.record_usage_event(%{
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           event_type: "llm_generation",
           quantity: 1,
           metadata: %{}
@@ -682,6 +684,7 @@ defmodule BlackboexWeb.ApiLive.AgentChatTest do
           slug: "freshapi#{System.unique_integer([:positive])}",
           template_type: "computation",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
           # no source_code provided → defaults to nil/empty
         })
@@ -800,6 +803,7 @@ defmodule BlackboexWeb.ApiLive.AgentChatTest do
           slug: "reportapi#{System.unique_integer([:positive])}",
           template_type: "computation",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 
@@ -851,6 +855,7 @@ defmodule BlackboexWeb.ApiLive.AgentChatTest do
           slug: "convapi#{System.unique_integer([:positive])}",
           template_type: "computation",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 
@@ -860,13 +865,14 @@ defmodule BlackboexWeb.ApiLive.AgentChatTest do
 
       # Create conversation and run with events
       {:ok, conv} =
-        Blackboex.Conversations.get_or_create_conversation(api.id, org.id)
+        Blackboex.Conversations.get_or_create_conversation(api.id, org.id, api.project_id)
 
       {:ok, run} =
         Blackboex.Conversations.create_run(%{
           conversation_id: conv.id,
           api_id: api.id,
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id,
           status: "completed",
           run_type: "edit"

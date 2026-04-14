@@ -9,6 +9,8 @@
   {"lib/blackboex/apis/keys.ex", :call_without_opaque},
   # Ecto.Multi opaque type false positive in Billing context
   {"lib/blackboex/billing.ex", :call_without_opaque},
+  # Ecto.Multi opaque type false positive in Projects context
+  {"lib/blackboex/projects.ex", :call_without_opaque},
   # Stripity Stripe uses complex internal types — Dialyzer can't fully resolve Live client
   {"lib/blackboex/billing/stripe_client/live.ex", :invalid_contract},
   {"lib/blackboex/billing/stripe_client/live.ex", :no_return},

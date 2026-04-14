@@ -8,7 +8,10 @@ defmodule BlackboexWeb.ApiLive.New do
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, push_navigate(socket, to: ~p"/apis")}
+    {:ok,
+     push_navigate(socket,
+       to: ~p"/apis"
+     )}
   end
 
   @impl true

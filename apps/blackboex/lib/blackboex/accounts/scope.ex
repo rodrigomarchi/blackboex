@@ -18,10 +18,11 @@ defmodule Blackboex.Accounts.Scope do
 
   alias Blackboex.Accounts.User
   alias Blackboex.Organizations.{Membership, Organization}
+  alias Blackboex.Projects.{Project, ProjectMembership}
 
   @type t :: %__MODULE__{}
 
-  defstruct user: nil, organization: nil, membership: nil
+  defstruct user: nil, organization: nil, membership: nil, project: nil, project_membership: nil
 
   @doc """
   Creates a scope for the given user.
@@ -43,4 +44,29 @@ defmodule Blackboex.Accounts.Scope do
   def with_organization(%__MODULE__{} = scope, %Organization{} = org, %Membership{} = mem) do
     %{scope | organization: org, membership: mem}
   end
+
+  @doc """
+  Sets the project and project_membership on the scope.
+  """
+  @spec with_project(t(), Project.t() | nil, ProjectMembership.t() | nil) :: t()
+  def with_project(%__MODULE__{} = scope, project, project_membership) do
+    %{scope | project: project, project_membership: project_membership}
+  end
+
+  @doc """
+  Returns the effective project role for the scope.
+
+  - If an explicit project membership exists, returns its role.
+  - If the user is an org owner or admin without explicit project membership,
+    returns `:implicit_admin` (they have full project access via org role).
+  - Otherwise returns nil.
+  """
+  @spec project_role(t()) :: atom() | nil
+  def project_role(%__MODULE__{project_membership: %ProjectMembership{role: role}}), do: role
+
+  def project_role(%__MODULE__{membership: %Membership{role: role}})
+      when role in [:owner, :admin],
+      do: :implicit_admin
+
+  def project_role(_scope), do: nil
 end

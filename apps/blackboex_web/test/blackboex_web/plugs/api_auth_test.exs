@@ -18,6 +18,7 @@ defmodule BlackboexWeb.Plugs.ApiAuthTest do
         name: "Auth Test API",
         status: "published",
         organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
         user_id: user.id,
         requires_auth: true
       })
@@ -95,6 +96,7 @@ defmodule BlackboexWeb.Plugs.ApiAuthTest do
         Keys.create_key(api, %{
           label: "Expired",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           expires_at: DateTime.add(DateTime.utc_now(), -3600)
         })
 
@@ -130,6 +132,7 @@ defmodule BlackboexWeb.Plugs.ApiAuthTest do
           name: "Other API",
           status: "published",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user2.id
         })
 

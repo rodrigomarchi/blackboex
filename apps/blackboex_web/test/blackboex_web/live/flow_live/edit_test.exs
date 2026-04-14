@@ -20,6 +20,7 @@ defmodule BlackboexWeb.FlowLive.EditTest do
         Blackboex.Flows.create_flow(%{
           name: "Editor Flow",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 
@@ -44,6 +45,7 @@ defmodule BlackboexWeb.FlowLive.EditTest do
         Blackboex.Flows.create_flow(%{
           name: "Palette Flow",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 
@@ -61,6 +63,7 @@ defmodule BlackboexWeb.FlowLive.EditTest do
         Blackboex.Flows.create_flow(%{
           name: "Save Flow",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 
@@ -144,6 +147,7 @@ defmodule BlackboexWeb.FlowLive.EditTest do
         Blackboex.Flows.create_flow(%{
           name: "Empty Flow",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 
@@ -403,6 +407,7 @@ defmodule BlackboexWeb.FlowLive.EditTest do
         Blackboex.Flows.create_flow(%{
           name: "Schema Flow",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 
@@ -504,6 +509,7 @@ defmodule BlackboexWeb.FlowLive.EditTest do
         Blackboex.Flows.create_flow(%{
           name: "Empty Schema Flow",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 
@@ -523,6 +529,7 @@ defmodule BlackboexWeb.FlowLive.EditTest do
         Blackboex.Flows.create_flow(%{
           name: "Invalid Flow",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 

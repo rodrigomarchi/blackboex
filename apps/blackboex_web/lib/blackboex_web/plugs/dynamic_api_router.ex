@@ -33,15 +33,41 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
   @spec call(Plug.Conn.t(), keyword()) :: Plug.Conn.t()
   def call(conn, _opts) do
     case conn.path_info do
+      [org_slug, project_slug, slug | rest]
+      when project_slug not in @doc_paths ->
+        dispatch(conn, org_slug, project_slug, slug, rest)
+
       [org_slug, slug | rest] ->
-        dispatch(conn, org_slug, slug, rest)
+        dispatch_legacy(conn, org_slug, slug, rest)
 
       _ ->
         send_json(conn, 404, %{error: "API not found"})
     end
   end
 
-  defp dispatch(conn, org_slug, slug, rest) do
+  # 3-part path: /api/:org_slug/:project_slug/:api_slug/*rest
+  # Falls back to legacy 2-part dispatch when the triple-key lookup fails,
+  # preserving backward compat for /api/:org/:api/:sub-path URLs.
+  defp dispatch(conn, org_slug, project_slug, slug, rest) do
+    case {resolve_api(org_slug, project_slug, slug), rest} do
+      {{:ok, _mod, _meta, api}, [doc_path]}
+      when doc_path in @doc_paths ->
+        serve_docs(conn, api, org_slug, slug, doc_path)
+
+      {{:ok, module, metadata, api}, _rest} ->
+        run_pipeline(conn, module, metadata, api, rest)
+
+      {{:error, :shutting_down}, _} ->
+        send_json(conn, 503, %{error: "Service is shutting down"})
+
+      {{:error, :not_found}, _} ->
+        # project_slug may actually be the api_slug in the legacy 2-part format
+        dispatch_legacy(conn, org_slug, project_slug, [slug | rest])
+    end
+  end
+
+  # Legacy 2-part path: /api/:org_slug/:api_slug/*rest (backward compat)
+  defp dispatch_legacy(conn, org_slug, slug, rest) do
     case {resolve_api(org_slug, slug), rest} do
       {{:ok, _mod, _meta, api}, [doc_path]}
       when doc_path in @doc_paths ->
@@ -168,6 +194,25 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
     send_json(conn, 401, %{error: "API key has expired"})
   end
 
+  defp resolve_api(org_slug, project_slug, api_slug) do
+    case Registry.lookup_by_path(org_slug, project_slug, api_slug) do
+      {:ok, module, metadata} ->
+        api = load_api_struct(metadata.api_id)
+
+        if api do
+          {:ok, module, metadata, api}
+        else
+          {:error, :not_found}
+        end
+
+      {:error, :shutting_down} ->
+        {:error, :shutting_down}
+
+      {:error, :not_found} ->
+        compile_from_db(org_slug, project_slug, api_slug)
+    end
+  end
+
   defp resolve_api(org_slug, slug) do
     case Registry.lookup_by_path(org_slug, slug) do
       {:ok, module, metadata} ->
@@ -189,6 +234,61 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
 
   defp load_api_struct(api_id) do
     Blackboex.Repo.get(Blackboex.Apis.Api, api_id)
+  end
+
+  defp compile_from_db(org_slug, project_slug, api_slug) do
+    import Ecto.Query, warn: false
+
+    alias Blackboex.Apis.Api
+    alias Blackboex.Organizations.Organization
+    alias Blackboex.Projects.Project
+    alias Blackboex.Repo
+
+    with %Organization{id: org_id} <- Repo.get_by(Organization, slug: org_slug),
+         %Project{id: project_id} <-
+           Repo.get_by(Project, slug: project_slug, organization_id: org_id),
+         %Api{status: status} = api
+         when status in ["compiled", "published"] <-
+           Repo.get_by(Api, slug: api_slug, project_id: project_id),
+         source_files = Blackboex.Apis.list_source_files(api.id),
+         {:ok, module} <- Compiler.compile_files(api, source_files) do
+      metadata = %{
+        requires_auth: api.requires_auth,
+        visibility: api.visibility,
+        api_id: api.id
+      }
+
+      try do
+        Registry.register(api.id, module,
+          org_slug: org_slug,
+          project_slug: project_slug,
+          slug: api_slug,
+          requires_auth: api.requires_auth,
+          visibility: api.visibility
+        )
+      rescue
+        error ->
+          Logger.warning(
+            "Registry.register failed for #{org_slug}/#{project_slug}/#{api_slug}: #{Exception.message(error)}"
+          )
+
+          :ok
+      catch
+        :exit, reason ->
+          Logger.warning(
+            "Registry.register exited for #{org_slug}/#{project_slug}/#{api_slug}: #{inspect(reason)}"
+          )
+
+          :ok
+      end
+
+      Logger.info("Compiled API on-demand: #{org_slug}/#{project_slug}/#{api_slug}")
+      {:ok, module, metadata, api}
+    else
+      nil -> {:error, :not_found}
+      %{status: _} -> {:error, :not_found}
+      {:error, _reason} = err -> err
+    end
   end
 
   defp compile_from_db(org_slug, api_slug) do
@@ -282,6 +382,7 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
 
     Analytics.log_invocation(%{
       api_id: metadata.api_id,
+      project_id: api.project_id,
       api_key_id:
         case result_conn.assigns do
           %{api_key: %{id: id}} -> id
@@ -300,6 +401,7 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
     if api.status == "published" do
       Billing.record_usage_event(%{
         organization_id: api.organization_id,
+        project_id: api.project_id,
         event_type: "api_invocation",
         metadata: %{api_id: api.id}
       })

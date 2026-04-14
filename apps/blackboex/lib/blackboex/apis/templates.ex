@@ -225,15 +225,28 @@ defmodule Blackboex.Apis.Templates do
     end
   end
 
-  @spec create_api_from_generation(GenerationResult.t(), Ecto.UUID.t(), integer(), String.t()) ::
+  @spec create_api_from_generation(
+          GenerationResult.t(),
+          Ecto.UUID.t(),
+          integer(),
+          String.t(),
+          Ecto.UUID.t()
+        ) ::
           {:ok, Apis.Api.t()} | {:error, Ecto.Changeset.t()}
-  def create_api_from_generation(%GenerationResult{} = result, organization_id, user_id, name) do
+  def create_api_from_generation(
+        %GenerationResult{} = result,
+        organization_id,
+        user_id,
+        name,
+        project_id
+      ) do
     Apis.create_api(%{
       name: name,
       description: result.description,
       template_type: to_string(result.template),
       method: result.method || "POST",
       organization_id: organization_id,
+      project_id: project_id,
       user_id: user_id,
       example_request: result.example_request,
       example_response: result.example_response,

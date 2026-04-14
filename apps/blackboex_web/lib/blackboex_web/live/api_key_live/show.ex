@@ -33,7 +33,10 @@ defmodule BlackboexWeb.ApiKeyLive.Show do
          confirm: nil
        )}
     else
-      {:ok, socket |> put_flash(:error, "Key not found") |> push_navigate(to: ~p"/api-keys")}
+      {:ok,
+       socket
+       |> put_flash(:error, "Key not found")
+       |> push_navigate(to: ~p"/api-keys")}
     end
   end
 

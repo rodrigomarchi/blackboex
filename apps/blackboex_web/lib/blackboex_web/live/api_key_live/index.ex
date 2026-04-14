@@ -63,7 +63,10 @@ defmodule BlackboexWeb.ApiKeyLive.Index do
           <:col :let={key} label="Label">{key.label || "—"}</:col>
           <:col :let={key} label="API">
             <%= if key.api do %>
-              <.link navigate={~p"/apis/#{key.api_id}"} class="link-entity">
+              <.link
+                navigate={~p"/apis/#{key.api_id}"}
+                class="link-entity"
+              >
                 {key.api.name}
               </.link>
             <% else %>
@@ -137,7 +140,11 @@ defmodule BlackboexWeb.ApiKeyLive.Index do
 
     with :ok <- Policy.authorize_and_track(:api_key_create, scope, org),
          api when not is_nil(api) <- Apis.get_api(org.id, api_id) do
-      case Keys.create_key(api, %{label: label, organization_id: org.id}) do
+      case Keys.create_key(api, %{
+             label: label,
+             organization_id: org.id,
+             project_id: api.project_id
+           }) do
         {:ok, plain_key, _api_key} ->
           keys = Keys.list_org_keys(org.id)
 

@@ -20,7 +20,10 @@ defmodule BlackboexWeb.Components.FlowEditor.FlowHeader do
         <.link navigate={~p"/"} class="text-foreground hover:text-foreground/80">
           <.logo_icon class="size-7" />
         </.link>
-        <.link navigate={~p"/flows"} class="link-muted">
+        <.link
+          navigate={~p"/flows"}
+          class="link-muted"
+        >
           <.icon name="hero-arrow-left" class="size-5" />
         </.link>
         <.section_heading level="h1" class="text-sm font-semibold truncate max-w-xs">

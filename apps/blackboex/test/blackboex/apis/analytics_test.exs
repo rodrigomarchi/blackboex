@@ -16,6 +16,7 @@ defmodule Blackboex.Apis.AnalyticsTest do
       Apis.create_api(%{
         name: "Analytics API",
         organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
         user_id: user.id
       })
 
@@ -56,6 +57,7 @@ defmodule Blackboex.Apis.AnalyticsTest do
         Apis.create_api(%{
           name: "Other API",
           organization_id: other_org.id,
+          project_id: Blackboex.Projects.get_default_project(other_org.id).id,
           user_id: other_user.id
         })
 
@@ -263,6 +265,7 @@ defmodule Blackboex.Apis.AnalyticsTest do
         Apis.create_api(%{
           name: "Other API 2",
           organization_id: other_org.id,
+          project_id: Blackboex.Projects.get_default_project(other_org.id).id,
           user_id: other_user.id
         })
 
@@ -384,6 +387,7 @@ defmodule Blackboex.Apis.AnalyticsTest do
       changeset =
         InvocationLog.changeset(%InvocationLog{}, %{
           api_id: Ecto.UUID.generate(),
+          project_id: Ecto.UUID.generate(),
           method: "GET",
           path: "/test",
           status_code: 200,

@@ -24,11 +24,16 @@ defmodule Blackboex.FlowSecretsFixtures do
       attrs[:organization_id] ||
         Blackboex.OrganizationsFixtures.org_fixture().id
 
+    project_id =
+      attrs[:project_id] ||
+        (Blackboex.Projects.get_default_project(org_id) || %{id: nil}).id
+
     uid = System.unique_integer([:positive])
 
     {:ok, secret} =
       FlowSecrets.create_secret(%{
         organization_id: org_id,
+        project_id: project_id,
         name: attrs[:name] || "secret_#{uid}",
         value: attrs[:value] || "test_secret_value"
       })

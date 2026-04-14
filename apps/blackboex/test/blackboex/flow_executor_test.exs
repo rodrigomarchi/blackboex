@@ -55,6 +55,7 @@ defmodule Blackboex.FlowExecutorTest do
       Flows.create_flow(%{
         name: "Test Flow #{System.unique_integer([:positive])}",
         organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
         user_id: user.id
       })
 
@@ -75,6 +76,7 @@ defmodule Blackboex.FlowExecutorTest do
         Flows.create_flow(%{
           name: "Bad Flow",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 

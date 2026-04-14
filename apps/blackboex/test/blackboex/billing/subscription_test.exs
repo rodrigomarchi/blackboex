@@ -8,6 +8,7 @@ defmodule Blackboex.Billing.SubscriptionTest do
   defp valid_attrs(org) do
     %{
       organization_id: org.id,
+      project_id: Blackboex.Projects.get_default_project(org.id).id,
       stripe_customer_id: "cus_test123",
       stripe_subscription_id: "sub_test456",
       plan: "pro",
@@ -34,6 +35,7 @@ defmodule Blackboex.Billing.SubscriptionTest do
       changeset =
         Subscription.changeset(%Subscription{}, %{
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           status: "active",
           plan: "invalid"
         })

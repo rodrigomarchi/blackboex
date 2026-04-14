@@ -6,8 +6,23 @@ defmodule BlackboexWeb.ApiLive.Show do
   use BlackboexWeb, :live_view
 
   @impl true
-  def mount(%{"id" => id}, _session, socket) do
-    {:ok, push_navigate(socket, to: ~p"/apis/#{id}/edit")}
+  def mount(params, _session, socket) do
+    scope = socket.assigns.current_scope
+
+    to =
+      case {params["api_slug"], scope.project, params["id"]} do
+        {api_slug, %{slug: proj_slug}, _}
+        when not is_nil(api_slug) and not is_nil(scope.organization) ->
+          "/orgs/#{scope.organization.slug}/projects/#{proj_slug}/apis/#{api_slug}/edit/chat"
+
+        {_, _, id} when not is_nil(id) ->
+          ~p"/apis/#{id}/edit"
+
+        _ ->
+          ~p"/apis"
+      end
+
+    {:ok, push_navigate(socket, to: to)}
   end
 
   @impl true

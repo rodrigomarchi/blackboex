@@ -31,7 +31,14 @@ defmodule Blackboex.Apis.TemplateE2ETest do
 
   defp create_and_publish_template(org, user, template_id) do
     template = Templates.get(template_id)
-    attrs = %{name: template.name, organization_id: org.id, user_id: user.id}
+
+    attrs = %{
+      name: template.name,
+      organization_id: org.id,
+      project_id: Blackboex.Projects.get_default_project(org.id).id,
+      user_id: user.id
+    }
+
     {:ok, api} = Apis.create_api_from_template(attrs, template_id)
 
     # Compile source files (required before publish can serve requests)
@@ -72,7 +79,14 @@ defmodule Blackboex.Apis.TemplateE2ETest do
       test "#{template.id}: full pipeline passes",
            %{conn: conn, user: user, org: org} do
         t = Templates.get(@template_id)
-        attrs = %{name: t.name, organization_id: org.id, user_id: user.id}
+
+        attrs = %{
+          name: t.name,
+          organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
+          user_id: user.id
+        }
+
         {:ok, api} = Apis.create_api_from_template(attrs, @template_id)
 
         source_files = Apis.list_source_files(api.id)
@@ -206,7 +220,13 @@ defmodule Blackboex.Apis.TemplateE2ETest do
     end
 
     test "returns 200 with all 6 files created", %{user: user, org: org} do
-      attrs = %{name: "File Check", organization_id: org.id, user_id: user.id}
+      attrs = %{
+        name: "File Check",
+        organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
+        user_id: user.id
+      }
+
       {:ok, api} = Apis.create_api_from_template(attrs, "cotacao-frete")
 
       files = Apis.list_files(api.id)
@@ -222,15 +242,21 @@ defmodule Blackboex.Apis.TemplateE2ETest do
 
     test "unpublished template API compiles on-demand and returns validation error",
          %{conn: conn, user: user, org: org} do
-      attrs = %{name: "Unpublished", organization_id: org.id, user_id: user.id}
-      {:ok, _api} = Apis.create_api_from_template(attrs, "cotacao-frete")
+      attrs = %{
+        name: "Unpublished",
+        organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
+        user_id: user.id
+      }
+
+      {:ok, api} = Apis.create_api_from_template(attrs, "cotacao-frete")
 
       # API with status "compiled" is compilable on-demand via compile_from_db
       # Sending empty params triggers validation error (not 404)
       conn =
         conn
         |> put_req_header("content-type", "application/json")
-        |> post("/api/#{org.slug}/unpublished", Jason.encode!(%{}))
+        |> post("/api/#{org.slug}/#{api.slug}", Jason.encode!(%{}))
 
       response = json_response(conn, 200)
       assert response["error"] == "Validation failed"
@@ -247,7 +273,14 @@ defmodule Blackboex.Apis.TemplateE2ETest do
 
       test "#{template.id}: all source files compile via Compiler", %{user: user, org: org} do
         t = @template
-        attrs = %{name: "#{t.name} Compile", organization_id: org.id, user_id: user.id}
+
+        attrs = %{
+          name: "#{t.name} Compile",
+          organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
+          user_id: user.id
+        }
+
         {:ok, api} = Apis.create_api_from_template(attrs, t.id)
 
         source_files = Apis.list_source_files(api.id)
@@ -275,7 +308,13 @@ defmodule Blackboex.Apis.TemplateE2ETest do
 
   describe "virtual files" do
     test "list_files_with_virtual/1 returns source + virtual files", %{user: user, org: org} do
-      attrs = %{name: "Virtual Files", organization_id: org.id, user_id: user.id}
+      attrs = %{
+        name: "Virtual Files",
+        organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
+        user_id: user.id
+      }
+
       {:ok, api} = Apis.create_api_from_template(attrs, "cotacao-frete")
 
       all_files = Apis.list_files_with_virtual(api)

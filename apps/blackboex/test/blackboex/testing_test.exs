@@ -21,6 +21,7 @@ defmodule Blackboex.TestingTest do
         slug: "test-api-#{System.unique_integer([:positive])}",
         template_type: "computation",
         organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
         user_id: user.id
       })
 

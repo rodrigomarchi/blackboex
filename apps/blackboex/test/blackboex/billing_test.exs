@@ -16,7 +16,11 @@ defmodule Blackboex.BillingTest do
     end
 
     test "returns subscription when it exists", %{org: org} do
-      subscription_fixture(%{organization_id: org.id, plan: "pro"})
+      subscription_fixture(%{
+        organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
+        plan: "pro"
+      })
 
       sub = Billing.get_subscription(org.id)
       assert sub.plan == "pro"
@@ -69,6 +73,7 @@ defmodule Blackboex.BillingTest do
     test "returns portal URL when subscription exists", %{org: org} do
       subscription_fixture(%{
         organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
         stripe_customer_id: "cus_test123",
         plan: "pro"
       })
@@ -97,6 +102,7 @@ defmodule Blackboex.BillingTest do
     test "creates new subscription and syncs org plan", %{org: org} do
       attrs = %{
         organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
         stripe_customer_id: "cus_test",
         stripe_subscription_id: "sub_test",
         plan: "pro",
@@ -133,10 +139,15 @@ defmodule Blackboex.BillingTest do
     end
 
     test "updates existing subscription", %{org: org} do
-      subscription_fixture(%{organization_id: org.id, plan: "pro"})
+      subscription_fixture(%{
+        organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
+        plan: "pro"
+      })
 
       attrs = %{
         organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
         plan: "enterprise",
         status: "active"
       }
@@ -161,6 +172,7 @@ defmodule Blackboex.BillingTest do
       assert {:ok, _event} =
                Billing.record_usage_event(%{
                  organization_id: org.id,
+                 project_id: Blackboex.Projects.get_default_project(org.id).id,
                  event_type: "api_invocation"
                })
 
@@ -169,10 +181,18 @@ defmodule Blackboex.BillingTest do
 
     test "count returns correct total after multiple events", %{org: org} do
       for _ <- 1..3 do
-        Billing.record_usage_event(%{organization_id: org.id, event_type: "api_invocation"})
+        Billing.record_usage_event(%{
+          organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
+          event_type: "api_invocation"
+        })
       end
 
-      Billing.record_usage_event(%{organization_id: org.id, event_type: "llm_generation"})
+      Billing.record_usage_event(%{
+        organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
+        event_type: "llm_generation"
+      })
 
       assert Billing.count_usage_events_today(org.id, "api_invocation") == 3
       assert Billing.count_usage_events_today(org.id, "llm_generation") == 1
@@ -182,8 +202,17 @@ defmodule Blackboex.BillingTest do
       other_user = user_fixture()
       [other_org] = Organizations.list_user_organizations(other_user)
 
-      Billing.record_usage_event(%{organization_id: org.id, event_type: "api_invocation"})
-      Billing.record_usage_event(%{organization_id: other_org.id, event_type: "api_invocation"})
+      Billing.record_usage_event(%{
+        organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
+        event_type: "api_invocation"
+      })
+
+      Billing.record_usage_event(%{
+        organization_id: other_org.id,
+        project_id: Blackboex.Projects.get_default_project(other_org.id).id,
+        event_type: "api_invocation"
+      })
 
       assert Billing.count_usage_events_today(org.id, "api_invocation") == 1
     end
@@ -192,6 +221,7 @@ defmodule Blackboex.BillingTest do
       assert {:error, changeset} =
                Billing.record_usage_event(%{
                  organization_id: org.id,
+                 project_id: Blackboex.Projects.get_default_project(org.id).id,
                  event_type: "invalid_type"
                })
 
@@ -208,7 +238,11 @@ defmodule Blackboex.BillingTest do
 
     test "includes today's live events in monthly sum", %{org: org} do
       for _ <- 1..5 do
-        Billing.record_usage_event(%{organization_id: org.id, event_type: "api_invocation"})
+        Billing.record_usage_event(%{
+          organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
+          event_type: "api_invocation"
+        })
       end
 
       assert Billing.sum_monthly_usage(org.id, "api_invocation") == 5
@@ -219,11 +253,20 @@ defmodule Blackboex.BillingTest do
       yesterday = Date.add(today, -1)
 
       # Insert a DailyUsage row for yesterday (simulating aggregation worker output)
-      daily_usage_fixture(%{organization_id: org.id, date: yesterday, api_invocations: 10})
+      daily_usage_fixture(%{
+        organization_id: org.id,
+        project_id: nil,
+        date: yesterday,
+        api_invocations: 10
+      })
 
       # Record 3 more events today
       for _ <- 1..3 do
-        Billing.record_usage_event(%{organization_id: org.id, event_type: "api_invocation"})
+        Billing.record_usage_event(%{
+          organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
+          event_type: "api_invocation"
+        })
       end
 
       assert Billing.sum_monthly_usage(org.id, "api_invocation") == 13
@@ -233,9 +276,18 @@ defmodule Blackboex.BillingTest do
       today = Date.utc_today()
       yesterday = Date.add(today, -1)
 
-      daily_usage_fixture(%{organization_id: org.id, date: yesterday, llm_generations: 7})
+      daily_usage_fixture(%{
+        organization_id: org.id,
+        project_id: nil,
+        date: yesterday,
+        llm_generations: 7
+      })
 
-      Billing.record_usage_event(%{organization_id: org.id, event_type: "llm_generation"})
+      Billing.record_usage_event(%{
+        organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
+        event_type: "llm_generation"
+      })
 
       assert Billing.sum_monthly_usage(org.id, "llm_generation") == 8
     end
@@ -254,6 +306,7 @@ defmodule Blackboex.BillingTest do
 
       daily_usage_fixture(%{
         organization_id: org.id,
+        project_id: nil,
         date: today,
         api_invocations: 42,
         llm_generations: 7
@@ -283,7 +336,12 @@ defmodule Blackboex.BillingTest do
       day3 = Date.add(today, -1)
 
       for {date, invocations} <- [{day2, 20}, {day1, 10}, {day3, 30}] do
-        daily_usage_fixture(%{organization_id: org.id, date: date, api_invocations: invocations})
+        daily_usage_fixture(%{
+          organization_id: org.id,
+          project_id: nil,
+          date: date,
+          api_invocations: invocations
+        })
       end
 
       result = Billing.get_daily_usage_for_period(org.id, day1, day3)
@@ -298,7 +356,12 @@ defmodule Blackboex.BillingTest do
       out_of_range = Date.add(today, -5)
 
       for date <- [in_range, out_of_range] do
-        daily_usage_fixture(%{organization_id: org.id, date: date, api_invocations: 5})
+        daily_usage_fixture(%{
+          organization_id: org.id,
+          project_id: nil,
+          date: date,
+          api_invocations: 5
+        })
       end
 
       result = Billing.get_daily_usage_for_period(org.id, Date.add(today, -3), today)
@@ -318,6 +381,7 @@ defmodule Blackboex.BillingTest do
       {:ok, _sub} =
         Billing.create_or_update_subscription(%{
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           stripe_subscription_id: "sub_stripe_123",
           plan: "free",
           status: "active"
@@ -347,6 +411,7 @@ defmodule Blackboex.BillingTest do
     test "returns error when Stripe retrieval fails", %{org: org} do
       Billing.create_or_update_subscription(%{
         organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
         stripe_subscription_id: "sub_failing",
         plan: "pro",
         status: "active"

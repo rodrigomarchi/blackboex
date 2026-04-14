@@ -10,6 +10,7 @@ defmodule Blackboex.Apis.MetricRollupWorkerTest do
 
   defp setup_test_api(_context) do
     {user, org} = user_and_org_fixture()
+    project = Blackboex.Projects.get_default_project(org.id)
 
     {:ok, api} =
       %Api{}
@@ -19,6 +20,7 @@ defmodule Blackboex.Apis.MetricRollupWorkerTest do
         description: "A test API",
         template_type: "computation",
         organization_id: org.id,
+        project_id: project.id,
         user_id: user.id
       })
       |> Repo.insert()
@@ -82,6 +84,8 @@ defmodule Blackboex.Apis.MetricRollupWorkerTest do
     end
 
     test "aggregates multiple APIs independently", %{api: api, org: org, user: user} do
+      project = Blackboex.Projects.get_default_project(org.id)
+
       {:ok, api2} =
         %Api{}
         |> Api.changeset(%{
@@ -90,6 +94,7 @@ defmodule Blackboex.Apis.MetricRollupWorkerTest do
           description: "Another API",
           template_type: "computation",
           organization_id: org.id,
+          project_id: project.id,
           user_id: user.id
         })
         |> Repo.insert()
@@ -132,6 +137,7 @@ defmodule Blackboex.Apis.MetricRollupWorkerTest do
       %InvocationLog{}
       |> InvocationLog.changeset(%{
         api_id: api.id,
+        project_id: api.project_id,
         method: "POST",
         path: "/api/test",
         status_code: 200,
@@ -174,9 +180,9 @@ defmodule Blackboex.Apis.MetricRollupWorkerTest do
       Repo.query!(
         """
         INSERT INTO invocation_logs
-          (id, api_id, method, path, status_code, duration_ms,
+          (id, api_id, project_id, method, path, status_code, duration_ms,
            request_body_size, response_body_size, ip_address, inserted_at)
-        VALUES (gen_random_uuid(), $1, 'GET', '/test', 200, 50, 0, 100, '10.0.0.99', $2)
+        VALUES (gen_random_uuid(), $1, gen_random_uuid(), 'GET', '/test', 200, 50, 0, 100, '10.0.0.99', $2)
         """,
         [Ecto.UUID.dump!(fake_api_id), NaiveDateTime.utc_now()]
       )

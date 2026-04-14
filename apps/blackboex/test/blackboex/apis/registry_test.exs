@@ -236,6 +236,46 @@ defmodule Blackboex.Apis.RegistryTest do
     end
   end
 
+  describe "lookup_by_path/3 — triple key (org + project + api)" do
+    test "finds API by triple key when registered with project_slug" do
+      api_id = Ecto.UUID.generate()
+
+      Registry.register(api_id, TripleMod,
+        org_slug: "myorg",
+        project_slug: "myproject",
+        slug: "myapi"
+      )
+
+      assert {:ok, TripleMod, _metadata} =
+               Registry.lookup_by_path("myorg", "myproject", "myapi")
+    end
+
+    test "returns {:error, :not_found} for wrong project_slug" do
+      api_id = Ecto.UUID.generate()
+
+      Registry.register(api_id, WrongProjMod,
+        org_slug: "myorg",
+        project_slug: "correct-project",
+        slug: "myapi"
+      )
+
+      assert {:error, :not_found} =
+               Registry.lookup_by_path("myorg", "wrong-project", "myapi")
+    end
+
+    test "2-part lookup still works when project_slug registered" do
+      api_id = Ecto.UUID.generate()
+
+      Registry.register(api_id, BackCompatMod,
+        org_slug: "myorg",
+        project_slug: "myproject",
+        slug: "myapi"
+      )
+
+      assert {:ok, BackCompatMod, _metadata} = Registry.lookup_by_path("myorg", "myapi")
+    end
+  end
+
   describe "shutdown/0 and shutting_down?/0" do
     setup do
       # Ensure flag is cleared before and after each test in this block
@@ -504,6 +544,7 @@ defmodule Blackboex.Apis.RegistryTest do
           slug: "nil-src-#{System.unique_integer([:positive])}",
           template_type: "computation",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id,
           status: "compiled",
           requires_auth: true,
@@ -536,6 +577,7 @@ defmodule Blackboex.Apis.RegistryTest do
           slug: "src-api-#{System.unique_integer([:positive])}",
           template_type: "computation",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id,
           status: "compiled",
           requires_auth: false,
@@ -593,6 +635,7 @@ defmodule Blackboex.Apis.RegistryTest do
           slug: "loaded-api-#{System.unique_integer([:positive])}",
           template_type: "computation",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id,
           status: "compiled",
           requires_auth: true,

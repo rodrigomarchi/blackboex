@@ -25,6 +25,7 @@ defmodule Blackboex.Conversations.Conversation do
 
     belongs_to :api, Blackboex.Apis.Api
     belongs_to :organization, Blackboex.Organizations.Organization
+    belongs_to :project, Blackboex.Projects.Project
 
     has_many :runs, Blackboex.Conversations.Run
 
@@ -34,11 +35,11 @@ defmodule Blackboex.Conversations.Conversation do
   @spec changeset(t(), map()) :: Ecto.Changeset.t()
   def changeset(conversation, attrs) do
     conversation
-    |> cast(attrs, [:api_id, :organization_id, :title, :status])
-    |> validate_required([:api_id, :organization_id])
+    |> cast(attrs, [:api_id, :organization_id, :project_id, :title, :status])
+    |> validate_required([:api_id, :organization_id, :project_id])
     |> validate_inclusion(:status, @valid_statuses)
     |> validate_length(:title, max: 500)
-    |> unique_constraint([:organization_id, :api_id])
+    |> unique_constraint([:project_id, :api_id])
   end
 
   @spec admin_changeset(t(), map(), map()) :: Ecto.Changeset.t()

@@ -45,15 +45,35 @@ defmodule Blackboex.Apis do
     organization_id |> ApiQueries.list_for_org() |> Repo.all()
   end
 
+  @spec list_apis_for_project(Ecto.UUID.t()) :: [Api.t()]
+  def list_apis_for_project(project_id) do
+    project_id |> ApiQueries.list_for_project() |> Repo.all()
+  end
+
+  @spec count_apis_for_org(Ecto.UUID.t()) :: non_neg_integer()
+  def count_apis_for_org(organization_id) do
+    organization_id |> ApiQueries.list_for_org() |> Repo.aggregate(:count)
+  end
+
+  @spec count_apis_for_project(Ecto.UUID.t()) :: non_neg_integer()
+  def count_apis_for_project(project_id) do
+    project_id |> ApiQueries.list_for_project() |> Repo.aggregate(:count)
+  end
+
   @spec get_api(Ecto.UUID.t(), Ecto.UUID.t()) :: Api.t() | nil
   def get_api(organization_id, api_id) do
     organization_id |> ApiQueries.by_org_and_id(api_id) |> Repo.one()
   end
 
+  @spec get_api_by_slug(Ecto.UUID.t(), String.t()) :: Api.t() | nil
+  def get_api_by_slug(project_id, slug) do
+    project_id |> ApiQueries.by_project_and_slug(slug) |> Repo.one()
+  end
+
   @spec update_api(Api.t(), map()) :: {:ok, Api.t()} | {:error, Ecto.Changeset.t()}
   def update_api(%Api{} = api, attrs) do
     api
-    |> Api.changeset(attrs)
+    |> Api.update_changeset(attrs)
     |> Repo.update()
   end
 
@@ -107,7 +127,7 @@ defmodule Blackboex.Apis do
   defdelegate create_api_with_files(attrs), to: Blackboex.Apis.Templates
   defdelegate create_api_from_template(attrs, template_id), to: Blackboex.Apis.Templates
 
-  defdelegate create_api_from_generation(result, organization_id, user_id, name),
+  defdelegate create_api_from_generation(result, organization_id, user_id, name, project_id),
     to: Blackboex.Apis.Templates
 
   # ── Private ─────────────────────────────────────────────────

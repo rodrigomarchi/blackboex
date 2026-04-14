@@ -21,13 +21,14 @@ defmodule Blackboex.ApisTest do
         description: "A test API",
         template_type: "computation",
         organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
         user_id: user.id
       }
 
       assert {:ok, %Api{} = api} = Apis.create_api(attrs)
       assert api.name == "My API"
       assert api.status == "draft"
-      assert api.slug == "my-api"
+      assert api.slug =~ ~r/^my-api-[a-z0-9]{6}$/
       assert api.organization_id == org.id
       assert api.user_id == user.id
     end
@@ -42,6 +43,7 @@ defmodule Blackboex.ApisTest do
                  name: "Bad Template",
                  template_type: "invalid",
                  organization_id: org.id,
+                 project_id: Blackboex.Projects.get_default_project(org.id).id,
                  user_id: user.id
                })
 
@@ -54,6 +56,7 @@ defmodule Blackboex.ApisTest do
                  name: "Bad Method",
                  method: "SEARCH",
                  organization_id: org.id,
+                 project_id: Blackboex.Projects.get_default_project(org.id).id,
                  user_id: user.id
                })
 
@@ -66,6 +69,7 @@ defmodule Blackboex.ApisTest do
                  name: "Bad Status",
                  status: "pending",
                  organization_id: org.id,
+                 project_id: Blackboex.Projects.get_default_project(org.id).id,
                  user_id: user.id
                })
 
@@ -77,10 +81,11 @@ defmodule Blackboex.ApisTest do
         Apis.create_api(%{
           name: "Hello World API",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 
-      assert api.slug == "hello-world-api"
+      assert api.slug =~ ~r/^hello-world-api-[a-z0-9]{6}$/
     end
   end
 
@@ -229,6 +234,7 @@ defmodule Blackboex.ApisTest do
         Apis.create_api(%{
           name: "My API",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 
@@ -241,6 +247,7 @@ defmodule Blackboex.ApisTest do
         Apis.create_api(%{
           name: "Public API",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id,
           visibility: "public",
           requires_auth: false
@@ -255,6 +262,7 @@ defmodule Blackboex.ApisTest do
                Apis.create_api(%{
                  name: "Bad API",
                  organization_id: org.id,
+                 project_id: Blackboex.Projects.get_default_project(org.id).id,
                  user_id: user.id,
                  visibility: "unlisted"
                })
@@ -598,11 +606,11 @@ defmodule Blackboex.ApisTest do
   end
 
   # ---------------------------------------------------------------------------
-  # create_api_from_generation/4
+  # create_api_from_generation/5
   # ---------------------------------------------------------------------------
 
-  describe "create_api_from_generation/4" do
-    test "creates Api from GenerationResult", %{user: user, org: org} do
+  describe "create_api_from_generation/5" do
+    test "creates Api from GenerationResult", %{user: user, org: org, project: project} do
       result = %GenerationResult{
         code: "def call(conn, params), do: json(conn, %{ok: true})",
         template: :computation,
@@ -618,7 +626,7 @@ defmodule Blackboex.ApisTest do
       }
 
       assert {:ok, %Api{} = api} =
-               Apis.create_api_from_generation(result, org.id, user.id, "simple-api")
+               Apis.create_api_from_generation(result, org.id, user.id, "simple-api", project.id)
 
       assert api.template_type == "computation"
       assert api.description == "A simple API"
@@ -629,7 +637,7 @@ defmodule Blackboex.ApisTest do
       assert api.param_schema == %{"type" => "object"}
     end
 
-    test "method defaults to POST when nil in result", %{user: user, org: org} do
+    test "method defaults to POST when nil in result", %{user: user, org: org, project: project} do
       result = %GenerationResult{
         code: "def handle(p), do: p",
         template: :computation,
@@ -644,7 +652,9 @@ defmodule Blackboex.ApisTest do
         param_schema: nil
       }
 
-      assert {:ok, api} = Apis.create_api_from_generation(result, org.id, user.id, "no-method")
+      assert {:ok, api} =
+               Apis.create_api_from_generation(result, org.id, user.id, "no-method", project.id)
+
       assert api.method == "POST"
     end
   end
@@ -658,6 +668,7 @@ defmodule Blackboex.ApisTest do
       attrs = %{
         name: "Frete API",
         organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
         user_id: user.id
       }
 
@@ -666,19 +677,37 @@ defmodule Blackboex.ApisTest do
     end
 
     test "saves template_id on the API", %{user: user, org: org} do
-      attrs = %{name: "Frete API", organization_id: org.id, user_id: user.id}
+      attrs = %{
+        name: "Frete API",
+        organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
+        user_id: user.id
+      }
+
       assert {:ok, api} = Apis.create_api_from_template(attrs, "cotacao-frete")
       assert api.template_id == "cotacao-frete"
     end
 
     test "generation_status is nil (no LLM pipeline triggered)", %{user: user, org: org} do
-      attrs = %{name: "Frete API", organization_id: org.id, user_id: user.id}
+      attrs = %{
+        name: "Frete API",
+        organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
+        user_id: user.id
+      }
+
       assert {:ok, api} = Apis.create_api_from_template(attrs, "cotacao-frete")
       assert api.generation_status == nil
     end
 
     test "creates 6 files with template content", %{user: user, org: org} do
-      attrs = %{name: "Frete API", organization_id: org.id, user_id: user.id}
+      attrs = %{
+        name: "Frete API",
+        organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
+        user_id: user.id
+      }
+
       assert {:ok, api} = Apis.create_api_from_template(attrs, "cotacao-frete")
 
       files = Apis.list_files(api.id)
@@ -697,7 +726,13 @@ defmodule Blackboex.ApisTest do
       user: user,
       org: org
     } do
-      attrs = %{name: "Frete API", organization_id: org.id, user_id: user.id}
+      attrs = %{
+        name: "Frete API",
+        organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
+        user_id: user.id
+      }
+
       assert {:ok, api} = Apis.create_api_from_template(attrs, "cotacao-frete")
 
       assert is_map(api.param_schema) and map_size(api.param_schema) > 0
@@ -707,13 +742,24 @@ defmodule Blackboex.ApisTest do
     end
 
     test "sets method from template", %{user: user, org: org} do
-      attrs = %{name: "Frete API", organization_id: org.id, user_id: user.id}
+      attrs = %{
+        name: "Frete API",
+        organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
+        user_id: user.id
+      }
+
       assert {:ok, api} = Apis.create_api_from_template(attrs, "cotacao-frete")
       assert api.method == "POST"
     end
 
     test "returns error for unknown template", %{user: user, org: org} do
-      attrs = %{name: "Unknown", organization_id: org.id, user_id: user.id}
+      attrs = %{
+        name: "Unknown",
+        organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
+        user_id: user.id
+      }
 
       assert {:error, :template_not_found} =
                Apis.create_api_from_template(attrs, "does-not-exist")

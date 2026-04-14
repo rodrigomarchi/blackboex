@@ -18,13 +18,19 @@ defmodule BlackboexWeb.ApiLive.Index do
 
   @impl true
   def mount(_params, _session, socket) do
-    org = socket.assigns.current_scope.organization
+    scope = socket.assigns.current_scope
+    org = scope.organization
 
     {api_rows, org_slug} =
-      if org do
-        {DashboardQueries.list_apis_with_stats(org.id), org.slug}
-      else
-        {[], nil}
+      cond do
+        scope.project ->
+          {DashboardQueries.list_apis_with_stats_for_project(scope.project.id), org && org.slug}
+
+        org ->
+          {DashboardQueries.list_apis_with_stats(org.id), org.slug}
+
+        true ->
+          {[], nil}
       end
 
     {:ok,
@@ -73,13 +79,19 @@ defmodule BlackboexWeb.ApiLive.Index do
   @impl true
   def handle_event("search", %{"search" => query}, socket) do
     query = String.slice(query, 0, 200)
-    org = socket.assigns.current_scope.organization
+    scope = socket.assigns.current_scope
+    org = scope.organization
 
     api_rows =
-      if org do
-        DashboardQueries.list_apis_with_stats(org.id, search: query)
-      else
-        []
+      cond do
+        scope.project ->
+          DashboardQueries.list_apis_with_stats_for_project(scope.project.id, search: query)
+
+        org ->
+          DashboardQueries.list_apis_with_stats(org.id, search: query)
+
+        true ->
+          []
       end
 
     {:noreply, assign(socket, api_rows: api_rows, search: query)}
@@ -226,19 +238,33 @@ defmodule BlackboexWeb.ApiLive.Index do
 
   defp do_create_from_description(socket, name, description, org, user) do
     has_description = description != ""
+    scope = socket.assigns.current_scope
+
+    project_id =
+      if scope.project do
+        scope.project.id
+      else
+        project = Blackboex.Projects.get_default_project(org.id)
+        project && project.id
+      end
 
     attrs = %{
       name: name,
       description: if(has_description, do: description, else: nil),
       generation_status: if(has_description, do: "pending", else: nil),
       organization_id: org.id,
+      project_id: project_id,
       user_id: user.id
     }
 
     case Apis.create_api_with_files(attrs) do
       {:ok, api} ->
         maybe_enqueue_generation(api, description, user.id, org.id)
-        {:noreply, push_navigate(socket, to: ~p"/apis/#{api.id}/edit")}
+
+        {:noreply,
+         push_navigate(socket,
+           to: ~p"/apis/#{api.id}/edit"
+         )}
 
       {:error, :limit_exceeded, details} ->
         {:noreply,
@@ -252,15 +278,29 @@ defmodule BlackboexWeb.ApiLive.Index do
   end
 
   defp do_create_from_template(socket, name, template, org, user) do
+    scope = socket.assigns.current_scope
+
+    project_id =
+      if scope.project do
+        scope.project.id
+      else
+        project = Blackboex.Projects.get_default_project(org.id)
+        project && project.id
+      end
+
     attrs = %{
       name: name,
       organization_id: org.id,
+      project_id: project_id,
       user_id: user.id
     }
 
     case Apis.create_api_from_template(attrs, template.id) do
       {:ok, api} ->
-        {:noreply, push_navigate(socket, to: ~p"/apis/#{api.id}/edit")}
+        {:noreply,
+         push_navigate(socket,
+           to: ~p"/apis/#{api.id}/edit"
+         )}
 
       {:error, :template_not_found} ->
         {:noreply, assign(socket, create_error: "Template not found.")}

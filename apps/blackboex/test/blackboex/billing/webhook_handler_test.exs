@@ -82,6 +82,7 @@ defmodule Blackboex.Billing.WebhookHandlerTest do
     test "updates subscription status", %{org: org} do
       subscription_fixture(%{
         organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
         stripe_subscription_id: "sub_existing",
         plan: "pro"
       })
@@ -108,6 +109,7 @@ defmodule Blackboex.Billing.WebhookHandlerTest do
     test "marks subscription as canceled and reverts to free", %{org: org} do
       subscription_fixture(%{
         organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
         stripe_subscription_id: "sub_to_delete",
         plan: "pro"
       })
@@ -131,6 +133,7 @@ defmodule Blackboex.Billing.WebhookHandlerTest do
     test "marks subscription as past_due", %{org: org} do
       subscription_fixture(%{
         organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
         stripe_subscription_id: "sub_payment_fail",
         plan: "pro"
       })

@@ -17,6 +17,7 @@ defmodule Blackboex.Testing.TestSuiteTest do
     test "valid changeset with required fields", %{api: api} do
       attrs = %{
         api_id: api.id,
+        project_id: api.project_id,
         test_code:
           "defmodule MyTest do\n  use ExUnit.Case\n  test \"it works\" do\n    assert true\n  end\nend"
       }
@@ -28,6 +29,7 @@ defmodule Blackboex.Testing.TestSuiteTest do
     test "valid changeset with all fields", %{api: api} do
       attrs = %{
         api_id: api.id,
+        project_id: api.project_id,
         version_number: 3,
         test_code: "test code here",
         status: "passed",
@@ -50,26 +52,32 @@ defmodule Blackboex.Testing.TestSuiteTest do
     end
 
     test "invalid without test_code", %{api: api} do
-      changeset = TestSuite.changeset(%TestSuite{}, %{api_id: api.id})
+      changeset = TestSuite.changeset(%TestSuite{}, %{api_id: api.id, project_id: api.project_id})
       assert %{test_code: ["can't be blank"]} = errors_on(changeset)
     end
 
     test "invalid status value", %{api: api} do
-      attrs = %{api_id: api.id, test_code: "code", status: "invalid_status"}
+      attrs = %{
+        api_id: api.id,
+        project_id: api.project_id,
+        test_code: "code",
+        status: "invalid_status"
+      }
+
       changeset = TestSuite.changeset(%TestSuite{}, attrs)
       assert %{status: ["is invalid"]} = errors_on(changeset)
     end
 
     test "all valid statuses accepted", %{api: api} do
       for status <- ~w(pending running passed failed error) do
-        attrs = %{api_id: api.id, test_code: "code", status: status}
+        attrs = %{api_id: api.id, project_id: api.project_id, test_code: "code", status: status}
         changeset = TestSuite.changeset(%TestSuite{}, attrs)
         assert changeset.valid?, "expected #{status} to be valid"
       end
     end
 
     test "negative total_tests rejected", %{api: api} do
-      attrs = %{api_id: api.id, test_code: "code", total_tests: -1}
+      attrs = %{api_id: api.id, project_id: api.project_id, test_code: "code", total_tests: -1}
       changeset = TestSuite.changeset(%TestSuite{}, attrs)
       assert %{total_tests: [_]} = errors_on(changeset)
     end
@@ -127,7 +135,8 @@ defmodule Blackboex.Testing.TestSuiteTest do
     end
 
     test "insert and retrieve", %{api: api} do
-      suite = test_suite_fixture(%{api_id: api.id, test_code: "test code"})
+      suite =
+        test_suite_fixture(%{api_id: api.id, project_id: api.project_id, test_code: "test code"})
 
       assert suite.id
       assert suite.api_id == api.id
@@ -138,14 +147,16 @@ defmodule Blackboex.Testing.TestSuiteTest do
     end
 
     test "cascade delete when API is deleted", %{api: api} do
-      suite = test_suite_fixture(%{api_id: api.id, test_code: "test code"})
+      suite =
+        test_suite_fixture(%{api_id: api.id, project_id: api.project_id, test_code: "test code"})
 
       Repo.delete!(api)
       assert Repo.get(TestSuite, suite.id) == nil
     end
 
     test "belongs_to api association", %{api: api} do
-      suite = test_suite_fixture(%{api_id: api.id, test_code: "test code"})
+      suite =
+        test_suite_fixture(%{api_id: api.id, project_id: api.project_id, test_code: "test code"})
 
       suite = Repo.preload(suite, :api)
       assert suite.api.id == api.id
@@ -245,6 +256,7 @@ defmodule Blackboex.Testing.TestSuiteTest do
         slug: "test-api-#{System.unique_integer([:positive])}",
         template_type: "computation",
         organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
         user_id: user.id
       })
 

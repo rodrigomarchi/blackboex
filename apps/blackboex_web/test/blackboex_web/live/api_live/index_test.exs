@@ -20,6 +20,7 @@ defmodule BlackboexWeb.ApiLive.IndexTest do
           name: "My Test API",
           template_type: "computation",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 
@@ -47,6 +48,7 @@ defmodule BlackboexWeb.ApiLive.IndexTest do
           description: "Converts temperatures from Celsius to Fahrenheit",
           template_type: "computation",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 
@@ -63,6 +65,7 @@ defmodule BlackboexWeb.ApiLive.IndexTest do
           slug: "published-api",
           template_type: "computation",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 
@@ -86,6 +89,7 @@ defmodule BlackboexWeb.ApiLive.IndexTest do
           name: "Draft Only API",
           template_type: "computation",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 
@@ -107,6 +111,7 @@ defmodule BlackboexWeb.ApiLive.IndexTest do
           name: "Alpha API",
           template_type: "computation",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 
@@ -115,6 +120,7 @@ defmodule BlackboexWeb.ApiLive.IndexTest do
           name: "Beta API",
           template_type: "computation",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 
@@ -140,6 +146,7 @@ defmodule BlackboexWeb.ApiLive.IndexTest do
           name: "My API",
           template_type: "computation",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 
@@ -162,6 +169,7 @@ defmodule BlackboexWeb.ApiLive.IndexTest do
           name: "Clearable API",
           template_type: "computation",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 
@@ -191,6 +199,7 @@ defmodule BlackboexWeb.ApiLive.IndexTest do
           name: "To Delete API",
           template_type: "computation",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 

@@ -28,6 +28,7 @@ defmodule Blackboex.FlowExecutor.AllNodesE2eTest do
       Flows.create_flow(%{
         name: "Notification Sub-Flow",
         organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
         user_id: user.id,
         definition: notification_def
       })
@@ -40,6 +41,7 @@ defmodule Blackboex.FlowExecutor.AllNodesE2eTest do
       Flows.create_flow(%{
         name: "All Nodes Demo",
         organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
         user_id: user.id,
         definition: definition
       })

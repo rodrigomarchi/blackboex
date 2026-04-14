@@ -22,6 +22,7 @@ defmodule Blackboex.LLM.Usage do
 
     belongs_to :user, Blackboex.Accounts.User, type: :id
     belongs_to :organization, Blackboex.Organizations.Organization
+    belongs_to :project, Blackboex.Projects.Project
     belongs_to :api, Blackboex.Apis.Api
 
     timestamps()
@@ -33,6 +34,7 @@ defmodule Blackboex.LLM.Usage do
     |> cast(attrs, [
       :user_id,
       :organization_id,
+      :project_id,
       :provider,
       :model,
       :input_tokens,
@@ -42,7 +44,7 @@ defmodule Blackboex.LLM.Usage do
       :api_id,
       :duration_ms
     ])
-    |> validate_required([:provider, :model, :operation])
+    |> validate_required([:provider, :model, :operation, :project_id])
     |> foreign_key_constraint(:user_id)
     |> foreign_key_constraint(:organization_id)
     |> foreign_key_constraint(:api_id)

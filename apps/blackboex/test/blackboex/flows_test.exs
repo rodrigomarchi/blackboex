@@ -11,10 +11,16 @@ defmodule Blackboex.FlowsTest do
 
   describe "create_flow/1" do
     test "creates a flow with valid attrs", %{user: user, org: org} do
-      attrs = %{name: "My Flow", organization_id: org.id, user_id: user.id}
+      attrs = %{
+        name: "My Flow",
+        organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
+        user_id: user.id
+      }
+
       assert {:ok, %Flow{} = flow} = Flows.create_flow(attrs)
       assert flow.name == "My Flow"
-      assert flow.slug == "my-flow"
+      assert flow.slug =~ ~r/^my-flow-[a-z0-9]{6}$/
       assert flow.status == "draft"
       assert flow.definition == %{}
       assert flow.organization_id == org.id
@@ -22,28 +28,62 @@ defmodule Blackboex.FlowsTest do
     end
 
     test "auto-generates slug from name", %{user: user, org: org} do
-      attrs = %{name: "Hello World Flow!", organization_id: org.id, user_id: user.id}
+      attrs = %{
+        name: "Hello World Flow!",
+        organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
+        user_id: user.id
+      }
+
       assert {:ok, flow} = Flows.create_flow(attrs)
-      assert flow.slug == "hello-world-flow"
+      assert flow.slug =~ ~r/^hello-world-flow-[a-z0-9]{6}$/
     end
 
     test "rejects blank name", %{user: user, org: org} do
-      attrs = %{name: "", organization_id: org.id, user_id: user.id}
+      attrs = %{
+        name: "",
+        organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
+        user_id: user.id
+      }
+
       assert {:error, changeset} = Flows.create_flow(attrs)
       assert %{name: _} = errors_on(changeset)
     end
 
-    test "rejects duplicate slug within org", %{user: user, org: org} do
-      attrs = %{name: "Duplicate", organization_id: org.id, user_id: user.id}
+    test "rejects duplicate slug within project", %{user: user, org: org} do
+      project_id = Blackboex.Projects.get_default_project(org.id).id
+
+      attrs = %{
+        name: "Duplicate",
+        slug: "duplicate-slug",
+        organization_id: org.id,
+        project_id: project_id,
+        user_id: user.id
+      }
+
       assert {:ok, _} = Flows.create_flow(attrs)
       assert {:error, changeset} = Flows.create_flow(attrs)
-      assert %{organization_id: ["has already been taken"]} = errors_on(changeset)
+      assert %{project_id: ["has already been taken"]} = errors_on(changeset)
     end
 
     test "allows same slug in different orgs", %{user: user, org: org} do
       org2 = org_fixture(%{user: user})
-      attrs1 = %{name: "Same Name", organization_id: org.id, user_id: user.id}
-      attrs2 = %{name: "Same Name", organization_id: org2.id, user_id: user.id}
+
+      attrs1 = %{
+        name: "Same Name",
+        organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
+        user_id: user.id
+      }
+
+      attrs2 = %{
+        name: "Same Name",
+        organization_id: org2.id,
+        project_id: Blackboex.Projects.get_default_project(org2.id).id,
+        user_id: user.id
+      }
+
       assert {:ok, _} = Flows.create_flow(attrs1)
       assert {:ok, _} = Flows.create_flow(attrs2)
     end
@@ -159,7 +199,13 @@ defmodule Blackboex.FlowsTest do
 
   describe "webhook_token" do
     test "auto-generates webhook_token on create", %{user: user, org: org} do
-      attrs = %{name: "Token Flow", organization_id: org.id, user_id: user.id}
+      attrs = %{
+        name: "Token Flow",
+        organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
+        user_id: user.id
+      }
+
       assert {:ok, flow} = Flows.create_flow(attrs)
       assert is_binary(flow.webhook_token)
       assert String.length(flow.webhook_token) == 32
@@ -167,10 +213,20 @@ defmodule Blackboex.FlowsTest do
 
     test "generates unique tokens for different flows", %{user: user, org: org} do
       assert {:ok, flow1} =
-               Flows.create_flow(%{name: "Flow 1", organization_id: org.id, user_id: user.id})
+               Flows.create_flow(%{
+                 name: "Flow 1",
+                 organization_id: org.id,
+                 project_id: Blackboex.Projects.get_default_project(org.id).id,
+                 user_id: user.id
+               })
 
       assert {:ok, flow2} =
-               Flows.create_flow(%{name: "Flow 2", organization_id: org.id, user_id: user.id})
+               Flows.create_flow(%{
+                 name: "Flow 2",
+                 organization_id: org.id,
+                 project_id: Blackboex.Projects.get_default_project(org.id).id,
+                 user_id: user.id
+               })
 
       refute flow1.webhook_token == flow2.webhook_token
     end
@@ -227,7 +283,13 @@ defmodule Blackboex.FlowsTest do
 
   describe "create_flow_from_template/2" do
     test "creates flow with template definition", %{user: user, org: org} do
-      attrs = %{name: "From Template", organization_id: org.id, user_id: user.id}
+      attrs = %{
+        name: "From Template",
+        organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
+        user_id: user.id
+      }
+
       assert {:ok, flow} = Flows.create_flow_from_template(attrs, "hello_world")
       assert flow.name == "From Template"
       assert flow.status == "draft"
@@ -237,7 +299,13 @@ defmodule Blackboex.FlowsTest do
     end
 
     test "returns error for unknown template", %{user: user, org: org} do
-      attrs = %{name: "Bad Template", organization_id: org.id, user_id: user.id}
+      attrs = %{
+        name: "Bad Template",
+        organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
+        user_id: user.id
+      }
+
       assert {:error, :template_not_found} = Flows.create_flow_from_template(attrs, "nonexistent")
     end
   end

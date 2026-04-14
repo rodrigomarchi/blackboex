@@ -22,6 +22,7 @@ defmodule Blackboex.Apis.ApiKey do
 
     belongs_to :api, Blackboex.Apis.Api
     belongs_to :organization, Blackboex.Organizations.Organization
+    belongs_to :project, Blackboex.Projects.Project
 
     timestamps()
   end
@@ -38,9 +39,10 @@ defmodule Blackboex.Apis.ApiKey do
       :revoked_at,
       :rate_limit,
       :api_id,
-      :organization_id
+      :organization_id,
+      :project_id
     ])
-    |> validate_required([:key_hash, :key_prefix, :api_id, :organization_id])
+    |> validate_required([:key_hash, :key_prefix, :api_id, :organization_id, :project_id])
     |> validate_length(:label, max: 200)
     |> validate_length(:key_prefix, max: 20)
     |> validate_number(:rate_limit, greater_than: 0)

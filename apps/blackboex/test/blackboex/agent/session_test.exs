@@ -23,10 +23,11 @@ defmodule Blackboex.Agent.SessionTest do
       Apis.create_api(%{
         name: "session-test-api-#{System.unique_integer([:positive])}",
         organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
         user_id: user.id
       })
 
-    conversation = conversation_fixture(api.id, org.id)
+    conversation = conversation_fixture(api.id, org.id, api.project_id)
 
     run =
       run_fixture(%{
@@ -34,6 +35,7 @@ defmodule Blackboex.Agent.SessionTest do
         api_id: api.id,
         user_id: user.id,
         organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
         trigger_message: "test prompt"
       })
 
@@ -52,6 +54,7 @@ defmodule Blackboex.Agent.SessionTest do
       trigger_message: "test prompt",
       user_id: user.id,
       organization_id: org.id,
+      project_id: Blackboex.Projects.get_default_project(org.id).id,
       current_code: nil,
       current_tests: nil
     }
@@ -1653,6 +1656,7 @@ defmodule Blackboex.Agent.SessionTest do
         Apis.create_api(%{
           name: "nil-source-api-#{System.unique_integer([:positive])}",
           organization_id: context.org.id,
+          project_id: Blackboex.Projects.get_default_project(context.org.id).id,
           user_id: context.user.id
         })
 
@@ -1694,6 +1698,7 @@ defmodule Blackboex.Agent.SessionTest do
         Apis.create_api(%{
           name: "empty-source-api-#{System.unique_integer([:positive])}",
           organization_id: context.org.id,
+          project_id: Blackboex.Projects.get_default_project(context.org.id).id,
           user_id: context.user.id
         })
 

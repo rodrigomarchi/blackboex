@@ -24,6 +24,7 @@ defmodule BlackboexWeb.PublicApiControllerTest do
           visibility: "public",
           requires_auth: false,
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 
@@ -48,6 +49,7 @@ defmodule BlackboexWeb.PublicApiControllerTest do
           status: "published",
           visibility: "private",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 
@@ -60,6 +62,7 @@ defmodule BlackboexWeb.PublicApiControllerTest do
         Apis.create_api(%{
           name: "Draft API",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 
@@ -85,6 +88,7 @@ defmodule BlackboexWeb.PublicApiControllerTest do
           status: "published",
           visibility: "public",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 
@@ -106,6 +110,7 @@ defmodule BlackboexWeb.PublicApiControllerTest do
           visibility: "public",
           requires_auth: true,
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 
@@ -120,6 +125,41 @@ defmodule BlackboexWeb.PublicApiControllerTest do
       conn = get(conn, ~p"/p/#{org.slug}/#{api.slug}")
       assert html_response(conn, 200) =~ "API Key required"
       assert html_response(conn, 200) =~ "YOUR_API_KEY"
+    end
+  end
+
+  describe "GET /p/:org_slug/:project_slug/:api_slug" do
+    setup %{user: user, org: org} do
+      project = Blackboex.Projects.get_default_project(org.id)
+
+      {:ok, api} =
+        Apis.create_api(%{
+          name: "Project Public API",
+          description: "A project-scoped API",
+          status: "published",
+          visibility: "public",
+          requires_auth: false,
+          organization_id: org.id,
+          project_id: project.id,
+          user_id: user.id
+        })
+
+      %{project: project, api: api}
+    end
+
+    test "retorna 200 para API publica com project slug", %{
+      conn: conn,
+      org: org,
+      project: project,
+      api: api
+    } do
+      conn = get(conn, "/p/#{org.slug}/#{project.slug}/#{api.slug}")
+      assert html_response(conn, 200) =~ api.name
+    end
+
+    test "retorna 404 para project slug invalido", %{conn: conn, org: org, api: api} do
+      conn = get(conn, "/p/#{org.slug}/nonexistent-project/#{api.slug}")
+      assert conn.status == 404
     end
   end
 end

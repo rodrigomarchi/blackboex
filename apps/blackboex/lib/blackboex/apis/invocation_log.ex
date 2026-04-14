@@ -22,6 +22,7 @@ defmodule Blackboex.Apis.InvocationLog do
 
     belongs_to :api, Blackboex.Apis.Api
     belongs_to :api_key, Blackboex.Apis.ApiKey
+    belongs_to :project, Blackboex.Projects.Project
 
     timestamps(updated_at: false)
   end
@@ -32,6 +33,7 @@ defmodule Blackboex.Apis.InvocationLog do
     |> cast(attrs, [
       :api_id,
       :api_key_id,
+      :project_id,
       :method,
       :path,
       :status_code,
@@ -41,7 +43,7 @@ defmodule Blackboex.Apis.InvocationLog do
       :ip_address,
       :error_message
     ])
-    |> validate_required([:api_id, :method])
+    |> validate_required([:api_id, :project_id, :method])
     |> validate_length(:method, max: 10)
     |> validate_length(:path, max: 2048)
     |> validate_length(:ip_address, max: 45)

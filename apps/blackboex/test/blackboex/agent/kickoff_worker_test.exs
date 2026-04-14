@@ -16,6 +16,7 @@ defmodule Blackboex.Agent.KickoffWorkerTest do
         slug: "kw-api-#{System.unique_integer([:positive])}",
         template_type: "computation",
         organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
         user_id: user.id
       })
 
@@ -56,7 +57,7 @@ defmodule Blackboex.Agent.KickoffWorkerTest do
 
   describe "perform/1" do
     test "creates conversation and run records", %{user: user, org: org, api: api} do
-      job = build_job(api.id, org.id, user.id)
+      job = build_job(api.id, org.id, user.id, api.project_id)
 
       # Subscribe to PubSub to verify broadcast
       Phoenix.PubSub.subscribe(Blackboex.PubSub, "api:#{api.id}")
@@ -80,10 +81,21 @@ defmodule Blackboex.Agent.KickoffWorkerTest do
       assert run.trigger_message == "Generate a calculator API"
     end
 
+    test "propaga project_id ao criar run", %{user: user, org: org, api: api} do
+      job = build_job(api.id, org.id, user.id, api.project_id)
+      _result = KickoffWorker.perform(job)
+
+      conversation = Conversations.get_conversation_by_api(api.id)
+      runs = Conversations.list_runs(conversation.id)
+
+      run = hd(runs)
+      assert run.project_id == api.project_id
+    end
+
     test "broadcasts agent_run_started via PubSub", %{user: user, org: org, api: api} do
       Phoenix.PubSub.subscribe(Blackboex.PubSub, "api:#{api.id}")
 
-      job = build_job(api.id, org.id, user.id)
+      job = build_job(api.id, org.id, user.id, api.project_id)
       _result = KickoffWorker.perform(job)
 
       assert_receive {:agent_run_started, %{run_id: run_id, run_type: "generation"}}
@@ -91,7 +103,7 @@ defmodule Blackboex.Agent.KickoffWorkerTest do
     end
 
     test "persists initial user_message event", %{user: user, org: org, api: api} do
-      job = build_job(api.id, org.id, user.id)
+      job = build_job(api.id, org.id, user.id, api.project_id)
       _result = KickoffWorker.perform(job)
 
       conversation = Conversations.get_conversation_by_api(api.id)
@@ -114,7 +126,7 @@ defmodule Blackboex.Agent.KickoffWorkerTest do
       api: api
     } do
       job =
-        build_job(api.id, org.id, user.id, %{
+        build_job(api.id, org.id, user.id, api.project_id, %{
           "current_code" => "def handle(p), do: p",
           "current_tests" => "test \"it works\" do end"
         })
@@ -154,12 +166,13 @@ defmodule Blackboex.Agent.KickoffWorkerTest do
   # Helpers
   # ──────────────────────────────────────────────────────────────
 
-  defp build_job(api_id, org_id, user_id, extra \\ %{}) do
+  defp build_job(api_id, org_id, user_id, project_id, extra \\ %{}) do
     args =
       Map.merge(
         %{
           "api_id" => api_id,
           "organization_id" => org_id,
+          "project_id" => project_id,
           "user_id" => user_id,
           "run_type" => "generation",
           "trigger_message" => "Generate a calculator API"

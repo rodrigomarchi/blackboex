@@ -12,13 +12,17 @@ defmodule Blackboex.Conversations do
 
   # ── Conversations ──────────────────────────────────────────────
 
-  @spec get_or_create_conversation(String.t(), String.t()) ::
+  @spec get_or_create_conversation(String.t(), String.t(), String.t()) ::
           {:ok, Conversation.t()} | {:error, Ecto.Changeset.t()}
-  def get_or_create_conversation(api_id, organization_id) do
+  def get_or_create_conversation(api_id, organization_id, project_id) do
     case Repo.get_by(Conversation, api_id: api_id) do
       nil ->
         %Conversation{}
-        |> Conversation.changeset(%{api_id: api_id, organization_id: organization_id})
+        |> Conversation.changeset(%{
+          api_id: api_id,
+          organization_id: organization_id,
+          project_id: project_id
+        })
         |> Repo.insert()
 
       conversation ->

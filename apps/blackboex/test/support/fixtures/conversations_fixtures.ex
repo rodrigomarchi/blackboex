@@ -10,10 +10,10 @@ defmodule Blackboex.ConversationsFixtures do
 
   Returns the conversation struct.
   """
-  @spec conversation_fixture(Ecto.UUID.t(), Ecto.UUID.t()) ::
+  @spec conversation_fixture(Ecto.UUID.t(), Ecto.UUID.t(), Ecto.UUID.t()) ::
           Blackboex.Conversations.Conversation.t()
-  def conversation_fixture(api_id, org_id) do
-    {:ok, conversation} = Conversations.get_or_create_conversation(api_id, org_id)
+  def conversation_fixture(api_id, org_id, project_id) do
+    {:ok, conversation} = Conversations.get_or_create_conversation(api_id, org_id, project_id)
     conversation
   end
 
@@ -37,6 +37,20 @@ defmodule Blackboex.ConversationsFixtures do
   """
   @spec run_fixture(map()) :: Blackboex.Conversations.Run.t()
   def run_fixture(attrs) do
+    attrs =
+      if Map.has_key?(attrs, :project_id) do
+        attrs
+      else
+        case attrs[:api_id] do
+          nil ->
+            attrs
+
+          api_id ->
+            api = Blackboex.Repo.get!(Blackboex.Apis.Api, api_id)
+            Map.put(attrs, :project_id, api.project_id)
+        end
+      end
+
     {:ok, run} =
       Conversations.create_run(
         Map.merge(

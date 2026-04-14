@@ -19,6 +19,7 @@ defmodule BlackboexWeb.FlowLive.IndexTest do
         Blackboex.Flows.create_flow(%{
           name: "My Test Flow",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 
@@ -45,6 +46,7 @@ defmodule BlackboexWeb.FlowLive.IndexTest do
           name: "Described Flow",
           description: "Processes incoming webhooks",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 
@@ -59,6 +61,7 @@ defmodule BlackboexWeb.FlowLive.IndexTest do
         Blackboex.Flows.create_flow(%{
           name: "Delete Me",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 
@@ -120,6 +123,7 @@ defmodule BlackboexWeb.FlowLive.IndexTest do
         Blackboex.Flows.create_flow(%{
           name: "Payment Flow",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 
@@ -127,6 +131,7 @@ defmodule BlackboexWeb.FlowLive.IndexTest do
         Blackboex.Flows.create_flow(%{
           name: "Auth Flow",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 

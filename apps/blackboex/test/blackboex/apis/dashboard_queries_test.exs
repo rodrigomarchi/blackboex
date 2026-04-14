@@ -17,6 +17,7 @@ defmodule Blackboex.Apis.DashboardQueriesTest do
         slug: "test-api-#{System.unique_integer([:positive])}",
         template_type: "computation",
         organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
         user_id: user.id
       })
 
@@ -45,6 +46,7 @@ defmodule Blackboex.Apis.DashboardQueriesTest do
           slug: "api-2-#{System.unique_integer([:positive])}",
           template_type: "computation",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 
@@ -83,6 +85,7 @@ defmodule Blackboex.Apis.DashboardQueriesTest do
           slug: "other-#{System.unique_integer([:positive])}",
           template_type: "computation",
           organization_id: other_org.id,
+          project_id: Blackboex.Projects.get_default_project(other_org.id).id,
           user_id: other_user.id
         })
 
@@ -127,6 +130,7 @@ defmodule Blackboex.Apis.DashboardQueriesTest do
           slug: "api-limit-#{i}-#{System.unique_integer([:positive])}",
           template_type: "computation",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
       end
@@ -142,6 +146,7 @@ defmodule Blackboex.Apis.DashboardQueriesTest do
           slug: "calc-#{System.unique_integer([:positive])}",
           template_type: "computation",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 
@@ -157,6 +162,7 @@ defmodule Blackboex.Apis.DashboardQueriesTest do
           slug: "upper-#{System.unique_integer([:positive])}",
           template_type: "computation",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 
@@ -259,6 +265,7 @@ defmodule Blackboex.Apis.DashboardQueriesTest do
             slug: "top-#{i}-#{System.unique_integer([:positive])}",
             template_type: "computation",
             organization_id: org.id,
+            project_id: Blackboex.Projects.get_default_project(org.id).id,
             user_id: user.id
           })
 
@@ -305,6 +312,7 @@ defmodule Blackboex.Apis.DashboardQueriesTest do
 
       daily_usage_fixture(%{
         organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
         date: today,
         llm_generations: 10,
         tokens_input: 1000,
@@ -314,6 +322,7 @@ defmodule Blackboex.Apis.DashboardQueriesTest do
 
       daily_usage_fixture(%{
         organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
         date: yesterday,
         llm_generations: 5,
         tokens_input: 600,
@@ -333,6 +342,7 @@ defmodule Blackboex.Apis.DashboardQueriesTest do
 
       daily_usage_fixture(%{
         organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
         date: old_date,
         llm_generations: 100,
         tokens_input: 9999,

@@ -21,11 +21,6 @@ defmodule BlackboexWeb.RouterTest do
       assert html =~ "Billing" or html =~ "Manage" or html =~ "dashboard"
     end
 
-    test "GET /settings renders settings page", %{conn: conn} do
-      {:ok, _lv, html} = live(conn, ~p"/settings")
-      assert html =~ "Settings" or html =~ "settings"
-    end
-
     test "GET /api-keys renders api keys index", %{conn: conn} do
       {:ok, _lv, html} = live(conn, ~p"/api-keys")
       assert html =~ "API Keys" or html =~ "api-keys" or html =~ "Keys"

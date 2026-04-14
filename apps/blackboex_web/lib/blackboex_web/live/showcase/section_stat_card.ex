@@ -6,7 +6,7 @@ defmodule BlackboexWeb.Showcase.Sections.StatCard do
   import BlackboexWeb.Components.Shared.StatCard
 
   @code_href ~S"""
-  <.stat_card label="APIs" value="8" icon="hero-cube" href={~p"/showcase/overview"} />
+  <.stat_card label="APIs" value="8" icon="hero-cube" href={"/showcase/overview"} />
   """
 
   def render(assigns) do
@@ -37,9 +37,9 @@ defmodule BlackboexWeb.Showcase.Sections.StatCard do
 
       <.showcase_block title="With href (clickable link)" code={@code_href}>
         <div class="grid grid-cols-3 gap-4">
-          <.stat_card label="APIs" value="8" icon="hero-cube" href={~p"/showcase/button"} />
-          <.stat_card label="Flows" value="3" icon="hero-arrow-path" href={~p"/showcase/badge"} />
-          <.stat_card label="Keys" value="12" icon="hero-key" href={~p"/showcase/card"} />
+          <.stat_card label="APIs" value="8" icon="hero-cube" href="/showcase/button" />
+          <.stat_card label="Flows" value="3" icon="hero-arrow-path" href="/showcase/badge" />
+          <.stat_card label="Keys" value="12" icon="hero-key" href="/showcase/card" />
         </div>
         <p class="mt-2 text-xs text-muted-foreground">
           When href is set, the card renders as a &lt;.link navigate=...&gt; with hover border highlight.

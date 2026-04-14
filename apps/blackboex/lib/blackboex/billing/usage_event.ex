@@ -18,6 +18,7 @@ defmodule Blackboex.Billing.UsageEvent do
   @foreign_key_type :binary_id
   schema "usage_events" do
     belongs_to :organization, Organization
+    field :project_id, :binary_id
     field :event_type, :string
     field :metadata, :map, default: %{}
 
@@ -29,7 +30,7 @@ defmodule Blackboex.Billing.UsageEvent do
   @spec changeset(t(), map()) :: Ecto.Changeset.t()
   def changeset(event, attrs) do
     event
-    |> cast(attrs, [:organization_id, :event_type, :metadata])
+    |> cast(attrs, [:organization_id, :project_id, :event_type, :metadata])
     |> validate_required([:organization_id, :event_type])
     |> validate_inclusion(:event_type, @valid_event_types)
     |> validate_metadata_size()

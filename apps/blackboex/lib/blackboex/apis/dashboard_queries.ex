@@ -91,6 +91,41 @@ defmodule Blackboex.Apis.DashboardQueries do
     end)
   end
 
+  @spec list_apis_with_stats_for_project(Ecto.UUID.t(), keyword()) :: [
+          %{
+            api: Api.t(),
+            calls_24h: non_neg_integer(),
+            errors_24h: non_neg_integer(),
+            avg_latency: float() | nil
+          }
+        ]
+  def list_apis_with_stats_for_project(project_id, opts \\ []) do
+    since = DateTime.add(DateTime.utc_now(), -86_400)
+    search = Keyword.get(opts, :search)
+    limit = Keyword.get(opts, :limit, 50)
+
+    query =
+      Api
+      |> where([a], a.project_id == ^project_id)
+      |> maybe_search(search)
+      |> join(:left, [a], l in InvocationLog, on: l.api_id == a.id and l.inserted_at >= ^since)
+      |> group_by([a, l], a.id)
+      |> select([a, l], %{
+        api: a,
+        calls_24h: count(l.id),
+        errors_24h: filter(count(l.id), l.status_code >= 400),
+        avg_latency: avg(l.duration_ms)
+      })
+      |> order_by([a], desc: a.inserted_at)
+      |> limit(^limit)
+
+    query
+    |> Repo.all()
+    |> Enum.map(fn row ->
+      %{row | avg_latency: normalize_latency(row.avg_latency)}
+    end)
+  end
+
   @spec search_apis(Ecto.UUID.t(), String.t()) :: [Api.t()]
   def search_apis(org_id, query) do
     Api

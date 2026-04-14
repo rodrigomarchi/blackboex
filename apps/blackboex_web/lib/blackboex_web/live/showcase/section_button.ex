@@ -41,7 +41,7 @@ defmodule BlackboexWeb.Showcase.Sections.Button do
   """
 
   @code_nav ~S"""
-  <.button variant="primary" navigate={~p"/showcase/badge"}>
+  <.button variant="primary" navigate={"/showcase/badge"}>
     Navigate to Badge
   </.button>
   """
@@ -152,7 +152,7 @@ defmodule BlackboexWeb.Showcase.Sections.Button do
 
       <.showcase_block title="As Navigation Link" code={@code_nav}>
         <div class="flex flex-wrap gap-3">
-          <.button variant="primary" navigate={~p"/showcase/badge"}>Navigate to Badge</.button>
+          <.button variant="primary" navigate="/showcase/badge">Navigate to Badge</.button>
           <.button variant="outline" href="#top">Href anchor</.button>
         </div>
       </.showcase_block>

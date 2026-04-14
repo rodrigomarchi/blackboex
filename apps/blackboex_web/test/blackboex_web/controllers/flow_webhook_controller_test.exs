@@ -91,6 +91,21 @@ defmodule BlackboexWeb.FlowWebhookControllerTest do
       resp = json_response(conn, 200)
       assert resp["execution_id"]
     end
+
+    test "FlowExecution criada tem project_id preenchido", %{flow: flow, org: _org} do
+      flow = set_flow_active(flow, "sync")
+
+      conn =
+        build_conn()
+        |> put_req_header("content-type", "application/json")
+        |> post("/webhook/#{flow.webhook_token}", %{"input" => "test"})
+
+      resp = json_response(conn, 200)
+      assert exec_id = resp["execution_id"]
+
+      execution = Blackboex.FlowExecutions.get_execution(exec_id)
+      assert execution.project_id == flow.project_id
+    end
   end
 
   defp setup_org_and_flow(_context) do

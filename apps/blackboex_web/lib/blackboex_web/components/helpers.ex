@@ -43,6 +43,19 @@ defmodule BlackboexWeb.Components.Helpers do
     for {^field, {msg, opts}} <- errors, do: translate_error({msg, opts})
   end
 
+  # Scoped path helpers for org/project-aware navigation
+
+  @doc "Builds an org-scoped path from the current scope."
+  @spec org_path(map(), String.t()) :: String.t()
+  def org_path(%{organization: org}, suffix \\ ""), do: "/orgs/#{org.slug}#{suffix}"
+
+  @doc "Builds a project-scoped path from the current scope."
+  @spec project_path(map(), String.t()) :: String.t()
+  def project_path(%{organization: org, project: project}, suffix) when not is_nil(project),
+    do: "/orgs/#{org.slug}/projects/#{project.slug}#{suffix}"
+
+  def project_path(%{organization: _org} = scope, _suffix), do: org_path(scope, "/projects")
+
   @doc "Translates Backpex interface strings."
   @spec translate_backpex({String.t(), map()}) :: String.t()
   def translate_backpex({msg, opts}) do

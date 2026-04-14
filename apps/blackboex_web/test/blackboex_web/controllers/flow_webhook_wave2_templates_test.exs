@@ -25,7 +25,12 @@ defmodule BlackboexWeb.FlowWebhookWave2TemplatesTest do
 
     {:ok, flow} =
       Flows.create_flow_from_template(
-        %{name: "Test #{template_id}", organization_id: org.id, user_id: user.id},
+        %{
+          name: "Test #{template_id}",
+          organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
+          user_id: user.id
+        },
         template_id
       )
 

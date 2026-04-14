@@ -167,12 +167,12 @@ defmodule BlackboexWeb.ShowcaseLive do
          page_title: section_title(section) <> " — Showcase"
        )}
     else
-      {:noreply, push_navigate(socket, to: ~p"/showcase/tokens")}
+      {:noreply, push_navigate(socket, to: "/showcase/tokens")}
     end
   end
 
   def handle_params(_params, _uri, socket) do
-    {:noreply, push_navigate(socket, to: ~p"/showcase/tokens")}
+    {:noreply, push_navigate(socket, to: "/showcase/tokens")}
   end
 
   @impl true
@@ -214,7 +214,7 @@ defmodule BlackboexWeb.ShowcaseLive do
             </p>
             <%= for {slug, title, _} <- @sections_by_cat[:foundation] || [] do %>
               <.link
-                navigate={~p"/showcase/#{slug}"}
+                navigate={"/showcase/#{slug}"}
                 class={[
                   "flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors",
                   @section == slug && "bg-accent text-accent-foreground font-medium",
@@ -232,7 +232,7 @@ defmodule BlackboexWeb.ShowcaseLive do
             </p>
             <%= for {slug, title, _} <- @sections_by_cat[:ui] || [] do %>
               <.link
-                navigate={~p"/showcase/#{slug}"}
+                navigate={"/showcase/#{slug}"}
                 class={[
                   "flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors",
                   @section == slug && "bg-accent text-accent-foreground font-medium",
@@ -250,7 +250,7 @@ defmodule BlackboexWeb.ShowcaseLive do
             </p>
             <%= for {slug, title, _} <- @sections_by_cat[:shared] || [] do %>
               <.link
-                navigate={~p"/showcase/#{slug}"}
+                navigate={"/showcase/#{slug}"}
                 class={[
                   "flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors",
                   @section == slug && "bg-accent text-accent-foreground font-medium",
@@ -268,7 +268,7 @@ defmodule BlackboexWeb.ShowcaseLive do
             </p>
             <%= for {slug, title, _} <- @sections_by_cat[:editor] || [] do %>
               <.link
-                navigate={~p"/showcase/#{slug}"}
+                navigate={"/showcase/#{slug}"}
                 class={[
                   "flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors",
                   @section == slug && "bg-accent text-accent-foreground font-medium",
@@ -286,7 +286,7 @@ defmodule BlackboexWeb.ShowcaseLive do
             </p>
             <%= for {slug, title, _} <- @sections_by_cat[:flow_editor] || [] do %>
               <.link
-                navigate={~p"/showcase/#{slug}"}
+                navigate={"/showcase/#{slug}"}
                 class={[
                   "flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors",
                   @section == slug && "bg-accent text-accent-foreground font-medium",

@@ -24,7 +24,7 @@ defmodule BlackboexWeb.Showcase.Sections.DataTable do
   @code_row_click ~S"""
   <%!-- row_click: makes each row clickable --%>
   <.table id="clickable" rows={@rows}
-    row_click={fn row -> JS.navigate(~p"/showcase/button") end}>
+    row_click={fn row -> JS.navigate("/showcase/button") end}>
     <:col :let={row} label="Name">{row.name}</:col>
   </.table>
 
@@ -70,7 +70,7 @@ defmodule BlackboexWeb.Showcase.Sections.DataTable do
         <.table
           id="showcase-click-table"
           rows={@rows}
-          row_click={fn _row -> JS.navigate(~p"/showcase/button") end}
+          row_click={fn _row -> JS.navigate("/showcase/button") end}
         >
           <:col :let={row} label="Name">{row.name}</:col>
           <:col :let={row} label="Status">{row.status}</:col>

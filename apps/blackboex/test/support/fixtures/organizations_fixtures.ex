@@ -53,7 +53,8 @@ defmodule Blackboex.OrganizationsFixtures do
   @spec create_user_and_org(map()) :: map()
   def create_user_and_org(_context \\ %{}) do
     {user, org} = user_and_org_fixture()
-    %{user: user, org: org}
+    project = Blackboex.Projects.get_default_project(org.id)
+    %{user: user, org: org, project: project}
   end
 
   @doc """
@@ -66,6 +67,28 @@ defmodule Blackboex.OrganizationsFixtures do
   @spec create_org(map()) :: map()
   def create_org(%{user: user}) do
     org = org_fixture(%{user: user})
-    %{org: org}
+    project = Blackboex.Projects.get_default_project(org.id)
+    %{org: org, project: project}
+  end
+
+  @doc """
+  Creates an organization membership for an existing org and user.
+
+  ## Options
+
+    * `:org` - the organization (default: new org via org_fixture)
+    * `:user` - the user to add (default: new user via user_fixture)
+    * `:role` - membership role (default: :member)
+
+  Returns the membership struct with user preloaded.
+  """
+  @spec org_member_fixture(map()) :: Blackboex.Organizations.Membership.t()
+  def org_member_fixture(attrs \\ %{}) do
+    org = attrs[:org] || org_fixture()
+    user = attrs[:user] || Blackboex.AccountsFixtures.user_fixture()
+    role = attrs[:role] || :member
+
+    {:ok, membership} = Organizations.add_member(org, user, role)
+    membership
   end
 end

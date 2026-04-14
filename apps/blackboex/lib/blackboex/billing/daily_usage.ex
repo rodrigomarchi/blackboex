@@ -15,6 +15,7 @@ defmodule Blackboex.Billing.DailyUsage do
   @foreign_key_type :binary_id
   schema "daily_usage" do
     belongs_to :organization, Organization
+    field :project_id, :binary_id
     field :date, :date
     field :api_invocations, :integer, default: 0
     field :llm_generations, :integer, default: 0
@@ -30,6 +31,7 @@ defmodule Blackboex.Billing.DailyUsage do
     daily_usage
     |> cast(attrs, [
       :organization_id,
+      :project_id,
       :date,
       :api_invocations,
       :llm_generations,
@@ -43,7 +45,7 @@ defmodule Blackboex.Billing.DailyUsage do
     |> validate_number(:tokens_input, greater_than_or_equal_to: 0)
     |> validate_number(:tokens_output, greater_than_or_equal_to: 0)
     |> validate_number(:llm_cost_cents, greater_than_or_equal_to: 0)
-    |> unique_constraint([:organization_id, :date])
+    |> unique_constraint([:organization_id, :project_id, :date])
     |> foreign_key_constraint(:organization_id)
   end
 

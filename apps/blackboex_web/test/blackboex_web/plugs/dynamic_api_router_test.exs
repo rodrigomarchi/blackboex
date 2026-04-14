@@ -35,6 +35,7 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouterTest do
       slug: "calculator",
       template_type: "computation",
       organization_id: org.id,
+      project_id: Blackboex.Projects.get_default_project(org.id).id,
       user_id: user.id
     }
 
@@ -83,6 +84,7 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouterTest do
           slug: "draft-api",
           template_type: "computation",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 
@@ -333,6 +335,7 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouterTest do
           slug: "unregistered-api",
           template_type: "computation",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 
@@ -425,6 +428,7 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouterTest do
         slug: "published-api",
         template_type: "computation",
         organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
         user_id: user.id,
         requires_auth: true
       }
@@ -521,6 +525,7 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouterTest do
         Keys.create_key(api, %{
           label: "Expired",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           expires_at: DateTime.add(DateTime.utc_now(), -3600)
         })
 
@@ -636,6 +641,7 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouterTest do
           slug: "limited-api",
           template_type: "computation",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id,
           requires_auth: false
         })
@@ -673,7 +679,11 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouterTest do
       end)
 
       Enum.each(1..3, fn _ ->
-        usage_event_fixture(%{organization_id: org.id, event_type: "api_invocation"})
+        usage_event_fixture(%{
+          organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
+          event_type: "api_invocation"
+        })
       end)
 
       conn = get(conn, "/api/testorg/limited-api")
@@ -684,6 +694,58 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouterTest do
       assert response["upgrade_url"] == "/billing"
       assert is_integer(response["current"])
       assert is_integer(response["limit"])
+    end
+  end
+
+  # ── 3-part path: /api/:org/:project/:api ──────────────────────
+
+  describe "3-part path /api/:org_slug/:project_slug/:api_slug" do
+    test "POST /api/org/project/api resolves and executes correctly", %{
+      conn: conn,
+      org: org,
+      user: user
+    } do
+      project = Blackboex.Projects.get_default_project(org.id)
+      {api, module} = create_and_compile_api(org, user)
+
+      # Re-register with project_slug so the triple-key lookup works
+      Registry.register(
+        api.id,
+        module,
+        org_slug: org.slug,
+        project_slug: project.slug,
+        slug: api.slug
+      )
+
+      conn =
+        conn
+        |> put_req_header("content-type", "application/json")
+        |> post(
+          "/api/#{org.slug}/#{project.slug}/#{api.slug}",
+          Jason.encode!(%{"a" => 3, "b" => 4})
+        )
+
+      assert json_response(conn, 200) == %{"result" => 7}
+    end
+
+    test "POST /api/org/invalid-project/api returns 404", %{conn: conn} do
+      conn =
+        conn
+        |> put_req_header("content-type", "application/json")
+        |> post("/api/testorg/nonexistent-project/calculator", Jason.encode!(%{}))
+
+      assert json_response(conn, 404) == %{"error" => "API not found"}
+    end
+
+    test "POST /api/org/project/invalid-api returns 404", %{conn: conn, org: org} do
+      project = Blackboex.Projects.get_default_project(org.id)
+
+      conn =
+        conn
+        |> put_req_header("content-type", "application/json")
+        |> post("/api/#{org.slug}/#{project.slug}/nonexistent-api", Jason.encode!(%{}))
+
+      assert json_response(conn, 404) == %{"error" => "API not found"}
     end
   end
 end

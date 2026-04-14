@@ -80,7 +80,7 @@ defmodule E2E.Phase.AllNodesDemo do
     # Create from template
     {:ok, flow} =
       Blackboex.Flows.create_flow_from_template(
-        %{name: name, organization_id: org.id, user_id: user.id},
+        %{name: name, organization_id: org.id, project_id: Blackboex.Projects.get_default_project(org.id).id, user_id: user.id},
         "all_nodes_demo"
       )
 

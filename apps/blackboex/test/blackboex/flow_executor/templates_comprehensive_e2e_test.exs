@@ -25,6 +25,7 @@ defmodule Blackboex.FlowExecutor.TemplatesComprehensiveE2eTest do
         Flows.create_flow(%{
           name: "Lead Scoring E2E",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id,
           definition: LeadScoring.definition()
         })
@@ -131,6 +132,7 @@ defmodule Blackboex.FlowExecutor.TemplatesComprehensiveE2eTest do
         Flows.create_flow(%{
           name: "Webhook Processor E2E",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id,
           definition: WebhookProcessor.definition()
         })

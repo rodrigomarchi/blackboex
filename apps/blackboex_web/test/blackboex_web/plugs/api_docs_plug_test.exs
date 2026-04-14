@@ -34,6 +34,7 @@ defmodule BlackboexWeb.Plugs.ApiDocsPlugTest do
         slug: "docs-api",
         template_type: "computation",
         organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
         user_id: user.id,
         param_schema: %{"value" => "integer"},
         example_request: %{"value" => 21},
@@ -87,6 +88,7 @@ defmodule BlackboexWeb.Plugs.ApiDocsPlugTest do
           slug: "draft-api",
           template_type: "computation",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 
@@ -158,6 +160,7 @@ defmodule BlackboexWeb.Plugs.ApiDocsPlugTest do
           slug: "xss-test",
           template_type: "computation",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 

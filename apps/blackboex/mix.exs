@@ -62,7 +62,8 @@ defmodule Blackboex.MixProject do
       {:ymlr, "~> 5.1"},
       {:mox, "~> 1.0", only: :test},
       {:langchain, "~> 0.6.2"},
-      {:reactor, "~> 1.0"}
+      {:reactor, "~> 1.0"},
+      {:nanoid, "~> 2.1"}
     ]
   end
 

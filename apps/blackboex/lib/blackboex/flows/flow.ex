@@ -24,6 +24,7 @@ defmodule Blackboex.Flows.Flow do
     field :webhook_token, :string
 
     belongs_to :organization, Blackboex.Organizations.Organization
+    belongs_to :project, Blackboex.Projects.Project
     belongs_to :user, Blackboex.Accounts.User, type: :id
 
     timestamps()
@@ -32,11 +33,20 @@ defmodule Blackboex.Flows.Flow do
   @spec changeset(t(), map()) :: Ecto.Changeset.t()
   def changeset(flow, attrs) do
     flow
-    |> cast(attrs, [:name, :slug, :description, :status, :definition, :organization_id, :user_id])
-    |> validate_required([:name])
+    |> cast(attrs, [
+      :name,
+      :slug,
+      :description,
+      :status,
+      :definition,
+      :organization_id,
+      :project_id,
+      :user_id
+    ])
+    |> validate_required([:name, :project_id])
     |> validate_length(:name, min: 1, max: 200)
     |> validate_length(:description, max: 10_000)
-    |> maybe_generate_slug()
+    |> maybe_generate_slug_with_hash()
     |> validate_required([:slug])
     |> validate_length(:slug, min: 1, max: 100)
     |> validate_format(:slug, ~r/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/,
@@ -45,8 +55,20 @@ defmodule Blackboex.Flows.Flow do
     )
     |> validate_inclusion(:status, @valid_statuses)
     |> maybe_generate_webhook_token()
-    |> unique_constraint([:organization_id, :slug])
+    |> unique_constraint([:project_id, :slug])
     |> unique_constraint(:webhook_token)
+  end
+
+  @doc """
+  Update changeset for flows. Slug is immutable after creation.
+  """
+  @spec update_changeset(t(), map()) :: Ecto.Changeset.t()
+  def update_changeset(flow, attrs) do
+    flow
+    |> cast(attrs, [:name, :description, :status, :definition])
+    |> validate_length(:name, min: 1, max: 200)
+    |> validate_length(:description, max: 10_000)
+    |> validate_inclusion(:status, @valid_statuses)
   end
 
   @spec webhook_token_changeset(t()) :: Ecto.Changeset.t()
@@ -91,12 +113,12 @@ defmodule Blackboex.Flows.Flow do
     :crypto.strong_rand_bytes(24) |> Base.url_encode64(padding: false)
   end
 
-  defp maybe_generate_slug(changeset) do
+  defp maybe_generate_slug_with_hash(changeset) do
     case get_change(changeset, :slug) do
       nil ->
         case get_change(changeset, :name) do
           nil -> changeset
-          name -> put_change(changeset, :slug, slugify(name))
+          name -> put_change(changeset, :slug, generate_slug_with_hash(name))
         end
 
       _slug ->
@@ -104,11 +126,15 @@ defmodule Blackboex.Flows.Flow do
     end
   end
 
-  defp slugify(name) do
-    name
-    |> String.downcase()
-    |> String.replace(~r/[^a-z0-9\s-]/, "")
-    |> String.replace(~r/[\s]+/, "-")
-    |> String.trim("-")
+  defp generate_slug_with_hash(name) do
+    base =
+      name
+      |> String.downcase()
+      |> String.replace(~r/[^a-z0-9\s-]/, "")
+      |> String.replace(~r/[\s]+/, "-")
+      |> String.trim("-")
+
+    hash = Nanoid.generate(6, "abcdefghijklmnopqrstuvwxyz0123456789")
+    "#{base}-#{hash}"
   end
 end

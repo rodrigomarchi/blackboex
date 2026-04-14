@@ -15,8 +15,21 @@ defmodule BlackboexWeb.ApiLive.Edit.Shared do
           {:ok, Phoenix.LiveView.Socket.t()} | {:error, Phoenix.LiveView.Socket.t()}
   def load_api(socket, params) do
     org = resolve_organization(socket, params)
+    scope = socket.assigns.current_scope
 
-    case org && Apis.get_api(org.id, params["id"]) do
+    api =
+      cond do
+        params["api_slug"] && scope.project ->
+          Apis.get_api_by_slug(scope.project.id, params["api_slug"])
+
+        params["id"] && org ->
+          Apis.get_api(org.id, params["id"])
+
+        true ->
+          nil
+      end
+
+    case api do
       nil ->
         {:error,
          socket

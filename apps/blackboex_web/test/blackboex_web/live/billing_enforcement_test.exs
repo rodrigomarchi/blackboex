@@ -22,7 +22,12 @@ defmodule BlackboexWeb.Live.BillingEnforcementTest do
     # This ensures sum_monthly_usage returns 51 >= 50 -> :limit_exceeded.
     yesterday = Date.add(Date.utc_today(), -1)
 
-    daily_usage_fixture(%{organization_id: org.id, date: yesterday, llm_generations: 51})
+    daily_usage_fixture(%{
+      organization_id: org.id,
+      project_id: Blackboex.Projects.get_default_project(org.id).id,
+      date: yesterday,
+      llm_generations: 51
+    })
 
     {:ok, api} =
       Apis.create_api(%{
@@ -30,6 +35,7 @@ defmodule BlackboexWeb.Live.BillingEnforcementTest do
         slug: "test-api",
         template_type: "computation",
         organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
         user_id: user.id
       })
 

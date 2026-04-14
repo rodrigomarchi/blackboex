@@ -31,9 +31,28 @@ defmodule Blackboex.Apis.Analytics do
   end
 
   defp persist_log(attrs) do
+    attrs = maybe_resolve_project(attrs)
+
     case %InvocationLog{} |> InvocationLog.changeset(attrs) |> Repo.insert() do
       {:ok, _log} -> :ok
       {:error, changeset} -> Logger.warning("Failed to log invocation: #{inspect(changeset)}")
+    end
+  end
+
+  defp maybe_resolve_project(attrs) do
+    if Map.has_key?(attrs, :project_id) or Map.has_key?(attrs, "project_id") do
+      attrs
+    else
+      resolve_project_from_api(attrs)
+    end
+  end
+
+  defp resolve_project_from_api(attrs) do
+    api_id = attrs[:api_id] || attrs["api_id"]
+
+    case api_id && Repo.get(Blackboex.Apis.Api, api_id) do
+      %Blackboex.Apis.Api{} = api -> Map.put(attrs, :project_id, api.project_id)
+      _ -> attrs
     end
   end
 

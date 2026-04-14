@@ -70,6 +70,27 @@ defmodule Blackboex.Apis.Registry do
     :shutting_down -> {:error, :shutting_down}
   end
 
+  @doc """
+  Looks up a registered API by `{org_slug, project_slug, api_slug}` triple key.
+  """
+  @spec lookup_by_path(String.t(), String.t(), String.t()) ::
+          {:ok, module(), metadata()} | {:error, :not_found | :shutting_down}
+  def lookup_by_path(org_slug, project_slug, api_slug) do
+    if shutting_down?(), do: throw(:shutting_down)
+
+    case :ets.lookup(@path_table, {org_slug, project_slug, api_slug}) do
+      [{{^org_slug, ^project_slug, ^api_slug}, api_id}] ->
+        lookup(api_id)
+
+      [] ->
+        {:error, :not_found}
+    end
+  rescue
+    ArgumentError -> {:error, :not_found}
+  catch
+    :shutting_down -> {:error, :shutting_down}
+  end
+
   @spec unregister(Ecto.UUID.t()) :: :ok
   def unregister(api_id) do
     GenServer.call(__MODULE__, {:unregister, api_id})
@@ -134,6 +155,7 @@ defmodule Blackboex.Apis.Registry do
   @impl true
   def handle_call({:register, api_id, module, opts}, _from, state) do
     org_slug = Keyword.get(opts, :org_slug)
+    project_slug = Keyword.get(opts, :project_slug)
     slug = Keyword.get(opts, :slug)
 
     metadata =
@@ -146,7 +168,13 @@ defmodule Blackboex.Apis.Registry do
     :ets.insert(@table, {api_id, {module, metadata}})
 
     if org_slug && slug do
+      # Legacy 2-part key for backward compat
       :ets.insert(@path_table, {{org_slug, slug}, api_id})
+
+      # 3-part key when project_slug is provided
+      if project_slug do
+        :ets.insert(@path_table, {{org_slug, project_slug, slug}, api_id})
+      end
     end
 
     {:reply, :ok, state}
@@ -175,7 +203,7 @@ defmodule Blackboex.Apis.Registry do
     apis =
       Api
       |> where([a], a.status in ["compiled", "published"])
-      |> preload(:organization)
+      |> preload([:organization, :project])
       |> Repo.all()
 
     Enum.each(apis, &maybe_register_api/1)
@@ -231,8 +259,16 @@ defmodule Blackboex.Apis.Registry do
     end
   end
 
-  defp maybe_register_path(%{organization: %{slug: slug}} = api, _module_name) do
-    :ets.insert(@path_table, {{slug, api.slug}, api.id})
+  defp maybe_register_path(
+         %{organization: %{slug: org_slug}, project: %{slug: proj_slug}} = api,
+         _mod
+       ) do
+    :ets.insert(@path_table, {{org_slug, api.slug}, api.id})
+    :ets.insert(@path_table, {{org_slug, proj_slug, api.slug}, api.id})
+  end
+
+  defp maybe_register_path(%{organization: %{slug: org_slug}} = api, _module_name) do
+    :ets.insert(@path_table, {{org_slug, api.slug}, api.id})
   end
 
   defp maybe_register_path(_api, _module_name), do: :ok

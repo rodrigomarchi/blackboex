@@ -28,6 +28,7 @@ defmodule Blackboex.Agent.KickoffWorker do
     %{
       "api_id" => api_id,
       "organization_id" => organization_id,
+      "project_id" => project_id,
       "user_id" => user_id,
       "run_type" => run_type,
       "trigger_message" => trigger_message
@@ -37,7 +38,8 @@ defmodule Blackboex.Agent.KickoffWorker do
     current_tests = Map.get(args, "current_tests")
 
     # 1. Get or create conversation
-    {:ok, conversation} = Conversations.get_or_create_conversation(api_id, organization_id)
+    {:ok, conversation} =
+      Conversations.get_or_create_conversation(api_id, organization_id, project_id)
 
     # 2. Create run record
     {:ok, run} =
@@ -46,6 +48,7 @@ defmodule Blackboex.Agent.KickoffWorker do
         api_id: api_id,
         user_id: user_id,
         organization_id: organization_id,
+        project_id: project_id,
         run_type: run_type,
         status: "pending",
         trigger_message: trigger_message,

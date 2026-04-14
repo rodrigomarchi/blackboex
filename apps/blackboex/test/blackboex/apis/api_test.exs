@@ -10,7 +10,8 @@ defmodule Blackboex.Apis.ApiTest do
     slug: "temperature-converter",
     description: "Converts Celsius to Fahrenheit",
     template_type: "computation",
-    method: "POST"
+    method: "POST",
+    project_id: Ecto.UUID.generate()
   }
 
   describe "changeset/2" do
@@ -23,7 +24,7 @@ defmodule Blackboex.Apis.ApiTest do
       attrs = Map.delete(@valid_attrs, :slug)
       changeset = Api.changeset(%Api{}, attrs)
       assert changeset.valid?
-      assert get_change(changeset, :slug) == "temperature-converter"
+      assert get_change(changeset, :slug) =~ ~r/^temperature-converter-[a-z0-9]{6}$/
     end
 
     test "validates required fields" do

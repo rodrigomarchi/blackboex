@@ -6,6 +6,7 @@ defmodule Blackboex.Organizations do
   alias Blackboex.Accounts.User
   alias Blackboex.Audit
   alias Blackboex.Organizations.{Membership, Organization, OrganizationQueries}
+  alias Blackboex.Projects.{Project, ProjectMembership}
   alias Blackboex.Repo
   alias Ecto.Multi
 
@@ -21,6 +22,22 @@ defmodule Blackboex.Organizations do
         organization_id: org.id,
         role: :owner
       })
+    end)
+    |> Multi.insert(:project, fn %{organization: org} ->
+      Project.changeset(%Project{}, %{
+        name: "Default",
+        organization_id: org.id
+      })
+    end)
+    |> Multi.insert(:project_membership, fn %{project: project} ->
+      ProjectMembership.changeset(
+        %ProjectMembership{},
+        %{
+          project_id: project.id,
+          user_id: user.id,
+          role: :admin
+        }
+      )
     end)
     |> Repo.transaction()
   end
@@ -40,6 +57,19 @@ defmodule Blackboex.Organizations do
   @spec get_organization(Ecto.UUID.t()) :: Organization.t() | nil
   def get_organization(id) do
     Repo.get(Organization, id)
+  end
+
+  @spec get_organization_by_slug(String.t()) :: Organization.t() | nil
+  def get_organization_by_slug(slug) do
+    Repo.get_by(Organization, slug: slug)
+  end
+
+  @spec update_organization(Organization.t(), map()) ::
+          {:ok, Organization.t()} | {:error, Ecto.Changeset.t()}
+  def update_organization(%Organization{} = org, attrs) do
+    org
+    |> Organization.changeset(attrs)
+    |> Repo.update()
   end
 
   @spec add_member(Organization.t(), User.t(), atom()) ::
@@ -67,9 +97,48 @@ defmodule Blackboex.Organizations do
     end
   end
 
+  @spec remove_member(Organization.t(), Membership.t()) ::
+          {:ok, Membership.t()} | {:error, :last_owner}
+  def remove_member(%Organization{} = org, %Membership{role: :owner} = membership) do
+    import Ecto.Query, warn: false
+
+    owner_count =
+      Membership
+      |> where([m], m.organization_id == ^org.id and m.role == :owner)
+      |> Repo.aggregate(:count)
+
+    if owner_count <= 1 do
+      {:error, :last_owner}
+    else
+      Repo.delete(membership)
+    end
+  end
+
+  def remove_member(%Organization{}, %Membership{} = membership) do
+    Repo.delete(membership)
+  end
+
+  @spec update_member_role(Membership.t(), atom()) ::
+          {:ok, Membership.t()} | {:error, Ecto.Changeset.t()}
+  def update_member_role(%Membership{} = membership, role) do
+    membership
+    |> Membership.changeset(%{role: role})
+    |> Repo.update()
+  end
+
   @spec get_user_membership(Organization.t(), User.t()) :: Membership.t() | nil
   def get_user_membership(%Organization{} = org, %User{} = user) do
     Repo.get_by(Membership, user_id: user.id, organization_id: org.id)
+  end
+
+  @spec list_memberships(Organization.t()) :: [Membership.t()]
+  def list_memberships(%Organization{} = org) do
+    import Ecto.Query, warn: false
+
+    Membership
+    |> where([m], m.organization_id == ^org.id)
+    |> preload(:user)
+    |> Repo.all()
   end
 
   @doc """

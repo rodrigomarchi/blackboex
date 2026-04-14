@@ -14,6 +14,7 @@ defmodule Blackboex.Apis.KeysTest do
       Apis.create_api(%{
         name: "Test API",
         organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
         user_id: user.id
       })
 
@@ -71,6 +72,7 @@ defmodule Blackboex.Apis.KeysTest do
         Keys.create_key(api, %{
           label: "Expired",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           expires_at: DateTime.add(DateTime.utc_now(), -3600)
         })
 
@@ -95,6 +97,7 @@ defmodule Blackboex.Apis.KeysTest do
         Apis.create_api(%{
           name: "Other API",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 
@@ -190,7 +193,12 @@ defmodule Blackboex.Apis.KeysTest do
   describe "list_org_keys/1" do
     test "returns keys across multiple APIs in the same org", %{api: api, org: org, user: user} do
       {:ok, other_api} =
-        Apis.create_api(%{name: "Other API", organization_id: org.id, user_id: user.id})
+        Apis.create_api(%{
+          name: "Other API",
+          organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
+          user_id: user.id
+        })
 
       {:ok, _plain, _k1} =
         Keys.create_key(api, %{label: "Org Key 1", organization_id: org.id})
@@ -211,6 +219,7 @@ defmodule Blackboex.Apis.KeysTest do
         Apis.create_api(%{
           name: "Other Org API",
           organization_id: other_org.id,
+          project_id: Blackboex.Projects.get_default_project(other_org.id).id,
           user_id: other_user.id
         })
 

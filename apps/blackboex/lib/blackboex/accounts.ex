@@ -5,6 +5,7 @@ defmodule Blackboex.Accounts do
 
   alias Blackboex.Accounts.{User, UserNotifier, UserQueries, UserToken}
   alias Blackboex.Organizations.{Membership, Organization}
+  alias Blackboex.Projects.{Project, ProjectMembership}
   alias Blackboex.Repo
 
   ## Database getters
@@ -91,6 +92,22 @@ defmodule Blackboex.Accounts do
         organization_id: org.id,
         role: :owner
       })
+    end)
+    |> Ecto.Multi.insert(:project, fn %{organization: org} ->
+      Project.changeset(%Project{}, %{
+        name: "Default",
+        organization_id: org.id
+      })
+    end)
+    |> Ecto.Multi.insert(:project_membership, fn %{project: project, user: user} ->
+      ProjectMembership.changeset(
+        %ProjectMembership{},
+        %{
+          project_id: project.id,
+          user_id: user.id,
+          role: :admin
+        }
+      )
     end)
     |> Repo.transaction()
     |> case do

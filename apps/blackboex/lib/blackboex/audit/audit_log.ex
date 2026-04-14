@@ -22,6 +22,7 @@ defmodule Blackboex.Audit.AuditLog do
     field :resource_id, :string
     field :metadata, :map, default: %{}
     field :ip_address, :string
+    field :project_id, :binary_id
 
     timestamps(updated_at: false)
   end
@@ -40,6 +41,7 @@ defmodule Blackboex.Audit.AuditLog do
     |> cast(attrs, [
       :user_id,
       :organization_id,
+      :project_id,
       :action,
       :resource_type,
       :resource_id,

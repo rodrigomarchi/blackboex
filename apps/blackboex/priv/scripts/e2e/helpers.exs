@@ -113,7 +113,7 @@ defmodule E2E.Helpers do
 
     {:ok, flow} =
       Blackboex.Flows.create_flow_from_template(
-        %{name: name, organization_id: org.id, user_id: user.id},
+        %{name: name, organization_id: org.id, project_id: Blackboex.Projects.get_default_project(org.id).id, user_id: user.id},
         template_id
       )
 

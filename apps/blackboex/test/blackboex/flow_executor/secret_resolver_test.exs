@@ -10,7 +10,12 @@ defmodule Blackboex.FlowExecutor.SecretResolverTest do
 
   describe "resolve/2" do
     test "resolves a single secret placeholder", %{org: org} do
-      flow_secret_fixture(%{organization_id: org.id, name: "openai_key", value: "sk-real-123"})
+      flow_secret_fixture(%{
+        organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
+        name: "openai_key",
+        value: "sk-real-123"
+      })
 
       definition = %{
         "nodes" => %{
@@ -44,8 +49,19 @@ defmodule Blackboex.FlowExecutor.SecretResolverTest do
     end
 
     test "resolves multiple secrets in the same definition", %{org: org} do
-      flow_secret_fixture(%{organization_id: org.id, name: "key_a", value: "value_a"})
-      flow_secret_fixture(%{organization_id: org.id, name: "key_b", value: "value_b"})
+      flow_secret_fixture(%{
+        organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
+        name: "key_a",
+        value: "value_a"
+      })
+
+      flow_secret_fixture(%{
+        organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
+        name: "key_b",
+        value: "value_b"
+      })
 
       definition = %{
         "nodes" => %{
@@ -60,7 +76,12 @@ defmodule Blackboex.FlowExecutor.SecretResolverTest do
     end
 
     test "resolves secret refs in nested data values", %{org: org} do
-      flow_secret_fixture(%{organization_id: org.id, name: "token", value: "my-token"})
+      flow_secret_fixture(%{
+        organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
+        name: "token",
+        value: "my-token"
+      })
 
       definition = %{
         "nodes" => %{
@@ -81,7 +102,12 @@ defmodule Blackboex.FlowExecutor.SecretResolverTest do
     end
 
     test "resolves same secret referenced multiple times", %{org: org} do
-      flow_secret_fixture(%{organization_id: org.id, name: "shared", value: "shared_val"})
+      flow_secret_fixture(%{
+        organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
+        name: "shared",
+        value: "shared_val"
+      })
 
       definition = %{
         "nodes" => %{

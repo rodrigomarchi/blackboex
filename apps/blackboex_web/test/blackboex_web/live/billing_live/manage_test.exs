@@ -22,6 +22,7 @@ defmodule BlackboexWeb.BillingLive.ManageTest do
 
     subscription_fixture(%{
       organization_id: org.id,
+      project_id: Blackboex.Projects.get_default_project(org.id).id,
       stripe_customer_id: "cus_test123",
       plan: "pro",
       current_period_start: ~U[2026-03-01 00:00:00Z],
@@ -41,6 +42,7 @@ defmodule BlackboexWeb.BillingLive.ManageTest do
 
     subscription_fixture(%{
       organization_id: org.id,
+      project_id: Blackboex.Projects.get_default_project(org.id).id,
       stripe_customer_id: "cus_test123",
       plan: "pro",
       current_period_start: ~U[2026-03-01 00:00:00Z],
@@ -58,6 +60,7 @@ defmodule BlackboexWeb.BillingLive.ManageTest do
 
     subscription_fixture(%{
       organization_id: org.id,
+      project_id: Blackboex.Projects.get_default_project(org.id).id,
       stripe_customer_id: "cus_test123",
       plan: "pro",
       current_period_start: nil,
@@ -74,6 +77,7 @@ defmodule BlackboexWeb.BillingLive.ManageTest do
 
     subscription_fixture(%{
       organization_id: org.id,
+      project_id: Blackboex.Projects.get_default_project(org.id).id,
       stripe_customer_id: "cus_test123",
       plan: "pro",
       current_period_start: ~U[2026-03-01 00:00:00Z],
@@ -91,6 +95,7 @@ defmodule BlackboexWeb.BillingLive.ManageTest do
 
     subscription_fixture(%{
       organization_id: org.id,
+      project_id: Blackboex.Projects.get_default_project(org.id).id,
       stripe_customer_id: "cus_test123",
       plan: "pro",
       current_period_start: ~U[2026-03-01 00:00:00Z],
@@ -108,6 +113,7 @@ defmodule BlackboexWeb.BillingLive.ManageTest do
 
     subscription_fixture(%{
       organization_id: org.id,
+      project_id: Blackboex.Projects.get_default_project(org.id).id,
       stripe_customer_id: "cus_test123",
       plan: "pro",
       current_period_start: ~U[2026-03-01 00:00:00Z],
@@ -125,6 +131,7 @@ defmodule BlackboexWeb.BillingLive.ManageTest do
 
     subscription_fixture(%{
       organization_id: org.id,
+      project_id: Blackboex.Projects.get_default_project(org.id).id,
       stripe_customer_id: "cus_test123",
       plan: "pro",
       current_period_start: ~U[2026-03-01 00:00:00Z],
@@ -142,6 +149,7 @@ defmodule BlackboexWeb.BillingLive.ManageTest do
 
     subscription_fixture(%{
       organization_id: org.id,
+      project_id: Blackboex.Projects.get_default_project(org.id).id,
       stripe_customer_id: "cus_test123",
       plan: "pro",
       current_period_start: ~U[2026-03-01 00:00:00Z],
@@ -163,6 +171,7 @@ defmodule BlackboexWeb.BillingLive.ManageTest do
 
     subscription_fixture(%{
       organization_id: org.id,
+      project_id: Blackboex.Projects.get_default_project(org.id).id,
       stripe_customer_id: "cus_test123",
       plan: "pro",
       current_period_start: ~U[2026-03-01 00:00:00Z],
@@ -185,6 +194,7 @@ defmodule BlackboexWeb.BillingLive.ManageTest do
 
     subscription_fixture(%{
       organization_id: org.id,
+      project_id: Blackboex.Projects.get_default_project(org.id).id,
       stripe_customer_id: "cus_test123",
       plan: "pro",
       current_period_start: ~U[2026-03-01 00:00:00Z],
@@ -206,6 +216,7 @@ defmodule BlackboexWeb.BillingLive.ManageTest do
 
     subscription_fixture(%{
       organization_id: org.id,
+      project_id: Blackboex.Projects.get_default_project(org.id).id,
       stripe_customer_id: "cus_test123",
       plan: "pro",
       current_period_start: ~U[2026-03-01 00:00:00Z],

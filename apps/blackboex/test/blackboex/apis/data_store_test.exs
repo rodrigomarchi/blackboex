@@ -14,6 +14,7 @@ defmodule Blackboex.Apis.DataStoreTest do
         name: "Test API",
         template_type: "crud",
         organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
         user_id: user.id
       })
 
@@ -80,6 +81,7 @@ defmodule Blackboex.Apis.DataStoreTest do
           name: "API A",
           template_type: "crud",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 
@@ -88,6 +90,7 @@ defmodule Blackboex.Apis.DataStoreTest do
           name: "API B",
           template_type: "crud",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 

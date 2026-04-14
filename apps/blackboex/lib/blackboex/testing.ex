@@ -17,9 +17,28 @@ defmodule Blackboex.Testing do
 
   @spec create_test_suite(map()) :: {:ok, TestSuite.t()} | {:error, Ecto.Changeset.t()}
   def create_test_suite(attrs) do
+    attrs = maybe_resolve_project_id(attrs)
+
     %TestSuite{}
     |> TestSuite.changeset(attrs)
     |> Repo.insert()
+  end
+
+  defp maybe_resolve_project_id(attrs) do
+    if Map.has_key?(attrs, :project_id) or Map.has_key?(attrs, "project_id") do
+      attrs
+    else
+      resolve_project_id_from_api(attrs)
+    end
+  end
+
+  defp resolve_project_id_from_api(attrs) do
+    api_id = attrs[:api_id] || attrs["api_id"]
+
+    case api_id && Repo.get(Blackboex.Apis.Api, api_id) do
+      %Blackboex.Apis.Api{} = api -> Map.put(attrs, :project_id, api.project_id)
+      _ -> attrs
+    end
   end
 
   @spec update_test_suite(TestSuite.t(), map()) ::

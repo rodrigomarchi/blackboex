@@ -20,6 +20,7 @@ defmodule Blackboex.AuditTest do
                Audit.log("api.published", %{
                  user_id: user.id,
                  organization_id: org.id,
+                 project_id: Blackboex.Projects.get_default_project(org.id).id,
                  resource_type: "api",
                  resource_id: "some-api-id",
                  metadata: %{"version" => 1}

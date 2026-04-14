@@ -57,6 +57,7 @@ defmodule BlackboexWeb.ApiLive.Edit.SharedTest do
           slug: "other-api-#{System.unique_integer([:positive])}",
           template_type: "computation",
           organization_id: other_org.id,
+          project_id: Blackboex.Projects.get_default_project(other_org.id).id,
           user_id: other_user.id
         })
 

@@ -90,8 +90,13 @@ defmodule BlackboexWeb.BillingLive.Plans do
       socket = assign(socket, loading_plan: plan)
       org = socket.assigns.current_scope.organization
 
-      success_url = url(socket, ~p"/billing/manage") <> "?checkout=success"
-      cancel_url = url(socket, ~p"/billing")
+      success_url =
+        BlackboexWeb.Endpoint.url() <>
+          ~p"/billing/manage" <>
+          "?checkout=success"
+
+      cancel_url =
+        BlackboexWeb.Endpoint.url() <> ~p"/billing"
 
       case Billing.create_checkout_session(org, plan, success_url, cancel_url) do
         {:ok, %{url: url}} ->
@@ -124,7 +129,11 @@ defmodule BlackboexWeb.BillingLive.Plans do
               <.section_heading level="h1" compact>
                 Current Plan: {@usage.plan}
               </.section_heading>
-              <.button navigate={~p"/billing/manage"} variant="default" size="sm">
+              <.button
+                navigate={~p"/billing/manage"}
+                variant="default"
+                size="sm"
+              >
                 <.icon name="hero-cog-6-tooth" class="mr-1.5 size-3.5 text-slate-400" />
                 Manage Subscription
               </.button>

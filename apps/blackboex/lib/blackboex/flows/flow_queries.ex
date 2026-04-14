@@ -31,4 +31,17 @@ defmodule Blackboex.Flows.FlowQueries do
     like = "%#{term}%"
     where(query, [f], ilike(f.name, ^like) or ilike(f.description, ^like))
   end
+
+  @spec list_for_project(Ecto.UUID.t()) :: Ecto.Query.t()
+  def list_for_project(project_id) do
+    Flow
+    |> where([f], f.project_id == ^project_id)
+    |> order_by([f], desc: f.inserted_at)
+  end
+
+  @spec by_project_and_slug(Ecto.UUID.t(), String.t()) :: Ecto.Query.t()
+  def by_project_and_slug(project_id, slug) do
+    Flow
+    |> where([f], f.project_id == ^project_id and f.slug == ^slug)
+  end
 end

@@ -170,10 +170,13 @@ defmodule BlackboexWeb.FlowLive.Index do
     user = scope.user
 
     with :ok <- Policy.authorize_and_track(:flow_create, scope, org) do
+      project = Blackboex.Projects.get_default_project(org.id)
+
       attrs = %{
         name: name,
         description: if(description != "", do: description, else: nil),
         organization_id: org.id,
+        project_id: project && project.id,
         user_id: user.id
       }
 
@@ -185,7 +188,10 @@ defmodule BlackboexWeb.FlowLive.Index do
 
       case result do
         {:ok, flow} ->
-          {:noreply, push_navigate(socket, to: ~p"/flows/#{flow.id}/edit")}
+          {:noreply,
+           push_navigate(socket,
+             to: ~p"/flows/#{flow.id}/edit"
+           )}
 
         {:error, :limit_exceeded, details} ->
           {:noreply,

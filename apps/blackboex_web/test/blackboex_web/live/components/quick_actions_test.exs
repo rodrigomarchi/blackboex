@@ -21,6 +21,7 @@ defmodule BlackboexWeb.Components.QuickActionsTest do
           slug: "quick-action",
           template_type: "computation",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 
@@ -46,6 +47,7 @@ defmodule BlackboexWeb.Components.QuickActionsTest do
           slug: "crud-api",
           template_type: "crud",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 
@@ -76,6 +78,7 @@ defmodule BlackboexWeb.Components.QuickActionsTest do
           slug: "webhook-api",
           template_type: "webhook",
           organization_id: org.id,
+          project_id: Blackboex.Projects.get_default_project(org.id).id,
           user_id: user.id
         })
 

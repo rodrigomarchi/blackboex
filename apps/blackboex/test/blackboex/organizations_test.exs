@@ -81,4 +81,49 @@ defmodule Blackboex.OrganizationsTest do
       assert {:error, _changeset} = Organizations.add_member(org, owner, :admin)
     end
   end
+
+  describe "remove_member/2" do
+    test "remove membro da org" do
+      owner = user_fixture()
+      member = user_fixture()
+      {:ok, %{organization: org}} = Organizations.create_organization(owner, %{name: "Team"})
+      {:ok, membership} = Organizations.add_member(org, member, :member)
+
+      assert {:ok, _} = Organizations.remove_member(org, membership)
+      assert Organizations.get_user_membership(org, member) == nil
+    end
+
+    test "retorna {:error, :last_owner} ao remover unico owner" do
+      owner = user_fixture()
+
+      {:ok, %{organization: org, membership: membership}} =
+        Organizations.create_organization(owner, %{name: "Team"})
+
+      assert {:error, :last_owner} = Organizations.remove_member(org, membership)
+    end
+
+    test "permite remover owner quando ha outros owners" do
+      owner1 = user_fixture()
+      owner2 = user_fixture()
+
+      {:ok, %{organization: org, membership: mem1}} =
+        Organizations.create_organization(owner1, %{name: "Team"})
+
+      {:ok, _mem2} = Organizations.add_member(org, owner2, :owner)
+
+      assert {:ok, _} = Organizations.remove_member(org, mem1)
+    end
+  end
+
+  describe "update_member_role/2" do
+    test "atualiza role do membro" do
+      owner = user_fixture()
+      member = user_fixture()
+      {:ok, %{organization: org}} = Organizations.create_organization(owner, %{name: "Team"})
+      {:ok, membership} = Organizations.add_member(org, member, :member)
+
+      assert {:ok, updated} = Organizations.update_member_role(membership, :admin)
+      assert updated.role == :admin
+    end
+  end
 end

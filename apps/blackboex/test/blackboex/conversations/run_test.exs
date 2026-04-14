@@ -10,9 +10,14 @@ defmodule Blackboex.Conversations.RunTest do
     {user, org} = user_and_org_fixture()
 
     {:ok, api} =
-      Blackboex.Apis.create_api(%{name: "Run Test", organization_id: org.id, user_id: user.id})
+      Blackboex.Apis.create_api(%{
+        name: "Run Test",
+        organization_id: org.id,
+        project_id: Blackboex.Projects.get_default_project(org.id).id,
+        user_id: user.id
+      })
 
-    conversation = conversation_fixture(api.id, org.id)
+    conversation = conversation_fixture(api.id, org.id, api.project_id)
     %{user: user, org: org, api: api, conversation: conversation}
   end
 
@@ -22,6 +27,7 @@ defmodule Blackboex.Conversations.RunTest do
       api_id: context.api.id,
       user_id: context.user.id,
       organization_id: context.org.id,
+      project_id: context.api.project_id,
       run_type: "generation"
     }
   end

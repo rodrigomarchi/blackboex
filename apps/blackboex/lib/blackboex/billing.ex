@@ -170,7 +170,12 @@ defmodule Blackboex.Billing do
 
   @spec get_daily_usage(binary(), Date.t()) :: DailyUsage.t() | nil
   def get_daily_usage(organization_id, date) do
-    Repo.get_by(DailyUsage, organization_id: organization_id, date: date)
+    import Ecto.Query, only: [from: 2]
+
+    Repo.one(
+      from d in DailyUsage,
+        where: d.organization_id == ^organization_id and is_nil(d.project_id) and d.date == ^date
+    )
   end
 
   @spec get_daily_usage_for_period(binary(), Date.t(), Date.t()) :: [DailyUsage.t()]
@@ -187,6 +192,34 @@ defmodule Blackboex.Billing do
     organization_id
     |> BillingQueries.usage_events_today(event_type, today_start)
     |> Repo.aggregate(:count)
+  end
+
+  @spec get_org_usage_summary(binary(), pos_integer()) :: map()
+  def get_org_usage_summary(organization_id, days \\ 30) do
+    since_date = Date.add(Date.utc_today(), -days)
+    base = BillingQueries.org_usage_summary(organization_id, since_date)
+
+    %{
+      api_invocations: Repo.aggregate(base, :sum, :api_invocations) || 0,
+      llm_generations: Repo.aggregate(base, :sum, :llm_generations) || 0,
+      tokens_input: Repo.aggregate(base, :sum, :tokens_input) || 0,
+      tokens_output: Repo.aggregate(base, :sum, :tokens_output) || 0,
+      llm_cost_cents: Repo.aggregate(base, :sum, :llm_cost_cents) || 0
+    }
+  end
+
+  @spec get_project_usage_summary(binary(), pos_integer()) :: map()
+  def get_project_usage_summary(project_id, days \\ 30) do
+    since_date = Date.add(Date.utc_today(), -days)
+    base = BillingQueries.project_usage_summary(project_id, since_date)
+
+    %{
+      api_invocations: Repo.aggregate(base, :sum, :api_invocations) || 0,
+      llm_generations: Repo.aggregate(base, :sum, :llm_generations) || 0,
+      tokens_input: Repo.aggregate(base, :sum, :tokens_input) || 0,
+      tokens_output: Repo.aggregate(base, :sum, :tokens_output) || 0,
+      llm_cost_cents: Repo.aggregate(base, :sum, :llm_cost_cents) || 0
+    }
   end
 
   @spec sum_monthly_usage(binary(), String.t()) :: non_neg_integer()

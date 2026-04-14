@@ -36,25 +36,37 @@ defmodule BlackboexWeb.Layouts do
         <.logo_full class="h-6" />
 
         <%!-- Desktop nav --%>
-        <nav class="ml-8 hidden items-center gap-1 md:flex">
-          <.nav_link navigate={~p"/dashboard"} icon="hero-home" icon_class="size-4 text-accent-sky">
+        <nav :if={scoped?(@current_scope)} class="ml-8 hidden items-center gap-1 md:flex">
+          <.nav_link
+            navigate={org_path(@current_scope)}
+            icon="hero-home"
+            icon_class="size-4 text-accent-sky"
+          >
             Dashboard
           </.nav_link>
-          <.nav_link navigate={~p"/apis"} icon="hero-bolt" icon_class="size-4 text-accent-amber">
+          <.nav_link
+            navigate={project_path(@current_scope, "/apis")}
+            icon="hero-bolt"
+            icon_class="size-4 text-accent-amber"
+          >
             APIs
           </.nav_link>
           <.nav_link
-            navigate={~p"/flows"}
+            navigate={project_path(@current_scope, "/flows")}
             icon="hero-arrow-path"
             icon_class="size-4 text-accent-violet"
           >
             Flows
           </.nav_link>
-          <.nav_link navigate={~p"/api-keys"} icon="hero-key" icon_class="size-4 text-accent-amber">
+          <.nav_link
+            navigate={project_path(@current_scope, "/api-keys")}
+            icon="hero-key"
+            icon_class="size-4 text-accent-amber"
+          >
             API Keys
           </.nav_link>
           <.nav_link
-            navigate={~p"/billing"}
+            navigate={org_path(@current_scope, "/billing")}
             icon="hero-credit-card"
             icon_class="size-4 text-accent-emerald"
           >
@@ -72,7 +84,8 @@ defmodule BlackboexWeb.Layouts do
               {@current_scope.user.email}
             </span>
             <.link
-              navigate={~p"/settings"}
+              :if={scoped?(@current_scope)}
+              navigate={org_path(@current_scope, "/settings")}
               class="hidden text-sm font-medium text-muted-foreground hover:text-foreground md:inline"
             >
               <.icon name="hero-cog-6-tooth" class="size-4 text-slate-400" />
@@ -104,32 +117,44 @@ defmodule BlackboexWeb.Layouts do
 
       <%!-- Mobile menu (hidden by default) --%>
       <div id="mobile-menu" class="hidden border-b bg-card px-4 py-3 md:hidden">
-        <nav class="flex flex-col gap-1">
-          <.nav_link navigate={~p"/dashboard"} icon="hero-home" icon_class="size-4 text-accent-sky">
+        <nav :if={scoped?(@current_scope)} class="flex flex-col gap-1">
+          <.nav_link
+            navigate={org_path(@current_scope)}
+            icon="hero-home"
+            icon_class="size-4 text-accent-sky"
+          >
             Dashboard
           </.nav_link>
-          <.nav_link navigate={~p"/apis"} icon="hero-bolt" icon_class="size-4 text-accent-amber">
+          <.nav_link
+            navigate={project_path(@current_scope, "/apis")}
+            icon="hero-bolt"
+            icon_class="size-4 text-accent-amber"
+          >
             APIs
           </.nav_link>
           <.nav_link
-            navigate={~p"/flows"}
+            navigate={project_path(@current_scope, "/flows")}
             icon="hero-arrow-path"
             icon_class="size-4 text-accent-violet"
           >
             Flows
           </.nav_link>
-          <.nav_link navigate={~p"/api-keys"} icon="hero-key" icon_class="size-4 text-accent-amber">
+          <.nav_link
+            navigate={project_path(@current_scope, "/api-keys")}
+            icon="hero-key"
+            icon_class="size-4 text-accent-amber"
+          >
             API Keys
           </.nav_link>
           <.nav_link
-            navigate={~p"/billing"}
+            navigate={org_path(@current_scope, "/billing")}
             icon="hero-credit-card"
             icon_class="size-4 text-accent-emerald"
           >
             Billing
           </.nav_link>
           <.nav_link
-            navigate={~p"/settings"}
+            navigate={org_path(@current_scope, "/settings")}
             icon="hero-cog-6-tooth"
             icon_class="size-4 text-slate-400"
           >
@@ -318,6 +343,10 @@ defmodule BlackboexWeb.Layouts do
     </div>
     """
   end
+
+  defp scoped?(nil), do: false
+  defp scoped?(%{organization: nil}), do: false
+  defp scoped?(%{organization: _org}), do: true
 
   @doc "Design system showcase layout — minimal shell, no auth, dev-only."
   attr :flash, :map, required: true

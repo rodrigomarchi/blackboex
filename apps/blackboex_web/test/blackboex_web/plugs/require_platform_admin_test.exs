@@ -31,7 +31,7 @@ defmodule BlackboexWeb.Plugs.RequirePlatformAdminTest do
         |> RequirePlatformAdmin.call([])
 
       assert conn.halted
-      assert redirected_to(conn) == "/dashboard"
+      assert redirected_to(conn) == "/"
       assert Phoenix.Flash.get(conn.assigns.flash, :error) =~ "not authorized"
     end
 
@@ -43,7 +43,7 @@ defmodule BlackboexWeb.Plugs.RequirePlatformAdminTest do
         |> RequirePlatformAdmin.call([])
 
       assert conn.halted
-      assert redirected_to(conn) == "/dashboard"
+      assert redirected_to(conn) == "/"
     end
   end
 end

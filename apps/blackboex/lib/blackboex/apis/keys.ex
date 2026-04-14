@@ -23,6 +23,7 @@ defmodule Blackboex.Apis.Keys do
     changeset_attrs =
       Map.merge(attrs, %{
         api_id: api.id,
+        project_id: attrs[:project_id] || attrs["project_id"] || api.project_id,
         key_hash: key_hash,
         key_prefix: key_prefix
       })
@@ -152,7 +153,8 @@ defmodule Blackboex.Apis.Keys do
     |> Ecto.Multi.run(:new_key, fn _repo, _changes ->
       case create_key(old_key.api, %{
              label: old_key.label,
-             organization_id: old_key.organization_id
+             organization_id: old_key.organization_id,
+             project_id: old_key.project_id
            }) do
         {:ok, plain_key, api_key} -> {:ok, {plain_key, api_key}}
         {:error, changeset} -> {:error, changeset}

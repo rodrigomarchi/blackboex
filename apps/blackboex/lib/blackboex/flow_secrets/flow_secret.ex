@@ -18,6 +18,7 @@ defmodule Blackboex.FlowSecrets.FlowSecret do
     field :encrypted_value, :binary
 
     belongs_to :organization, Blackboex.Organizations.Organization
+    belongs_to :project, Blackboex.Projects.Project
 
     timestamps()
   end
@@ -25,12 +26,12 @@ defmodule Blackboex.FlowSecrets.FlowSecret do
   @spec changeset(t(), map()) :: Ecto.Changeset.t()
   def changeset(secret, attrs) do
     secret
-    |> cast(attrs, [:name, :organization_id])
-    |> validate_required([:name, :organization_id])
+    |> cast(attrs, [:name, :organization_id, :project_id])
+    |> validate_required([:name, :organization_id, :project_id])
     |> validate_format(:name, ~r/^[a-zA-Z0-9_]+$/,
       message: "must contain only alphanumeric characters and underscores"
     )
-    |> unique_constraint([:organization_id, :name])
+    |> unique_constraint([:project_id, :name])
     |> maybe_encrypt_value(attrs)
     |> validate_required([:encrypted_value])
   end

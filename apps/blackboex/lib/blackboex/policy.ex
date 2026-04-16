@@ -170,23 +170,27 @@ defmodule Blackboex.Policy do
       allow role: :owner
       allow role: :admin
       allow role: :member
+      allow project_role: :editor
     end
 
     action :read do
       allow role: :owner
       allow role: :admin
       allow role: :member
+      allow project_role: :viewer
     end
 
     action :update do
       allow role: :owner
       allow role: :admin
       allow role: :member
+      allow project_role: :editor
     end
 
     action :delete do
       allow role: :owner
       allow role: :admin
+      allow project_role: :admin
     end
   end
 

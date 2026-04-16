@@ -6,9 +6,11 @@ Interactive single-cell Elixir REPL within projects for code experimentation.
 
 | Module | Role |
 |--------|------|
-| `Blackboex.Playgrounds` | Facade — CRUD operations, `execute_code/2`, `change_playground/2` |
-| `Blackboex.Playgrounds.Playground` | Schema — name, slug, code (text), last_output, description, project_id, organization_id, user_id |
+| `Blackboex.Playgrounds` | Facade — CRUD, `execute_code/2`, `execute_code_raw/2`, execution history (`create_execution/2`, `complete_execution/4`, `list_executions/1`, `cleanup_old_executions/1`) |
+| `Blackboex.Playgrounds.Playground` | Schema — name, slug, code (text), last_output, description, project_id, organization_id, user_id; `has_many :executions` |
+| `Blackboex.Playgrounds.PlaygroundExecution` | Schema — run_number, code_snapshot, output, status (running/success/error), duration_ms, playground_id |
 | `Blackboex.Playgrounds.PlaygroundQueries` | Query builders — `list_for_project/1`, `by_project_and_slug/2`, `search/2` |
+| `Blackboex.Playgrounds.ExecutionQueries` | Query builders — `list_for_playground/1` (desc, limit 50), `latest_run_number/1`, `beyond_retention/2` |
 | `Blackboex.Playgrounds.Executor` | Sandboxed code execution with allowlist security, IO capture via StringIO |
 | `Blackboex.Playgrounds.Http` | Safe HTTP client wrapper — SSRF protection, 5 calls/execution, 3s timeout, 64KB body truncation |
 | `Blackboex.Playgrounds.Api` | Convenience wrappers to call project flows (`call_flow/2`) and APIs (`call_api/5`) from playground code |
@@ -64,7 +66,17 @@ Defined in `Blackboex.Policy` under `object :playground`:
 - `:delete` — owner, admin, project admin
 - `:execute` — owner, admin, member, project editor
 
+## Execution History
+
+- Each `Run` press creates a `PlaygroundExecution` with status `"running"` and sequential `run_number`
+- On completion, `complete_execution/4` updates output, status, and duration_ms
+- Retention: last 50 executions per playground, cleaned via `cleanup_old_executions/1`
+- LiveView tracks `executions`, `selected_execution_id`, `selected_execution` assigns
+- `execute_code_raw/2` returns raw executor result without persisting (LiveView orchestrates persistence)
+
 ## Fixtures
 
 `Blackboex.PlaygroundsFixtures.playground_fixture/1` — auto-imported via DataCase/ConnCase.
 Named setup: `create_playground/1` (requires `:user` + `:org` in context).
+
+`Blackboex.PlaygroundExecutionsFixtures.execution_fixture/1` — auto-imported via DataCase/ConnCase.

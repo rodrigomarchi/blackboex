@@ -24,6 +24,8 @@ defmodule Blackboex.Playgrounds.Playground do
     belongs_to :project, Blackboex.Projects.Project
     belongs_to :user, Blackboex.Accounts.User, type: :id
 
+    has_many :executions, Blackboex.Playgrounds.PlaygroundExecution
+
     timestamps()
   end
 

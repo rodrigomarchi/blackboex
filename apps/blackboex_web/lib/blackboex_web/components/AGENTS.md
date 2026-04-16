@@ -55,6 +55,8 @@ Violation of this rule creates inconsistent UI, breaks dark mode, bypasses seman
 | Template category pills | `<.category_pills>` | `shared/category_pills.ex` |
 | Selectable template grid | `<.template_grid>` | `shared/template_grid.ex` |
 | Icon marker (colored chip) | `<.icon_badge>` | `shared/icon_badge.ex` |
+| Execution history sidebar | `<.execution_history>` | `editor/execution_history.ex` |
+| Terminal-style output pane | `<.terminal_output>` | `editor/terminal_output.ex` |
 
 ### CSS Utilities (defined in `assets/css/app.css`)
 

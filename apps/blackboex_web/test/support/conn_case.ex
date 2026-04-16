@@ -42,6 +42,7 @@ defmodule BlackboexWeb.ConnCase do
       import Blackboex.FlowExecutionsFixtures
       import Blackboex.PagesFixtures
       import Blackboex.PlaygroundsFixtures
+      import Blackboex.PlaygroundExecutionsFixtures
       import Blackboex.MockDefaults
     end
   end

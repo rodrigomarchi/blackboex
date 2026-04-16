@@ -1,12 +1,14 @@
 defmodule BlackboexWeb.PlaygroundLive.Edit do
   @moduledoc """
   Single-cell code editor and REPL for Playgrounds.
-  Executes Elixir code in a sandboxed environment.
+  Executes Elixir code in a sandboxed environment with execution history.
   """
   use BlackboexWeb, :live_view
 
+  import BlackboexWeb.Components.Editor.ExecutionHistory
   import BlackboexWeb.Components.Editor.PageHeader
   import BlackboexWeb.Components.Editor.PlaygroundTree
+  import BlackboexWeb.Components.Editor.TerminalOutput
   import BlackboexWeb.Components.Shared.PlaygroundEditorField
 
   alias Blackboex.Playgrounds
@@ -25,6 +27,8 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
 
       playground ->
         playgrounds = Playgrounds.list_playgrounds(project.id)
+        executions = Playgrounds.list_executions(playground.id)
+        {selected, selected_id} = select_latest(executions)
 
         {:ok,
          assign(socket,
@@ -33,7 +37,10 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
            form: to_form(Playgrounds.change_playground(playground)),
            page_title: playground.name,
            output: playground.last_output,
-           running: false
+           running: false,
+           executions: executions,
+           selected_execution_id: selected_id,
+           selected_execution: selected
          )}
     end
   end
@@ -43,6 +50,8 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
     {:noreply, socket}
   end
 
+  # ── Code Events ───────────────────────────────────────────
+
   @impl true
   def handle_event("update_code", %{"value" => code}, socket) do
     {:noreply, assign(socket, current_code: code)}
@@ -51,14 +60,24 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
   @impl true
   def handle_event("run", _params, socket) do
     code = socket.assigns[:current_code] || socket.assigns.playground.code
-    self_pid = self()
+    playground = socket.assigns.playground
 
-    Task.start(fn ->
-      result = Playgrounds.execute_code(socket.assigns.playground, code)
-      send(self_pid, {:execution_result, result})
-    end)
+    case Playgrounds.create_execution(playground, code) do
+      {:ok, execution} ->
+        start_async_execution(playground, code, execution.id)
+        executions = [execution | socket.assigns.executions]
 
-    {:noreply, assign(socket, running: true)}
+        {:noreply,
+         assign(socket,
+           running: true,
+           executions: executions,
+           selected_execution_id: execution.id,
+           selected_execution: execution
+         )}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Failed to start execution")}
+    end
   end
 
   @impl true
@@ -113,6 +132,8 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
     end
   end
 
+  # ── Navigation Events ────────────────────────────────────
+
   @impl true
   def handle_event("select_playground", %{"slug" => slug}, socket) do
     scope = socket.assigns.current_scope
@@ -153,15 +174,78 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
     {:noreply, assign(socket, form: to_form(changeset))}
   end
 
+  # ── Execution History Events ──────────────────────────────
+
   @impl true
-  def handle_info({:execution_result, result}, socket) do
-    {output, playground} =
+  def handle_event("select_execution", %{"id" => id}, socket) do
+    selected = Enum.find(socket.assigns.executions, &(&1.id == id))
+
+    {:noreply,
+     assign(socket,
+       selected_execution_id: id,
+       selected_execution: selected
+     )}
+  end
+
+  # ── Async Results ─────────────────────────────────────────
+
+  @impl true
+  def handle_info({:execution_result, execution_id, result, duration_ms}, socket) do
+    {output, status} =
       case result do
-        {:ok, playground} -> {playground.last_output, playground}
-        {:error, reason} -> {"Error: #{reason}", socket.assigns.playground}
+        {:ok, output} -> {output, "success"}
+        {:error, reason} -> {"Error: #{reason}", "error"}
       end
 
-    {:noreply, assign(socket, output: output, running: false, playground: playground)}
+    execution = Enum.find(socket.assigns.executions, &(&1.id == execution_id))
+
+    case Playgrounds.complete_execution(execution, output, status, duration_ms) do
+      {:ok, completed} ->
+        # Also update playground.last_output for backward compat
+        {:ok, playground} =
+          Playgrounds.update_playground(socket.assigns.playground, %{
+            code: completed.code_snapshot,
+            last_output: output
+          })
+
+        executions =
+          Enum.map(socket.assigns.executions, fn
+            ex when ex.id == execution_id -> completed
+            ex -> ex
+          end)
+
+        selected =
+          if socket.assigns.selected_execution_id == execution_id,
+            do: completed,
+            else: socket.assigns.selected_execution
+
+        Playgrounds.cleanup_old_executions(playground.id)
+
+        {:noreply,
+         assign(socket,
+           running: false,
+           executions: executions,
+           selected_execution: selected,
+           output: output,
+           playground: playground
+         )}
+
+      {:error, _} ->
+        {:noreply, assign(socket, running: false)}
+    end
+  end
+
+  # ── Helpers ───────────────────────────────────────────────
+
+  defp start_async_execution(playground, code, execution_id) do
+    self_pid = self()
+
+    Task.start(fn ->
+      {duration_us, result} =
+        :timer.tc(fn -> Playgrounds.execute_code_raw(playground, code) end)
+
+      send(self_pid, {:execution_result, execution_id, result, div(duration_us, 1000)})
+    end)
   end
 
   defp format_elixir_code(code) do
@@ -170,10 +254,15 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
     e in [SyntaxError, TokenMissingError] -> {:error, Exception.message(e)}
   end
 
+  defp select_latest([latest | _]), do: {latest, latest.id}
+  defp select_latest([]), do: {nil, nil}
+
+  # ── Render ────────────────────────────────────────────────
+
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="flex h-full w-full overflow-hidden">
+    <div id="playground-panels" class="flex h-full w-full overflow-hidden" phx-hook="ResizablePanels">
       <%!-- Left sidebar: playground tree --%>
       <div class="w-64 shrink-0 hidden md:block">
         <.playground_tree
@@ -182,7 +271,7 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
         />
       </div>
 
-      <%!-- Right: editor area --%>
+      <%!-- Center: editor + output + history --%>
       <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
         <.editor_page_header
           title={@playground.name}
@@ -207,21 +296,56 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
           </:actions>
         </.editor_page_header>
 
-        <div class="flex flex-1 flex-col min-h-0">
-          <%!-- Code editor --%>
-          <div class="flex-1 min-h-0 border-b">
-            <.playground_editor_field
-              id="playground-code-editor"
-              value={@playground.code || ""}
-              max_height="max-h-full"
-              height="100%"
+        <div class="flex flex-1 min-h-0">
+          <%!-- Editor + Output vertical stack --%>
+          <div class="flex-1 flex flex-col min-w-0">
+            <%!-- Code editor --%>
+            <div class="flex-1 min-h-0 border-b">
+              <.playground_editor_field
+                id="playground-code-editor"
+                value={@playground.code || ""}
+                max_height="max-h-full"
+                height="100%"
+              />
+            </div>
+
+            <%!-- Vertical resize handle --%>
+            <div
+              data-resize-handle
+              data-resize-direction="vertical"
+              data-resize-target="output-pane"
+              class="h-1 shrink-0 bg-border hover:bg-primary/50 transition-colors cursor-row-resize"
             />
+
+            <%!-- Output pane --%>
+            <div id="output-pane" class="shrink-0 overflow-hidden" style="height: 240px;">
+              <.terminal_output
+                output={if @selected_execution, do: @selected_execution.output}
+                status={if @selected_execution, do: @selected_execution.status}
+                duration_ms={if @selected_execution, do: @selected_execution.duration_ms}
+                run_number={if @selected_execution, do: @selected_execution.run_number}
+              />
+            </div>
           </div>
 
-          <%!-- Output pane --%>
-          <div class="h-48 shrink-0 overflow-auto bg-muted/50 p-4">
-            <p class="text-xs font-medium text-muted-foreground mb-2">Output</p>
-            <pre class="font-mono text-sm whitespace-pre-wrap">{@output || "No output yet. Click Run to execute."}</pre>
+          <%!-- Horizontal resize handle --%>
+          <div
+            data-resize-handle
+            data-resize-direction="horizontal"
+            data-resize-target="history-sidebar"
+            class="w-1 shrink-0 bg-border hover:bg-primary/50 transition-colors cursor-col-resize hidden md:block"
+          />
+
+          <%!-- Right sidebar: execution history --%>
+          <div
+            id="history-sidebar"
+            class="shrink-0 overflow-hidden hidden md:block"
+            style="width: 256px;"
+          >
+            <.execution_history
+              executions={@executions}
+              selected_execution_id={@selected_execution_id}
+            />
           </div>
         </div>
       </div>

@@ -4,8 +4,10 @@ defmodule Blackboex.Playgrounds do
   for Elixir experimentation and prototyping.
   """
 
+  alias Blackboex.Playgrounds.ExecutionQueries
   alias Blackboex.Playgrounds.Executor
   alias Blackboex.Playgrounds.Playground
+  alias Blackboex.Playgrounds.PlaygroundExecution
   alias Blackboex.Playgrounds.PlaygroundQueries
   alias Blackboex.Repo
 
@@ -87,5 +89,63 @@ defmodule Blackboex.Playgrounds do
 
         {:error, reason}
     end
+  end
+
+  @doc """
+  Executes code in the sandbox without persisting results.
+  Returns the raw executor result for the caller to handle persistence.
+  """
+  @spec execute_code_raw(Playground.t(), String.t()) ::
+          {:ok, String.t()} | {:error, String.t()}
+  def execute_code_raw(%Playground{} = playground, source_code) do
+    Executor.execute(source_code, playground.user_id)
+  end
+
+  # ── Execution History ─────────────────────────────────────
+
+  @spec create_execution(Playground.t(), String.t()) ::
+          {:ok, PlaygroundExecution.t()} | {:error, Ecto.Changeset.t()}
+  def create_execution(%Playground{} = playground, code_snapshot) do
+    next_number =
+      case playground.id |> ExecutionQueries.latest_run_number() |> Repo.one() do
+        nil -> 1
+        n -> n + 1
+      end
+
+    %PlaygroundExecution{}
+    |> PlaygroundExecution.changeset(%{
+      playground_id: playground.id,
+      run_number: next_number,
+      code_snapshot: code_snapshot,
+      status: "running"
+    })
+    |> Repo.insert()
+  end
+
+  @spec complete_execution(PlaygroundExecution.t(), String.t(), String.t(), non_neg_integer()) ::
+          {:ok, PlaygroundExecution.t()} | {:error, Ecto.Changeset.t()}
+  def complete_execution(%PlaygroundExecution{} = execution, output, status, duration_ms) do
+    execution
+    |> PlaygroundExecution.complete_changeset(%{
+      output: output,
+      status: status,
+      duration_ms: duration_ms
+    })
+    |> Repo.update()
+  end
+
+  @spec list_executions(Ecto.UUID.t()) :: [PlaygroundExecution.t()]
+  def list_executions(playground_id) do
+    playground_id |> ExecutionQueries.list_for_playground() |> Repo.all()
+  end
+
+  @spec get_execution(Ecto.UUID.t()) :: PlaygroundExecution.t() | nil
+  def get_execution(execution_id) do
+    Repo.get(PlaygroundExecution, execution_id)
+  end
+
+  @spec cleanup_old_executions(Ecto.UUID.t()) :: {non_neg_integer(), nil | [term()]}
+  def cleanup_old_executions(playground_id) do
+    playground_id |> ExecutionQueries.beyond_retention() |> Repo.delete_all()
   end
 end

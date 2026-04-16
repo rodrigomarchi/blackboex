@@ -353,6 +353,7 @@ const TiptapEditor = {
         if (!eventName) return
         clearTimeout(this._debounce)
         this._debounce = setTimeout(() => {
+          this._pushingUpdate = true
           const md = editor.storage.markdown.getMarkdown()
           const payload = fieldName
             ? { field: fieldName, value: md }
@@ -366,6 +367,13 @@ const TiptapEditor = {
   },
 
   updated() {
+    // Skip if this update was triggered by our own pushEvent — avoids
+    // infinite loop where setContent() recreates NodeViews (mermaid etc.)
+    // which triggers onUpdate → pushEvent → updated() → setContent() again.
+    if (this._pushingUpdate) {
+      this._pushingUpdate = false
+      return
+    }
     const newValue = this.el.dataset.value
     if (newValue !== undefined && this.editor) {
       const current = this.editor.storage.markdown.getMarkdown()

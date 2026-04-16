@@ -2,28 +2,66 @@
  * Extends CodeBlockLowlight with:
  * 1. Language selector dropdown on every code block
  * 2. Mermaid diagram rendering (dual-mode: code when focused, SVG when blurred)
+ *    with auto-fit and zoom controls
  */
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight"
 
 // Lazy-load mermaid from CDN — only downloaded when user creates a mermaid block.
-// Marked as --external:mermaid in esbuild so it's not bundled (~7MB savings).
 let mermaidModule = null
+let mermaidLoadPromise = null
+
 async function getMermaid() {
   if (mermaidModule) return mermaidModule
+  if (mermaidLoadPromise) return mermaidLoadPromise
 
-  // Dynamic import from ESM CDN
-  const { default: mermaid } = await import(
-    /* webpackIgnore: true */
-    "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs"
-  )
-  mermaid.initialize({
-    startOnLoad: false,
-    theme: "dark",
-    securityLevel: "loose",
-    fontFamily: "ui-sans-serif, system-ui, sans-serif",
+  mermaidLoadPromise = (async () => {
+    const { default: mermaid } = await import(
+      /* webpackIgnore: true */
+      "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs"
+    )
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: "dark",
+      securityLevel: "loose",
+      fontFamily: "ui-sans-serif, system-ui, sans-serif",
+    })
+    mermaidModule = mermaid
+    return mermaid
+  })()
+
+  try {
+    return await mermaidLoadPromise
+  } catch (err) {
+    mermaidLoadPromise = null
+    throw err
+  }
+}
+
+// Serialize mermaid.render() calls — concurrent renders cause silent failures
+let renderQueue = Promise.resolve()
+
+function enqueueRender(id, text) {
+  const task = renderQueue.then(async () => {
+    const mermaid = await getMermaid()
+    return await mermaid.render(id, text)
   })
-  mermaidModule = mermaid
-  return mermaid
+  renderQueue = task.catch(() => {})
+  return task
+}
+
+// Make SVG responsive: ensure viewBox exists and remove fixed dimensions
+function fitSvg(svgEl) {
+  if (!svgEl) return
+  const w = svgEl.getAttribute("width")
+  const h = svgEl.getAttribute("height")
+  if (w && h && !svgEl.getAttribute("viewBox")) {
+    svgEl.setAttribute("viewBox", `0 0 ${parseFloat(w)} ${parseFloat(h)}`)
+  }
+  svgEl.removeAttribute("width")
+  svgEl.removeAttribute("height")
+  svgEl.style.width = "100%"
+  svgEl.style.height = "auto"
+  svgEl.style.maxHeight = "600px"
 }
 
 const LANG_LABELS = {
@@ -66,6 +104,7 @@ export const CodeBlockWithLang = CodeBlockLowlight.extend({
       let currentNode = node
       let isFocused = false
       let renderTimer = null
+      let zoomLevel = 1
       const mermaidId = `mermaid-${++mermaidIdCounter}`
 
       const isMermaid = () => (currentNode.attrs.language || "") === "mermaid"
@@ -82,7 +121,6 @@ export const CodeBlockWithLang = CodeBlockLowlight.extend({
       const select = document.createElement("select")
       select.className = "tiptap-cb-lang-select"
 
-      // Add "mermaid" to the language list alongside lowlight languages
       const langs = [...this.options.lowlight.listLanguages(), "mermaid"].sort()
       const seen = new Set()
       langs.forEach((lang) => {
@@ -120,15 +158,64 @@ export const CodeBlockWithLang = CodeBlockLowlight.extend({
       pre.appendChild(code)
       dom.appendChild(pre)
 
-      // Mermaid preview overlay (hidden by default)
+      // Mermaid preview overlay (visibility controlled by CSS class on dom)
       const preview = document.createElement("div")
       preview.className = "tiptap-mermaid-preview"
       preview.contentEditable = "false"
-      preview.style.display = "none"
       dom.appendChild(preview)
 
-      // Click on preview → focus the code
-      preview.addEventListener("click", () => {
+      // SVG container inside preview (for zoom transforms)
+      const svgContainer = document.createElement("div")
+      svgContainer.className = "tiptap-mermaid-svg-container"
+      preview.appendChild(svgContainer)
+
+      // ── Zoom controls ─────────────────────────────────────
+      const zoomBar = document.createElement("div")
+      zoomBar.className = "tiptap-mermaid-zoom-bar"
+      zoomBar.contentEditable = "false"
+
+      const zoomLabel = document.createElement("span")
+      zoomLabel.className = "tiptap-mermaid-zoom-label"
+      zoomLabel.textContent = "100%"
+
+      const btnZoomOut = document.createElement("button")
+      btnZoomOut.type = "button"
+      btnZoomOut.textContent = "−"
+      btnZoomOut.title = "Zoom out"
+      btnZoomOut.className = "tiptap-mermaid-zoom-btn"
+
+      const btnZoomIn = document.createElement("button")
+      btnZoomIn.type = "button"
+      btnZoomIn.textContent = "+"
+      btnZoomIn.title = "Zoom in"
+      btnZoomIn.className = "tiptap-mermaid-zoom-btn"
+
+      const btnFit = document.createElement("button")
+      btnFit.type = "button"
+      btnFit.textContent = "⤢"
+      btnFit.title = "Fit to width"
+      btnFit.className = "tiptap-mermaid-zoom-btn"
+
+      function applyZoom(newZoom) {
+        zoomLevel = Math.max(0.25, Math.min(3, newZoom))
+        svgContainer.style.transform = `scale(${zoomLevel})`
+        svgContainer.style.transformOrigin = "top center"
+        zoomLabel.textContent = `${Math.round(zoomLevel * 100)}%`
+      }
+
+      btnZoomIn.addEventListener("click", (e) => { e.stopPropagation(); applyZoom(zoomLevel + 0.25) })
+      btnZoomOut.addEventListener("click", (e) => { e.stopPropagation(); applyZoom(zoomLevel - 0.25) })
+      btnFit.addEventListener("click", (e) => { e.stopPropagation(); applyZoom(1) })
+
+      // Prevent clicks on zoom bar from focusing the code editor
+      zoomBar.addEventListener("mousedown", (e) => e.stopPropagation())
+      zoomBar.addEventListener("click", (e) => e.stopPropagation())
+
+      zoomBar.append(btnZoomOut, zoomLabel, btnZoomIn, btnFit)
+      preview.appendChild(zoomBar)
+
+      // Click on SVG area → focus the code editor
+      svgContainer.addEventListener("click", () => {
         if (typeof getPos === "function") {
           editor.commands.setTextSelection(getPos() + 1)
           editor.commands.focus()
@@ -142,20 +229,29 @@ export const CodeBlockWithLang = CodeBlockLowlight.extend({
 
         const text = currentNode.textContent.trim()
         if (!text) {
-          preview.innerHTML = '<span class="tiptap-mermaid-empty">Empty diagram — type Mermaid syntax</span>'
+          svgContainer.innerHTML = '<span class="tiptap-mermaid-empty">Empty diagram — type Mermaid syntax</span>'
+          zoomBar.style.display = "none"
           return
         }
 
-        const mermaid = await getMermaid()
+        svgContainer.innerHTML = '<span class="tiptap-mermaid-loading">Loading diagram…</span>'
+        zoomBar.style.display = "none"
 
         try {
-          const { svg } = await mermaid.render(mermaidId, text)
-          preview.innerHTML = svg
+          const { svg } = await enqueueRender(mermaidId, text)
+          svgContainer.innerHTML = svg
+
+          // Auto-fit: make SVG responsive within container
+          const svgEl = svgContainer.querySelector("svg")
+          fitSvg(svgEl)
+
           preview.classList.remove("tiptap-mermaid-error")
+          zoomBar.style.display = ""
+          applyZoom(1)
         } catch (err) {
-          preview.innerHTML = `<span class="tiptap-mermaid-error-msg">${err.message || "Invalid diagram"}</span>`
+          svgContainer.innerHTML = `<span class="tiptap-mermaid-error-msg">${err.message || "Invalid diagram"}</span>`
           preview.classList.add("tiptap-mermaid-error")
-          // mermaid leaves a broken element in the DOM — clean it up
+          zoomBar.style.display = "none"
           const broken = document.getElementById("d" + mermaidId)
           if (broken) broken.remove()
         }
@@ -168,26 +264,24 @@ export const CodeBlockWithLang = CodeBlockLowlight.extend({
 
       function syncVisibility() {
         if (isMermaid()) {
+          dom.classList.add("is-mermaid")
           if (isFocused) {
             // Editing: show code, hide preview
             pre.style.display = ""
             preview.style.display = "none"
           } else {
-            // Blurred: show preview, hide code
+            // Blurred: hide code, show preview (natural height, no overlay)
             pre.style.display = "none"
-            preview.style.display = ""
+            preview.style.display = "flex"
             scheduleRender()
           }
-          dom.classList.add("is-mermaid")
         } else {
-          // Normal code block: always show code, hide preview
           pre.style.display = ""
           preview.style.display = "none"
           dom.classList.remove("is-mermaid")
         }
       }
 
-      // Initial render
       syncVisibility()
 
       // ── Focus tracking ────────────────────────────────────
@@ -202,7 +296,6 @@ export const CodeBlockWithLang = CodeBlockLowlight.extend({
         syncVisibility()
       }
 
-      // Listen for selection changes to detect focus in/out of this node
       const onSelectionUpdate = () => {
         if (typeof getPos !== "function") return
         const pos = getPos()
@@ -233,6 +326,15 @@ export const CodeBlockWithLang = CodeBlockLowlight.extend({
           if (isMermaid() && !isFocused) scheduleRender()
 
           return true
+        },
+
+        // Tell ProseMirror to ignore DOM mutations in toolbar and preview —
+        // without this, mermaid SVG insertion triggers MutationObserver →
+        // transaction → onUpdate → infinite NodeView recreation.
+        ignoreMutation(mutation) {
+          if (preview.contains(mutation.target) || mutation.target === preview) return true
+          if (toolbar.contains(mutation.target) || mutation.target === toolbar) return true
+          return false
         },
 
         selectNode() { onFocus() },

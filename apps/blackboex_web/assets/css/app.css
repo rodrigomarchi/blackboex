@@ -1048,26 +1048,76 @@
   background-color: hsl(var(--primary) / 0.08);
 }
 
+/* Mermaid preview: toggled via display in JS (not overlay — needs natural height) */
 .tiptap-mermaid-preview {
+  display: none;
+  flex-direction: column;
+  background-color: hsl(var(--editor-bg, var(--muted)));
+}
+
+/* SVG container: centers diagram, allows scroll for zoomed content */
+.tiptap-mermaid-svg-container {
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
   padding: 1rem;
   min-height: 80px;
-  overflow-x: auto;
+  cursor: pointer;
+  overflow: auto;
+}
+
+.tiptap-mermaid-svg-container:hover {
+  background-color: hsl(var(--accent) / 0.15);
+}
+
+/* Zoom controls bar */
+.tiptap-mermaid-zoom-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-top: 1px solid hsl(var(--border) / 0.5);
+  background-color: hsl(var(--muted) / 0.5);
+  user-select: none;
+}
+
+.tiptap-mermaid-zoom-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.25rem;
+  background: transparent;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.875rem;
+  line-height: 1;
   cursor: pointer;
 }
 
-.tiptap-mermaid-preview svg {
-  max-width: 100%;
-  height: auto;
+.tiptap-mermaid-zoom-btn:hover {
+  background-color: hsl(var(--accent));
+  color: hsl(var(--foreground));
 }
 
-.tiptap-mermaid-preview:hover {
-  background-color: hsl(var(--accent) / 0.3);
+.tiptap-mermaid-zoom-label {
+  font-size: 0.6875rem;
+  color: hsl(var(--muted-foreground));
+  min-width: 2.5rem;
+  text-align: center;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
 }
 
 .tiptap-mermaid-empty {
+  color: hsl(var(--muted-foreground));
+  font-size: 0.8125rem;
+  font-style: italic;
+}
+
+.tiptap-mermaid-loading {
   color: hsl(var(--muted-foreground));
   font-size: 0.8125rem;
   font-style: italic;

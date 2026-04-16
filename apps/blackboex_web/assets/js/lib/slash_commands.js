@@ -122,6 +122,22 @@ const COMMANDS = [
     },
   },
 
+  // ── Diagrams ───────────────────────────────────────────────
+  {
+    title: "Mermaid Diagram",
+    description: "Flowchart, sequence, class diagram",
+    icon: "◇",
+    category: "blocks",
+    command: ({ editor, range }) =>
+      editor
+        .chain()
+        .focus()
+        .deleteRange(range)
+        .setCodeBlock({ language: "mermaid" })
+        .insertContent("graph TD\n  A[Start] --> B{Decision}\n  B -- Yes --> C[Done]\n  B -- No --> A")
+        .run(),
+  },
+
   // ── Inline Formatting ─────────────────────────────────────
   {
     title: "Highlight",

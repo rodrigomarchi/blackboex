@@ -9,6 +9,8 @@
       {assigns[:page_title]}
     </.live_title>
     <link phx-track-static rel="stylesheet" href={~p"/assets/css/app.css"} />
+    <script :if={assigns[:editor_bundle]} defer phx-track-static type="text/javascript" src={"/assets/js/#{assigns[:editor_bundle]}.js"}>
+    </script>
     <script defer phx-track-static type="text/javascript" src={~p"/assets/js/app.js"}>
     </script>
     <script>

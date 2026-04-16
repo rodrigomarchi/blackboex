@@ -1042,6 +1042,49 @@
   box-shadow: 0 0 0 1px hsl(var(--primary) / 0.3);
 }
 
+/* ── Mermaid diagram preview ─────────────────────────────── */
+
+.tiptap-code-block-wrapper.is-mermaid .tiptap-cb-toolbar {
+  background-color: hsl(var(--primary) / 0.08);
+}
+
+.tiptap-mermaid-preview {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+  min-height: 80px;
+  overflow-x: auto;
+  cursor: pointer;
+}
+
+.tiptap-mermaid-preview svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.tiptap-mermaid-preview:hover {
+  background-color: hsl(var(--accent) / 0.3);
+}
+
+.tiptap-mermaid-empty {
+  color: hsl(var(--muted-foreground));
+  font-size: 0.8125rem;
+  font-style: italic;
+}
+
+.tiptap-mermaid-error {
+  background-color: hsl(var(--destructive) / 0.05);
+}
+
+.tiptap-mermaid-error-msg {
+  color: hsl(var(--destructive));
+  font-size: 0.75rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 /* ── Syntax highlighting (lowlight/hljs) ─────────────────── */
 /* Custom theme using project design tokens for dark/light mode */
 

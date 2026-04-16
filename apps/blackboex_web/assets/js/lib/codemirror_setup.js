@@ -3,6 +3,7 @@ import { defaultKeymap, indentWithTab } from "@codemirror/commands"
 import { closeBrackets } from "@codemirror/autocomplete"
 import { bracketMatching, indentOnInput, StreamLanguage } from "@codemirror/language"
 import { json, jsonParseLinter } from "@codemirror/lang-json"
+import { markdown } from "@codemirror/lang-markdown"
 import { linter } from "@codemirror/lint"
 import { ruby } from "@codemirror/legacy-modes/mode/ruby"
 import { EditorState } from "@codemirror/state"
@@ -29,6 +30,8 @@ export function buildExtensions({ language, readOnly, onBlur, minimal }) {
   } else if (language === "json") {
     extensions.push(json())
     extensions.push(linter(jsonParseLinter()))
+  } else if (language === "markdown") {
+    extensions.push(markdown())
   }
 
   if (readOnly) {

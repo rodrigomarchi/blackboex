@@ -55,6 +55,8 @@ defmodule BlackboexWeb.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      {:earmark, "~> 1.4"},
+      {:html_sanitize_ex, "~> 1.5"},
       {:phoenix, "~> 1.8.3"},
       {:phoenix_ecto, "~> 4.5"},
       {:phoenix_html, "~> 4.1"},

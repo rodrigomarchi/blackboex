@@ -190,6 +190,71 @@ defmodule Blackboex.Policy do
     end
   end
 
+  object :page do
+    action :create do
+      allow role: :owner
+      allow role: :admin
+      allow role: :member
+      allow project_role: :editor
+    end
+
+    action :read do
+      allow role: :owner
+      allow role: :admin
+      allow role: :member
+      allow project_role: :viewer
+    end
+
+    action :update do
+      allow role: :owner
+      allow role: :admin
+      allow role: :member
+      allow project_role: :editor
+    end
+
+    action :delete do
+      allow role: :owner
+      allow role: :admin
+      allow project_role: :admin
+    end
+  end
+
+  object :playground do
+    action :create do
+      allow role: :owner
+      allow role: :admin
+      allow role: :member
+      allow project_role: :editor
+    end
+
+    action :read do
+      allow role: :owner
+      allow role: :admin
+      allow role: :member
+      allow project_role: :viewer
+    end
+
+    action :update do
+      allow role: :owner
+      allow role: :admin
+      allow role: :member
+      allow project_role: :editor
+    end
+
+    action :delete do
+      allow role: :owner
+      allow role: :admin
+      allow project_role: :admin
+    end
+
+    action :execute do
+      allow role: :owner
+      allow role: :admin
+      allow role: :member
+      allow project_role: :editor
+    end
+  end
+
   object :api_key do
     action :create do
       allow role: :owner

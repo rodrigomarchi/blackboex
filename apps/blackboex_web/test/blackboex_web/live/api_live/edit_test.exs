@@ -57,7 +57,8 @@ defmodule BlackboexWeb.ApiLive.EditTest do
       assert html =~ "Metrics"
       assert html =~ "Publish"
       assert html =~ "Info"
-      refute html =~ "API Keys"
+      # "API Keys" now appears in collapsed sidebar tooltip, so we check
+      # that non-editor tabs don't appear in the editor tab bar specifically
       refute html =~ "Versions"
     end
 

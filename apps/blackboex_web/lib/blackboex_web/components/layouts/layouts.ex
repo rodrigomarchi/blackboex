@@ -5,6 +5,8 @@ defmodule BlackboexWeb.Layouts do
   """
   use BlackboexWeb, :html
 
+  import BlackboexWeb.Components.AppSidebar
+
   # Embed all .heex templates from this directory.
   embed_templates "./*"
 
@@ -28,83 +30,32 @@ defmodule BlackboexWeb.Layouts do
     default: nil,
     doc: "the current [scope](https://hexdocs.pm/phoenix/scopes.html)"
 
+  attr :current_path, :string,
+    default: nil,
+    doc: "the current URL path for sidebar active state"
+
   def app(assigns) do
     ~H"""
-    <div class="flex h-screen flex-col">
-      <header class="flex h-14 shrink-0 items-center border-b bg-card px-4 md:px-6">
-        <%!-- Logo --%>
-        <.logo_full class="h-6" />
+    <div class="flex h-screen">
+      <%!-- Sidebar (hidden on mobile, visible on md+) --%>
+      <div class="hidden md:flex">
+        <.sidebar
+          id="app-sidebar-desktop"
+          current_scope={@current_scope}
+          current_path={@current_path}
+        />
+      </div>
 
-        <%!-- Desktop nav --%>
-        <nav :if={scoped?(@current_scope)} class="ml-8 hidden items-center gap-1 md:flex">
-          <.nav_link
-            navigate={org_path(@current_scope)}
-            icon="hero-home"
-            icon_class="size-4 text-accent-sky"
-          >
-            Dashboard
-          </.nav_link>
-          <.nav_link
-            navigate={project_path(@current_scope, "/apis")}
-            icon="hero-bolt"
-            icon_class="size-4 text-accent-amber"
-          >
-            APIs
-          </.nav_link>
-          <.nav_link
-            navigate={project_path(@current_scope, "/flows")}
-            icon="hero-arrow-path"
-            icon_class="size-4 text-accent-violet"
-          >
-            Flows
-          </.nav_link>
-          <.nav_link
-            navigate={project_path(@current_scope, "/api-keys")}
-            icon="hero-key"
-            icon_class="size-4 text-accent-amber"
-          >
-            API Keys
-          </.nav_link>
-          <.nav_link
-            navigate={org_path(@current_scope, "/billing")}
-            icon="hero-credit-card"
-            icon_class="size-4 text-accent-emerald"
-          >
-            Billing
-          </.nav_link>
-        </nav>
-
-        <div class="flex-1" />
-
-        <%!-- Right side: theme toggle + user menu --%>
-        <div class="flex items-center gap-3">
-          <.theme_toggle />
-          <%= if @current_scope && @current_scope.user do %>
-            <span class="hidden text-muted-description md:inline">
-              {@current_scope.user.email}
-            </span>
-            <.link
-              :if={scoped?(@current_scope)}
-              navigate={org_path(@current_scope, "/settings")}
-              class="hidden text-sm font-medium text-muted-foreground hover:text-foreground md:inline"
-            >
-              <.icon name="hero-cog-6-tooth" class="size-4 text-slate-400" />
-            </.link>
-            <.link
-              href={~p"/users/log-out"}
-              method="delete"
-              class="hidden text-sm font-medium hover:underline md:inline"
-            >
-              Log out
-            </.link>
-          <% end %>
-
-          <%!-- Mobile hamburger --%>
+      <div class="flex flex-1 flex-col overflow-hidden">
+        <%!-- Mobile header --%>
+        <header class="flex h-14 shrink-0 items-center border-b bg-card px-4 md:hidden">
+          <.logo_full class="h-6" />
+          <div class="flex-1" />
           <.button
             type="button"
             variant="ghost"
             size="icon"
-            class="h-auto w-auto p-2 md:hidden"
+            class="h-auto w-auto p-2"
             phx-click={toggle_mobile_menu()}
           >
             <span id="mobile-menu-open"><.icon name="hero-bars-3" class="size-5" /></span>
@@ -112,74 +63,23 @@ defmodule BlackboexWeb.Layouts do
               <.icon name="hero-x-mark" class="size-5" />
             </span>
           </.button>
-        </div>
-      </header>
+        </header>
 
-      <%!-- Mobile menu (hidden by default) --%>
-      <div id="mobile-menu" class="hidden border-b bg-card px-4 py-3 md:hidden">
-        <nav :if={scoped?(@current_scope)} class="flex flex-col gap-1">
-          <.nav_link
-            navigate={org_path(@current_scope)}
-            icon="hero-home"
-            icon_class="size-4 text-accent-sky"
-          >
-            Dashboard
-          </.nav_link>
-          <.nav_link
-            navigate={project_path(@current_scope, "/apis")}
-            icon="hero-bolt"
-            icon_class="size-4 text-accent-amber"
-          >
-            APIs
-          </.nav_link>
-          <.nav_link
-            navigate={project_path(@current_scope, "/flows")}
-            icon="hero-arrow-path"
-            icon_class="size-4 text-accent-violet"
-          >
-            Flows
-          </.nav_link>
-          <.nav_link
-            navigate={project_path(@current_scope, "/api-keys")}
-            icon="hero-key"
-            icon_class="size-4 text-accent-amber"
-          >
-            API Keys
-          </.nav_link>
-          <.nav_link
-            navigate={org_path(@current_scope, "/billing")}
-            icon="hero-credit-card"
-            icon_class="size-4 text-accent-emerald"
-          >
-            Billing
-          </.nav_link>
-          <.nav_link
-            navigate={org_path(@current_scope, "/settings")}
-            icon="hero-cog-6-tooth"
-            icon_class="size-4 text-slate-400"
-          >
-            Settings
-          </.nav_link>
-        </nav>
-        <%= if @current_scope && @current_scope.user do %>
-          <div class="mt-3 border-t pt-3">
-            <span class="text-muted-description">{@current_scope.user.email}</span>
-            <.link
-              href={~p"/users/log-out"}
-              method="delete"
-              class="mt-2 block text-sm font-medium hover:underline"
-            >
-              Log out
-            </.link>
+        <%!-- Mobile sidebar overlay --%>
+        <div id="mobile-menu" class="hidden border-b bg-card md:hidden">
+          <.sidebar
+            id="app-sidebar-mobile"
+            current_scope={@current_scope}
+            current_path={@current_path}
+          />
+        </div>
+
+        <main class="flex-1 overflow-y-auto px-4 py-6 md:px-6 md:py-8">
+          <div class="mx-auto max-w-6xl">
+            {@inner_content}
           </div>
-        <% end %>
+        </main>
       </div>
-
-      <main class="flex-1 overflow-y-auto px-4 py-6 md:px-6 md:py-8">
-        <div class="mx-auto max-w-6xl">
-          {@inner_content}
-        </div>
-      </main>
     </div>
 
     <.flash_group flash={@flash} />
@@ -222,30 +122,28 @@ defmodule BlackboexWeb.Layouts do
     default: nil,
     doc: "the current scope"
 
+  attr :current_path, :string,
+    default: nil,
+    doc: "the current URL path for sidebar active state"
+
   def editor(assigns) do
     ~H"""
-    <div class="h-screen overflow-hidden bg-background text-foreground">
-      {@inner_content}
+    <div class="flex h-screen overflow-hidden bg-background text-foreground">
+      <%!-- Collapsed sidebar icon strip --%>
+      <div class="hidden md:flex">
+        <.sidebar
+          id="editor-sidebar"
+          current_scope={@current_scope}
+          current_path={@current_path}
+          collapsed={true}
+        />
+      </div>
+      <div class="flex-1 overflow-hidden">
+        {@inner_content}
+      </div>
     </div>
 
     <.flash_group flash={@flash} />
-    """
-  end
-
-  attr :navigate, :string, required: true
-  attr :icon, :string, required: true
-  attr :icon_class, :string, default: "size-4"
-  slot :inner_block, required: true
-
-  defp nav_link(assigns) do
-    ~H"""
-    <.link
-      navigate={@navigate}
-      class="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-    >
-      <.icon name={@icon} class={@icon_class} />
-      {render_slot(@inner_block)}
-    </.link>
     """
   end
 
@@ -343,10 +241,6 @@ defmodule BlackboexWeb.Layouts do
     </div>
     """
   end
-
-  defp scoped?(nil), do: false
-  defp scoped?(%{organization: nil}), do: false
-  defp scoped?(%{organization: _org}), do: true
 
   @doc "Design system showcase layout — minimal shell, no auth, dev-only."
   attr :flash, :map, required: true

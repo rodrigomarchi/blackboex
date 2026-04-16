@@ -8,6 +8,7 @@ defmodule BlackboexWeb.BillingLive.Plans do
   import BlackboexWeb.Components.Spinner
   import BlackboexWeb.Components.Shared.ProgressBar
   import BlackboexWeb.Components.UI.SectionHeading
+  import BlackboexWeb.OrgSettingsLive, only: [org_settings_tabs: 1]
 
   alias Blackboex.Billing
   alias Blackboex.Billing.Enforcement
@@ -121,6 +122,8 @@ defmodule BlackboexWeb.BillingLive.Plans do
         </span>
         <:subtitle>Scale your API platform with the right plan</:subtitle>
       </.header>
+
+      <.org_settings_tabs current_scope={@current_scope} active="billing" />
 
       <.page_section :if={@usage}>
         <.card>

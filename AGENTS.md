@@ -63,6 +63,8 @@ infra/                — Docker, deployment
 - `apps/blackboex/lib/blackboex/organizations/AGENTS.md` — Multi-tenancy, OrganizationQueries
 - `apps/blackboex/lib/blackboex/policy/AGENTS.md` — LetMe authorization
 - `apps/blackboex/lib/blackboex/telemetry/AGENTS.md` — OpenTelemetry, events
+- `apps/blackboex/lib/blackboex/pages/AGENTS.md` — Pages context, Markdown content
+- `apps/blackboex/lib/blackboex/playgrounds/AGENTS.md` — Playgrounds context, Executor sandbox
 - `apps/blackboex/lib/blackboex/testing/AGENTS.md` — TestRunner, TestingQueries
 - `apps/blackboex/lib/blackboex/audit/AGENTS.md` — ExAudit, AuditQueries
 - `apps/blackboex_web/AGENTS.md` — Web layer, routing, auth flow

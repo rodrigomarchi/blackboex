@@ -107,6 +107,8 @@ Every schema that needs to be inserted in a test MUST use a fixture function —
 | `BillingFixtures` | `subscription_fixture/1`, `daily_usage_fixture/1`, `usage_event_fixture/1` | Subscription, DailyUsage, UsageEvent |
 | `ConversationsFixtures` | `conversation_fixture/2`, `run_fixture/1` | Conversation, Run |
 | `TestingFixtures` | `test_suite_fixture/1` | TestSuite |
+| `PagesFixtures` | `page_fixture/1` | Page |
+| `PlaygroundsFixtures` | `playground_fixture/1` | Playground |
 | `MockDefaults` | `stub_llm_client/1`, `stub_stripe/1` | — |
 
 ### Named Setup Composition

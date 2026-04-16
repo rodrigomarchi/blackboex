@@ -8,6 +8,7 @@ defmodule BlackboexWeb.OrgMemberLive.Index do
 
   import BlackboexWeb.Components.Badge
   import BlackboexWeb.Components.UI.InlineSelect
+  import BlackboexWeb.OrgSettingsLive, only: [org_settings_tabs: 1]
 
   alias Blackboex.Organizations
 
@@ -85,6 +86,8 @@ defmodule BlackboexWeb.OrgMemberLive.Index do
         </span>
         <:subtitle>Manage organization members and roles</:subtitle>
       </.header>
+
+      <.org_settings_tabs current_scope={@current_scope} active="members" />
 
       <%= if @members == [] do %>
         <.empty_state

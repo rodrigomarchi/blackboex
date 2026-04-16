@@ -186,7 +186,8 @@ defmodule BlackboexWeb.Router do
       layout: {BlackboexWeb.Layouts, :app},
       on_mount: [
         {BlackboexWeb.UserAuth, :require_authenticated},
-        {BlackboexWeb.Hooks.SetOrganizationFromUrl, :default}
+        {BlackboexWeb.Hooks.SetOrganizationFromUrl, :default},
+        {BlackboexWeb.Hooks.TrackCurrentPath, :default}
       ] do
       live "/", OrgDashboardLive, :index
       live "/billing", BillingLive.Plans, :index
@@ -214,7 +215,8 @@ defmodule BlackboexWeb.Router do
       on_mount: [
         {BlackboexWeb.UserAuth, :require_authenticated},
         {BlackboexWeb.Hooks.SetOrganizationFromUrl, :default},
-        {BlackboexWeb.Hooks.SetProjectFromUrl, :default}
+        {BlackboexWeb.Hooks.SetProjectFromUrl, :default},
+        {BlackboexWeb.Hooks.TrackCurrentPath, :default}
       ] do
       live "/", ProjectDashboardLive, :index
       live "/apis", ApiLive.Index, :index
@@ -222,6 +224,10 @@ defmodule BlackboexWeb.Router do
       live "/apis/:api_slug", ApiLive.Show, :show
       live "/apis/:api_slug/analytics", ApiLive.Analytics, :analytics
       live "/flows", FlowLive.Index, :index
+      live "/pages", PageLive.Index, :index
+      live "/pages/new", PageLive.Index, :new
+      live "/playgrounds", PlaygroundLive.Index, :index
+      live "/playgrounds/new", PlaygroundLive.Index, :new
       live "/api-keys", ApiKeyLive.Index, :index
       live "/api-keys/:id", ApiKeyLive.Show, :show
       live "/members", ProjectMemberLive.Index, :index
@@ -233,7 +239,8 @@ defmodule BlackboexWeb.Router do
       on_mount: [
         {BlackboexWeb.UserAuth, :require_authenticated},
         {BlackboexWeb.Hooks.SetOrganizationFromUrl, :default},
-        {BlackboexWeb.Hooks.SetProjectFromUrl, :default}
+        {BlackboexWeb.Hooks.SetProjectFromUrl, :default},
+        {BlackboexWeb.Hooks.TrackCurrentPath, :default}
       ] do
       live "/apis/:api_slug/edit", ApiLive.Edit.RedirectLive
       live "/apis/:api_slug/edit/chat", ApiLive.Edit.ChatLive
@@ -242,6 +249,8 @@ defmodule BlackboexWeb.Router do
       live "/apis/:api_slug/edit/metrics", ApiLive.Edit.MetricsLive
       live "/apis/:api_slug/edit/publish", ApiLive.Edit.PublishLive
       live "/apis/:api_slug/edit/info", ApiLive.Edit.InfoLive
+      live "/pages/:page_slug/edit", PageLive.Edit, :edit
+      live "/playgrounds/:playground_slug/edit", PlaygroundLive.Edit, :edit
       live "/flows/:id/edit", FlowLive.Edit, :edit
     end
   end
@@ -255,7 +264,8 @@ defmodule BlackboexWeb.Router do
       layout: {BlackboexWeb.Layouts, :app},
       on_mount: [
         {BlackboexWeb.UserAuth, :require_authenticated},
-        {BlackboexWeb.Hooks.SetOrganization, :default}
+        {BlackboexWeb.Hooks.SetOrganization, :default},
+        {BlackboexWeb.Hooks.TrackCurrentPath, :default}
       ] do
       live "/apis", ApiLive.Index, :index
       live "/apis/new", ApiLive.New, :new
@@ -274,7 +284,8 @@ defmodule BlackboexWeb.Router do
       layout: {BlackboexWeb.Layouts, :editor},
       on_mount: [
         {BlackboexWeb.UserAuth, :require_authenticated},
-        {BlackboexWeb.Hooks.SetOrganization, :default}
+        {BlackboexWeb.Hooks.SetOrganization, :default},
+        {BlackboexWeb.Hooks.TrackCurrentPath, :default}
       ] do
       live "/apis/:id/edit", ApiLive.Edit.RedirectLive
       live "/apis/:id/edit/chat", ApiLive.Edit.ChatLive

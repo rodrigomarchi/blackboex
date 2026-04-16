@@ -122,6 +122,70 @@ defmodule BlackboexWeb.PlaygroundLive.EditTest do
       assert html =~ "Format error"
     end
 
+    # ── Sidebar tree tests ────────────────────────────────────
+
+    test "renders sidebar with playground list", %{
+      conn: conn,
+      org: org,
+      project: project,
+      user: user,
+      playground: playground
+    } do
+      _other = playground_fixture(%{user: user, org: org, project: project, name: "Other REPL"})
+
+      {:ok, _view, html} = live(conn, edit_path(org, project, playground))
+      assert html =~ "Playgrounds"
+      assert html =~ "Test REPL"
+      assert html =~ "Other REPL"
+    end
+
+    test "sidebar highlights current playground", %{
+      conn: conn,
+      org: org,
+      project: project,
+      playground: playground
+    } do
+      {:ok, _view, html} = live(conn, edit_path(org, project, playground))
+      # Current playground should have selected state (bg-accent)
+      assert html =~ "bg-accent"
+    end
+
+    test "select_playground navigates to another playground", %{
+      conn: conn,
+      org: org,
+      project: project,
+      user: user,
+      playground: playground
+    } do
+      other = playground_fixture(%{user: user, org: org, project: project, name: "Other REPL"})
+
+      {:ok, view, _html} = live(conn, edit_path(org, project, playground))
+
+      view
+      |> element("[phx-click='select_playground'][phx-value-slug='#{other.slug}']")
+      |> render_click()
+
+      assert_redirected(
+        view,
+        ~p"/orgs/#{org.slug}/projects/#{project.slug}/playgrounds/#{other.slug}/edit"
+      )
+    end
+
+    test "new_playground creates and navigates to new playground", %{
+      conn: conn,
+      org: org,
+      project: project,
+      playground: playground
+    } do
+      {:ok, view, _html} = live(conn, edit_path(org, project, playground))
+      view |> element("button[phx-click='new_playground']") |> render_click()
+
+      # Should navigate to the new playground — get the redirect path
+      {path, _flash} = assert_redirect(view)
+      assert path =~ "/playgrounds/"
+      assert path =~ "/edit"
+    end
+
     test "redirects for invalid slug", %{conn: conn, org: org, project: project} do
       assert {:error, {:live_redirect, %{to: path, flash: %{"error" => "Playground not found"}}}} =
                live(

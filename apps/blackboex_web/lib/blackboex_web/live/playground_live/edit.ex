@@ -6,6 +6,7 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
   use BlackboexWeb, :live_view
 
   import BlackboexWeb.Components.Editor.PageHeader
+  import BlackboexWeb.Components.Editor.PlaygroundTree
   import BlackboexWeb.Components.Shared.PlaygroundEditorField
 
   alias Blackboex.Playgrounds
@@ -23,9 +24,12 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
          |> push_navigate(to: project_path(socket.assigns.current_scope, "/playgrounds"))}
 
       playground ->
+        playgrounds = Playgrounds.list_playgrounds(project.id)
+
         {:ok,
          assign(socket,
            playground: playground,
+           playgrounds: playgrounds,
            form: to_form(Playgrounds.change_playground(playground)),
            page_title: playground.name,
            output: playground.last_output,
@@ -110,6 +114,36 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
   end
 
   @impl true
+  def handle_event("select_playground", %{"slug" => slug}, socket) do
+    scope = socket.assigns.current_scope
+    path = project_path(scope, "/playgrounds/#{slug}/edit")
+    {:noreply, push_navigate(socket, to: path)}
+  end
+
+  @impl true
+  def handle_event("new_playground", _params, socket) do
+    scope = socket.assigns.current_scope
+    project = scope.project
+    user = scope.user
+
+    attrs = %{
+      name: "Untitled",
+      organization_id: project.organization_id,
+      project_id: project.id,
+      user_id: user.id
+    }
+
+    case Playgrounds.create_playground(attrs) do
+      {:ok, pg} ->
+        path = project_path(scope, "/playgrounds/#{pg.slug}/edit")
+        {:noreply, push_navigate(socket, to: path)}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Failed to create playground")}
+    end
+  end
+
+  @impl true
   def handle_event("validate", %{"playground" => params}, socket) do
     changeset =
       socket.assigns.playground
@@ -139,45 +173,56 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="flex flex-col h-full">
-      <.editor_page_header
-        title={@playground.name}
-        back_path={project_path(@current_scope, "/playgrounds")}
-        back_label="Playgrounds"
-      >
-        <:actions>
-          <.button variant="outline" size="sm" phx-click="save_code">
-            <.icon name="hero-arrow-down-tray" class="size-4 mr-1" /> Save
-          </.button>
-          <.button
-            variant="default"
-            phx-click="run"
-            disabled={@running}
-          >
-            <.icon
-              name={if @running, do: "hero-arrow-path", else: "hero-play"}
-              class={["size-4 mr-1", if(@running, do: "animate-spin")]}
+    <div class="flex h-full w-full overflow-hidden">
+      <%!-- Left sidebar: playground tree --%>
+      <div class="w-64 shrink-0 hidden md:block">
+        <.playground_tree
+          playgrounds={@playgrounds}
+          current_playground_id={@playground.id}
+        />
+      </div>
+
+      <%!-- Right: editor area --%>
+      <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <.editor_page_header
+          title={@playground.name}
+          back_path={project_path(@current_scope, "/playgrounds")}
+          back_label="Playgrounds"
+        >
+          <:actions>
+            <.button variant="outline" size="sm" phx-click="save_code">
+              <.icon name="hero-arrow-down-tray" class="size-4 mr-1" /> Save
+            </.button>
+            <.button
+              variant="default"
+              phx-click="run"
+              disabled={@running}
+            >
+              <.icon
+                name={if @running, do: "hero-arrow-path", else: "hero-play"}
+                class={["size-4 mr-1", if(@running, do: "animate-spin")]}
+              />
+              {if @running, do: "Running...", else: "Run"}
+            </.button>
+          </:actions>
+        </.editor_page_header>
+
+        <div class="flex flex-1 flex-col min-h-0">
+          <%!-- Code editor --%>
+          <div class="flex-1 min-h-0 border-b">
+            <.playground_editor_field
+              id="playground-code-editor"
+              value={@playground.code || ""}
+              max_height="max-h-full"
+              height="100%"
             />
-            {if @running, do: "Running...", else: "Run"}
-          </.button>
-        </:actions>
-      </.editor_page_header>
+          </div>
 
-      <div class="flex flex-1 flex-col min-h-0">
-        <%!-- Code editor --%>
-        <div class="flex-1 min-h-0 border-b">
-          <.playground_editor_field
-            id="playground-code-editor"
-            value={@playground.code || ""}
-            max_height="max-h-full"
-            height="100%"
-          />
-        </div>
-
-        <%!-- Output pane --%>
-        <div class="h-48 shrink-0 overflow-auto bg-muted/50 p-4">
-          <p class="text-xs font-medium text-muted-foreground mb-2">Output</p>
-          <pre class="font-mono text-sm whitespace-pre-wrap">{@output || "No output yet. Click Run to execute."}</pre>
+          <%!-- Output pane --%>
+          <div class="h-48 shrink-0 overflow-auto bg-muted/50 p-4">
+            <p class="text-xs font-medium text-muted-foreground mb-2">Output</p>
+            <pre class="font-mono text-sm whitespace-pre-wrap">{@output || "No output yet. Click Run to execute."}</pre>
+          </div>
         </div>
       </div>
     </div>

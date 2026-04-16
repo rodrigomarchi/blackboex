@@ -13,6 +13,7 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
 
   alias Blackboex.Playgrounds
   alias Blackboex.Playgrounds.Completer
+  alias Blackboex.Policy
 
   @impl true
   def mount(%{"playground_slug" => slug}, _session, socket) do
@@ -40,7 +41,8 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
            running: false,
            executions: executions,
            selected_execution_id: selected_id,
-           selected_execution: selected
+           selected_execution: selected,
+           confirm: nil
          )}
     end
   end
@@ -172,6 +174,72 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
       |> Map.put(:action, :validate)
 
     {:noreply, assign(socket, form: to_form(changeset))}
+  end
+
+  # ── Confirm Dialog ────────────────────────────────────────
+
+  @impl true
+  def handle_event("request_confirm", %{"action" => "delete"} = params, socket) do
+    name = params["name"] || "this playground"
+
+    confirm = %{
+      title: "Delete playground?",
+      description:
+        "\"#{name}\" and its execution history will be permanently removed. This action cannot be undone.",
+      variant: :danger,
+      confirm_label: "Delete",
+      event: "delete",
+      meta: Map.take(params, ["id", "slug"])
+    }
+
+    {:noreply, assign(socket, confirm: confirm)}
+  end
+
+  @impl true
+  def handle_event("dismiss_confirm", _params, socket) do
+    {:noreply, assign(socket, confirm: nil)}
+  end
+
+  @impl true
+  def handle_event("execute_confirm", _params, socket) do
+    case socket.assigns.confirm do
+      nil -> {:noreply, socket}
+      %{event: event, meta: meta} -> handle_event(event, meta, assign(socket, confirm: nil))
+    end
+  end
+
+  @impl true
+  def handle_event("delete", %{"id" => id} = params, socket) do
+    scope = socket.assigns.current_scope
+    project = scope.project
+    org = scope.organization
+
+    with :ok <- Policy.authorize_and_track(:playground_delete, scope, org),
+         pg when not is_nil(pg) <- Playgrounds.get_playground(project.id, id),
+         {:ok, _} <- Playgrounds.delete_playground(pg) do
+      if pg.id == socket.assigns.playground.id do
+        {:noreply,
+         socket
+         |> put_flash(:info, "Playground deleted.")
+         |> push_navigate(to: project_path(scope, "/playgrounds"))}
+      else
+        playgrounds = Playgrounds.list_playgrounds(project.id)
+
+        {:noreply,
+         socket
+         |> assign(playgrounds: playgrounds)
+         |> put_flash(:info, "Playground \"#{params["slug"] || pg.slug}\" deleted.")}
+      end
+    else
+      {:error, :unauthorized} ->
+        {:noreply, put_flash(socket, :error, "Not authorized to delete this playground.")}
+
+      nil ->
+        {:noreply, put_flash(socket, :error, "Playground not found.")}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Could not delete playground.")}
+    end
   end
 
   # ── Execution History Events ──────────────────────────────
@@ -349,6 +417,14 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
           </div>
         </div>
       </div>
+
+      <.confirm_dialog
+        :if={@confirm}
+        title={@confirm.title}
+        description={@confirm.description}
+        variant={@confirm[:variant] || :warning}
+        confirm_label={@confirm[:confirm_label] || "Confirm"}
+      />
     </div>
     """
   end

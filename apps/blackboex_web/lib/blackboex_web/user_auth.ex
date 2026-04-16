@@ -275,15 +275,10 @@ defmodule BlackboexWeb.UserAuth do
   def signed_in_path(_conn, _user), do: "/"
 
   defp default_org_path(user) do
-    case Blackboex.Organizations.list_user_organizations(user) do
-      [org | _] ->
-        case Blackboex.Projects.get_default_project(org.id) do
-          nil -> "/orgs/#{org.slug}"
-          project -> "/orgs/#{org.slug}/projects/#{project.slug}"
-        end
-
-      [] ->
-        "/"
+    case BlackboexWeb.LastVisited.resolve(user) do
+      {:ok, org, project} -> "/orgs/#{org.slug}/projects/#{project.slug}"
+      {:org_only, org} -> "/orgs/#{org.slug}"
+      :none -> "/"
     end
   end
 

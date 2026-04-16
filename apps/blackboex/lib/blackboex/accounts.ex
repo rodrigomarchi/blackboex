@@ -66,6 +66,25 @@ defmodule Blackboex.Accounts do
   """
   def get_user!(id), do: Repo.get!(User, id)
 
+  @doc """
+  Persists the user's last-visited organization and optional project.
+  Skips the write when the fields already match, to avoid churn.
+  """
+  @spec touch_last_visited(User.t(), Ecto.UUID.t() | nil, Ecto.UUID.t() | nil) ::
+          {:ok, User.t()} | {:error, Ecto.Changeset.t()}
+  def touch_last_visited(%User{} = user, organization_id, project_id) do
+    if user.last_organization_id == organization_id and user.last_project_id == project_id do
+      {:ok, user}
+    else
+      user
+      |> User.last_visited_changeset(%{
+        last_organization_id: organization_id,
+        last_project_id: project_id
+      })
+      |> Repo.update()
+    end
+  end
+
   ## User registration
 
   @doc """

@@ -97,15 +97,30 @@ defmodule BlackboexWeb.Components.Editor.PageTree do
         <.icon name="hero-document-text-micro" class="size-3.5 shrink-0 text-accent-sky/80" />
         <span class="truncate">{@node.page.title}</span>
 
-        <button
-          type="button"
-          class="ml-auto p-0.5 rounded shrink-0 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground"
-          phx-click="new_child_page"
-          phx-value-parent-id={@node.page.id}
-          title="New sub-page"
-        >
-          <.icon name="hero-plus-micro" class="size-2.5" />
-        </button>
+        <div class="ml-auto flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100">
+          <button
+            type="button"
+            class="p-0.5 rounded text-muted-foreground hover:text-foreground"
+            phx-click="new_child_page"
+            phx-value-parent-id={@node.page.id}
+            title="New sub-page"
+          >
+            <.icon name="hero-plus-micro" class="size-2.5" />
+          </button>
+          <button
+            type="button"
+            class="p-0.5 rounded text-muted-foreground hover:text-destructive"
+            phx-click="request_confirm"
+            phx-value-action="delete"
+            phx-value-id={@node.page.id}
+            phx-value-slug={@node.page.slug}
+            phx-value-title={@node.page.title}
+            title="Delete page"
+            aria-label="Delete page"
+          >
+            <.icon name="hero-trash-micro" class="size-2.5" />
+          </button>
+        </div>
       </div>
 
       <div :if={@has_children and @is_expanded} role="group">

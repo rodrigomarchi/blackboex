@@ -11,6 +11,7 @@ defmodule BlackboexWeb.PageLive.Edit do
   import BlackboexWeb.Components.Shared.TiptapEditorField
 
   alias Blackboex.Pages
+  alias Blackboex.Policy
 
   @impl true
   def mount(%{"page_slug" => slug}, _session, socket) do
@@ -33,7 +34,8 @@ defmodule BlackboexWeb.PageLive.Edit do
            page_title: page.title,
            page_tree: tree,
            expanded_ids: expanded_ids_for(tree, page.id),
-           save_status: :saved
+           save_status: :saved,
+           confirm: nil
          )}
     end
   end
@@ -98,11 +100,83 @@ defmodule BlackboexWeb.PageLive.Edit do
           />
         </div>
       </div>
+
+      <.confirm_dialog
+        :if={@confirm}
+        title={@confirm.title}
+        description={@confirm.description}
+        variant={@confirm[:variant] || :warning}
+        confirm_label={@confirm[:confirm_label] || "Confirm"}
+      />
     </div>
     """
   end
 
   # ── Events ─────────────────────────────────────────────────
+
+  @impl true
+  def handle_event("request_confirm", %{"action" => "delete"} = params, socket) do
+    title = params["title"] || "this page"
+
+    confirm = %{
+      title: "Delete page?",
+      description:
+        "\"#{title}\" and all of its sub-pages will be permanently removed. This action cannot be undone.",
+      variant: :danger,
+      confirm_label: "Delete",
+      event: "delete",
+      meta: Map.take(params, ["id", "slug"])
+    }
+
+    {:noreply, assign(socket, confirm: confirm)}
+  end
+
+  @impl true
+  def handle_event("dismiss_confirm", _params, socket) do
+    {:noreply, assign(socket, confirm: nil)}
+  end
+
+  @impl true
+  def handle_event("execute_confirm", _params, socket) do
+    case socket.assigns.confirm do
+      nil -> {:noreply, socket}
+      %{event: event, meta: meta} -> handle_event(event, meta, assign(socket, confirm: nil))
+    end
+  end
+
+  @impl true
+  def handle_event("delete", %{"id" => id} = params, socket) do
+    scope = socket.assigns.current_scope
+    project = scope.project
+    org = scope.organization
+
+    with :ok <- Policy.authorize_and_track(:page_delete, scope, org),
+         page when not is_nil(page) <- Pages.get_page(project.id, id),
+         {:ok, _} <- Pages.delete_page(page) do
+      if page.id == socket.assigns.page.id do
+        {:noreply,
+         socket
+         |> put_flash(:info, "Page deleted.")
+         |> push_navigate(to: project_path(scope, "/pages"))}
+      else
+        tree = Pages.list_page_tree(project.id)
+
+        {:noreply,
+         socket
+         |> assign(page_tree: tree)
+         |> put_flash(:info, "Page \"#{params["slug"] || page.slug}\" deleted.")}
+      end
+    else
+      {:error, :unauthorized} ->
+        {:noreply, put_flash(socket, :error, "Not authorized to delete this page.")}
+
+      nil ->
+        {:noreply, put_flash(socket, :error, "Page not found.")}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Could not delete page.")}
+    end
+  end
 
   @impl true
   def handle_event("update_content", %{"value" => content}, socket) do

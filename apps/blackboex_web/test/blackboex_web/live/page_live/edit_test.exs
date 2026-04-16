@@ -209,6 +209,95 @@ defmodule BlackboexWeb.PageLive.EditTest do
       assert path =~ "/edit"
     end
 
+    # ── Delete ───────────────────────────────────────────────
+
+    test "request_confirm opens danger dialog", %{
+      conn: conn,
+      org: org,
+      project: project,
+      page: page
+    } do
+      {:ok, view, _html} = live(conn, edit_path(org, project, page))
+
+      html =
+        render_click(view, "request_confirm", %{
+          "action" => "delete",
+          "id" => page.id,
+          "slug" => page.slug,
+          "title" => page.title
+        })
+
+      assert html =~ "Delete page?"
+      assert html =~ page.title
+    end
+
+    test "dismiss_confirm closes the dialog", %{
+      conn: conn,
+      org: org,
+      project: project,
+      page: page
+    } do
+      {:ok, view, _html} = live(conn, edit_path(org, project, page))
+
+      render_click(view, "request_confirm", %{
+        "action" => "delete",
+        "id" => page.id,
+        "slug" => page.slug,
+        "title" => page.title
+      })
+
+      refute render_click(view, "dismiss_confirm") =~ "Delete page?"
+    end
+
+    test "deleting the current page redirects to pages index", %{
+      conn: conn,
+      org: org,
+      project: project,
+      page: page
+    } do
+      {:ok, view, _html} = live(conn, edit_path(org, project, page))
+
+      render_click(view, "delete", %{"id" => page.id, "slug" => page.slug})
+
+      {path, _flash} = assert_redirect(view)
+      assert path =~ "/pages"
+      assert Pages.get_page(project.id, page.id) == nil
+    end
+
+    test "deleting a sibling page removes it from the tree and stays", %{
+      conn: conn,
+      org: org,
+      project: project,
+      page: page,
+      user: user
+    } do
+      other = page_fixture(%{user: user, org: org, project: project, title: "Sibling"})
+      {:ok, view, _html} = live(conn, edit_path(org, project, page))
+      assert render(view) =~ "Sibling"
+
+      html = render_click(view, "delete", %{"id" => other.id, "slug" => other.slug})
+
+      refute html =~ "Sibling"
+      assert Pages.get_page(project.id, other.id) == nil
+    end
+
+    test "delete with unknown id shows not-found flash", %{
+      conn: conn,
+      org: org,
+      project: project,
+      page: page
+    } do
+      {:ok, view, _html} = live(conn, edit_path(org, project, page))
+
+      html =
+        render_click(view, "delete", %{
+          "id" => "00000000-0000-0000-0000-000000000000",
+          "slug" => "missing"
+        })
+
+      assert html =~ "Page not found"
+    end
+
     # ── Edge Cases ───────────────────────────────────────────
 
     test "redirects for invalid slug", %{conn: conn, org: org, project: project} do

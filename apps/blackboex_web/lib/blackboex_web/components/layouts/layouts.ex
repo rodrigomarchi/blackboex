@@ -127,10 +127,12 @@ defmodule BlackboexWeb.Layouts do
     doc: "the current URL path for sidebar active state"
 
   def editor(assigns) do
+    assigns = assign(assigns, :hide_editor_sidebar, hide_editor_sidebar?(assigns))
+
     ~H"""
     <div class="flex h-screen overflow-hidden bg-background text-foreground">
       <%!-- Collapsed sidebar icon strip --%>
-      <div class="hidden md:flex">
+      <div :if={!@hide_editor_sidebar} class="hidden md:flex">
         <.sidebar
           id="editor-sidebar"
           current_scope={@current_scope}
@@ -146,6 +148,12 @@ defmodule BlackboexWeb.Layouts do
     <.flash_group flash={@flash} />
     """
   end
+
+  defp hide_editor_sidebar?(%{current_path: path}) when is_binary(path) do
+    String.starts_with?(path, "/flows/") and String.ends_with?(path, "/edit")
+  end
+
+  defp hide_editor_sidebar?(_), do: false
 
   defp toggle_mobile_menu do
     JS.toggle(to: "#mobile-menu")

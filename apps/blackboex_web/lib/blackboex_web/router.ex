@@ -188,7 +188,8 @@ defmodule BlackboexWeb.Router do
       on_mount: [
         {BlackboexWeb.UserAuth, :require_authenticated},
         {BlackboexWeb.Hooks.SetOrganizationFromUrl, :default},
-        {BlackboexWeb.Hooks.TrackCurrentPath, :default}
+        {BlackboexWeb.Hooks.TrackCurrentPath, :default},
+        {BlackboexWeb.Hooks.TrackLastVisited, :default}
       ] do
       live "/", OrgDashboardLive, :index
       live "/billing", BillingLive.Plans, :index
@@ -217,7 +218,8 @@ defmodule BlackboexWeb.Router do
         {BlackboexWeb.UserAuth, :require_authenticated},
         {BlackboexWeb.Hooks.SetOrganizationFromUrl, :default},
         {BlackboexWeb.Hooks.SetProjectFromUrl, :default},
-        {BlackboexWeb.Hooks.TrackCurrentPath, :default}
+        {BlackboexWeb.Hooks.TrackCurrentPath, :default},
+        {BlackboexWeb.Hooks.TrackLastVisited, :default}
       ] do
       live "/", ProjectDashboardLive, :index
       live "/apis", ApiLive.Index, :index
@@ -239,7 +241,8 @@ defmodule BlackboexWeb.Router do
         {BlackboexWeb.UserAuth, :require_authenticated},
         {BlackboexWeb.Hooks.SetOrganizationFromUrl, :default},
         {BlackboexWeb.Hooks.SetProjectFromUrl, :default},
-        {BlackboexWeb.Hooks.TrackCurrentPath, :default}
+        {BlackboexWeb.Hooks.TrackCurrentPath, :default},
+        {BlackboexWeb.Hooks.TrackLastVisited, :default}
       ] do
       live "/apis/:api_slug/edit", ApiLive.Edit.RedirectLive
       live "/apis/:api_slug/edit/chat", ApiLive.Edit.ChatLive

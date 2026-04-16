@@ -14,8 +14,20 @@ defmodule Blackboex.Accounts.User do
     field :confirmed_at, :utc_datetime_usec
     field :authenticated_at, :utc_datetime_usec, virtual: true
     field :is_platform_admin, :boolean, default: false
+    field :last_organization_id, :binary_id
+    field :last_project_id, :binary_id
 
     timestamps(type: :utc_datetime_usec)
+  end
+
+  @doc """
+  Changeset for tracking the last-visited organization and project. Used to
+  restore the user's previous workspace on login.
+  """
+  @spec last_visited_changeset(t(), map()) :: Ecto.Changeset.t()
+  def last_visited_changeset(user, attrs) do
+    user
+    |> cast(attrs, [:last_organization_id, :last_project_id])
   end
 
   @doc """

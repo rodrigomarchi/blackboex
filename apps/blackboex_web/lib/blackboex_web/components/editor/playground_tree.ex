@@ -65,6 +65,19 @@ defmodule BlackboexWeb.Components.Editor.PlaygroundTree do
     >
       <.icon name="hero-code-bracket-micro" class="size-3.5 shrink-0 text-accent-emerald/80" />
       <span class="truncate">{@playground.name}</span>
+      <button
+        type="button"
+        class="ml-auto p-0.5 rounded shrink-0 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"
+        phx-click="request_confirm"
+        phx-value-action="delete"
+        phx-value-id={@playground.id}
+        phx-value-slug={@playground.slug}
+        phx-value-name={@playground.name}
+        title="Delete playground"
+        aria-label="Delete playground"
+      >
+        <.icon name="hero-trash-micro" class="size-2.5" />
+      </button>
     </div>
     """
   end

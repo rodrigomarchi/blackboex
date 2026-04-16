@@ -1,6 +1,8 @@
 defmodule BlackboexWeb.PlaygroundLive.EditTest do
   use BlackboexWeb.ConnCase, async: true
 
+  alias Blackboex.Playgrounds
+
   @moduletag :liveview
 
   describe "unauthenticated" do
@@ -184,6 +186,79 @@ defmodule BlackboexWeb.PlaygroundLive.EditTest do
       {path, _flash} = assert_redirect(view)
       assert path =~ "/playgrounds/"
       assert path =~ "/edit"
+    end
+
+    # ── Delete ───────────────────────────────────────────────
+
+    test "request_confirm opens danger dialog", %{
+      conn: conn,
+      org: org,
+      project: project,
+      playground: playground
+    } do
+      {:ok, view, _html} = live(conn, edit_path(org, project, playground))
+
+      html =
+        render_click(view, "request_confirm", %{
+          "action" => "delete",
+          "id" => playground.id,
+          "slug" => playground.slug,
+          "name" => playground.name
+        })
+
+      assert html =~ "Delete playground?"
+      assert html =~ playground.name
+    end
+
+    test "deleting the current playground redirects", %{
+      conn: conn,
+      org: org,
+      project: project,
+      playground: playground
+    } do
+      {:ok, view, _html} = live(conn, edit_path(org, project, playground))
+
+      render_click(view, "delete", %{"id" => playground.id, "slug" => playground.slug})
+
+      {path, _flash} = assert_redirect(view)
+      assert path =~ "/playgrounds"
+      assert Playgrounds.get_playground(project.id, playground.id) == nil
+    end
+
+    test "deleting a sibling playground removes it from the sidebar", %{
+      conn: conn,
+      org: org,
+      project: project,
+      playground: playground,
+      user: user
+    } do
+      other =
+        playground_fixture(%{user: user, org: org, project: project, name: "Sibling REPL"})
+
+      {:ok, view, _html} = live(conn, edit_path(org, project, playground))
+      assert render(view) =~ "Sibling REPL"
+
+      html = render_click(view, "delete", %{"id" => other.id, "slug" => other.slug})
+
+      refute html =~ "Sibling REPL"
+      assert Playgrounds.get_playground(project.id, other.id) == nil
+    end
+
+    test "delete with unknown id shows not-found flash", %{
+      conn: conn,
+      org: org,
+      project: project,
+      playground: playground
+    } do
+      {:ok, view, _html} = live(conn, edit_path(org, project, playground))
+
+      html =
+        render_click(view, "delete", %{
+          "id" => "00000000-0000-0000-0000-000000000000",
+          "slug" => "missing"
+        })
+
+      assert html =~ "Playground not found"
     end
 
     test "redirects for invalid slug", %{conn: conn, org: org, project: project} do

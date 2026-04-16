@@ -13,7 +13,7 @@ defmodule Blackboex.Playgrounds.Executor do
   """
 
   @max_heap_size 10_485_760
-  @timeout 5_000
+  @timeout 15_000
   @max_output_length 65_536
 
   # Allowlist of safe modules for playground use
@@ -22,6 +22,7 @@ defmodule Blackboex.Playgrounds.Executor do
     Date Time DateTime NaiveDateTime Calendar Regex URI Base
     Jason Access Stream Range Atom IO Inspect Kernel
     Map.Merge Bitwise
+    Blackboex.Playgrounds.Http Blackboex.Playgrounds.Api
   )
 
   @rate_limit_window 60_000
@@ -111,7 +112,7 @@ defmodule Blackboex.Playgrounds.Executor do
     if String.starts_with?(atom_str, "Elixir.") do
       module_name = String.replace_prefix(atom_str, "Elixir.", "")
 
-      if module_name not in @allowed_modules do
+      if module_name not in @allowed_modules and not alias_of_allowed?(module_name) do
         {atom, ["dynamic module reference not allowed: #{module_name}" | acc]}
       else
         {atom, acc}
@@ -148,7 +149,7 @@ defmodule Blackboex.Playgrounds.Executor do
        ) do
     module_str = Enum.map_join(parts, ".", &to_string/1)
 
-    if module_str in @allowed_modules do
+    if module_str in @allowed_modules or alias_of_allowed?(module_str) do
       {node, acc}
     else
       {node, ["module not allowed: #{module_str}" | acc]}
@@ -158,6 +159,14 @@ defmodule Blackboex.Playgrounds.Executor do
   # Allow everything else (literals, operators, local function calls, etc.)
   defp check_node(node, acc) do
     {node, acc}
+  end
+
+  # Check if a short module name (e.g. "Http") is the tail of an allowed
+  # fully-qualified module (e.g. "Blackboex.Playgrounds.Http").
+  # This lets playground code use `alias Blackboex.Playgrounds.Http` and then call `Http.get(...)`.
+  defp alias_of_allowed?(short_name) do
+    suffix = "." <> short_name
+    Enum.any?(@allowed_modules, &String.ends_with?(&1, suffix))
   end
 
   defp run_sandboxed(ast) do

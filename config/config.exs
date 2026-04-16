@@ -92,6 +92,9 @@ config :ex_audit,
     Blackboex.Organizations.Organization
   ]
 
+# Playground API self-call base URL (override via PLAYGROUND_BASE_URL in prod)
+config :blackboex, Blackboex.Playgrounds.Api, base_url: "http://localhost:4000"
+
 # Stripe client configuration
 config :blackboex, :stripe_client, Blackboex.Billing.StripeClient.Live
 

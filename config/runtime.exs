@@ -15,6 +15,11 @@ end
 config :blackboex_web, BlackboexWeb.Endpoint,
   http: [port: String.to_integer(System.get_env("PORT", "4000"))]
 
+# Playground API self-call base URL
+if playground_base_url = System.get_env("PLAYGROUND_BASE_URL") do
+  config :blackboex, Blackboex.Playgrounds.Api, base_url: playground_base_url
+end
+
 # Stripe configuration (all environments — loaded from env vars when present)
 if stripe_key = System.get_env("STRIPE_SECRET_KEY") do
   config :stripity_stripe, api_key: stripe_key

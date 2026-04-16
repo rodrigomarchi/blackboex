@@ -75,6 +75,31 @@ defmodule Blackboex.Playgrounds.ExecutorTest do
     end
   end
 
+  describe "execute/1 IO capture" do
+    test "captures IO.puts output" do
+      code = ~S[IO.puts("hello world")]
+      assert {:ok, output} = Executor.execute(code)
+      assert output =~ "hello world"
+    end
+
+    test "captures IO.puts and returns result" do
+      code = """
+      IO.puts("side effect")
+      1 + 2
+      """
+
+      assert {:ok, output} = Executor.execute(code)
+      assert output =~ "side effect"
+      assert output =~ "3"
+    end
+
+    test "captures IO.inspect output" do
+      code = ~S[IO.inspect(%{a: 1, b: 2})]
+      assert {:ok, output} = Executor.execute(code)
+      assert output =~ "a:"
+    end
+  end
+
   describe "execute/1 allowed operations" do
     test "allows Enum operations" do
       assert {:ok, "[2, 4, 6]"} = Executor.execute("Enum.map([1,2,3], & &1 * 2)")

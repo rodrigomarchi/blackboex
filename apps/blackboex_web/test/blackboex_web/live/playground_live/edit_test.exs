@@ -53,6 +53,75 @@ defmodule BlackboexWeb.PlaygroundLive.EditTest do
       assert render(view) =~ "Saved"
     end
 
+    test "renders playground editor with PlaygroundEditor hook", %{
+      conn: conn,
+      org: org,
+      project: project,
+      playground: playground
+    } do
+      {:ok, _view, html} = live(conn, edit_path(org, project, playground))
+      assert html =~ ~s(phx-hook="PlaygroundEditor")
+      assert html =~ ~s(data-language="elixir")
+    end
+
+    test "save_code persists code to database", %{
+      conn: conn,
+      org: org,
+      project: project,
+      playground: playground
+    } do
+      {:ok, view, _html} = live(conn, edit_path(org, project, playground))
+
+      render_click(view, "update_code", %{"value" => "1 + 1"})
+      render_click(view, "save_code")
+
+      updated = Blackboex.Playgrounds.get_playground(project.id, playground.id)
+      assert updated.code == "1 + 1"
+    end
+
+    test "autocomplete event returns without crashing", %{
+      conn: conn,
+      org: org,
+      project: project,
+      playground: playground
+    } do
+      {:ok, view, _html} = live(conn, edit_path(org, project, playground))
+      assert render_click(view, "autocomplete", %{"hint" => "Enum."})
+    end
+
+    test "autocomplete for blocked module does not crash", %{
+      conn: conn,
+      org: org,
+      project: project,
+      playground: playground
+    } do
+      {:ok, view, _html} = live(conn, edit_path(org, project, playground))
+      assert render_click(view, "autocomplete", %{"hint" => "System."})
+    end
+
+    test "format_code event does not crash for valid code", %{
+      conn: conn,
+      org: org,
+      project: project,
+      playground: playground
+    } do
+      {:ok, view, _html} = live(conn, edit_path(org, project, playground))
+      render_click(view, "update_code", %{"value" => "Enum.map(   [1,2,3],   &(&1*2)   )"})
+      assert render_click(view, "format_code")
+    end
+
+    test "format_code event handles invalid syntax gracefully", %{
+      conn: conn,
+      org: org,
+      project: project,
+      playground: playground
+    } do
+      {:ok, view, _html} = live(conn, edit_path(org, project, playground))
+      render_click(view, "update_code", %{"value" => "def foo("})
+      html = render_click(view, "format_code")
+      assert html =~ "Format error"
+    end
+
     test "redirects for invalid slug", %{conn: conn, org: org, project: project} do
       assert {:error, {:live_redirect, %{to: path, flash: %{"error" => "Playground not found"}}}} =
                live(

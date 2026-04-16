@@ -12,8 +12,6 @@ defmodule Blackboex.Playgrounds.Executor do
   Reuses the existing `SandboxTaskSupervisor` from the application supervision tree.
   """
 
-  alias Blackboex.CodeGen.ASTValidator
-
   @max_heap_size 10_485_760
   @timeout 5_000
   @max_output_length 65_536
@@ -28,6 +26,9 @@ defmodule Blackboex.Playgrounds.Executor do
 
   @rate_limit_window 60_000
   @rate_limit_max 10
+
+  @spec allowed_modules() :: [String.t()]
+  def allowed_modules, do: @allowed_modules
 
   @spec execute(String.t()) :: {:ok, String.t()} | {:error, String.t()}
   def execute(source_code) when is_binary(source_code) do
@@ -58,16 +59,33 @@ defmodule Blackboex.Playgrounds.Executor do
     end
   end
 
+  @max_atoms 1000
+
   defp validate(source_code) do
-    case ASTValidator.validate(source_code) do
-      {:ok, ast} ->
-        {:ok, ast}
+    atom_counter = :counters.new(1, [:atomics])
 
-      {:error, errors} when is_list(errors) ->
-        {:error, Enum.join(errors, "; ")}
+    static_atoms_encoder = fn token, _meta ->
+      count = :counters.get(atom_counter, 1)
 
-      {:error, reason} ->
-        {:error, to_string(reason)}
+      if count >= @max_atoms do
+        {:error, "too many unique atoms (limit: #{@max_atoms})"}
+      else
+        :counters.add(atom_counter, 1, 1)
+
+        try do
+          {:ok, String.to_existing_atom(token)}
+        rescue
+          ArgumentError -> {:ok, String.to_atom(token)}
+        end
+      end
+    end
+
+    case Code.string_to_quoted(source_code,
+           static_atoms_encoder: static_atoms_encoder,
+           columns: true
+         ) do
+      {:ok, ast} -> {:ok, ast}
+      {:error, {_meta, message, token}} -> {:error, "parse error: #{message}#{token}"}
     end
   end
 
@@ -150,8 +168,24 @@ defmodule Blackboex.Playgrounds.Executor do
           Process.flag(:max_heap_size, %{size: @max_heap_size, kill: true, error_logger: false})
 
           try do
+            {:ok, string_io} = StringIO.open("")
+            original_gl = Process.group_leader()
+            Process.group_leader(self(), string_io)
+
             {result, _bindings} = Code.eval_quoted(ast, [])
-            output = inspect(result, pretty: true, limit: 1000)
+
+            Process.group_leader(self(), original_gl)
+            {_input, io_output} = StringIO.contents(string_io)
+            StringIO.close(string_io)
+
+            result_str = inspect(result, pretty: true, limit: 1000)
+
+            output =
+              case io_output do
+                "" -> result_str
+                _ -> String.trim_trailing(io_output) <> "\n" <> result_str
+              end
+
             {:ok, String.slice(output, 0, @max_output_length)}
           rescue
             e -> {:error, Exception.message(e)}

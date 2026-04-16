@@ -6,9 +6,10 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
   use BlackboexWeb, :live_view
 
   import BlackboexWeb.Components.Editor.PageHeader
-  import BlackboexWeb.Components.Shared.CodeEditorField
+  import BlackboexWeb.Components.Shared.PlaygroundEditorField
 
   alias Blackboex.Playgrounds
+  alias Blackboex.Playgrounds.Completer
 
   @impl true
   def mount(%{"playground_slug" => slug}, _session, socket) do
@@ -90,6 +91,25 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
   end
 
   @impl true
+  def handle_event("autocomplete", %{"hint" => hint}, socket) do
+    items = Completer.complete(hint)
+    {:reply, %{items: items}, socket}
+  end
+
+  @impl true
+  def handle_event("format_code", _params, socket) do
+    code = socket.assigns[:current_code] || socket.assigns.playground.code || ""
+
+    case format_elixir_code(code) do
+      {:ok, formatted} ->
+        {:noreply, push_event(socket, "formatted_code", %{code: formatted})}
+
+      {:error, msg} ->
+        {:noreply, put_flash(socket, :error, "Format error: #{msg}")}
+    end
+  end
+
+  @impl true
   def handle_event("validate", %{"playground" => params}, socket) do
     changeset =
       socket.assigns.playground
@@ -108,6 +128,12 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
       end
 
     {:noreply, assign(socket, output: output, running: false, playground: playground)}
+  end
+
+  defp format_elixir_code(code) do
+    {:ok, code |> Code.format_string!() |> IO.iodata_to_binary()}
+  rescue
+    e in [SyntaxError, TokenMissingError] -> {:error, Exception.message(e)}
   end
 
   @impl true
@@ -140,16 +166,11 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
       <div class="flex flex-1 flex-col min-h-0">
         <%!-- Code editor --%>
         <div class="flex-1 min-h-0 border-b">
-          <.code_editor_field
+          <.playground_editor_field
             id="playground-code-editor"
             value={@playground.code || ""}
-            language="elixir"
-            readonly={false}
-            minimal={false}
             max_height="max-h-full"
             height="100%"
-            event="update_code"
-            field="code"
           />
         </div>
 

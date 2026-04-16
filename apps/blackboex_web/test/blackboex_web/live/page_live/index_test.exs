@@ -19,55 +19,30 @@ defmodule BlackboexWeb.PageLive.IndexTest do
       %{org: org, project: project}
     end
 
-    defp pages_path(org, project), do: ~p"/orgs/#{org.slug}/projects/#{project.slug}/pages"
+    test "redirects to first page editor when pages exist", %{
+      conn: conn,
+      org: org,
+      project: project,
+      user: user
+    } do
+      page = page_fixture(%{user: user, org: org, project: project, title: "First Page"})
 
-    test "shows empty state when no pages", %{conn: conn, org: org, project: project} do
-      {:ok, _view, html} = live(conn, pages_path(org, project))
-      assert html =~ "No pages yet"
+      assert {:error, {:live_redirect, %{to: path}}} =
+               live(conn, ~p"/orgs/#{org.slug}/projects/#{project.slug}/pages")
+
+      assert path =~ "/pages/#{page.slug}/edit"
     end
 
-    test "lists pages for the project", %{conn: conn, org: org, project: project, user: user} do
-      page_fixture(%{user: user, org: org, project: project, title: "Architecture Doc"})
+    test "creates page and redirects when no pages exist", %{
+      conn: conn,
+      org: org,
+      project: project
+    } do
+      assert {:error, {:live_redirect, %{to: path}}} =
+               live(conn, ~p"/orgs/#{org.slug}/projects/#{project.slug}/pages")
 
-      {:ok, _view, html} = live(conn, pages_path(org, project))
-      assert html =~ "Architecture Doc"
-      assert html =~ "draft"
-    end
-
-    test "has button to create new page", %{conn: conn, org: org, project: project} do
-      {:ok, _view, html} = live(conn, pages_path(org, project))
-      assert html =~ "New Page"
-    end
-
-    test "opens create modal on /pages/new", %{conn: conn, org: org, project: project} do
-      {:ok, _view, html} =
-        live(conn, ~p"/orgs/#{org.slug}/projects/#{project.slug}/pages/new")
-
-      assert html =~ "Create Page"
-      assert html =~ "Title"
-    end
-
-    test "creates a page and redirects to editor", %{conn: conn, org: org, project: project} do
-      {:ok, view, _html} =
-        live(conn, ~p"/orgs/#{org.slug}/projects/#{project.slug}/pages/new")
-
-      view
-      |> form("form[phx-submit='create_page']", %{page: %{title: "My New Page"}})
-      |> render_submit()
-
-      {path, _flash} = assert_redirect(view)
-      assert path =~ ~r"/pages/.*/edit"
-    end
-
-    test "deletes a page", %{conn: conn, org: org, project: project, user: user} do
-      page = page_fixture(%{user: user, org: org, project: project, title: "Delete Me"})
-
-      {:ok, view, _html} = live(conn, pages_path(org, project))
-      assert render(view) =~ "Delete Me"
-
-      render_click(view, "delete_page", %{"id" => page.id})
-
-      refute render(view) =~ "Delete Me"
+      assert path =~ "/pages/"
+      assert path =~ "/edit"
     end
   end
 end

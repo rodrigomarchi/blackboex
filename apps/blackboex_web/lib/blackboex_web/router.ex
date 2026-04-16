@@ -225,7 +225,6 @@ defmodule BlackboexWeb.Router do
       live "/apis/:api_slug/analytics", ApiLive.Analytics, :analytics
       live "/flows", FlowLive.Index, :index
       live "/pages", PageLive.Index, :index
-      live "/pages/new", PageLive.Index, :new
       live "/playgrounds", PlaygroundLive.Index, :index
       live "/playgrounds/new", PlaygroundLive.Index, :new
       live "/api-keys", ApiKeyLive.Index, :index

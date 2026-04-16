@@ -39,6 +39,44 @@ defmodule Blackboex.Pages.PageQueries do
     where(query, [p], ilike(p.title, ^like) or ilike(p.content, ^like))
   end
 
+  @spec tree_for_project(Ecto.UUID.t()) :: Ecto.Query.t()
+  def tree_for_project(project_id) do
+    Page
+    |> where([p], p.project_id == ^project_id)
+    |> order_by([p], asc: p.position, asc: p.inserted_at)
+  end
+
+  @spec children_of(Ecto.UUID.t()) :: Ecto.Query.t()
+  def children_of(parent_id) do
+    Page
+    |> where([p], p.parent_id == ^parent_id)
+    |> order_by([p], asc: p.position)
+  end
+
+  @spec max_position(Ecto.UUID.t(), Ecto.UUID.t() | nil) :: Ecto.Query.t()
+  def max_position(project_id, nil) do
+    Page
+    |> where([p], p.project_id == ^project_id and is_nil(p.parent_id))
+    |> select([p], max(p.position))
+  end
+
+  def max_position(project_id, parent_id) do
+    Page
+    |> where([p], p.project_id == ^project_id and p.parent_id == ^parent_id)
+    |> select([p], max(p.position))
+  end
+
+  @doc """
+  Returns a single page by id, selecting only id and parent_id.
+  Used for walking the ancestor chain iteratively.
+  """
+  @spec parent_lookup(Ecto.UUID.t()) :: Ecto.Query.t()
+  def parent_lookup(page_id) do
+    Page
+    |> where([p], p.id == ^page_id)
+    |> select([p], {p.id, p.parent_id})
+  end
+
   defp sanitize_like(term) do
     term
     |> String.replace("\\", "\\\\")

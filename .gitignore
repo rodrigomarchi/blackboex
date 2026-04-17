@@ -44,5 +44,8 @@ Thumbs.db
 # oh-my-claudecode runtime state
 .omc/
 
-# Claude Code local state (agent worktrees, session artifacts)
-.claude/
+# Claude Code — commit shared config (.claude/settings.json, commands/, agents/, mcp*.json)
+# but keep per-user and ephemeral state out of the repo.
+.claude/settings.local.json
+.claude/worktrees/
+.claude/history/

@@ -188,10 +188,16 @@ defmodule BlackboexWeb.Router do
       on_mount: [
         {BlackboexWeb.UserAuth, :require_authenticated},
         {BlackboexWeb.Hooks.SetOrganizationFromUrl, :default},
+        {BlackboexWeb.Hooks.SetPreferredProject, :default},
         {BlackboexWeb.Hooks.TrackCurrentPath, :default},
         {BlackboexWeb.Hooks.TrackLastVisited, :default}
       ] do
       live "/", OrgDashboardLive, :index
+      live "/dashboard", DashboardLive.Overview, :overview
+      live "/dashboard/apis", DashboardLive.Apis, :apis
+      live "/dashboard/flows", DashboardLive.Flows, :flows
+      live "/dashboard/llm", DashboardLive.Llm, :llm
+      live "/dashboard/usage", DashboardLive.Usage, :usage
       live "/billing", BillingLive.Plans, :index
       live "/billing/manage", BillingLive.Manage, :manage
       live "/settings", OrgSettingsLive, :index
@@ -222,6 +228,11 @@ defmodule BlackboexWeb.Router do
         {BlackboexWeb.Hooks.TrackLastVisited, :default}
       ] do
       live "/", ProjectDashboardLive, :index
+      live "/dashboard", DashboardLive.Overview, :overview
+      live "/dashboard/apis", DashboardLive.Apis, :apis
+      live "/dashboard/flows", DashboardLive.Flows, :flows
+      live "/dashboard/llm", DashboardLive.Llm, :llm
+      live "/dashboard/usage", DashboardLive.Usage, :usage
       live "/apis", ApiLive.Index, :index
       live "/apis/new", ApiLive.New, :new
       live "/apis/:api_slug", ApiLive.Show, :show

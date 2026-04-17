@@ -41,10 +41,10 @@ defmodule BlackboexWeb.Components.OrgProjectSwitcher do
         <div class="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-primary/10 text-primary text-[10px] font-bold">
           {org_initials(@current_org)}
         </div>
-        <div class="flex-1 min-w-0">
+        <div class="flex-1 min-w-0 flex items-center gap-1">
           <.dropdown_menu>
             <.dropdown_menu_trigger>
-              <button class="flex w-full items-center gap-1 text-left group">
+              <button class="flex min-w-0 items-center gap-1 text-left group">
                 <span class="text-xs font-medium text-muted-foreground truncate group-hover:text-foreground transition-colors">
                   {org_name(@current_org)}
                 </span>
@@ -78,6 +78,24 @@ defmodule BlackboexWeb.Components.OrgProjectSwitcher do
               </.link>
             </.dropdown_menu_content>
           </.dropdown_menu>
+          <div :if={@current_org} class="ml-auto flex items-center gap-0.5">
+            <.link
+              navigate={"/orgs/#{@current_org.slug}/dashboard"}
+              class="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent"
+              title="Org dashboard"
+              aria-label="Org dashboard"
+            >
+              <.icon name="hero-home-micro" class="size-3.5" />
+            </.link>
+            <.link
+              navigate={"/orgs/#{@current_org.slug}/settings"}
+              class="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent"
+              title="Org settings"
+              aria-label="Org settings"
+            >
+              <.icon name="hero-cog-6-tooth-micro" class="size-3.5" />
+            </.link>
+          </div>
         </div>
       </div>
 
@@ -86,10 +104,10 @@ defmodule BlackboexWeb.Components.OrgProjectSwitcher do
         <div class="flex h-6 w-6 shrink-0 items-center justify-center">
           <.icon name="hero-folder-micro" class="size-4 text-muted-foreground/60" />
         </div>
-        <div class="flex-1 min-w-0">
+        <div class="flex-1 min-w-0 flex items-center gap-1">
           <.dropdown_menu>
             <.dropdown_menu_trigger>
-              <button class="flex w-full items-center gap-1 text-left group">
+              <button class="flex min-w-0 items-center gap-1 text-left group">
                 <span class="text-sm font-semibold truncate group-hover:text-primary transition-colors">
                   {project_name(@current_project)}
                 </span>
@@ -133,6 +151,24 @@ defmodule BlackboexWeb.Components.OrgProjectSwitcher do
               </.link>
             </.dropdown_menu_content>
           </.dropdown_menu>
+          <div :if={@current_org && @current_project} class="ml-auto flex items-center gap-0.5">
+            <.link
+              navigate={"/orgs/#{@current_org.slug}/projects/#{@current_project.slug}/dashboard"}
+              class="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent"
+              title="Project dashboard"
+              aria-label="Project dashboard"
+            >
+              <.icon name="hero-home-micro" class="size-3.5" />
+            </.link>
+            <.link
+              navigate={"/orgs/#{@current_org.slug}/projects/#{@current_project.slug}/settings"}
+              class="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent"
+              title="Project settings"
+              aria-label="Project settings"
+            >
+              <.icon name="hero-cog-6-tooth-micro" class="size-3.5" />
+            </.link>
+          </div>
         </div>
       </div>
     </div>

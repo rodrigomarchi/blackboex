@@ -85,4 +85,60 @@ defmodule BlackboexWeb.LastVisited do
       [] -> :none
     end
   end
+
+  @doc """
+  Resolves the project to land the user on inside a specific organization.
+
+  Preference order:
+    1. The user's persisted `last_project_id` when it belongs to `org` and the
+       user still has access.
+    2. The org's Default project when the user has access.
+    3. The first project in `org` the user can reach.
+    4. `:none` when the org has no reachable projects.
+  """
+  @spec resolve_project_for_org(User.t(), Organization.t()) ::
+          {:ok, Project.t()} | :none
+  def resolve_project_for_org(%User{} = user, %Organization{} = org) do
+    with {:last, %Project{organization_id: org_id} = project} <- last_project_for(user),
+         true <- org_id == org.id,
+         true <- user_can_access_project?(user, org, project) do
+      {:ok, project}
+    else
+      _ -> pick_any_project(user, org)
+    end
+  end
+
+  defp last_project_for(%User{last_project_id: nil}), do: {:last, nil}
+
+  defp last_project_for(%User{last_project_id: id, last_organization_id: org_id}) do
+    {:last, Projects.get_project(org_id, id)}
+  end
+
+  defp pick_any_project(%User{} = user, %Organization{} = org) do
+    case Projects.get_default_project(org.id) do
+      %Project{} = default ->
+        if user_can_access_project?(user, org, default),
+          do: {:ok, default},
+          else: first_accessible_project(user, org)
+
+      nil ->
+        first_accessible_project(user, org)
+    end
+  end
+
+  defp first_accessible_project(%User{} = user, %Organization{} = org) do
+    case Organizations.get_user_membership(org, user) do
+      %{role: role} when role in [:owner, :admin] ->
+        case Projects.list_projects(org.id) do
+          [%Project{} = project | _] -> {:ok, project}
+          [] -> :none
+        end
+
+      _ ->
+        case Projects.list_user_projects(org.id, user.id) do
+          [%Project{} = project | _] -> {:ok, project}
+          [] -> :none
+        end
+    end
+  end
 end

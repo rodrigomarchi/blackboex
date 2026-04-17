@@ -63,6 +63,41 @@ defmodule BlackboexWeb.LastVisitedTest do
     end
   end
 
+  describe "resolve_project_for_org/2" do
+    setup do
+      user = user_fixture()
+      [personal_org | _] = Organizations.list_user_organizations(user)
+      %{user: user, personal_org: personal_org}
+    end
+
+    test "returns the last_project when it belongs to the given org", %{
+      user: user,
+      personal_org: personal_org
+    } do
+      second_org = org_fixture(%{user: user})
+      project_in_second = project_fixture(%{user: user, org: second_org})
+
+      {:ok, user} = Accounts.touch_last_visited(user, second_org.id, project_in_second.id)
+
+      # Switching back to personal_org must NOT reuse the second org's project.
+      assert {:ok, resolved} = LastVisited.resolve_project_for_org(user, personal_org)
+      assert resolved.organization_id == personal_org.id
+      assert resolved.name == "Default"
+
+      # And switching to second_org must return the remembered project.
+      assert {:ok, resolved2} = LastVisited.resolve_project_for_org(user, second_org)
+      assert resolved2.id == project_in_second.id
+    end
+
+    test "falls back to Default when no last_project", %{
+      user: user,
+      personal_org: org
+    } do
+      assert {:ok, project} = LastVisited.resolve_project_for_org(user, org)
+      assert project.name == "Default"
+    end
+  end
+
   describe "Accounts.touch_last_visited/3" do
     setup do
       user = user_fixture()

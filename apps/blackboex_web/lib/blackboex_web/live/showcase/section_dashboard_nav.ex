@@ -14,15 +14,15 @@ defmodule BlackboexWeb.Showcase.Sections.DashboardNav do
     />
     <div class="space-y-10">
       <.showcase_block title="Overview Active">
-        <.dashboard_nav active="overview" />
+        <.dashboard_nav active={:overview} base_path="/orgs/demo/dashboard" />
       </.showcase_block>
 
       <.showcase_block title="APIs Active">
-        <.dashboard_nav active="apis" />
+        <.dashboard_nav active={:apis} base_path="/orgs/demo/dashboard" />
       </.showcase_block>
 
       <.showcase_block title="Usage Active">
-        <.dashboard_nav active="usage" />
+        <.dashboard_nav active={:usage} base_path="/orgs/demo/dashboard" />
       </.showcase_block>
     </div>
     """

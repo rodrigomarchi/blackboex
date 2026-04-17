@@ -13,7 +13,8 @@ defmodule BlackboexWeb.Components.Shared.DashboardPageHeader do
   attr :icon_class, :string, required: true
   attr :title, :string, required: true
   attr :subtitle, :string, required: true
-  attr :active_tab, :string, required: true
+  attr :active_tab, :atom, required: true
+  attr :base_path, :string, required: true
   attr :period, :string, required: true
 
   @spec dashboard_page_header(map()) :: Phoenix.LiveView.Rendered.t()
@@ -26,7 +27,7 @@ defmodule BlackboexWeb.Components.Shared.DashboardPageHeader do
       <:subtitle>{@subtitle}</:subtitle>
       <:actions>
         <div class="flex items-center gap-3">
-          <.dashboard_nav active={@active_tab} />
+          <.dashboard_nav active={@active_tab} base_path={@base_path} />
           <.period_selector period={@period} />
         </div>
       </:actions>

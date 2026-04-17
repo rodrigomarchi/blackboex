@@ -124,29 +124,6 @@ defmodule BlackboexWeb.Components.AppSidebar do
 
       <%!-- Bottom section --%>
       <div class="border-t py-2">
-        <.sidebar_nav_item
-          icon="hero-cog-6-tooth"
-          label="Project Settings"
-          href={project_path(@current_scope, "/settings")}
-          active={
-            active?(@current_path, "/settings") and
-              not String.contains?(@current_path || "", "/orgs/")
-          }
-          collapsed={@collapsed}
-          accent="text-slate-400"
-        />
-        <.sidebar_nav_item
-          :if={scoped?(@current_scope)}
-          icon="hero-building-office-2"
-          label="Org Settings"
-          href={org_path(@current_scope, "/settings")}
-          active={org_settings_active?(@current_path, @current_scope)}
-          collapsed={@collapsed}
-          accent="text-slate-400"
-        />
-
-        <.separator class="my-2" />
-
         <%!-- Theme toggle --%>
         <div class={["px-2", if(@collapsed, do: "flex justify-center")]}>
           <.theme_toggle_compact collapsed={@collapsed} />
@@ -309,13 +286,6 @@ defmodule BlackboexWeb.Components.AppSidebar do
     # Works for nested routes like /apis/:slug/edit, /apis/new, etc.
     suffix = String.trim_leading(prefix, "/")
     String.contains?(current_path, "/#{suffix}")
-  end
-
-  defp org_settings_active?(nil, _scope), do: false
-
-  defp org_settings_active?(current_path, scope) do
-    scoped?(scope) and
-      String.starts_with?(current_path, org_path(scope, "/settings"))
   end
 
   defp toggle_sidebar_expand(sidebar_id) do

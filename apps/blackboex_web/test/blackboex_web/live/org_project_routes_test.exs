@@ -18,9 +18,13 @@ defmodule BlackboexWeb.OrgProjectRoutesTest do
   end
 
   describe "org-level routes" do
-    test "GET /orgs/:slug renders org dashboard", %{conn: conn, org: org} do
-      {:ok, _lv, html} = live(conn, ~p"/orgs/#{org.slug}")
-      assert html =~ "Dashboard" or html =~ "Org"
+    test "GET /orgs/:slug redirects to the org's Default project", %{
+      conn: conn,
+      org: org,
+      project: project
+    } do
+      assert {:error, {:live_redirect, %{to: path}}} = live(conn, ~p"/orgs/#{org.slug}")
+      assert path == "/orgs/#{org.slug}/projects/#{project.slug}"
     end
 
     test "GET /orgs/invalid returns 404", %{conn: conn} do

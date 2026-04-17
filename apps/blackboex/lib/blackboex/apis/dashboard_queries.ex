@@ -7,7 +7,7 @@ defmodule Blackboex.Apis.DashboardQueries do
   import Ecto.Query, warn: false
 
   alias Blackboex.Apis.{Api, ApiKey, InvocationLog, MetricRollup}
-  alias Blackboex.Billing.DailyUsage
+  alias Blackboex.Billing.{DailyUsage, UsageEvent}
   alias Blackboex.Conversations.{Conversation, Run}
   alias Blackboex.FlowExecutions.FlowExecution
   alias Blackboex.Flows.Flow
@@ -224,83 +224,344 @@ defmodule Blackboex.Apis.DashboardQueries do
     }
   end
 
-  @spec get_overview_summary(Ecto.UUID.t()) :: map()
-  def get_overview_summary(org_id) do
-    today_start = DateTime.new!(Date.utc_today(), ~T[00:00:00], "Etc/UTC")
-    month_start = Date.utc_today() |> Date.beginning_of_month()
+  @type scope :: {:org, Ecto.UUID.t()} | {:project, Ecto.UUID.t()}
 
-    total_apis =
-      Api
-      |> where([a], a.organization_id == ^org_id)
-      |> select([a], count(a.id))
+  @doc """
+  Aggregated overview metrics for an org or project scope.
+
+  Returns total counts (APIs, flows, API keys), 24h invocation/error counts,
+  and the 10 most recent invocations with the API name.
+  """
+  @spec overview_summary(scope()) :: %{
+          total_apis: non_neg_integer(),
+          total_flows: non_neg_integer(),
+          total_api_keys: non_neg_integer(),
+          invocations_24h: non_neg_integer(),
+          errors_24h: non_neg_integer(),
+          recent_activity: [
+            %{
+              id: Ecto.UUID.t(),
+              api_name: String.t(),
+              method: String.t(),
+              path: String.t(),
+              status_code: integer(),
+              duration_ms: integer() | nil,
+              inserted_at: DateTime.t()
+            }
+          ]
+        }
+  def overview_summary(scope) do
+    since = DateTime.add(DateTime.utc_now(), -86_400)
+
+    total_apis = scope |> scoped_query(Api) |> Repo.aggregate(:count, :id)
+    total_flows = scope |> scoped_query(Flow) |> Repo.aggregate(:count, :id)
+    total_api_keys = scope |> scoped_query(ApiKey) |> Repo.aggregate(:count, :id)
+
+    %{invocations_24h: invocations_24h, errors_24h: errors_24h} =
+      scope
+      |> scoped_invocations()
+      |> where([l], l.inserted_at >= ^since)
+      |> select([l], %{
+        invocations_24h: count(l.id),
+        errors_24h: filter(count(l.id), l.status_code >= 400)
+      })
       |> Repo.one()
+      |> Kernel.||(%{invocations_24h: 0, errors_24h: 0})
 
-    active_apis =
-      Api
-      |> where([a], a.organization_id == ^org_id and a.status == "published")
-      |> select([a], count(a.id))
-      |> Repo.one()
-
-    total_api_keys =
-      ApiKey
-      |> where([k], k.organization_id == ^org_id)
-      |> select([k], count(k.id))
-      |> Repo.one()
-
-    total_flows =
-      Flow
-      |> where([f], f.organization_id == ^org_id)
-      |> select([f], count(f.id))
-      |> Repo.one()
-
-    active_flows =
-      Flow
-      |> where([f], f.organization_id == ^org_id and f.status == "active")
-      |> select([f], count(f.id))
-      |> Repo.one()
-
-    api_calls_today =
-      InvocationLog
-      |> join(:inner, [l], a in Api, on: l.api_id == a.id and a.organization_id == ^org_id)
-      |> where([l], l.inserted_at >= ^today_start)
-      |> select([l], count(l.id))
-      |> Repo.one()
-
-    flow_execs_today =
-      FlowExecution
-      |> where([e], e.organization_id == ^org_id and e.inserted_at >= ^today_start)
-      |> select([e], count(e.id))
-      |> Repo.one()
-
-    total_conversations =
-      Conversation
-      |> where([c], c.organization_id == ^org_id)
-      |> select([c], count(c.id))
-      |> Repo.one()
-
-    llm_cost_month =
-      DailyUsage
-      |> where([d], d.organization_id == ^org_id and d.date >= ^month_start)
-      |> select([d], sum(d.llm_cost_cents))
-      |> Repo.one() || 0
-
-    errors_today =
-      InvocationLog
-      |> join(:inner, [l], a in Api, on: l.api_id == a.id and a.organization_id == ^org_id)
-      |> where([l], l.inserted_at >= ^today_start and l.status_code >= 400)
-      |> select([l], count(l.id))
-      |> Repo.one()
+    recent_activity = recent_activity(scope)
 
     %{
       total_apis: total_apis,
       total_flows: total_flows,
       total_api_keys: total_api_keys,
-      active_apis: active_apis,
-      active_flows: active_flows,
-      total_executions_today: api_calls_today + flow_execs_today,
-      total_conversations: total_conversations,
-      llm_cost_month_cents: llm_cost_month,
-      errors_today: errors_today
+      invocations_24h: invocations_24h,
+      errors_24h: errors_24h,
+      recent_activity: recent_activity
+    }
+  end
+
+  defp scoped_query({:org, id}, schema) do
+    from(r in schema, where: r.organization_id == ^id)
+  end
+
+  defp scoped_query({:project, id}, schema) do
+    from(r in schema, where: r.project_id == ^id)
+  end
+
+  # InvocationLog has no organization_id; org-scope joins through Api.
+  defp scoped_invocations({:org, org_id}) do
+    from(l in InvocationLog,
+      join: a in Api,
+      on: l.api_id == a.id and a.organization_id == ^org_id
+    )
+  end
+
+  defp scoped_invocations({:project, project_id}) do
+    from(l in InvocationLog, where: l.project_id == ^project_id)
+  end
+
+  defp recent_activity({:org, org_id}) do
+    from(l in InvocationLog,
+      join: a in Api,
+      on: l.api_id == a.id and a.organization_id == ^org_id,
+      order_by: [desc: l.inserted_at],
+      limit: 10,
+      select: %{
+        id: l.id,
+        api_name: a.name,
+        method: l.method,
+        path: l.path,
+        status_code: l.status_code,
+        duration_ms: l.duration_ms,
+        inserted_at: l.inserted_at
+      }
+    )
+    |> Repo.all()
+  end
+
+  defp recent_activity({:project, project_id}) do
+    from(l in InvocationLog,
+      left_join: a in Api,
+      on: l.api_id == a.id,
+      where: l.project_id == ^project_id,
+      order_by: [desc: l.inserted_at],
+      limit: 10,
+      select: %{
+        id: l.id,
+        api_name: a.name,
+        method: l.method,
+        path: l.path,
+        status_code: l.status_code,
+        duration_ms: l.duration_ms,
+        inserted_at: l.inserted_at
+      }
+    )
+    |> Repo.all()
+  end
+
+  @doc """
+  Aggregated flow execution metrics for an org or project scope.
+
+  Accepts a `scope` tuple (`{:org, id}` or `{:project, id}`) and a period
+  (`"24h" | "7d" | "30d"`). Returns total flow count, execution counts
+  bucketed by status, error rate, average duration, and the top 10 flows
+  by execution count.
+  """
+  @spec flow_metrics(scope(), String.t()) :: %{
+          total_flows: non_neg_integer(),
+          executions_total: non_neg_integer(),
+          executions_success: non_neg_integer(),
+          executions_error: non_neg_integer(),
+          executions_pending: non_neg_integer(),
+          error_rate: float(),
+          avg_duration_ms: float() | nil,
+          top_flows: [
+            %{
+              flow_id: Ecto.UUID.t(),
+              flow_name: String.t(),
+              executions: non_neg_integer(),
+              error_rate: float(),
+              avg_duration_ms: float() | nil
+            }
+          ]
+        }
+  def flow_metrics(scope, period \\ "24h") do
+    start_dt = period_start_dt(period)
+
+    total_flows = scope |> scoped_query(Flow) |> Repo.aggregate(:count, :id)
+
+    stats =
+      scope
+      |> scoped_executions()
+      |> where([e], e.inserted_at >= ^start_dt)
+      |> select([e], %{
+        total: count(e.id),
+        success: filter(count(e.id), e.status == "completed"),
+        error: filter(count(e.id), e.status == "failed"),
+        pending:
+          filter(
+            count(e.id),
+            e.status == "pending" or e.status == "running" or e.status == "halted"
+          ),
+        avg_duration: avg(e.duration_ms)
+      })
+      |> Repo.one()
+
+    error_rate =
+      if stats.total > 0,
+        do: Float.round(stats.error / stats.total * 100, 1),
+        else: 0.0
+
+    top_flows = top_flows_for_scope(scope, start_dt)
+
+    %{
+      total_flows: total_flows,
+      executions_total: stats.total,
+      executions_success: stats.success,
+      executions_error: stats.error,
+      executions_pending: stats.pending,
+      error_rate: error_rate,
+      avg_duration_ms: normalize_latency(stats.avg_duration),
+      top_flows: top_flows
+    }
+  end
+
+  defp scoped_executions({:org, org_id}) do
+    from(e in FlowExecution, where: e.organization_id == ^org_id)
+  end
+
+  defp scoped_executions({:project, project_id}) do
+    from(e in FlowExecution, where: e.project_id == ^project_id)
+  end
+
+  defp top_flows_for_scope(scope, start_dt) do
+    scope
+    |> scoped_executions()
+    |> join(:inner, [e], f in Flow, on: e.flow_id == f.id)
+    |> where([e], e.inserted_at >= ^start_dt)
+    |> group_by([e, f], [f.id, f.name])
+    |> select([e, f], %{
+      flow_id: f.id,
+      flow_name: f.name,
+      executions: count(e.id),
+      failed: filter(count(e.id), e.status == "failed"),
+      total: count(e.id),
+      avg_duration: avg(e.duration_ms)
+    })
+    |> order_by([e], desc: count(e.id))
+    |> limit(10)
+    |> Repo.all()
+    |> Enum.map(fn row ->
+      rate = if row.total > 0, do: Float.round(row.failed / row.total * 100, 1), else: 0.0
+
+      %{
+        flow_id: row.flow_id,
+        flow_name: row.flow_name,
+        executions: row.executions,
+        error_rate: rate,
+        avg_duration_ms: normalize_latency(row.avg_duration)
+      }
+    end)
+  end
+
+  defp period_start_dt(period) do
+    days = period_to_days(period)
+    DateTime.add(DateTime.utc_now(), -days * 86_400)
+  end
+
+  # ──────────────────────────────────────────────────────────────
+  # api_metrics/2 — scope-aware (M2)
+  # ──────────────────────────────────────────────────────────────
+
+  @doc """
+  Aggregated API invocation metrics for the given scope and period.
+
+  `scope` is `{:org, id}` or `{:project, id}`. `period` is `"24h" | "7d" | "30d"`.
+
+  Returns invocation totals/success/error counts, error rate, average and p95
+  latency, and the top 10 APIs by invocation count for the window.
+  """
+  @spec api_metrics(scope(), String.t()) :: %{
+          invocations_total: non_neg_integer(),
+          invocations_success: non_neg_integer(),
+          invocations_error: non_neg_integer(),
+          error_rate: float(),
+          avg_latency_ms: float() | nil,
+          p95_latency_ms: float() | nil,
+          top_apis: [
+            %{
+              api_id: Ecto.UUID.t(),
+              api_name: String.t(),
+              invocations: non_neg_integer(),
+              error_rate: float(),
+              avg_latency_ms: float() | nil
+            }
+          ]
+        }
+  def api_metrics(scope, period \\ "24h") do
+    since = period_start_dt(period)
+
+    totals =
+      scope
+      |> scoped_invocations()
+      |> where([l], l.inserted_at >= ^since)
+      |> select([l], %{
+        total: count(l.id),
+        success: filter(count(l.id), l.status_code >= 200 and l.status_code < 400),
+        errors: filter(count(l.id), l.status_code >= 400),
+        avg_latency: avg(l.duration_ms),
+        p95_latency: fragment("PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY ?)", l.duration_ms)
+      })
+      |> Repo.one()
+
+    error_rate =
+      if totals.total > 0,
+        do: Float.round(totals.errors / totals.total * 100, 1),
+        else: 0.0
+
+    %{
+      invocations_total: totals.total,
+      invocations_success: totals.success,
+      invocations_error: totals.errors,
+      error_rate: error_rate,
+      avg_latency_ms: normalize_latency(totals.avg_latency),
+      p95_latency_ms: normalize_latency(totals.p95_latency),
+      top_apis: top_apis_for_scope(scope, since)
+    }
+  end
+
+  defp top_apis_for_scope({:org, org_id}, since) do
+    from(l in InvocationLog,
+      join: a in Api,
+      on: l.api_id == a.id and a.organization_id == ^org_id,
+      where: l.inserted_at >= ^since,
+      group_by: [a.id, a.name],
+      order_by: [desc: count(l.id)],
+      limit: 10,
+      select: %{
+        api_id: a.id,
+        api_name: a.name,
+        invocations: count(l.id),
+        errors: filter(count(l.id), l.status_code >= 400),
+        avg_latency: avg(l.duration_ms)
+      }
+    )
+    |> Repo.all()
+    |> Enum.map(&format_top_api/1)
+  end
+
+  defp top_apis_for_scope({:project, project_id}, since) do
+    from(l in InvocationLog,
+      join: a in Api,
+      on: l.api_id == a.id,
+      where: l.project_id == ^project_id and l.inserted_at >= ^since,
+      group_by: [a.id, a.name],
+      order_by: [desc: count(l.id)],
+      limit: 10,
+      select: %{
+        api_id: a.id,
+        api_name: a.name,
+        invocations: count(l.id),
+        errors: filter(count(l.id), l.status_code >= 400),
+        avg_latency: avg(l.duration_ms)
+      }
+    )
+    |> Repo.all()
+    |> Enum.map(&format_top_api/1)
+  end
+
+  defp format_top_api(row) do
+    rate =
+      if row.invocations > 0,
+        do: Float.round(row.errors / row.invocations * 100, 1),
+        else: 0.0
+
+    %{
+      api_id: row.api_id,
+      api_name: row.api_name,
+      invocations: row.invocations,
+      error_rate: rate,
+      avg_latency_ms: normalize_latency(row.avg_latency)
     }
   end
 
@@ -436,6 +697,78 @@ defmodule Blackboex.Apis.DashboardQueries do
   defp period_to_days("7d"), do: 7
   defp period_to_days("30d"), do: 30
   defp period_to_days(_), do: 30
+
+  @doc """
+  Aggregated usage metrics for an org or project scope.
+
+  Reads the daily rollup table for the per-day series. Hits the raw
+  `usage_events` table for the by-event-type breakdown and totals so
+  that partial-day windows (i.e. "24h") still reflect events that have
+  not yet been aggregated.
+  """
+  @spec usage_metrics(scope(), String.t()) :: %{
+          by_event_type: [%{event_type: String.t(), count: non_neg_integer()}],
+          daily_series: [
+            %{
+              date: Date.t(),
+              api_invocations: non_neg_integer(),
+              llm_generations: non_neg_integer(),
+              tokens_input: non_neg_integer(),
+              tokens_output: non_neg_integer(),
+              llm_cost_cents: non_neg_integer()
+            }
+          ],
+          totals: %{
+            api_invocations: non_neg_integer(),
+            llm_generations: non_neg_integer(),
+            tokens_input: non_neg_integer(),
+            tokens_output: non_neg_integer(),
+            llm_cost_cents: non_neg_integer()
+          }
+        }
+  def usage_metrics(scope, period \\ "30d") do
+    days = period_to_days(period)
+    start_date = Date.add(Date.utc_today(), -(days - 1))
+    start_dt = DateTime.new!(start_date, ~T[00:00:00], "Etc/UTC")
+
+    daily_rows =
+      scope
+      |> scoped_query(DailyUsage)
+      |> where([d], d.date >= ^start_date)
+      |> order_by([d], d.date)
+      |> select([d], %{
+        date: d.date,
+        api_invocations: d.api_invocations,
+        llm_generations: d.llm_generations,
+        tokens_input: d.tokens_input,
+        tokens_output: d.tokens_output,
+        llm_cost_cents: d.llm_cost_cents
+      })
+      |> Repo.all()
+
+    by_event_type =
+      scope
+      |> scoped_query(UsageEvent)
+      |> where([e], e.inserted_at >= ^start_dt)
+      |> group_by([e], e.event_type)
+      |> order_by([e], desc: count(e.id))
+      |> select([e], %{event_type: e.event_type, count: count(e.id)})
+      |> Repo.all()
+
+    totals = %{
+      api_invocations: sum_field(daily_rows, :api_invocations),
+      llm_generations: sum_field(daily_rows, :llm_generations),
+      tokens_input: sum_field(daily_rows, :tokens_input),
+      tokens_output: sum_field(daily_rows, :tokens_output),
+      llm_cost_cents: sum_field(daily_rows, :llm_cost_cents)
+    }
+
+    %{
+      by_event_type: by_event_type,
+      daily_series: daily_rows,
+      totals: totals
+    }
+  end
 
   @spec get_api_extended_metrics(Ecto.UUID.t(), String.t()) :: map()
   def get_api_extended_metrics(org_id, period \\ "24h") do
@@ -900,6 +1233,129 @@ defmodule Blackboex.Apis.DashboardQueries do
         label: Calendar.strftime(date, "%b %d"),
         value: Map.get(lookup, date, 0)
       }
+    end)
+  end
+
+  # ──────────────────────────────────────────────────────────────
+  # llm_metrics/2 + llm_usage_series/2 — scope-aware (M4)
+  # ──────────────────────────────────────────────────────────────
+
+  @doc """
+  Aggregated LLM usage metrics for an org or project scope over the given period.
+
+  Returns total generations, input/output tokens, estimated cost (cents), and
+  a top-10 by-model breakdown sorted by total tokens (input + output) desc.
+  """
+  @spec llm_metrics(scope(), String.t()) :: %{
+          total_generations: non_neg_integer(),
+          total_tokens_input: non_neg_integer(),
+          total_tokens_output: non_neg_integer(),
+          estimated_cost_cents: non_neg_integer(),
+          by_model: [
+            %{
+              model: String.t(),
+              generations: non_neg_integer(),
+              tokens: non_neg_integer(),
+              cost_cents: non_neg_integer()
+            }
+          ]
+        }
+  def llm_metrics(scope, period \\ "30d") do
+    start_dt = period_start_dt(period)
+
+    totals =
+      scope
+      |> scoped_query(LlmUsage)
+      |> where([u], u.inserted_at >= ^start_dt)
+      |> select([u], %{
+        total_generations: count(u.id),
+        total_tokens_input: sum(u.input_tokens),
+        total_tokens_output: sum(u.output_tokens),
+        estimated_cost_cents: sum(u.cost_cents)
+      })
+      |> Repo.one()
+
+    by_model =
+      scope
+      |> scoped_query(LlmUsage)
+      |> where([u], u.inserted_at >= ^start_dt)
+      |> group_by([u], u.model)
+      |> select([u], %{
+        model: u.model,
+        generations: count(u.id),
+        tokens: sum(u.input_tokens) + sum(u.output_tokens),
+        cost_cents: sum(u.cost_cents)
+      })
+      |> order_by([u], desc: sum(u.input_tokens) + sum(u.output_tokens))
+      |> limit(10)
+      |> Repo.all()
+      |> Enum.map(fn row ->
+        %{
+          model: row.model,
+          generations: row.generations || 0,
+          tokens: row.tokens || 0,
+          cost_cents: row.cost_cents || 0
+        }
+      end)
+
+    %{
+      total_generations: totals.total_generations || 0,
+      total_tokens_input: totals.total_tokens_input || 0,
+      total_tokens_output: totals.total_tokens_output || 0,
+      estimated_cost_cents: totals.estimated_cost_cents || 0,
+      by_model: by_model
+    }
+  end
+
+  @doc """
+  Per-day LLM usage time series for an org or project scope.
+
+  Returns one row per calendar day in the period (gap-filled with zeros).
+  """
+  @spec llm_usage_series(scope(), String.t()) :: [
+          %{
+            date: Date.t(),
+            tokens: non_neg_integer(),
+            cost_cents: non_neg_integer(),
+            generations: non_neg_integer()
+          }
+        ]
+  def llm_usage_series(scope, period \\ "30d") do
+    days = period_to_days(period)
+    start_date = Date.add(Date.utc_today(), -days)
+    start_dt = period_start_dt(period)
+
+    rows =
+      scope
+      |> scoped_query(LlmUsage)
+      |> where([u], u.inserted_at >= ^start_dt)
+      |> group_by([u], fragment("?::date", u.inserted_at))
+      |> order_by([u], fragment("?::date", u.inserted_at))
+      |> select([u], %{
+        date: fragment("?::date", u.inserted_at),
+        tokens: sum(u.input_tokens) + sum(u.output_tokens),
+        cost_cents: sum(u.cost_cents),
+        generations: count(u.id)
+      })
+      |> Repo.all()
+
+    lookup = Map.new(rows, fn r -> {r.date, r} end)
+    today = Date.utc_today()
+
+    Date.range(start_date, today)
+    |> Enum.map(fn date ->
+      case Map.get(lookup, date) do
+        nil ->
+          %{date: date, tokens: 0, cost_cents: 0, generations: 0}
+
+        row ->
+          %{
+            date: date,
+            tokens: row.tokens || 0,
+            cost_cents: row.cost_cents || 0,
+            generations: row.generations || 0
+          }
+      end
     end)
   end
 end

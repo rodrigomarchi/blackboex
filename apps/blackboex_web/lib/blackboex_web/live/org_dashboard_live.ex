@@ -8,10 +8,33 @@ defmodule BlackboexWeb.OrgDashboardLive do
 
   import BlackboexWeb.Components.Shared.StatCard
 
+  alias BlackboexWeb.LastVisited
+
   @impl true
   def mount(_params, _session, socket) do
-    org = socket.assigns.current_scope.organization
+    scope = socket.assigns.current_scope
+    org = scope.organization
+    user = scope.user
 
+    cond do
+      socket.assigns.live_action == :dashboard ->
+        render_dashboard(socket, org)
+
+      org && user ->
+        case LastVisited.resolve_project_for_org(user, org) do
+          {:ok, project} ->
+            {:ok, push_navigate(socket, to: "/orgs/#{org.slug}/projects/#{project.slug}")}
+
+          _ ->
+            render_dashboard(socket, org)
+        end
+
+      true ->
+        render_dashboard(socket, org)
+    end
+  end
+
+  defp render_dashboard(socket, org) do
     {usage, total_apis, total_projects} =
       if org do
         usage = Blackboex.Billing.get_org_usage_summary(org.id)

@@ -11,7 +11,8 @@ defmodule BlackboexWeb.Showcase.Sections.DashboardPageHeader do
     icon_class="text-accent-violet"
     title="Dashboard"
     subtitle="Monitor API performance and usage"
-    active_tab="apis"
+    active_tab={:apis}
+    base_path="/orgs/demo/dashboard"
     period="7d"
   />
   """
@@ -22,7 +23,8 @@ defmodule BlackboexWeb.Showcase.Sections.DashboardPageHeader do
     icon_class="text-primary"
     title="Dashboard"
     subtitle="Overview of all activity"
-    active_tab="overview"
+    active_tab={:overview}
+    base_path="/orgs/demo/dashboard"
     period="30d"
   />
   """
@@ -33,7 +35,8 @@ defmodule BlackboexWeb.Showcase.Sections.DashboardPageHeader do
     icon_class="text-accent-teal"
     title="Flows"
     subtitle="Manage and monitor your automation flows"
-    active_tab="flows"
+    active_tab={:flows}
+    base_path="/orgs/demo/dashboard"
     period="24h"
   />
   """
@@ -58,7 +61,8 @@ defmodule BlackboexWeb.Showcase.Sections.DashboardPageHeader do
           icon_class="text-accent-violet"
           title="Dashboard"
           subtitle="Monitor API performance and usage"
-          active_tab="apis"
+          active_tab={:apis}
+          base_path="/orgs/demo/dashboard"
           period="7d"
         />
       </.showcase_block>
@@ -69,7 +73,8 @@ defmodule BlackboexWeb.Showcase.Sections.DashboardPageHeader do
           icon_class="text-primary"
           title="Dashboard"
           subtitle="Overview of all activity"
-          active_tab="overview"
+          active_tab={:overview}
+          base_path="/orgs/demo/dashboard"
           period="30d"
         />
       </.showcase_block>
@@ -80,7 +85,8 @@ defmodule BlackboexWeb.Showcase.Sections.DashboardPageHeader do
           icon_class="text-accent-teal"
           title="Flows"
           subtitle="Manage and monitor your automation flows"
-          active_tab="flows"
+          active_tab={:flows}
+          base_path="/orgs/demo/dashboard"
           period="24h"
         />
       </.showcase_block>

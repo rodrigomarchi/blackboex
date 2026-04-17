@@ -9,7 +9,7 @@ defmodule Blackboex.Playgrounds.PlaygroundExecution do
 
   @type t :: %__MODULE__{}
 
-  @statuses ~w(running success error)
+  @statuses ~w(running success error ai_snapshot)
 
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
@@ -30,6 +30,21 @@ defmodule Blackboex.Playgrounds.PlaygroundExecution do
     execution
     |> cast(attrs, [:playground_id, :run_number, :code_snapshot, :status])
     |> validate_required([:playground_id, :run_number, :code_snapshot, :status])
+    |> validate_inclusion(:status, @statuses)
+    |> validate_number(:run_number, greater_than: 0)
+    |> foreign_key_constraint(:playground_id)
+    |> unique_constraint([:playground_id, :run_number])
+  end
+
+  @spec ai_snapshot_changeset(t(), map()) :: Ecto.Changeset.t()
+  def ai_snapshot_changeset(execution, attrs) do
+    code_snapshot =
+      Map.get(attrs, :code_snapshot, Map.get(attrs, "code_snapshot", "")) || ""
+
+    execution
+    |> cast(attrs, [:playground_id, :run_number, :status])
+    |> put_change(:code_snapshot, code_snapshot)
+    |> validate_required([:playground_id, :run_number, :status])
     |> validate_inclusion(:status, @statuses)
     |> validate_number(:run_number, greater_than: 0)
     |> foreign_key_constraint(:playground_id)

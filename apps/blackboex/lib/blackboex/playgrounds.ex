@@ -148,4 +148,49 @@ defmodule Blackboex.Playgrounds do
   def cleanup_old_executions(playground_id) do
     playground_id |> ExecutionQueries.beyond_retention() |> Repo.delete_all()
   end
+
+  # ── AI edits ──────────────────────────────────────────────
+
+  @doc """
+  Applies an AI-generated code change to a playground atomically.
+
+  Creates a `PlaygroundExecution` snapshot with status `"ai_snapshot"` and
+  `code_snapshot` set to the code BEFORE the edit (so the history sidebar
+  can be used to revert), then updates `playground.code` with the new code.
+
+  Both inserts happen inside a single `Repo.transaction`; if either fails,
+  the whole change is rolled back.
+  """
+  @spec record_ai_edit(Playground.t(), String.t(), String.t()) ::
+          {:ok, %{playground: Playground.t(), snapshot: PlaygroundExecution.t()}}
+          | {:error, term()}
+  def record_ai_edit(%Playground{} = playground, new_code, code_before)
+      when is_binary(new_code) and is_binary(code_before) do
+    Repo.transaction(fn ->
+      next_number =
+        case playground.id |> ExecutionQueries.latest_run_number() |> Repo.one() do
+          nil -> 1
+          n -> n + 1
+        end
+
+      snapshot_changeset =
+        %PlaygroundExecution{}
+        |> PlaygroundExecution.ai_snapshot_changeset(%{
+          playground_id: playground.id,
+          run_number: next_number,
+          code_snapshot: code_before,
+          status: "ai_snapshot"
+        })
+
+      with {:ok, snapshot} <- Repo.insert(snapshot_changeset),
+           {:ok, updated} <-
+             playground
+             |> Playground.update_changeset(%{code: new_code})
+             |> Repo.update() do
+        %{playground: updated, snapshot: snapshot}
+      else
+        {:error, reason} -> Repo.rollback(reason)
+      end
+    end)
+  end
 end

@@ -11,7 +11,7 @@ defmodule Blackboex.Playgrounds.ExecutionQueries do
   def list_for_playground(playground_id) do
     PlaygroundExecution
     |> where([e], e.playground_id == ^playground_id)
-    |> order_by([e], desc: e.inserted_at)
+    |> order_by([e], desc: e.inserted_at, desc: e.run_number)
     |> limit(50)
   end
 

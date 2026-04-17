@@ -6,9 +6,9 @@ Interactive single-cell Elixir REPL within projects for code experimentation.
 
 | Module | Role |
 |--------|------|
-| `Blackboex.Playgrounds` | Facade — CRUD, `execute_code/2`, `execute_code_raw/2`, execution history (`create_execution/2`, `complete_execution/4`, `list_executions/1`, `cleanup_old_executions/1`) |
+| `Blackboex.Playgrounds` | Facade — CRUD, `execute_code/2`, `execute_code_raw/2`, execution history (`create_execution/2`, `complete_execution/4`, `list_executions/1`, `cleanup_old_executions/1`), `record_ai_edit/3` |
 | `Blackboex.Playgrounds.Playground` | Schema — name, slug, code (text), last_output, description, project_id, organization_id, user_id; `has_many :executions` |
-| `Blackboex.Playgrounds.PlaygroundExecution` | Schema — run_number, code_snapshot, output, status (running/success/error), duration_ms, playground_id |
+| `Blackboex.Playgrounds.PlaygroundExecution` | Schema — run_number, code_snapshot, output, status (running/success/error/ai_snapshot), duration_ms, playground_id. `ai_snapshot_changeset/2` accepts empty `code_snapshot` (for first-ever AI edit). |
 | `Blackboex.Playgrounds.PlaygroundQueries` | Query builders — `list_for_project/1`, `by_project_and_slug/2`, `search/2` |
 | `Blackboex.Playgrounds.ExecutionQueries` | Query builders — `list_for_playground/1` (desc, limit 50), `latest_run_number/1`, `beyond_retention/2` |
 | `Blackboex.Playgrounds.Executor` | Sandboxed code execution with allowlist security, IO capture via StringIO |
@@ -73,6 +73,59 @@ Defined in `Blackboex.Policy` under `object :playground`:
 - Retention: last 50 executions per playground, cleaned via `cleanup_old_executions/1`
 - LiveView tracks `executions`, `selected_execution_id`, `selected_execution` assigns
 - `execute_code_raw/2` returns raw executor result without persisting (LiveView orchestrates persistence)
+- `list_for_playground/1` orders by `desc: inserted_at, desc: run_number` — the `run_number` tiebreak makes ordering deterministic when two rows share the same (second-granularity) timestamp.
+
+## AI Edits
+
+`record_ai_edit(playground, new_code, code_before)` is the transactional hand-off from
+`Blackboex.PlaygroundAgent.ChainRunner` into this context. Inside a single `Repo.transaction`
+it creates a `PlaygroundExecution` with `status: "ai_snapshot"` and `code_snapshot: code_before`
+(so the history sidebar can revert), then updates `playground.code` to `new_code`. Either both
+changes land or both roll back. The execution appears in the standard history list alongside
+user-run executions — the status badge distinguishes them.
+
+## Public API
+
+| Function | Signature | Returns | Description |
+|----------|-----------|---------|-------------|
+| `create_playground/1` | `(map()) :: {:ok, Playground.t()} \| {:error, Ecto.Changeset.t()}` | New playground or changeset error | Inserts a new playground with the given attrs |
+| `list_playgrounds/1` | `(Ecto.UUID.t()) :: [Playground.t()]` | List of playgrounds | Lists all playgrounds for a project |
+| `list_playgrounds/2` | `(Ecto.UUID.t(), keyword()) :: [Playground.t()]` | List of playgrounds | Lists playgrounds with optional `search:` filter |
+| `get_playground/2` | `(Ecto.UUID.t(), Ecto.UUID.t()) :: Playground.t() \| nil` | Playground or nil | Fetches by project_id + playground_id |
+| `get_playground_by_slug/2` | `(Ecto.UUID.t(), String.t()) :: Playground.t() \| nil` | Playground or nil | Fetches by project_id + slug |
+| `update_playground/2` | `(Playground.t(), map()) :: {:ok, Playground.t()} \| {:error, Ecto.Changeset.t()}` | Updated playground or changeset error | Updates name/description/code fields |
+| `delete_playground/1` | `(Playground.t()) :: {:ok, Playground.t()} \| {:error, Ecto.Changeset.t()}` | Deleted playground or changeset error | Deletes a playground record |
+| `change_playground/2` | `(Playground.t(), map()) :: Ecto.Changeset.t()` | Changeset | Builds a changeset for form use; `attrs` defaults to `%{}` |
+| `execute_code/2` | `(Playground.t(), String.t()) :: {:ok, Playground.t()} \| {:error, String.t()}` | Updated playground or error string | Executes code in sandbox and persists result + code |
+| `execute_code_raw/2` | `(Playground.t(), String.t()) :: {:ok, String.t()} \| {:error, String.t()}` | Raw output string or error string | Executes code without persisting; caller handles persistence |
+| `create_execution/2` | `(Playground.t(), String.t()) :: {:ok, PlaygroundExecution.t()} \| {:error, Ecto.Changeset.t()}` | New execution record | Creates a `"running"` execution with sequential run_number |
+| `complete_execution/4` | `(PlaygroundExecution.t(), String.t(), String.t(), non_neg_integer()) :: {:ok, PlaygroundExecution.t()} \| {:error, Ecto.Changeset.t()}` | Updated execution | Sets output, status, and duration_ms |
+| `list_executions/1` | `(Ecto.UUID.t()) :: [PlaygroundExecution.t()]` | List of executions | Returns last 50 executions for a playground, desc order |
+| `get_execution/1` | `(Ecto.UUID.t()) :: PlaygroundExecution.t() \| nil` | Execution or nil | Fetches a single execution by id |
+| `cleanup_old_executions/1` | `(Ecto.UUID.t()) :: {non_neg_integer(), nil \| [term()]}` | Delete count | Deletes executions beyond the 50-record retention window |
+| `record_ai_edit/3` | `(Playground.t(), String.t(), String.t()) :: {:ok, %{playground: Playground.t(), snapshot: PlaygroundExecution.t()}} \| {:error, term()}` | Map with updated playground and snapshot | Atomically saves the AI-generated code and creates a revertable `"ai_snapshot"` execution |
+
+## Executor: Allowed Modules
+
+These are the only modules callable from playground code (`Executor.allowed_modules/0`):
+
+| Category | Modules |
+|----------|---------|
+| Collections | `Enum`, `Map`, `List`, `MapSet`, `Stream`, `Range`, `Keyword`, `Access` |
+| Strings & Atoms | `String`, `Atom`, `Regex`, `URI`, `Base` |
+| Numbers | `Integer`, `Float`, `Bitwise` |
+| Data structures | `Tuple`, `Inspect` |
+| Date/Time | `Date`, `Time`, `DateTime`, `NaiveDateTime`, `Calendar` |
+| I/O & formatting | `IO`, `Kernel`, `Jason` |
+| Playground helpers | `Blackboex.Playgrounds.Http`, `Blackboex.Playgrounds.Api` |
+| Aliased short names | Any suffix of an allowed module (e.g. `Http` after `alias Blackboex.Playgrounds.Http`) |
+
+**Explicitly blocked (will raise at validation time):**
+- `defmodule` — prevents polluting the global module namespace
+- `Function.capture` — common bypass vector
+- Dynamic atom module refs: `:"Elixir.System"`, `:"Elixir.File"`, etc.
+- Erlang modules: `:erlang`, `:os`, `:file`, `:io`, `:code`, `:port`, `:process`, `:ets`, `:dets`
+- Any module not in the allowlist above (e.g. `System`, `File`, `Process`, `Node`, `Application`)
 
 ## Fixtures
 

@@ -29,7 +29,10 @@ defmodule Blackboex.Application do
       Blackboex.Apis.Registry,
       Blackboex.LLM.CircuitBreaker,
       {Registry, keys: :unique, name: Blackboex.Agent.SessionRegistry},
-      {DynamicSupervisor, name: Blackboex.Agent.SessionSupervisor, strategy: :one_for_one}
+      {DynamicSupervisor, name: Blackboex.Agent.SessionSupervisor, strategy: :one_for_one},
+      {Registry, keys: :unique, name: Blackboex.PlaygroundAgent.SessionRegistry},
+      {DynamicSupervisor,
+       name: Blackboex.PlaygroundAgent.SessionSupervisor, strategy: :one_for_one}
     ]
 
     Supervisor.start_link(children, strategy: :one_for_one, name: Blackboex.Supervisor)

@@ -7,10 +7,14 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
 
   import BlackboexWeb.Components.Editor.ExecutionHistory
   import BlackboexWeb.Components.Editor.PageHeader
+  import BlackboexWeb.Components.Editor.PlaygroundChatPanel
   import BlackboexWeb.Components.Editor.PlaygroundTree
   import BlackboexWeb.Components.Editor.TerminalOutput
   import BlackboexWeb.Components.Shared.PlaygroundEditorField
+  import BlackboexWeb.Components.Shared.UnderlineTabs
 
+  alias Blackboex.PlaygroundAgent
+  alias Blackboex.PlaygroundConversations
   alias Blackboex.Playgrounds
   alias Blackboex.Playgrounds.Completer
   alias Blackboex.Policy
@@ -30,6 +34,14 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
         playgrounds = Playgrounds.list_playgrounds(project.id)
         executions = Playgrounds.list_executions(playground.id)
         {selected, selected_id} = select_latest(executions)
+        chat_messages = load_chat_messages(playground.id)
+
+        if connected?(socket) do
+          Phoenix.PubSub.subscribe(
+            Blackboex.PubSub,
+            "playground_agent:playground:#{playground.id}"
+          )
+        end
 
         {:ok,
          assign(socket,
@@ -42,7 +54,14 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
            executions: executions,
            selected_execution_id: selected_id,
            selected_execution: selected,
-           confirm: nil
+           confirm: nil,
+           active_bottom_tab: "output",
+           chat_messages: chat_messages,
+           chat_input: "",
+           chat_loading: false,
+           chat_slow_timer: nil,
+           current_run_id: nil,
+           current_stream: nil
          )}
     end
   end
@@ -255,6 +274,89 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
      )}
   end
 
+  # ── Chat (AI Agent) Events ─────────────────────────────────
+
+  @impl true
+  def handle_event("switch_bottom_tab", %{"tab" => tab}, socket) when tab in ["output", "chat"] do
+    {:noreply, assign(socket, active_bottom_tab: tab)}
+  end
+
+  @impl true
+  def handle_event("chat_input_change", %{"message" => value}, socket) do
+    {:noreply, assign(socket, chat_input: value)}
+  end
+
+  @impl true
+  def handle_event("new_chat", _params, socket) do
+    if socket.assigns.chat_loading do
+      {:noreply,
+       put_flash(socket, :error, "Aguarde a resposta do agente antes de iniciar um novo chat.")}
+    else
+      pg = socket.assigns.playground
+
+      case PlaygroundConversations.start_new_conversation(
+             pg.id,
+             pg.organization_id,
+             pg.project_id
+           ) do
+        {:ok, _new_conv} ->
+          {:noreply,
+           socket
+           |> assign(chat_messages: [], chat_input: "", current_stream: nil, current_run_id: nil)
+           |> put_flash(:info, "Novo chat iniciado.")}
+
+        {:error, reason} ->
+          {:noreply,
+           put_flash(socket, :error, "Não foi possível iniciar novo chat: #{inspect(reason)}")}
+      end
+    end
+  end
+
+  @impl true
+  def handle_event("send_chat", %{"message" => message}, socket) do
+    message = String.trim(message)
+    playground = socket.assigns.playground
+    scope = socket.assigns.current_scope
+
+    cond do
+      message == "" ->
+        {:noreply, socket}
+
+      socket.assigns.chat_loading ->
+        {:noreply, socket}
+
+      true ->
+        current_code = socket.assigns[:current_code]
+        playground = ensure_code_synced(playground, current_code)
+
+        case PlaygroundAgent.start(playground, scope, message) do
+          {:ok, _job} ->
+            user_msg = %{role: "user", content: message}
+            slow_timer = Process.send_after(self(), :chat_slow_warning, 30_000)
+
+            {:noreply,
+             socket
+             |> assign(
+               playground: playground,
+               chat_input: "",
+               chat_loading: true,
+               chat_slow_timer: slow_timer,
+               chat_messages: socket.assigns.chat_messages ++ [user_msg],
+               active_bottom_tab: "chat"
+             )}
+
+          {:error, :empty_message} ->
+            {:noreply, socket}
+
+          {:error, :limit_exceeded} ->
+            {:noreply, put_flash(socket, :error, "Limite de gerações do plano atingido.")}
+
+          {:error, reason} ->
+            {:noreply, put_flash(socket, :error, "Falha ao iniciar agente: #{inspect(reason)}")}
+        end
+    end
+  end
+
   # ── Async Results ─────────────────────────────────────────
 
   @impl true
@@ -303,7 +405,133 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
     end
   end
 
+  # ── AI Agent PubSub ───────────────────────────────────────
+
+  @impl true
+  def handle_info({:run_started, %{run_id: run_id}}, socket) do
+    if connected?(socket) do
+      Phoenix.PubSub.subscribe(Blackboex.PubSub, "playground_agent:run:#{run_id}")
+    end
+
+    {:noreply,
+     assign(socket,
+       chat_loading: true,
+       current_run_id: run_id,
+       current_stream: "",
+       active_bottom_tab: "chat"
+     )}
+  end
+
+  @impl true
+  def handle_info({:code_delta, %{delta: delta, run_id: run_id}}, socket) do
+    if socket.assigns.current_run_id == run_id do
+      {:noreply, assign(socket, current_stream: (socket.assigns.current_stream || "") <> delta)}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_info({:run_completed, %{code: code, summary: summary, run_id: run_id}}, socket) do
+    if socket.assigns.current_run_id == run_id do
+      cancel_chat_slow_timer(socket)
+      project = socket.assigns.current_scope.project
+      playground = Playgrounds.get_playground(project.id, socket.assigns.playground.id)
+      assistant_msg = %{role: "assistant", content: summary, run_id: run_id}
+
+      {:noreply,
+       socket
+       |> assign(
+         playground: playground,
+         chat_loading: false,
+         chat_slow_timer: nil,
+         current_run_id: nil,
+         current_stream: nil,
+         chat_messages: socket.assigns.chat_messages ++ [assistant_msg]
+       )
+       |> push_event("playground_editor:set_value", %{code: code})}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_info({:run_failed, %{reason: reason, run_id: run_id}}, socket) do
+    if socket.assigns.current_run_id == run_id do
+      cancel_chat_slow_timer(socket)
+      failure_msg = %{role: "system", content: "Agente falhou: #{reason}"}
+
+      {:noreply,
+       socket
+       |> assign(
+         chat_loading: false,
+         chat_slow_timer: nil,
+         current_run_id: nil,
+         current_stream: nil,
+         chat_messages: socket.assigns.chat_messages ++ [failure_msg]
+       )
+       |> put_flash(:error, "Agente falhou: #{reason}")}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_info(:chat_slow_warning, socket) do
+    if socket.assigns.chat_loading do
+      warning = %{
+        role: "system",
+        content: "Agente está demorando mais que o esperado... aguarde (timeout: 3 min)."
+      }
+
+      {:noreply,
+       assign(socket,
+         chat_slow_timer: nil,
+         chat_messages: socket.assigns.chat_messages ++ [warning]
+       )}
+    else
+      {:noreply, assign(socket, chat_slow_timer: nil)}
+    end
+  end
+
   # ── Helpers ───────────────────────────────────────────────
+
+  defp load_chat_messages(playground_id) do
+    playground_id
+    |> PlaygroundConversations.list_active_conversation_events(limit: 200)
+    |> Enum.flat_map(&event_to_message/1)
+  end
+
+  defp event_to_message(%{event_type: "user_message", content: content}),
+    do: [%{role: "user", content: content}]
+
+  defp event_to_message(%{event_type: "completed", content: content, run_id: run_id}),
+    do: [%{role: "assistant", content: content || "", run_id: run_id}]
+
+  defp event_to_message(%{event_type: "failed", content: content}),
+    do: [%{role: "system", content: "Agente falhou: #{content}"}]
+
+  defp event_to_message(_), do: []
+
+  defp cancel_chat_slow_timer(socket) do
+    case socket.assigns[:chat_slow_timer] do
+      nil -> :ok
+      ref -> Process.cancel_timer(ref)
+    end
+  end
+
+  defp ensure_code_synced(playground, nil), do: playground
+
+  defp ensure_code_synced(playground, code) when is_binary(code) do
+    if code == playground.code do
+      playground
+    else
+      case Playgrounds.update_playground(playground, %{code: code}) do
+        {:ok, updated} -> updated
+        {:error, _} -> playground
+      end
+    end
+  end
 
   defp start_async_execution(playground, code, execution_id) do
     self_pid = self()
@@ -385,14 +613,38 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
               class="h-1 shrink-0 bg-border hover:bg-primary/50 transition-colors cursor-row-resize"
             />
 
-            <%!-- Output pane --%>
-            <div id="output-pane" class="shrink-0 overflow-hidden" style="height: 240px;">
-              <.terminal_output
-                output={if @selected_execution, do: @selected_execution.output}
-                status={if @selected_execution, do: @selected_execution.status}
-                duration_ms={if @selected_execution, do: @selected_execution.duration_ms}
-                run_number={if @selected_execution, do: @selected_execution.run_number}
-              />
+            <%!-- Output / Chat tabs --%>
+            <div
+              id="output-pane"
+              class="shrink-0 overflow-hidden flex flex-col"
+              style="height: 320px;"
+            >
+              <div class="shrink-0 bg-zinc-800 border-b border-zinc-700">
+                <.underline_tabs
+                  tabs={[{"output", "Output"}, {"chat", "Chat"}]}
+                  active={@active_bottom_tab}
+                  click_event="switch_bottom_tab"
+                  class="border-b-0"
+                />
+              </div>
+
+              <div :if={@active_bottom_tab == "output"} class="flex-1 overflow-hidden">
+                <.terminal_output
+                  output={if @selected_execution, do: @selected_execution.output}
+                  status={if @selected_execution, do: @selected_execution.status}
+                  duration_ms={if @selected_execution, do: @selected_execution.duration_ms}
+                  run_number={if @selected_execution, do: @selected_execution.run_number}
+                />
+              </div>
+
+              <div :if={@active_bottom_tab == "chat"} class="flex-1 overflow-hidden">
+                <.playground_chat_panel
+                  messages={@chat_messages}
+                  input={@chat_input}
+                  loading={@chat_loading}
+                  current_stream={@current_stream}
+                />
+              </div>
             </div>
           </div>
 

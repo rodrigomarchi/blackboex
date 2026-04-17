@@ -86,6 +86,15 @@ const PlaygroundEditor = {
         this._completionResolve = null
       }
     })
+
+    // Handle AI agent replacing the whole document after a chat run completes
+    this.handleEvent("playground_editor:set_value", ({ code }) => {
+      if (this.view && typeof code === "string") {
+        this.view.dispatch({
+          changes: { from: 0, to: this.view.state.doc.length, insert: code },
+        })
+      }
+    })
   },
 
   updated() {

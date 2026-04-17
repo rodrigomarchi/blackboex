@@ -101,14 +101,22 @@ Every schema that needs to be inserted in a test MUST use a fixture function —
 
 | Module | Functions | Schemas |
 |--------|-----------|---------|
-| `AccountsFixtures` | `user_fixture/1`, `user_scope_fixture/0,1` | User |
-| `OrganizationsFixtures` | `org_fixture/1`, `user_and_org_fixture/1` | Organization |
-| `ApisFixtures` | `api_fixture/1`, `api_key_fixture/2`, `invocation_log_fixture/1`, `metric_rollup_fixture/1` | Api, ApiKey, InvocationLog, MetricRollup |
+| `AccountsFixtures` | `user_fixture/1`, `unconfirmed_user_fixture/1`, `user_scope_fixture/0,1` | User |
+| `OrganizationsFixtures` | `org_fixture/1`, `user_and_org_fixture/1`, `org_member_fixture/1`, `create_user_and_org/1`, `create_org/1` | Organization, Membership |
+| `ProjectsFixtures` | `project_fixture/1`, `project_membership_fixture/1`, `create_project/1` | Project, ProjectMembership |
+| `ApisFixtures` | `api_fixture/1`, `api_key_fixture/2`, `invocation_log_fixture/1`, `metric_rollup_fixture/1`, `create_api/1`, `create_org_and_api/1` | Api, ApiKey, InvocationLog, MetricRollup |
+| `ApiFilesFixtures` | `api_file_fixture/1`, `default_files_fixture/2`, `latest_revision/1` | ApiFile, ApiFileRevision |
 | `BillingFixtures` | `subscription_fixture/1`, `daily_usage_fixture/1`, `usage_event_fixture/1` | Subscription, DailyUsage, UsageEvent |
-| `ConversationsFixtures` | `conversation_fixture/2`, `run_fixture/1` | Conversation, Run |
+| `ConversationsFixtures` | `conversation_fixture/3`, `run_fixture/1` | Conversation, Run |
+| `FlowsFixtures` | `flow_fixture/1`, `flow_from_template_fixture/1`, `create_flow/1`, `create_org_and_flow/1` | Flow |
+| `FlowExecutionsFixtures` | `flow_execution_fixture/1`, `node_execution_fixture/1` | FlowExecution, NodeExecution |
+| `FlowSecretsFixtures` | `flow_secret_fixture/1` | FlowSecret |
+| `LlmFixtures` | `llm_usage_fixture/1` | LLM.Usage |
+| `PagesFixtures` | `page_fixture/1`, `create_page/1`, `create_page_tree/1` | Page |
+| `PlaygroundsFixtures` | `playground_fixture/1`, `create_playground/1` | Playground |
+| `PlaygroundExecutionsFixtures` | `execution_fixture/1` | PlaygroundExecution |
+| `PlaygroundConversationsFixtures` | `playground_conversation_fixture/1`, `playground_run_fixture/1`, `playground_event_fixture/1` | PlaygroundConversation, PlaygroundRun, PlaygroundEvent |
 | `TestingFixtures` | `test_suite_fixture/1` | TestSuite |
-| `PagesFixtures` | `page_fixture/1` | Page |
-| `PlaygroundsFixtures` | `playground_fixture/1` | Playground |
 | `MockDefaults` | `stub_llm_client/1`, `stub_stripe/1` | — |
 
 ### Named Setup Composition

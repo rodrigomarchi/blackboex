@@ -64,7 +64,13 @@ infra/                — Docker, deployment
 - `apps/blackboex/lib/blackboex/policy/AGENTS.md` — LetMe authorization
 - `apps/blackboex/lib/blackboex/telemetry/AGENTS.md` — OpenTelemetry, events
 - `apps/blackboex/lib/blackboex/pages/AGENTS.md` — Pages context, Markdown content
-- `apps/blackboex/lib/blackboex/playgrounds/AGENTS.md` — Playgrounds context, Executor sandbox
+- `apps/blackboex/lib/blackboex/playgrounds/AGENTS.md` — Playgrounds context, Executor sandbox, `record_ai_edit/3`
+- `apps/blackboex/lib/blackboex/playground_agent/AGENTS.md` — AI chat pipeline for Playgrounds (Session, ChainRunner, CodePipeline, Prompts)
+- `apps/blackboex/lib/blackboex/playground_conversations/AGENTS.md` — Persisted chat conversations/runs/events for the Playground agent
+- `apps/blackboex/lib/blackboex/flow_executions/AGENTS.md` — FlowExecution + NodeExecution schemas, status state machine, execution lifecycle API
+- `apps/blackboex/lib/blackboex/flow_secrets/AGENTS.md` — Encrypted credentials for flows, secret resolution at runtime
+- `apps/blackboex/lib/blackboex/projects/AGENTS.md` — Project grouping within orgs, ProjectMembership roles, access rules
+- `apps/blackboex/lib/blackboex/workers/AGENTS.md` — Oban background workers (FlowExecutionWorker), queue names, enqueue patterns
 - `apps/blackboex/lib/blackboex/testing/AGENTS.md` — TestRunner, TestingQueries
 - `apps/blackboex/lib/blackboex/audit/AGENTS.md` — ExAudit, AuditQueries
 - `apps/blackboex_web/AGENTS.md` — Web layer, routing, auth flow

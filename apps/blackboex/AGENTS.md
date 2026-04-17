@@ -12,6 +12,9 @@ Each context has its own AGENTS.md — **read it before generating code in that 
 | **Organizations** | `Blackboex.Organizations` | Organization, Membership | `OrganizationQueries` |
 | **Apis** | `Blackboex.Apis` | Api, ApiKey, ApiVersion, ApiFile | `ApiQueries`, `FileQueries`, `VersionQueries` |
 | **Flows** | `Blackboex.Flows` | Flow | `FlowQueries` |
+| **FlowExecutions** | `Blackboex.FlowExecutions` | FlowExecution, NodeExecution | `FlowExecutionQueries` |
+| **FlowSecrets** | `Blackboex.FlowSecrets` | FlowSecret | `FlowSecretQueries` |
+| **Projects** | `Blackboex.Projects` | Project, ProjectMembership | `ProjectQueries` |
 | **Conversations** | `Blackboex.Conversations` | Conversation, Run, Event | `ConversationQueries` |
 | **Agent** | `Blackboex.Agent` | — | — |
 | **CodeGen** | `Blackboex.CodeGen` | — | — |
@@ -95,6 +98,7 @@ defdelegate create_version(api, attrs), to: Blackboex.Apis.Versions
 | `Agent.RecoveryWorker` | generation (3) | Every 2 min | Recover stale runs |
 | `Billing.UsageAggregationWorker` | billing (10) | Daily | Aggregate usage events |
 | `Apis.MetricRollupWorker` | analytics (5) | Hourly | Rollup API metrics |
+| `Workers.FlowExecutionWorker` | flows (3) | On-demand | Run a flow execution asynchronously |
 
 ## Invariants
 

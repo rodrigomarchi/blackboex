@@ -57,6 +57,28 @@ Violation of this rule creates inconsistent UI, breaks dark mode, bypasses seman
 | Icon marker (colored chip) | `<.icon_badge>` | `shared/icon_badge.ex` |
 | Execution history sidebar | `<.execution_history>` | `editor/execution_history.ex` |
 | Terminal-style output pane | `<.terminal_output>` | `editor/terminal_output.ex` |
+| Breadcrumb nav | `<.breadcrumbs>` | `shared/breadcrumbs.ex` |
+| Two-column chart grid | `<.chart_grid>` | `shared/chart_grid.ex` |
+| Dashboard tab nav | `<.dashboard_nav>` | `shared/dashboard_nav.ex` |
+| Editor tab scroll wrapper | `<.editor_tab_panel>` | `shared/editor_tab_panel.ex` |
+| Form/modal button row | `<.form_actions>` | `shared/form_actions.ex` |
+| Horizontal list item row | `<.list_row>` | `shared/list_row.ex` |
+| Segmented mode toggle | `<.mode_toggle>` | `shared/mode_toggle.ex` |
+| Page content wrapper | `<.page>` / `<.page_section>` | `shared/page.ex` |
+| Flat internal panel | `<.panel>` | `shared/panel.ex` |
+| Elixir playground editor | `<.playground_editor_field>` | `shared/playground_editor_field.ex` |
+| Project switcher sidebar | `<.project_switcher>` | `shared/project_switcher.ex` |
+| Inline key-value chip | `<.stat_chip>` | `shared/stat_chip.ex` |
+| Wrapper-less metric value | `<.stat_figure>` | `shared/stat_figure.ex` |
+| Responsive stat card grid | `<.stat_grid>` | `shared/stat_grid.ex` |
+| WYSIWYG rich text editor | `<.tiptap_editor_field>` | `shared/tiptap_editor_field.ex` |
+| Underline-style tab bar | `<.underline_tabs>` | `shared/underline_tabs.ex` |
+| Code language micro-label | `<.code_label>` | `editor/code_label.ex` |
+| Editor page toolbar | `<.editor_page_header>` | `editor/page_header.ex` |
+| Collapsible page tree | `<.page_tree>` | `editor/page_tree.ex` |
+| Playground list sidebar | `<.playground_tree>` | `editor/playground_tree.ex` |
+| Auto-save state indicator | `<.save_indicator>` | `editor/save_indicator.ex` |
+| Playground AI chat | `<.playground_chat_panel>` | `editor/playground_chat_panel.ex` |
 
 ### CSS Utilities (defined in `assets/css/app.css`)
 
@@ -79,15 +101,21 @@ Violation of this rule creates inconsistent UI, breaks dark mode, bypasses seman
 `Icon`, `Button`, `Flash`/`flash_group`, `FormField` (`<.input>`), `Table`, `Header`, `Helpers`, `StatusHelpers`, `Logo`, `JS`
 
 **Explicit import required** (add to LiveView module):
-`Badge`, `Card`, `Modal`, `DropdownMenu`, `Tabs`, `Avatar`, `Separator`, `Label`, `Input` (raw), `Sheet`, `Sidebar`, `Tooltip`, `Spinner`, `Skeleton`, `SectionHeading`, `FieldLabel`, `InlineInput`, `InlineSelect`, `InlineTextarea`, `StatusDot`, `Shared.CodeEditorField`, `Shared.DashboardPageHeader`, `Shared.DashboardSection`, `Shared.Charts`, `Shared.PeriodSelector`, `Shared.PlainKeyBanner`, `Shared.StatCard`, `Shared.EmptyState`, `Shared.ProgressBar`, `Shared.DescriptionList`
+`Badge`, `Card`, `Modal`, `DropdownMenu`, `Tabs`, `Avatar`, `Separator`, `Label`, `Input` (raw), `Sheet`, `Sidebar`, `Tooltip`, `Spinner`, `Skeleton`, `SectionHeading`, `FieldLabel`, `InlineInput`, `InlineSelect`, `InlineTextarea`, `StatusDot`, `UI.ActionRow`, `Shared.Breadcrumbs`, `Shared.CategoryPills`, `Shared.ChartGrid`, `Shared.Charts`, `Shared.CodeEditorField`, `Shared.DashboardHelpers`, `Shared.DashboardNav`, `Shared.DashboardPageHeader`, `Shared.DashboardSection`, `Shared.DescriptionList`, `Shared.EditorTabPanel`, `Shared.EmptyState`, `Shared.FormActions`, `Shared.IconBadge`, `Shared.InlineCode`, `Shared.ListRow`, `Shared.ModeToggle`, `Shared.Page`, `Shared.Panel`, `Shared.PeriodSelector`, `Shared.PlainKeyBanner`, `Shared.PlaygroundEditorField`, `Shared.ProgressBar`, `Shared.ProjectSwitcher`, `Shared.StatCard`, `Shared.StatChip`, `Shared.StatFigure`, `Shared.StatGrid`, `Shared.StatMini`, `Shared.TemplateGrid`, `Shared.TiptapEditorField`, `Shared.UnderlineTabs`
 
 All from `BlackboexWeb.Components.*`.
 
 **Editor function components** (import `BlackboexWeb.Components.Editor.*`):
-`Toolbar` → `<.editor_toolbar>`, `CommandPalette` → `<.command_palette>`, `ValidationDashboard` → `<.validation_dashboard>`, `StatusBar` → `<.status_bar>`, `RightPanel` → `<.right_panel>`, `BottomPanel` → `<.bottom_panel>`, `CodeViewer` → `<.code_viewer>`
+`Toolbar` → `<.editor_toolbar>`, `CommandPalette` → `<.command_palette>`, `ValidationDashboard` → `<.validation_dashboard>`, `StatusBar` → `<.status_bar>`, `RightPanel` → `<.right_panel>`, `BottomPanel` → `<.bottom_panel>`, `CodeViewer` → `<.code_viewer>`, `CodeLabel` → `<.code_label>`, `PageHeader` → `<.editor_page_header>`, `PageTree` → `<.page_tree>`, `PlaygroundTree` → `<.playground_tree>`, `SaveIndicator` → `<.save_indicator>`, `PlaygroundChatPanel` → `<.playground_chat_panel>`
 
 **Editor LiveComponents** (use `<.live_component module={...}>`):
 `Editor.ChatPanel`, `Editor.RequestBuilder`, `Editor.ResponseViewer`
+
+**Editor pure-Elixir helpers** (import, no HEEx):
+`Editor.ChatPanelHelpers` — `tool_icon/1`, `format_tool_display_name/1`, `group_events/1`, `has_active_tool_call?/1`, `format_timestamp/1`, `format_tokens/1`, `format_cost/1`, `short_model/1`, `run_type_icon/1`, `run_type_label/1`, `diff_line_class/1`, `diff_prefix/1`, `format_diff_summary/1`, `test_summary/1`, `quick_actions/1`, `looks_like_code?/1`
+
+**Shared pure-Elixir helpers** (import, no HEEx):
+`Shared.DashboardHelpers` — `period_label/1`, `format_number/1`, `format_cost/1`, `format_tokens/1`, `format_duration/1`, `format_latency/1`
 
 ---
 
@@ -697,11 +725,15 @@ Module: `BlackboexWeb.Components.Shared.StatCard`
 | `label` | `:string` | required | Metric label |
 | `value` | `:any` | required | Metric value (string or number) |
 | `color` | `:string` | `nil` | `"destructive"` for red value text |
+| `icon` | `:string` | `nil` | Hero icon name shown before the label |
+| `icon_class` | `:string` | `nil` | Icon color/size class |
+| `href` | `:string` | `nil` | When present, wraps card in `<.link navigate>` with hover border |
 | `class` | `:string` | `nil` | Additional card classes |
 
 ```heex
 <.stat_card label="Total Requests" value="12,345" />
 <.stat_card label="Error Rate" value="5.2%" color="destructive" />
+<.stat_card label="APIs" value={@api_count} icon="hero-bolt" icon_class="text-accent-blue" href={~p"/apis"} />
 ```
 
 ---
@@ -812,6 +844,377 @@ Use `chart_color/1` from `StatusHelpers` for semantic colors that respond to the
 
 ---
 
+#### `<.breadcrumbs>`
+
+Module: `BlackboexWeb.Components.Shared.Breadcrumbs`
+
+Breadcrumb navigation showing hierarchy (e.g. Org > Project > Section). Each item is `%{label: "...", href: "..."}` or `%{label: "..."}` for the current (non-linked) item.
+
+| Attr | Type | Default | Description |
+|------|------|---------|-------------|
+| `items` | `:list` | required | List of `%{label, href}` maps; omit `href` for current page |
+
+```heex
+<.breadcrumbs items={[
+  %{label: "APIs", href: ~p"/apis"},
+  %{label: @api.name}
+]} />
+```
+
+---
+
+#### `<.chart_grid>`
+
+Module: `BlackboexWeb.Components.Shared.ChartGrid`
+
+Responsive two- or three-column grid for dashboard chart sections. Replaces `<div class="grid gap-4 lg:grid-cols-2">`.
+
+| Attr | Type | Default | Description |
+|------|------|---------|-------------|
+| `cols` | `:string` | `"2"` | `"2"` or `"3"` columns at `lg` breakpoint |
+| `class` | `:any` | `nil` | Additional classes |
+
+Slot: `:inner_block` (required)
+
+```heex
+<.chart_grid>
+  <.dashboard_section title="Calls" icon="hero-bolt">...</.dashboard_section>
+  <.dashboard_section title="Errors" icon="hero-x-circle">...</.dashboard_section>
+</.chart_grid>
+```
+
+---
+
+#### `<.dashboard_nav>`
+
+Module: `BlackboexWeb.Components.Shared.DashboardNav`
+
+Horizontal pill tab bar for the five dashboard sections (Overview / APIs / Flows / LLM / Usage). Each tab navigates via `<.link navigate>`.
+
+| Attr | Type | Default | Description |
+|------|------|---------|-------------|
+| `active` | `:atom` | required | `:overview`, `:apis`, `:flows`, `:llm`, or `:usage` |
+| `base_path` | `:string` | required | Base URL prefix (e.g. `"/orgs/acme/dashboard"`) |
+
+```heex
+<.dashboard_nav active={:overview} base_path={~p"/orgs/#{@org.slug}/dashboard"} />
+```
+
+---
+
+#### `<.editor_tab_panel>`
+
+Module: `BlackboexWeb.Components.Shared.EditorTabPanel`
+
+Scrollable full-height content wrapper for an editor tab. Owns vertical scroll, height, spacing rhythm, and optional max-width. Replaces repeated `<div class="p-6 overflow-y-auto h-full space-y-6">` in editor tab LiveViews.
+
+| Attr | Type | Default | Description |
+|------|------|---------|-------------|
+| `max_width` | `:string` | `"none"` | `"none"`, `"3xl"`, `"4xl"`, `"5xl"` |
+| `padding` | `:string` | `"default"` | `"default"` (`p-6`) or `"sm"` (`p-4`) |
+| `spacing` | `:string` | `"default"` | `"default"` (`space-y-6`) or `"none"` |
+| `class` | `:any` | `nil` | Additional classes |
+
+Slot: `:inner_block` (required)
+
+```heex
+<.editor_tab_panel max_width="3xl">
+  <.section_heading>API Information</.section_heading>
+  ...
+</.editor_tab_panel>
+```
+
+---
+
+#### `<.form_actions>`
+
+Module: `BlackboexWeb.Components.Shared.FormActions`
+
+Button row for form/modal footers and card action bars. Replaces `<div class="flex gap-2 justify-end pt-4">`.
+
+| Attr | Type | Default | Description |
+|------|------|---------|-------------|
+| `align` | `:string` | `"end"` | `"start"`, `"center"`, `"end"`, `"between"` |
+| `spacing` | `:string` | `"default"` | `"default"` (adds `pt-4`) or `"tight"` (gap only) |
+| `class` | `:any` | `nil` | Additional classes |
+
+Slot: `:inner_block` (required)
+
+```heex
+<.form_actions>
+  <.button type="button" variant="outline" phx-click="cancel">Cancel</.button>
+  <.button type="submit" variant="primary">Save</.button>
+</.form_actions>
+
+<.form_actions align="between">
+  <.button variant="destructive" phx-click="delete">Delete</.button>
+  <.button variant="primary" phx-click="save">Save</.button>
+</.form_actions>
+```
+
+---
+
+#### `<.list_row>`
+
+Module: `BlackboexWeb.Components.Shared.ListRow`
+
+Horizontal flex row for list items (members, audit log entries, link rows). `justify-between` layout with optional border. Pair with `<.panel variant="divided" padding="none">` for divided lists.
+
+| Attr | Type | Default | Description |
+|------|------|---------|-------------|
+| `bordered` | `:boolean` | `true` | Renders `rounded border` around the row |
+| `compact` | `:boolean` | `false` | Reduces vertical padding |
+| `class` | `:any` | `nil` | Additional classes |
+
+Slot: `:inner_block` (required)
+
+```heex
+<.list_row :for={member <- @members}>
+  <span>{member.email}</span>
+  <.badge>{member.role}</.badge>
+</.list_row>
+
+<%# Divided list (no individual borders) %>
+<.panel variant="divided" padding="none">
+  <.list_row :for={log <- @logs} bordered={false}>
+    <span>{log.action}</span>
+    <span class="text-xs">{log.at}</span>
+  </.list_row>
+</.panel>
+```
+
+---
+
+#### `<.mode_toggle>`
+
+Module: `BlackboexWeb.Components.Shared.ModeToggle`
+
+Segmented toggle bar for switching between 2+ modes (e.g. template/blank). Options are `{value, label, icon}` tuples.
+
+| Attr | Type | Default | Description |
+|------|------|---------|-------------|
+| `options` | `:list` | required | List of `{value, label, icon}` tuples |
+| `active` | `:any` | required | Currently active value |
+| `click_event` | `:string` | `nil` | Shared event name; when `nil`, each option's `value` is the event name |
+| `class` | `:string` | `nil` | Additional classes |
+
+```heex
+<.mode_toggle
+  options={[{"template", "Template", "hero-squares-2x2"}, {"blank", "Blank", "hero-document"}]}
+  active={@mode}
+  click_event="set_mode"
+/>
+```
+
+---
+
+#### `<.page>` and `<.page_section>`
+
+Module: `BlackboexWeb.Components.Shared.Page`
+
+Page-level layout primitives. `<.page>` wraps the entire LiveView content with `space-y-6`. `<.page_section>` groups subsections with configurable spacing.
+
+`<.page>` attrs: `class`, global `rest`. Slot: `:inner_block`.
+
+`<.page_section>` attrs:
+
+| Attr | Type | Default | Description |
+|------|------|---------|-------------|
+| `spacing` | `:string` | `"default"` | `"tight"` (`space-y-3`), `"default"` (`space-y-4`), `"loose"` (`space-y-6`) |
+| `class` | `:any` | `nil` | Additional classes |
+
+```heex
+<.page>
+  <.header>...</.header>
+  <.page_section>
+    <.card>...</.card>
+    <.card>...</.card>
+  </.page_section>
+</.page>
+```
+
+---
+
+#### `<.panel>`
+
+Module: `BlackboexWeb.Components.Shared.Panel`
+
+Lightweight flat panel for internal sections. Visually distinct from `<.card>`: no shadow, `rounded-lg` (not `rounded-xl`). Use `<.card>` for top-level containers, `<.panel>` for compact internal groupings.
+
+| Attr | Type | Default | Description |
+|------|------|---------|-------------|
+| `variant` | `:string` | `"default"` | `"default"` (border bg-card), `"dashed"`, `"muted"` (softer bg), `"highlighted"` (success-tinted), `"divided"` (divide-y, for list rows) |
+| `padding` | `:string` | `"default"` | `"none"`, `"sm"` (`p-3`), `"default"` (`p-4`), `"lg"` (`p-8`) |
+| `class` | `:any` | `nil` | Additional classes |
+
+Slot: `:inner_block` (required)
+
+```heex
+<.panel>
+  <p class="text-sm">Content inside a flat panel</p>
+</.panel>
+
+<.panel variant="divided" padding="none">
+  <.list_row :for={item <- @items} bordered={false}>...</.list_row>
+</.panel>
+
+<.panel variant="highlighted" padding="sm">
+  <.badge class={api_status_classes("published")}>Published</.badge>
+</.panel>
+```
+
+---
+
+#### `<.playground_editor_field>`
+
+Module: `BlackboexWeb.Components.Shared.PlaygroundEditorField`
+
+Elixir code editor for Playgrounds, backed by the `PlaygroundEditor` JS hook. Provides keyboard shortcuts (Cmd+Enter to run, Cmd+S to save, Cmd+Shift+F to format), debounced sync, and server-driven completion. **Use instead of `<.code_editor_field>` in playground views.**
+
+| Attr | Type | Default | Description |
+|------|------|---------|-------------|
+| `id` | `:string` | required | DOM id for the hook |
+| `value` | `:any` | required | Initial code content |
+| `max_height` | `:string` | `"max-h-full"` | Max-height Tailwind class on the CodeMirror editor |
+| `height` | `:string` | `nil` | Fixed height (e.g. `"100%"`, `"400px"`) |
+| `style` | `:string` | `nil` | Inline style escape hatch |
+| `class` | `:any` | `nil` | Additional wrapper classes |
+
+```heex
+<.playground_editor_field id="pg-editor" value={@playground.code} height="100%" />
+```
+
+---
+
+#### `<.project_switcher>`
+
+Module: `BlackboexWeb.Components.Shared.ProjectSwitcher`
+
+Sidebar project switcher showing current org name, active project, and a list of all projects with navigation links.
+
+| Attr | Type | Default | Description |
+|------|------|---------|-------------|
+| `org` | `:map` | required | Current organization (`%{name, slug}`) |
+| `project` | `:map` | `nil` | Currently active project (`%{id, name, slug}`) |
+| `projects` | `:list` | `[]` | All projects in the org |
+
+```heex
+<.project_switcher org={@org} project={@current_project} projects={@projects} />
+```
+
+---
+
+#### `<.stat_chip>`
+
+Module: `BlackboexWeb.Components.Shared.StatChip`
+
+Inline bordered chip showing a key-value pair with an optional icon. Use for metadata rows (duration, node count, run ID, etc.).
+
+| Attr | Type | Default | Description |
+|------|------|---------|-------------|
+| `label` | `:string` | required | Label text |
+| `value` | `:any` | required | Value text |
+| `icon` | `:string` | `nil` | Hero icon name |
+| `icon_class` | `:string` | `nil` | Icon color/size override |
+| `class` | `:any` | `nil` | Additional classes |
+
+```heex
+<.stat_chip icon="hero-clock" label="Duration" value="1.2s" />
+<.stat_chip icon="hero-squares-2x2" label="Nodes" value="5" />
+```
+
+---
+
+#### `<.stat_figure>`
+
+Module: `BlackboexWeb.Components.Shared.StatFigure`
+
+Wrapper-less metric value + label pair. Unlike `<.stat_card>`, has no border/background — intended to be placed inside an existing `<.card>` or `<.dashboard_section>`.
+
+| Attr | Type | Default | Description |
+|------|------|---------|-------------|
+| `label` | `:string` | required | Metric label |
+| `value` | `:any` | required | Metric value |
+| `color` | `:string` | `nil` | Tailwind text color class (e.g. `"text-status-failed-foreground"`) |
+| `class` | `:any` | `nil` | Wrapper div classes |
+
+```heex
+<.stat_figure label="Running" value={@running_count} />
+<.stat_figure label="Failed" value={@failed_count} color="text-status-failed-foreground" />
+```
+
+---
+
+#### `<.stat_grid>`
+
+Module: `BlackboexWeb.Components.Shared.StatGrid`
+
+Responsive grid for stat card rows. Always 1 column on mobile, 2 at `sm`, up to N at `lg`. Replaces repeated `<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">`.
+
+| Attr | Type | Default | Description |
+|------|------|---------|-------------|
+| `cols` | `:string` | `"4"` | Max lg columns: `"2"`, `"3"`, `"4"`, `"5"` |
+| `gap` | `:string` | `"4"` | Gap size: `"3"`, `"4"`, `"6"` |
+| `class` | `:any` | `nil` | Additional classes |
+
+Slot: `:inner_block` (required)
+
+```heex
+<.stat_grid cols="4">
+  <.stat_card label="Calls" value="1.2k" />
+  <.stat_card label="Errors" value="3" />
+  <.stat_card label="Latency" value="42ms" />
+  <.stat_card label="Success" value="99.7%" />
+</.stat_grid>
+```
+
+---
+
+#### `<.tiptap_editor_field>`
+
+Module: `BlackboexWeb.Components.Shared.TiptapEditorField`
+
+WYSIWYG rich text block editor backed by the `TiptapEditor` JS hook. Supports slash commands and bubble menus. **Use for page/doc content editing; use `<.code_editor_field>` for code.**
+
+| Attr | Type | Default | Description |
+|------|------|---------|-------------|
+| `id` | `:string` | required | DOM id for the hook |
+| `value` | `:string` | `""` | Initial HTML/JSON content |
+| `readonly` | `:boolean` | `false` | Disables editing |
+| `event` | `:string` | `nil` | LiveView event name for content changes |
+| `field` | `:string` | `nil` | Field key sent in event payload |
+| `placeholder` | `:string` | `"Type '/' for commands..."` | Editor placeholder text |
+| `class` | `:any` | `nil` | Additional wrapper classes |
+
+```heex
+<.tiptap_editor_field id="page-editor" value={@page.content} event="content_changed" field="content" />
+```
+
+---
+
+#### `<.underline_tabs>`
+
+Module: `BlackboexWeb.Components.Shared.UnderlineTabs`
+
+Underline-style tab bar (border-bottom indicator) for switching between content panels via `phx-click`. Supports optional badge counts on tabs.
+
+| Attr | Type | Default | Description |
+|------|------|---------|-------------|
+| `tabs` | `:list` | required | List of `{id, label}` tuples or `{id, label, badge}` triples |
+| `active` | `:string` | required | Currently active tab id |
+| `click_event` | `:string` | required | Event name sent on tab click (with `phx-value-tab={id}`) |
+| `class` | `:string` | `nil` | Additional wrapper classes |
+
+```heex
+<.underline_tabs
+  tabs={[{"overview", "Overview"}, {"keys", "Keys", length(@api_keys)}, {"logs", "Logs"}]}
+  active={@active_tab}
+  click_event="set_tab"
+/>
+```
+
+---
+
 ### Editor Components (`editor/`)
 
 Used exclusively in the API editor LiveView.
@@ -913,6 +1316,137 @@ Server-side Makeup syntax highlighting with line numbers. Dark theme (`#1e1e2e`)
 
 ```heex
 <.code_viewer code={@api.code} label="Code" class="h-full" />
+```
+
+---
+
+#### `<.code_label>`
+
+Module: `BlackboexWeb.Components.Editor.CodeLabel`
+
+Micro-label for code block language/type indicators (e.g. "elixir", "json"). Two variants: `default` (muted foreground) and `dark` (for dark editor backgrounds).
+
+| Attr | Type | Default | Description |
+|------|------|---------|-------------|
+| `variant` | `:string` | `"default"` | `"default"` or `"dark"` |
+| `class` | `:any` | `nil` | Additional classes |
+
+Slot: `:inner_block` (required)
+
+```heex
+<.code_label>elixir</.code_label>
+<.code_label variant="dark">json</.code_label>
+```
+
+---
+
+#### `<.editor_page_header>`
+
+Module: `BlackboexWeb.Components.Editor.PageHeader`
+
+Compact header toolbar for editor pages (Pages, Playgrounds). Provides back navigation arrow, title, optional badge, and action buttons. Follows the same visual pattern as `<.editor_toolbar>` but without API-specific attrs.
+
+| Attr | Type | Default | Description |
+|------|------|---------|-------------|
+| `title` | `:string` | required | Page title text |
+| `back_path` | `:string` | required | Navigate path for the back arrow |
+| `back_label` | `:string` | `"Back"` | Tooltip/aria label for back link |
+| `class` | `:any` | `nil` | Additional header classes |
+
+Slots: `:badge` (optional, for status badge), `:actions` (optional, right side buttons)
+
+```heex
+<.editor_page_header
+  title={@page.title}
+  back_path={~p"/orgs/#{@org.slug}/projects/#{@project.slug}/pages"}
+  back_label="Pages"
+>
+  <:badge><.badge variant="secondary">draft</.badge></:badge>
+  <:actions>
+    <.button variant="primary" phx-click="save">Save</.button>
+  </:actions>
+</.editor_page_header>
+```
+
+---
+
+#### `<.page_tree>`
+
+Module: `BlackboexWeb.Components.Editor.PageTree`
+
+Collapsible page tree sidebar for the page editor. Displays project pages in a nested hierarchy with expand/collapse, selection state, and hover actions (add child, delete).
+
+| Attr | Type | Default | Description |
+|------|------|---------|-------------|
+| `tree` | `:list` | required | Nested tree: `[%{page: %Page{}, children: [...]}]` as returned by `Pages.list_page_tree/1` |
+| `current_page_id` | `:string` | `nil` | ID of the currently selected page |
+| `expanded_ids` | `:list` | `[]` | List of page IDs that are expanded |
+
+Events emitted: `"select_page"` (`phx-value-slug`), `"toggle_tree_node"` (`phx-value-id`), `"new_page"`, `"new_child_page"` (`phx-value-parent-id`), `"request_confirm"` (delete).
+
+```heex
+<.page_tree tree={@page_tree} current_page_id={@page.id} expanded_ids={@expanded_ids} />
+```
+
+---
+
+#### `<.playground_tree>`
+
+Module: `BlackboexWeb.Components.Editor.PlaygroundTree`
+
+Flat playground list sidebar for the playground editor. Displays all project playgrounds with selection state and hover delete action.
+
+| Attr | Type | Default | Description |
+|------|------|---------|-------------|
+| `playgrounds` | `:list` | required | Flat list of playground maps (`%{id, name, slug}`) |
+| `current_playground_id` | `:string` | `nil` | ID of the currently selected playground |
+
+Events emitted: `"select_playground"` (`phx-value-slug`), `"new_playground"`, `"request_confirm"` (delete, `phx-value-id/slug/name`).
+
+```heex
+<.playground_tree playgrounds={@playgrounds} current_playground_id={@playground.id} />
+```
+
+---
+
+#### `<.save_indicator>`
+
+Module: `BlackboexWeb.Components.Editor.SaveIndicator`
+
+Tiny inline auto-save state indicator. Shows "Saved" (muted), "Saving..." (amber), or "Unsaved" (amber).
+
+| Attr | Type | Default | Description |
+|------|------|---------|-------------|
+| `status` | `:atom` | `:saved` | `:saved`, `:saving`, or `:unsaved` |
+
+```heex
+<.save_indicator status={@save_status} />
+```
+
+---
+
+#### `<.playground_chat_panel>`
+
+Module: `BlackboexWeb.Components.Editor.PlaygroundChatPanel`
+
+AI agent chat timeline + input for the Playground editor. Renders message bubbles, streaming code blocks, a thinking indicator, and a submit form. Visually consistent with the API `ChatPanel`.
+
+| Attr | Type | Default | Description |
+|------|------|---------|-------------|
+| `messages` | `:list` | required | List of `%{role, content}` maps (role: `"user"`, `"assistant"`, `"system"`) |
+| `input` | `:string` | `""` | Current input value |
+| `loading` | `:boolean` | `false` | Shows thinking/streaming indicator |
+| `current_stream` | `:string` | `nil` | Streaming code tokens in progress |
+
+Events consumed from parent: `"send_chat"` (form submit, `"message"` field), `"chat_input_change"` (form change), `"new_chat"` (header button).
+
+```heex
+<.playground_chat_panel
+  messages={@chat_messages}
+  input={@chat_input}
+  loading={@chat_loading}
+  current_stream={@streaming_tokens}
+/>
 ```
 
 ---

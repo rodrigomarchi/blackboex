@@ -272,6 +272,106 @@ Rules:
 
 ---
 
+## LiveComponent Required Assigns
+
+These three modules use `use BlackboexWeb, :live_component` and are rendered with
+`<.live_component module={...} id="...">`. All listed assigns must be passed; omitting
+any will raise a `KeyError` at render time because none implement `update/2` with defaults.
+
+| Component | Module | Required Assigns | Optional Assigns |
+|-----------|--------|-----------------|-----------------|
+| `ChatPanel` | `BlackboexWeb.Components.Editor.ChatPanel` | `events`, `input`, `loading`, `api_id`, `pending_edit`, `streaming_tokens`, `run`, `template_type` | `pipeline_status` |
+| `RequestBuilder` | `BlackboexWeb.Components.Editor.RequestBuilder` | `method`, `url`, `params`, `headers`, `body_json`, `body_error`, `api_key`, `loading`, `active_tab` | — |
+| `ResponseViewer` | `BlackboexWeb.Components.Editor.ResponseViewer` | `response`, `loading`, `error`, `violations`, `response_tab` | — |
+
+### ChatPanel assign details
+
+| Assign | Type | Notes |
+|--------|------|-------|
+| `events` | `list` | List of agent event maps from `@agent_events`; may be `[]` |
+| `input` | `string` | Current chat input field value |
+| `loading` | `boolean` | `true` while the pipeline is running (combine `@chat_loading` and `@generation_status` check) |
+| `api_id` | `string` | API UUID, used for routing events back to the parent |
+| `pending_edit` | `map \| nil` | Pending diff proposal; `nil` when nothing is pending |
+| `streaming_tokens` | `string` | Pass `""` when not loading; pass `@streaming_tokens` when `@chat_loading` is `true` |
+| `run` | `map \| nil` | The current `Run` struct for displaying the run summary |
+| `template_type` | `string` | Used by `quick_actions/1` helper to populate suggestion pills |
+| `pipeline_status` | `string \| nil` | Optional; displayed as status label in the header |
+
+### RequestBuilder assign details
+
+| Assign | Type | Notes |
+|--------|------|-------|
+| `method` | `string` | HTTP method: `"GET"`, `"POST"`, `"PUT"`, `"PATCH"`, `"DELETE"` |
+| `url` | `string` | Full URL of the API endpoint; rendered read-only |
+| `params` | `list` | List of `%{id, key, value}` maps for query params |
+| `headers` | `list` | List of `%{id, key, value}` maps for request headers |
+| `body_json` | `string` | JSON string for request body (shown in Body tab) |
+| `body_error` | `string \| nil` | JSON parse error message; `nil` when body is valid |
+| `api_key` | `string` | Value shown in the Auth tab input |
+| `loading` | `boolean` | Disables Send button and shows spinner while request is in flight |
+| `active_tab` | `string` | Active sub-tab: `"params"`, `"headers"`, `"body"`, or `"auth"` |
+
+### ResponseViewer assign details
+
+| Assign | Type | Notes |
+|--------|------|-------|
+| `response` | `map \| nil` | Response map with keys `status` (integer), `duration_ms`, `body`, `headers`; `nil` before first request |
+| `loading` | `boolean` | Shows spinner when `true` |
+| `error` | `string \| nil` | Error message shown as destructive alert; `nil` on success |
+| `violations` | `list` | Schema violation list; `[]` = valid; shows warning badge with count when non-empty |
+| `response_tab` | `string` | Active sub-tab: `"body"` or `"headers"` |
+
+---
+
+## Function Components in `components/editor/`
+
+These are **not** LiveComponents — they are stateless function components rendered with
+`<.function_name>`. They do NOT use `id=` and do NOT handle events themselves.
+
+### Editor shell components (import `BlackboexWeb.Components.Editor.*`)
+
+| Function | Module | Required attrs | Optional attrs |
+|----------|--------|----------------|----------------|
+| `<.editor_toolbar>` | `Editor.Toolbar` | `api` | `selected_version`, `generation_status` |
+| `<.command_palette>` | `Editor.CommandPalette` | `api` | `open`, `query`, `selected_index` |
+| `<.validation_dashboard>` | `Editor.ValidationDashboard` | — | `report`, `loading` |
+| `<.status_bar>` | `Editor.StatusBar` | `api` | `versions`, `selected_version` |
+| `<.right_panel>` | `Editor.RightPanel` | `mode` | — (requires `:inner_block` slot) |
+| `<.bottom_panel>` | `Editor.BottomPanel` | — | `active_tab`, `validation_report` (requires `:inner_block` slot) |
+| `<.code_viewer>` | `Editor.CodeViewer` | `code` | `label`, `class` |
+| `<.file_tree>` | `Editor.FileTree` | `files` | `selected_path`, `generating` |
+| `<.file_editor>` | `Editor.FileEditor` | — | `file`, `live_content`, `streaming`, `read_only`, `class` |
+| `<.editor_page_header>` | `Editor.PageHeader` | `title`, `back_path` | `back_label`, `class` (slots: `:badge`, `:actions`) |
+| `<.save_indicator>` | `Editor.SaveIndicator` | — | `status` (`:saved` \| `:saving` \| `:unsaved`) |
+
+### Playground/page sidebar components
+
+| Function | Module | Required attrs | Optional attrs |
+|----------|--------|----------------|----------------|
+| `<.playground_tree>` | `Editor.PlaygroundTree` | `playgrounds` | `current_playground_id` |
+| `<.page_tree>` | `Editor.PageTree` | `tree` | `current_page_id`, `expanded_ids` |
+| `<.execution_history>` | `Editor.ExecutionHistory` | `executions` | `selected_execution_id` |
+| `<.terminal_output>` | `Editor.TerminalOutput` | — | `output`, `status`, `duration_ms`, `run_number` |
+
+### Playground chat panel (function component, NOT a LiveComponent)
+
+`PlaygroundChatPanel` (`Editor.PlaygroundChatPanel`) uses `use BlackboexWeb, :html` — it is
+a **function component**, not a LiveComponent. Render it with `<.playground_chat_panel>` after
+importing the module.
+
+| attr | Required | Default | Notes |
+|------|----------|---------|-------|
+| `messages` | yes | — | List of `%{role, content}` maps; roles: `"user"`, `"assistant"`, `"system"` |
+| `input` | no | `""` | Current input field value |
+| `loading` | no | `false` | Shows thinking indicator when `true` |
+| `current_stream` | no | `nil` | Streaming token string; shown as streaming code block |
+
+Event contract (parent must handle): `phx-submit="send_chat"` (field: `"message"`),
+`phx-change="chat_input_change"`, `phx-click="new_chat"`.
+
+---
+
 ## Editor Tab LiveViews — The Shared Pattern
 
 All `/apis/:id/edit/*` LiveViews share a common structure enforced by `Edit.Shared`.

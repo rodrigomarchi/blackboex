@@ -56,6 +56,14 @@ Umbrella app with strict domain/web separation. See `AGENTS.md` for full context
 - **Always run `make test` + `make lint`** after every change. Fix ALL issues including pre-existing ones.
 - **Zero warnings policy** — Never ignore Credo [D] design warnings. Never dismiss Dialyzer warnings without root cause investigation.
 - **Living documentation** — Update AGENTS.md when adding/changing modules, functions, components, or patterns. Drift causes AI agents to generate wrong code.
+- **Documentation is part of the task** — Every code change is INCOMPLETE until documentation is updated. Do NOT mark any task as done, do NOT move to the next step, do NOT respond with "done" until you have checked and updated:
+  - New public function or `@spec` → add to `## Public API` table in the context's `AGENTS.md`
+  - New module or context → create `AGENTS.md` for that directory; add entry to root `AGENTS.md` hierarchy
+  - New LiveView component → add to `components/AGENTS.md` catalog with all attrs
+  - New fixture function → update `CLAUDE.md` fixture table
+  - New named setup helper → update `CLAUDE.md` named setups list
+  - New JS hook → update `assets/js/hooks/AGENTS.md`
+  - New on_mount hook → update `hooks/AGENTS.md`
 
 ## Code Style
 
@@ -64,6 +72,7 @@ Umbrella app with strict domain/web separation. See `AGENTS.md` for full context
 - Credo strict mode enforced
 - Dialyzer from day one
 - Two esbuild/tailwind targets: `blackboex_web` and `blackboex_admin`
+- `use Blackboex.Schema` — use for ALL domain schemas (not `use Ecto.Schema` directly). Provides: `use Ecto.Schema`, `import Ecto.Changeset`, and `@primary_key false` (suitable for embedded/DTO schemas). Never use `use Ecto.Schema` directly in the domain app.
 
 ## Structural Patterns — Mandatory
 
@@ -141,6 +150,12 @@ Available named setups:
 - `:create_org` — creates org for existing user in context, returns `%{org}`
 - `:create_api` — creates API for existing user + org, returns `%{api}`
 - `:create_org_and_api` — creates org + API for existing user, returns `%{org, api}`
+- `:create_project` — creates project for existing user + org, returns `%{project}`; if only user in context, also creates org and returns `%{org, project}`
+- `:create_flow` — creates flow for existing user + org, returns `%{flow}`
+- `:create_org_and_flow` — creates org + flow for existing user, returns `%{org, flow}`
+- `:create_page` — creates page for existing user + org (optionally uses `:project` from context), returns `%{page}`
+- `:create_page_tree` — creates root + 2 children + 1 grandchild pages for existing user + org + project, returns `%{root_page, child_1, child_2, grandchild}`
+- `:create_playground` — creates playground for existing user + org (optionally uses `:project` from context), returns `%{playground}`
 - `:stub_llm_client` — stubs LLM mock with safe defaults
 - `:stub_stripe` — stubs Stripe mock with safe defaults
 

@@ -462,6 +462,11 @@ end
 | `SettingsLive` | app | Tabbed settings (profile, organization, billing, security). Tab state URL-driven via `handle_params`. | navigation only via `<.link patch=...>` |
 | `UserLive.Registration` | auth | Email registration form. `phx-change="validate"` + `phx-submit="save"`. | `validate`, `save` |
 | `UserLive.Login` | auth | Dual-mode login: password form (`phx-trigger-action`) and magic link form. | `submit_password`, `submit_magic` |
+| `OrgMemberLive.Index` | app | Organization member list. Owners can change roles (`owner`/`admin`/`member`) via inline select and remove members. Guards against removing the last owner. Key assigns: `members`, `is_owner`, `org`. | `update_role`, `remove_member` |
+| `ProjectLive.Index` | app | Lists all projects for the current organization. Row-click navigates to the project dashboard. Links to `ProjectLive.New`. Key assigns: `projects`, `org`. | — |
+| `ProjectLive.New` | app | Create a new project (name → auto-slug). On success navigates to the project dashboard. Key assigns: `form`. | `create` |
+| `ProjectMemberLive.Index` | app | Project member management. Shows two sections: explicit (direct) members with inline role editor, and implicit members (org owners/admins with automatic access). Project admins can add eligible org members, change roles (`admin`/`editor`/`viewer`), and remove direct members. Key assigns: `explicit_members`, `implicit_members`, `eligible_members`, `is_admin`, `project`, `org`. | `add_member`, `update_role`, `remove_member` |
+| `ProjectSettingsLive` | app | Project settings form. Admins can rename a project and edit its description; slug is shown read-only. Uses `phx-change="validate"` + `phx-submit="save"`. Key assigns: `project`, `form`. | `validate`, `save` |
 
 ---
 
@@ -518,3 +523,248 @@ live/
 
 New LiveViews for a domain area go in the corresponding subdirectory. Shared logic for
 a subdirectory group goes in a `shared.ex` module in that subdirectory (see `Edit.Shared`).
+
+---
+
+## Recurring Patterns
+
+These patterns appear in multiple LiveViews. Copy them verbatim — do not invent variants.
+
+---
+
+### Pattern: Confirm Dialog
+
+**When to use:** Any destructive action (delete, archive, revoke) that requires a user
+confirmation step before executing — replaces inline `window.confirm`.
+
+**Files using this:** `ApiLive.Index`, `FlowLive.Index`
+
+```elixir
+# In mount assigns:
+confirm: nil
+
+# Event handlers:
+@impl true
+def handle_event("request_confirm", params, socket) do
+  confirm = IndexHelpers.build_confirm(params["action"], params)
+  {:noreply, assign(socket, confirm: confirm)}
+end
+
+@impl true
+def handle_event("dismiss_confirm", _params, socket) do
+  {:noreply, assign(socket, confirm: nil)}
+end
+
+@impl true
+def handle_event("execute_confirm", _params, socket) do
+  case socket.assigns.confirm do
+    nil ->
+      {:noreply, socket}
+
+    %{event: event, meta: meta} ->
+      handle_event(event, meta, assign(socket, confirm: nil))
+  end
+end
+
+# Trigger from a button (passes the real event name + resource id as phx-value-*):
+<.button
+  phx-click="request_confirm"
+  phx-value-action="delete"
+  phx-value-id={item.id}
+  variant="link"
+  size="sm"
+  class="link-destructive"
+>
+  Delete
+</.button>
+
+# In render (conditional — only mounted when confirm is non-nil):
+<.confirm_dialog
+  :if={@confirm}
+  title={@confirm.title}
+  description={@confirm.description}
+  variant={@confirm[:variant] || :warning}
+  confirm_label={@confirm[:confirm_label] || "Confirm"}
+/>
+```
+
+The `execute_confirm` handler re-dispatches to the real event handler (e.g. `"delete"`)
+with the stored `meta` map as params, so the real handler needs no changes.
+`IndexHelpers.build_confirm/2` lives in the LiveView's own `index_helpers.ex` module and
+returns a map with at minimum `%{event:, meta:, title:, description:}`.
+
+---
+
+### Pattern: Create Modal with Template Selection
+
+**When to use:** Index pages where items can be created either from a curated template
+library or from a blank/description form — a two-mode creation flow inside a modal.
+
+**Files using this:** `ApiLive.Index`, `FlowLive.Index`
+
+```elixir
+# In mount assigns:
+show_create_modal: false,
+creation_mode: :template,       # :template | :description  (ApiLive uses :description; FlowLive uses :blank)
+selected_template: nil,
+template_categories: [],        # loaded lazily on open_create_modal
+active_category: nil,
+create_form: to_form(%{"name" => "", "description" => ""}),
+create_error: nil
+
+# Open — loads categories lazily, resets all modal state:
+@impl true
+def handle_event("open_create_modal", _params, socket) do
+  categories = Templates.list_by_category()
+
+  first_category =
+    case categories do
+      [{cat, _} | _] -> cat
+      [] -> nil
+    end
+
+  {:noreply,
+   assign(socket,
+     show_create_modal: true,
+     create_form: to_form(%{"name" => "", "description" => ""}),
+     create_error: nil,
+     selected_template: nil,
+     template_categories: categories,
+     active_category: first_category,
+     creation_mode: :template
+   )}
+end
+
+@impl true
+def handle_event("close_create_modal", _params, socket) do
+  {:noreply, assign(socket, show_create_modal: false)}
+end
+
+# Switch creation mode:
+@impl true
+def handle_event("switch_to_template", _params, socket) do
+  {:noreply, assign(socket, creation_mode: :template, selected_template: nil)}
+end
+
+@impl true
+def handle_event("switch_to_description", _params, socket) do
+  {:noreply, assign(socket, creation_mode: :description, selected_template: nil)}
+end
+
+# Filter by category (clears selection when switching):
+@impl true
+def handle_event("set_active_category", %{"category" => cat}, socket) do
+  {:noreply, assign(socket, active_category: cat, selected_template: nil)}
+end
+
+# Select a template (pre-fills name if blank):
+@impl true
+def handle_event("select_template", %{"id" => id}, socket) do
+  template = Templates.get(id)
+
+  socket =
+    if template do
+      name_value = socket.assigns.create_form[:name].value
+      updated_name = if name_value == "", do: template.name, else: name_value
+
+      assign(socket,
+        selected_template: template,
+        create_form: to_form(%{"name" => updated_name, "description" => ""})
+      )
+    else
+      socket
+    end
+
+  {:noreply, socket}
+end
+
+# Creation handler — validates, then delegates to a private helper:
+@impl true
+def handle_event("create_api", %{"name" => name, "description" => description}, socket) do
+  name = String.trim(name)
+  description = String.trim(description)
+
+  case validate_create_inputs(name, description, socket.assigns.selected_template) do
+    {:error, msg} ->
+      {:noreply, assign(socket, create_error: msg)}
+
+    :ok ->
+      do_create_api(socket, name, description)
+  end
+end
+```
+
+The modal component itself is a separate function component (e.g. `<.create_modal>` or
+`<.create_flow_modal>`) imported from a sibling `components/` file. Pass all modal-related
+assigns to it; keep event logic in the LiveView.
+
+---
+
+### Pattern: Search with Scope Filtering
+
+**When to use:** Index pages that support a live search box where results must be
+re-fetched from the database (not filtered client-side), with results scoped differently
+depending on whether the current scope has a project or only an org.
+
+**Files using this:** `ApiLive.Index`, `FlowLive.Index`
+
+```elixir
+# In mount assigns:
+search: ""
+
+# Simple case (org-only scope, as in FlowLive.Index):
+@impl true
+def handle_event("search", %{"search" => query}, socket) do
+  query = String.slice(query, 0, 200)
+  org = socket.assigns.current_scope.organization
+
+  flows =
+    if org do
+      Flows.list_flows(org.id, search: query)
+    else
+      []
+    end
+
+  {:noreply, assign(socket, flows: flows, search: query)}
+end
+
+# Multi-scope case (project vs org, as in ApiLive.Index):
+@impl true
+def handle_event("search", %{"search" => query}, socket) do
+  query = String.slice(query, 0, 200)
+  scope = socket.assigns.current_scope
+  org = scope.organization
+
+  api_rows =
+    cond do
+      scope.project ->
+        DashboardQueries.list_apis_with_stats_for_project(scope.project.id, search: query)
+
+      org ->
+        DashboardQueries.list_apis_with_stats(org.id, search: query)
+
+      true ->
+        []
+    end
+
+  {:noreply, assign(socket, api_rows: api_rows, search: query)}
+end
+
+# In render — always use phx-debounce to throttle DB calls:
+<.form :let={_f} for={%{}} as={:search} phx-change="search" class="w-full">
+  <.input
+    type="text"
+    name="search"
+    value={@search}
+    placeholder="Search by name or description..."
+    phx-debounce="300"
+  />
+</.form>
+```
+
+Key rules:
+- Truncate query to 200 chars with `String.slice(query, 0, 200)` before passing to the DB.
+- Use `phx-debounce="300"` on the search input — never call the DB on every keystroke.
+- Use `cond` (not nested `if`) when the scope check has more than two branches.
+- Pass `search: query` as a keyword option to the context list function — keep filtering
+  in the `*Queries` module, not in the LiveView.

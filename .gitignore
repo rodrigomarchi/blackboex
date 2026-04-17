@@ -43,3 +43,6 @@ Thumbs.db
 
 # oh-my-claudecode runtime state
 .omc/
+
+# Claude Code local state (agent worktrees, session artifacts)
+.claude/

@@ -5,6 +5,11 @@
  * Each handle needs:
  *   - data-resize-direction="vertical" | "horizontal"
  *   - data-resize-target="<id of the panel to resize>"
+ * Optional:
+ *   - data-resize-css-var="--name"  writes the size to this CSS custom
+ *     property on :root instead of the target's inline style, so LiveView
+ *     re-renders can't reset the user-dragged size. The target element
+ *     should then declare e.g. style="height: var(--name, 320px);".
  *
  * Vertical handles control height, horizontal handles control width.
  * Sizes are persisted to localStorage and restored on mount.
@@ -33,6 +38,7 @@ export default {
     handles.forEach((handle) => {
       const direction = handle.dataset.resizeDirection
       const targetId = handle.dataset.resizeTarget
+      const cssVar = handle.dataset.resizeCssVar || null
       const target = document.getElementById(targetId)
 
       if (!target) return
@@ -41,6 +47,7 @@ export default {
         handle,
         direction,
         target,
+        cssVar,
         dragging: false,
         startPos: 0,
         startSize: 0,
@@ -103,14 +110,22 @@ export default {
         Math.max(state.startSize + delta, constraints.min),
         constraints.max
       )
-      state.target.style.height = newSize + "px"
+      this.applySize(state, newSize, "height")
     } else {
       const delta = state.startPos - (e.clientX || e.pageX)
       newSize = Math.min(
         Math.max(state.startSize + delta, constraints.min),
         constraints.max
       )
-      state.target.style.width = newSize + "px"
+      this.applySize(state, newSize, "width")
+    }
+  },
+
+  applySize(state, size, prop) {
+    if (state.cssVar) {
+      document.documentElement.style.setProperty(state.cssVar, size + "px")
+    } else {
+      state.target.style[prop] = size + "px"
     }
   },
 
@@ -161,10 +176,13 @@ export default {
         if (!handle) return
 
         const direction = handle.dataset.resizeDirection
+        const cssVar = handle.dataset.resizeCssVar || null
         const constraints = CONSTRAINTS[direction]
         const clamped = Math.min(Math.max(size, constraints.min), constraints.max)
 
-        if (direction === "vertical") {
+        if (cssVar) {
+          document.documentElement.style.setProperty(cssVar, clamped + "px")
+        } else if (direction === "vertical") {
           el.style.height = clamped + "px"
         } else {
           el.style.width = clamped + "px"

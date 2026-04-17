@@ -610,6 +610,7 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
               data-resize-handle
               data-resize-direction="vertical"
               data-resize-target="output-pane"
+              data-resize-css-var="--playground-output-pane-height"
               class="h-1 shrink-0 bg-border hover:bg-primary/50 transition-colors cursor-row-resize"
             />
 
@@ -617,7 +618,7 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
             <div
               id="output-pane"
               class="shrink-0 overflow-hidden flex flex-col"
-              style="height: 320px;"
+              style="height: var(--playground-output-pane-height, 320px);"
             >
               <div class="shrink-0 bg-zinc-800 border-b border-zinc-700">
                 <.underline_tabs
@@ -653,6 +654,7 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
             data-resize-handle
             data-resize-direction="horizontal"
             data-resize-target="history-sidebar"
+            data-resize-css-var="--playground-history-sidebar-width"
             class="w-1 shrink-0 bg-border hover:bg-primary/50 transition-colors cursor-col-resize hidden md:block"
           />
 
@@ -660,7 +662,7 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
           <div
             id="history-sidebar"
             class="shrink-0 overflow-hidden hidden md:block"
-            style="width: 256px;"
+            style="width: var(--playground-history-sidebar-width, 256px);"
           >
             <.execution_history
               executions={@executions}

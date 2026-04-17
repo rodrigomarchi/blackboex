@@ -36,7 +36,10 @@ defmodule BlackboexWeb.Components.Editor.Chat.CodeBlocks do
           <span class="text-2xs text-white/40">{@line_count} lines</span>
         <% end %>
       </div>
-      <div class="max-h-[300px] overflow-y-auto overflow-x-auto text-micro font-mono leading-snug">
+      <div
+        class="max-h-[300px] overflow-y-auto overflow-x-auto font-mono"
+        style="font-size: 12px; line-height: 1.6;"
+      >
         <%= for {line, num} <- @lines do %>
           <div class="flex hover:bg-white/5">
             <span class="select-none text-white/20 text-right w-8 pr-2 pl-2 shrink-0 border-r border-white/5">

@@ -107,6 +107,7 @@ Feature-bundle hooks are registered into `window.__hooks` before `app.js` runs; 
 **DOM attributes on `[data-resize-handle]` children (not the hook element itself):**
 - `data-resize-direction` — `"vertical"` (controls height) or `"horizontal"` (controls width)
 - `data-resize-target` — `id` of the panel element to resize
+- `data-resize-css-var` — *(optional)* CSS custom property name (e.g. `"--playground-output-pane-height"`) to write the size to on `:root` instead of mutating `style.height/width` on the target. Use this when the target is inside a LiveView region whose re-render would otherwise reset the inline style; declare the target with `style="height: var(--name, <default>);"` so the server-rendered style is stable and the CSS variable carries the user's chosen size.
 
 **Constraints (hardcoded):**
 - vertical: min 100 px, max 600 px

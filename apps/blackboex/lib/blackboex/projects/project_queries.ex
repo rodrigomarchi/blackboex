@@ -4,7 +4,11 @@ defmodule Blackboex.Projects.ProjectQueries do
   """
   import Ecto.Query, warn: false
 
+  alias Blackboex.Apis.Api
+  alias Blackboex.Flows.Flow
   alias Blackboex.Organizations.Membership
+  alias Blackboex.Pages.Page
+  alias Blackboex.Playgrounds.Playground
   alias Blackboex.Projects.{Project, ProjectMembership}
 
   @spec for_organization(Ecto.UUID.t()) :: Ecto.Query.t()
@@ -48,6 +52,37 @@ defmodule Blackboex.Projects.ProjectQueries do
             from pm in ProjectMembership,
               where: pm.project_id == parent_as(:project).id and pm.user_id == ^user_id
           )
+  end
+
+  @doc """
+  Returns all projects for an organization with resource counts in a single SQL query.
+
+  Each row is a plain map:
+  `%{project: Project.t(), pages_count: integer(), apis_count: integer(),
+     flows_count: integer(), playgrounds_count: integer()}`
+
+  Ordered by `project.name ASC`.
+  """
+  @spec list_with_counts(Blackboex.Organizations.Organization.t()) :: Ecto.Query.t()
+  def list_with_counts(%{id: org_id}) do
+    pages_q = from p in Page, where: p.project_id == parent_as(:proj).id, select: count()
+    apis_q = from a in Api, where: a.project_id == parent_as(:proj).id, select: count()
+    flows_q = from f in Flow, where: f.project_id == parent_as(:proj).id, select: count()
+
+    playgrounds_q =
+      from pg in Playground, where: pg.project_id == parent_as(:proj).id, select: count()
+
+    from p in Project,
+      as: :proj,
+      where: p.organization_id == ^org_id,
+      select: %{
+        project: p,
+        pages_count: subquery(pages_q),
+        apis_count: subquery(apis_q),
+        flows_count: subquery(flows_q),
+        playgrounds_count: subquery(playgrounds_q)
+      },
+      order_by: [asc: p.name]
   end
 
   @spec with_member_count(Ecto.Query.t()) :: Ecto.Query.t()

@@ -1,12 +1,12 @@
 defmodule BlackboexWeb.PageLive.Edit do
   @moduledoc """
-  Notion-like page editor with WYSIWYG Tiptap editor and tree sidebar.
+  Notion-like page editor with WYSIWYG Tiptap editor.
+  Navigation between pages is handled by the app sidebar's tree view.
   """
   use BlackboexWeb, :live_view
 
   import BlackboexWeb.Components.Badge
   import BlackboexWeb.Components.Editor.PageHeader
-  import BlackboexWeb.Components.Editor.PageTree
   import BlackboexWeb.Components.Editor.SaveIndicator
   import BlackboexWeb.Components.Shared.TiptapEditorField
 
@@ -49,16 +49,6 @@ defmodule BlackboexWeb.PageLive.Edit do
   def render(assigns) do
     ~H"""
     <div class="flex h-full w-full overflow-hidden">
-      <%!-- Left sidebar: page tree --%>
-      <div class="w-64 shrink-0 hidden md:block">
-        <.page_tree
-          tree={@page_tree}
-          current_page_id={@page.id}
-          expanded_ids={@expanded_ids}
-        />
-      </div>
-
-      <%!-- Right: editor area --%>
       <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
         <.editor_page_header
           title={@page.title}

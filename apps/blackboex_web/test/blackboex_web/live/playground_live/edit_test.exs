@@ -124,70 +124,6 @@ defmodule BlackboexWeb.PlaygroundLive.EditTest do
       assert html =~ "Format error"
     end
 
-    # ── Sidebar tree tests ────────────────────────────────────
-
-    test "renders sidebar with playground list", %{
-      conn: conn,
-      org: org,
-      project: project,
-      user: user,
-      playground: playground
-    } do
-      _other = playground_fixture(%{user: user, org: org, project: project, name: "Other REPL"})
-
-      {:ok, _view, html} = live(conn, edit_path(org, project, playground))
-      assert html =~ "Playgrounds"
-      assert html =~ "Test REPL"
-      assert html =~ "Other REPL"
-    end
-
-    test "sidebar highlights current playground", %{
-      conn: conn,
-      org: org,
-      project: project,
-      playground: playground
-    } do
-      {:ok, _view, html} = live(conn, edit_path(org, project, playground))
-      # Current playground should have selected state (bg-accent)
-      assert html =~ "bg-accent"
-    end
-
-    test "select_playground navigates to another playground", %{
-      conn: conn,
-      org: org,
-      project: project,
-      user: user,
-      playground: playground
-    } do
-      other = playground_fixture(%{user: user, org: org, project: project, name: "Other REPL"})
-
-      {:ok, view, _html} = live(conn, edit_path(org, project, playground))
-
-      view
-      |> element("[phx-click='select_playground'][phx-value-slug='#{other.slug}']")
-      |> render_click()
-
-      assert_redirected(
-        view,
-        ~p"/orgs/#{org.slug}/projects/#{project.slug}/playgrounds/#{other.slug}/edit"
-      )
-    end
-
-    test "new_playground creates and navigates to new playground", %{
-      conn: conn,
-      org: org,
-      project: project,
-      playground: playground
-    } do
-      {:ok, view, _html} = live(conn, edit_path(org, project, playground))
-      view |> element("button[phx-click='new_playground']") |> render_click()
-
-      # Should navigate to the new playground — get the redirect path
-      {path, _flash} = assert_redirect(view)
-      assert path =~ "/playgrounds/"
-      assert path =~ "/edit"
-    end
-
     # ── Delete ───────────────────────────────────────────────
 
     test "request_confirm opens danger dialog", %{
@@ -223,25 +159,6 @@ defmodule BlackboexWeb.PlaygroundLive.EditTest do
       {path, _flash} = assert_redirect(view)
       assert path =~ "/playgrounds"
       assert Playgrounds.get_playground(project.id, playground.id) == nil
-    end
-
-    test "deleting a sibling playground removes it from the sidebar", %{
-      conn: conn,
-      org: org,
-      project: project,
-      playground: playground,
-      user: user
-    } do
-      other =
-        playground_fixture(%{user: user, org: org, project: project, name: "Sibling REPL"})
-
-      {:ok, view, _html} = live(conn, edit_path(org, project, playground))
-      assert render(view) =~ "Sibling REPL"
-
-      html = render_click(view, "delete", %{"id" => other.id, "slug" => other.slug})
-
-      refute html =~ "Sibling REPL"
-      assert Playgrounds.get_playground(project.id, other.id) == nil
     end
 
     test "delete with unknown id shows not-found flash", %{

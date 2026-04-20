@@ -14,13 +14,24 @@ defmodule Blackboex.Pages do
 
   # ── Page CRUD ──────────────────────────────────────────────
 
-  @spec create_page(map()) :: {:ok, Page.t()} | {:error, Ecto.Changeset.t()}
+  @spec create_page(map()) ::
+          {:ok, Page.t()} | {:error, Ecto.Changeset.t()} | {:error, :forbidden}
   def create_page(attrs) do
-    attrs = auto_assign_position(attrs)
+    org_id = attrs[:organization_id] || attrs["organization_id"]
+    project_id = attrs[:project_id] || attrs["project_id"]
 
-    %Page{}
-    |> Page.changeset(attrs)
-    |> Repo.insert()
+    with :ok <- ensure_project_in_org(project_id, org_id) do
+      attrs = auto_assign_position(attrs)
+
+      %Page{}
+      |> Page.changeset(attrs)
+      |> Repo.insert()
+    end
+  end
+
+  @spec list_root_pages_for_project(Ecto.UUID.t(), keyword()) :: [Page.t()]
+  def list_root_pages_for_project(project_id, opts \\ []) do
+    project_id |> PageQueries.root_pages_for_project(opts) |> Repo.all()
   end
 
   @spec list_pages(Ecto.UUID.t()) :: [Page.t()]
@@ -50,6 +61,15 @@ defmodule Blackboex.Pages do
   @spec get_page_by_slug(Ecto.UUID.t(), String.t()) :: Page.t() | nil
   def get_page_by_slug(project_id, slug) do
     project_id |> PageQueries.by_project_and_slug(slug) |> Repo.one()
+  end
+
+  @doc """
+  Fetches a Page by organization_id and page_id. Returns `nil` when not found or
+  the page does not belong to the given organization.
+  """
+  @spec get_for_org(Ecto.UUID.t(), Ecto.UUID.t()) :: Page.t() | nil
+  def get_for_org(org_id, page_id) do
+    org_id |> PageQueries.by_org_and_id(page_id) |> Repo.one()
   end
 
   @spec update_page(Page.t(), map()) :: {:ok, Page.t()} | {:error, Ecto.Changeset.t()}
@@ -108,6 +128,18 @@ defmodule Blackboex.Pages do
   end
 
   # ── Private ────────────────────────────────────────────────
+
+  defp ensure_project_in_org(nil, _org_id), do: :ok
+  defp ensure_project_in_org(_project_id, nil), do: :ok
+
+  defp ensure_project_in_org(project_id, org_id) do
+    query =
+      from p in Blackboex.Projects.Project,
+        where: p.id == ^project_id and p.organization_id == ^org_id,
+        select: 1
+
+    if Repo.exists?(query), do: :ok, else: {:error, :forbidden}
+  end
 
   defp auto_assign_position(attrs) do
     cond do

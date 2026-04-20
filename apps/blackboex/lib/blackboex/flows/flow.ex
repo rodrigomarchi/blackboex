@@ -71,6 +71,17 @@ defmodule Blackboex.Flows.Flow do
     |> validate_inclusion(:status, @valid_statuses)
   end
 
+  @doc """
+  Changeset for moving a Flow to a different project (same org).
+  Only allows `:project_id` to change.
+  """
+  @spec move_project_changeset(t(), map()) :: Ecto.Changeset.t()
+  def move_project_changeset(flow, attrs) do
+    flow
+    |> cast(attrs, [:project_id])
+    |> validate_required([:project_id])
+  end
+
   @spec webhook_token_changeset(t()) :: Ecto.Changeset.t()
   def webhook_token_changeset(flow) do
     flow

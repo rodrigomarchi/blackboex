@@ -53,6 +53,38 @@ sudo_mode?(user, minutes \\ -20) :: boolean()
 | `"login"` | SHA-256 hash | 15 minutes |
 | `"change:#{old_email}"` | SHA-256 hash | 7 days |
 
+## User Preferences
+
+The `users` table has a JSONB column `preferences` (default `%{}`). Access is managed entirely through two facade functions — never write to this column directly from callers.
+
+### Whitelist
+
+```elixir
+@preferences_allowed_roots ~w(sidebar_tree)
+```
+
+Only paths whose first segment is in this list are accepted. Add new roots here as features require them. This is the single source of truth — do not duplicate the list.
+
+### Functions
+
+```elixir
+@spec update_user_preference(User.t(), [String.t()], term()) ::
+        {:ok, User.t()} | {:error, Ecto.Changeset.t() | :forbidden}
+# path must be non-empty and hd(path) must be in @preferences_allowed_roots.
+# Missing intermediate keys are created automatically (Access.key/2 with %{}).
+# Uses User.preferences_changeset/2 — only :preferences is ever touched.
+
+@spec get_user_preference(User.t(), [String.t()], default) :: term() | default when default: var
+# Traverses user.preferences with string keys. Returns default on any missing segment.
+# Never raises KeyError. Path segments are strings (JSONB keys are NOT atoms).
+```
+
+### Gotchas
+
+- **String keys only** — JSONB round-trips keys as strings. Never use atom keys in preferences.
+- **`update_user_preference` with `[]` path returns `{:error, :forbidden}`** — replacing the whole map is not allowed.
+- **`preferences_changeset/2` is isolated** — no other changeset (`email_changeset`, `password_changeset`, etc.) casts `:preferences`. Callers cannot sneak preferences through registration.
+
 ## Gotchas
 
 1. **Never compare session tokens with `==`** — use `Plug.Crypto.secure_compare/2`.

@@ -14,6 +14,19 @@ defmodule Blackboex.Playgrounds.PlaygroundQueries do
     |> order_by([p], desc: p.updated_at)
   end
 
+  @doc """
+  Returns playgrounds for a project ordered by name ASC, with an optional `:limit` (default 50).
+  """
+  @spec list_for_project_sorted(Ecto.UUID.t(), keyword()) :: Ecto.Query.t()
+  def list_for_project_sorted(project_id, opts \\ []) do
+    limit = Keyword.get(opts, :limit, 50)
+
+    Playground
+    |> where([p], p.project_id == ^project_id)
+    |> order_by([p], asc: p.name)
+    |> limit(^limit)
+  end
+
   @spec list_for_org(Ecto.UUID.t()) :: Ecto.Query.t()
   def list_for_org(organization_id) do
     Playground
@@ -25,6 +38,12 @@ defmodule Blackboex.Playgrounds.PlaygroundQueries do
   def by_project_and_id(project_id, playground_id) do
     Playground
     |> where([p], p.project_id == ^project_id and p.id == ^playground_id)
+  end
+
+  @spec by_org_and_id(Ecto.UUID.t(), Ecto.UUID.t()) :: Ecto.Query.t()
+  def by_org_and_id(org_id, playground_id) do
+    Playground
+    |> where([p], p.organization_id == ^org_id and p.id == ^playground_id)
   end
 
   @spec by_project_and_slug(Ecto.UUID.t(), String.t()) :: Ecto.Query.t()

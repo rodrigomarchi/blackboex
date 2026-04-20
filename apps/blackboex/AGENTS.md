@@ -46,6 +46,8 @@ defdelegate create_version(api, attrs), to: Blackboex.Apis.Versions
 - `generate_user_session_token/1`, `delete_user_session_token/1`
 - `login_user_by_magic_link/1`, `get_user_by_magic_link_token/1`
 - `sudo_mode?/2` — checks if authentication is recent enough
+- `update_user_preference(user, path, value) :: {:ok, User.t()} | {:error, Ecto.Changeset.t() | :forbidden}` — writes a leaf value in the `preferences` JSONB blob at the given string-key path; first segment must be in `@preferences_allowed_roots` or returns `{:error, :forbidden}`
+- `get_user_preference(user, path, default) :: term()` — reads a value from `preferences` at the given string-key path; returns `default` when any segment is missing
 
 ### Organizations
 - `create_organization/2` :: `(User.t(), map()) -> {:ok, %{organization, membership}} | {:error, ...}`

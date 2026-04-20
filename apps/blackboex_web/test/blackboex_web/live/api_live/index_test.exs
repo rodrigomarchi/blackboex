@@ -312,7 +312,6 @@ defmodule BlackboexWeb.ApiLive.IndexTest do
       {:ok, view, _html} = live(conn, ~p"/apis")
       html = render_click(view, "open_create_modal")
 
-      # Should show category tabs for templates
       assert html =~ "AI Agent Tools"
     end
 
@@ -320,7 +319,6 @@ defmodule BlackboexWeb.ApiLive.IndexTest do
       {:ok, view, _html} = live(conn, ~p"/apis")
       html = render_click(view, "open_create_modal")
 
-      # Template cards should be visible (cotacao-frete is the first template)
       assert html =~ "Cotação de Frete"
     end
 
@@ -330,7 +328,6 @@ defmodule BlackboexWeb.ApiLive.IndexTest do
 
       html = render_click(view, "select_template", %{"id" => "cotacao-frete"})
 
-      # Template name should appear in the preview section
       assert html =~ "Cotação de Frete"
     end
 
@@ -341,7 +338,6 @@ defmodule BlackboexWeb.ApiLive.IndexTest do
       render_click(view, "select_template", %{"id" => "cotacao-frete"})
       html = render_click(view, "clear_template")
 
-      # After clearing, the template preview should be gone and description field should be back
       refute html =~ "phx-click=\"clear_template\""
     end
 
@@ -399,6 +395,16 @@ defmodule BlackboexWeb.ApiLive.IndexTest do
 
       assert api.status == "compiled"
       assert api.template_id == "cotacao-frete"
+    end
+
+    test "sidebar renders SidebarTreeComponent placeholder in :app layout", %{
+      conn: conn,
+      user: user
+    } do
+      FunWithFlags.enable(:sidebar_tree_v2, for_actor: user)
+      {:ok, _view, html} = live(conn, ~p"/apis")
+      assert html =~ ~s(data-testid="sidebar-tree")
+      FunWithFlags.clear(:sidebar_tree_v2)
     end
   end
 end

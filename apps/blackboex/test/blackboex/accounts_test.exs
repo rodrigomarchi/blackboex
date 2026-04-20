@@ -94,13 +94,11 @@ defmodule Blackboex.AccountsTest do
       assert Accounts.sudo_mode?(%User{authenticated_at: DateTime.add(now, -19, :minute)})
       refute Accounts.sudo_mode?(%User{authenticated_at: DateTime.add(now, -21, :minute)})
 
-      # minute override
       refute Accounts.sudo_mode?(
                %User{authenticated_at: DateTime.add(now, -11, :minute)},
                -10
              )
 
-      # not authenticated
       refute Accounts.sudo_mode?(%User{})
     end
   end
@@ -262,7 +260,6 @@ defmodule Blackboex.AccountsTest do
       assert user_token.context == "session"
       assert user_token.authenticated_at != nil
 
-      # Creating the same token for another user should fail
       assert_raise Ecto.ConstraintError, fn ->
         Repo.insert!(%UserToken{
           token: user_token.token,
@@ -397,6 +394,62 @@ defmodule Blackboex.AccountsTest do
   describe "inspect/2 for the User module" do
     test "does not include password" do
       refute inspect(%User{password: "123456"}) =~ "password: \"123456\""
+    end
+  end
+
+  describe "user_preferences" do
+    setup do
+      %{user: user_fixture()}
+    end
+
+    test "update_user_preference writes a nested value and get_user_preference reads it back",
+         %{user: user} do
+      assert {:ok, updated} =
+               Accounts.update_user_preference(user, ["sidebar_tree", "expanded"], ["project:abc"])
+
+      assert Accounts.get_user_preference(updated, ["sidebar_tree", "expanded"], []) ==
+               ["project:abc"]
+    end
+
+    test "update_user_preference returns {:error, :forbidden} for non-whitelisted root key",
+         %{user: user} do
+      assert {:error, :forbidden} =
+               Accounts.update_user_preference(user, ["arbitrary_key"], 123)
+
+      reloaded = Repo.get!(User, user.id)
+      assert reloaded.preferences == %{}
+    end
+
+    test "get_user_preference returns default when path does not exist", %{user: user} do
+      assert Accounts.get_user_preference(user, ["sidebar_tree", "missing"], :fallback) ==
+               :fallback
+    end
+
+    test "registration_changeset does not cast preferences" do
+      changeset =
+        User.email_changeset(%User{}, %{
+          email: "x@y.z",
+          password: "password12345",
+          preferences: %{"arbitrary" => 1}
+        })
+
+      refute Map.has_key?(changeset.changes, :preferences)
+    end
+
+    test "successive updates to different nested keys coexist", %{user: user} do
+      {:ok, user2} = Accounts.update_user_preference(user, ["sidebar_tree", "expanded"], [])
+
+      {:ok, user3} =
+        Accounts.update_user_preference(user2, ["sidebar_tree", "selected"], "page:xyz")
+
+      assert Accounts.get_user_preference(user3, ["sidebar_tree", "expanded"], :missing) == []
+
+      assert Accounts.get_user_preference(user3, ["sidebar_tree", "selected"], :missing) ==
+               "page:xyz"
+    end
+
+    test "update_user_preference with empty path returns {:error, :forbidden}", %{user: user} do
+      assert {:error, :forbidden} = Accounts.update_user_preference(user, [], %{})
     end
   end
 end

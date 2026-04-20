@@ -63,8 +63,12 @@ draft ──→ compiled ──→ published ──→ compiled  (unpublish)
 # Core CRUD
 create_api(map()) :: {:ok, Api.t()} | {:error, Ecto.Changeset.t()} | {:error, :limit_exceeded, map()}
 list_apis(org_id) :: [Api.t()]
+list_apis_for_project(project_id) :: [Api.t()]                        # ordered by inserted_at DESC
+list_for_project(project_id, opts \\ []) :: [Api.t()]                 # ordered by name ASC; accepts :limit (default 50)
 get_api(org_id, api_id) :: Api.t() | nil    # ALWAYS both args — bare id is IDOR
+get_for_org(org_id, api_id) :: Api.t() | nil  # org-scoped fetch by id; returns nil when not found or cross-org
 update_api(Api.t(), map()) :: {:ok, Api.t()} | {:error, Ecto.Changeset.t()}
+move_api(Api.t(), new_project_id) :: {:ok, Api.t()} | {:error, Ecto.Changeset.t()} | {:error, :forbidden}  # moves API to a different project within the same org; validates ownership via ensure_project_in_org
 delete_api(Api.t()) :: {:ok, Api.t()} | {:error, Ecto.Changeset.t()}
 
 # Lifecycle (delegated to Apis.Lifecycle)

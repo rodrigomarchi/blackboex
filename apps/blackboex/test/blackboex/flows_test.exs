@@ -9,6 +9,21 @@ defmodule Blackboex.FlowsTest do
     %{user: user, org: org}
   end
 
+  describe "create_flow/1 ownership" do
+    test "rejects cross-org project (T7 IDOR)", %{user: user, org: org_a} do
+      org_b = org_fixture(%{user: user})
+      project_b = project_fixture(%{user: user, org: org_b})
+
+      assert {:error, :forbidden} =
+               Flows.create_flow(%{
+                 name: "Hack",
+                 organization_id: org_a.id,
+                 project_id: project_b.id,
+                 user_id: user.id
+               })
+    end
+  end
+
   describe "create_flow/1" do
     test "creates a flow with valid attrs", %{user: user, org: org} do
       attrs = %{
@@ -329,6 +344,85 @@ defmodule Blackboex.FlowsTest do
       assert_raise Ecto.NoResultsError, fn ->
         Flows.get_flow_by_token!(old_token)
       end
+    end
+  end
+
+  describe "list_for_project/2" do
+    test "returns only flows belonging to the given project", %{user: user, org: org} do
+      project_a = project_fixture(%{user: user, org: org, name: "Flow Project A"})
+      project_b = project_fixture(%{user: user, org: org, name: "Flow Project B"})
+
+      _f1 = flow_fixture(%{user: user, org: org, project: project_a, name: "Alpha Flow"})
+      _f2 = flow_fixture(%{user: user, org: org, project: project_a, name: "Beta Flow"})
+      _f3 = flow_fixture(%{user: user, org: org, project: project_a, name: "Gamma Flow"})
+      _f4 = flow_fixture(%{user: user, org: org, project: project_b, name: "Delta Flow"})
+      _f5 = flow_fixture(%{user: user, org: org, project: project_b, name: "Epsilon Flow"})
+
+      results_a = Flows.list_for_project(project_a.id)
+      results_b = Flows.list_for_project(project_b.id)
+
+      assert length(results_a) == 3
+      assert length(results_b) == 2
+      assert Enum.all?(results_a, &(&1.project_id == project_a.id))
+    end
+
+    test "returns flows ordered by name ASC", %{user: user, org: org} do
+      project = project_fixture(%{user: user, org: org, name: "Sorted Flows"})
+
+      flow_fixture(%{user: user, org: org, project: project, name: "Zeta Flow"})
+      flow_fixture(%{user: user, org: org, project: project, name: "Alpha Flow"})
+      flow_fixture(%{user: user, org: org, project: project, name: "Mango Flow"})
+
+      results = Flows.list_for_project(project.id)
+      names = Enum.map(results, & &1.name)
+
+      assert names == Enum.sort(names)
+    end
+
+    test "respects :limit option", %{user: user, org: org} do
+      project = project_fixture(%{user: user, org: org, name: "Limited Flows"})
+
+      flow_fixture(%{user: user, org: org, project: project, name: "Flow One"})
+      flow_fixture(%{user: user, org: org, project: project, name: "Flow Two"})
+      flow_fixture(%{user: user, org: org, project: project, name: "Flow Three"})
+
+      results = Flows.list_for_project(project.id, limit: 2)
+
+      assert length(results) == 2
+    end
+  end
+
+  describe "move_flow/2" do
+    test "moves flow to another project in same org", %{user: user, org: org} do
+      project_a = project_fixture(%{user: user, org: org, name: "Source"})
+      project_b = project_fixture(%{user: user, org: org, name: "Dest"})
+      flow = flow_fixture(%{user: user, org: org, project: project_a})
+
+      assert {:ok, updated} = Flows.move_flow(flow, project_b.id)
+      assert updated.project_id == project_b.id
+    end
+
+    test "returns forbidden when destination project belongs to another org", %{
+      user: user,
+      org: org
+    } do
+      project_a = project_fixture(%{user: user, org: org, name: "Source"})
+      flow = flow_fixture(%{user: user, org: org, project: project_a})
+
+      {other_user, other_org} = user_and_org_fixture()
+      other_project = project_fixture(%{user: other_user, org: other_org})
+
+      assert {:error, :forbidden} = Flows.move_flow(flow, other_project.id)
+      assert Flows.get_flow(org.id, flow.id).project_id == project_a.id
+    end
+
+    test "returns forbidden when destination project_id does not exist", %{user: user, org: org} do
+      project_a = project_fixture(%{user: user, org: org, name: "Source"})
+      flow = flow_fixture(%{user: user, org: org, project: project_a})
+      nonexistent_id = Ecto.UUID.generate()
+
+      assert {:error, :forbidden} = Flows.move_flow(flow, nonexistent_id)
+      assert Flows.get_flow(org.id, flow.id).project_id == project_a.id
     end
   end
 end

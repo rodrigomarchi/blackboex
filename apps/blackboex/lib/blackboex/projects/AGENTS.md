@@ -47,6 +47,7 @@ Query builders only — no `Repo` calls, no side effects.
 | `by_org_and_id/2` | Single project by org + id |
 | `for_user/2` | Projects accessible to a user: all projects if user is org owner/admin, otherwise only projects with a `ProjectMembership` |
 | `with_member_count/1` | Composable — adds virtual `member_count` via LEFT JOIN + GROUP BY |
+| `list_with_counts/1` | Returns `Ecto.Query.t()` selecting projects + 4 correlated subquery counts (pages, apis, flows, playgrounds). Called by `Projects.list_projects_with_counts/1` via `Repo.all()`. |
 
 ## Public API
 
@@ -54,6 +55,7 @@ Query builders only — no `Repo` calls, no side effects.
 
 | Function | Signature | Returns | Description |
 |----------|-----------|---------|-------------|
+| `list_projects_with_counts/1` | `(Organization.t())` | `[%{project: Project.t(), pages_count: integer(), apis_count: integer(), flows_count: integer(), playgrounds_count: integer()}]` | All projects for an org with 4 resource counts in ONE SQL query, ordered by name ASC |
 | `create_project/3` | `(org, user, attrs)` | `{:ok, %{project: Project.t(), membership: ProjectMembership.t()}}` | Creates project + adds creator as `:admin` in a transaction |
 | `create_default_project/2` | `(org, user)` | same | Creates a `"Default"` project for new organizations |
 | `list_projects/1` | `(organization_id)` | `[Project.t()]` | All projects in an org |

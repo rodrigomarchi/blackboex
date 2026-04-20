@@ -9,6 +9,7 @@ defmodule Blackboex.Flows do
   alias Blackboex.Flows.Flow
   alias Blackboex.Flows.FlowQueries
   alias Blackboex.Organizations
+  alias Blackboex.Projects
   alias Blackboex.Repo
 
   # ── Flow CRUD ──────────────────────────────────────────────
@@ -16,16 +17,20 @@ defmodule Blackboex.Flows do
   @spec create_flow(map()) ::
           {:ok, Flow.t()}
           | {:error, Ecto.Changeset.t()}
+          | {:error, :forbidden}
           | {:error, :limit_exceeded, map()}
   def create_flow(attrs) do
     org_id = attrs[:organization_id] || attrs["organization_id"]
+    project_id = attrs[:project_id] || attrs["project_id"]
 
-    if org_id do
-      create_flow_with_lock(attrs, org_id)
-    else
-      %Flow{}
-      |> Flow.changeset(attrs)
-      |> Repo.insert()
+    with :ok <- ensure_project_in_org(project_id, org_id) do
+      if org_id do
+        create_flow_with_lock(attrs, org_id)
+      else
+        %Flow{}
+        |> Flow.changeset(attrs)
+        |> Repo.insert()
+      end
     end
   end
 
@@ -37,6 +42,11 @@ defmodule Blackboex.Flows do
   @spec list_flows_for_project(Ecto.UUID.t()) :: [Flow.t()]
   def list_flows_for_project(project_id) do
     project_id |> FlowQueries.list_for_project() |> Repo.all()
+  end
+
+  @spec list_for_project(Ecto.UUID.t(), keyword()) :: [Flow.t()]
+  def list_for_project(project_id, opts \\ []) do
+    project_id |> FlowQueries.list_for_project_sorted(opts) |> Repo.all()
   end
 
   @spec list_flows(Ecto.UUID.t(), keyword()) :: [Flow.t()]
@@ -65,6 +75,21 @@ defmodule Blackboex.Flows do
     |> Repo.update()
   end
 
+  @doc """
+  Moves a Flow to a different project within the same organization.
+
+  Validates that `new_project_id` belongs to the same org as the flow.
+  """
+  @spec move_flow(Flow.t(), Ecto.UUID.t()) ::
+          {:ok, Flow.t()} | {:error, Ecto.Changeset.t()} | {:error, :forbidden}
+  def move_flow(%Flow{} = flow, new_project_id) do
+    with :ok <- ensure_project_in_org(new_project_id, flow.organization_id) do
+      flow
+      |> Flow.move_project_changeset(%{project_id: new_project_id})
+      |> Repo.update()
+    end
+  end
+
   @spec update_definition(Flow.t(), map()) :: {:ok, Flow.t()} | {:error, Ecto.Changeset.t()}
   def update_definition(%Flow{} = flow, definition) do
     flow
@@ -75,6 +100,15 @@ defmodule Blackboex.Flows do
   @spec delete_flow(Flow.t()) :: {:ok, Flow.t()} | {:error, Ecto.Changeset.t()}
   def delete_flow(%Flow{} = flow) do
     Repo.delete(flow)
+  end
+
+  @doc """
+  Fetches a Flow by organization_id and flow_id. Returns `nil` when not found or
+  the flow does not belong to the given organization.
+  """
+  @spec get_for_org(Ecto.UUID.t(), Ecto.UUID.t()) :: Flow.t() | nil
+  def get_for_org(org_id, flow_id) do
+    org_id |> FlowQueries.by_org_and_id_only(flow_id) |> Repo.one()
   end
 
   @spec get_flow_by_slug(Ecto.UUID.t(), String.t()) :: Flow.t() | nil
@@ -192,5 +226,15 @@ defmodule Blackboex.Flows do
     %Flow{}
     |> Flow.changeset(attrs)
     |> Repo.insert!()
+  end
+
+  defp ensure_project_in_org(nil, _org_id), do: :ok
+  defp ensure_project_in_org(_project_id, nil), do: :ok
+
+  defp ensure_project_in_org(project_id, org_id) do
+    case Projects.get_project(org_id, project_id) do
+      nil -> {:error, :forbidden}
+      _project -> :ok
+    end
   end
 end

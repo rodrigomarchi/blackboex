@@ -21,10 +21,14 @@ Facade: `Blackboex.Flows` (`flows.ex`). All web/worker code calls through this f
 | Function | Purpose |
 |----------|---------|
 | `create_flow(attrs)` | Create flow with billing enforcement |
-| `list_flows(org_id)` | List all flows for an org |
+| `list_flows(org_id)` | List all flows for an org, ordered by inserted_at DESC |
 | `list_flows(org_id, opts)` | List with search filter |
+| `list_flows_for_project(project_id)` | List flows for a project, ordered by inserted_at DESC |
+| `list_for_project(project_id, opts \\ [])` | List flows for a project ordered by name ASC; accepts `:limit` opt (default 50) |
 | `get_flow(org_id, flow_id)` | Get by org + id (IDOR-safe) |
+| `get_for_org(org_id, flow_id)` | Org-scoped fetch by id; returns `nil` when not found or cross-org |
 | `update_flow(flow, attrs)` | Update name/description/status |
+| `move_flow(flow, new_project_id)` | Move flow to a different project within the same org; validates org membership via `ensure_project_in_org`; returns `{:error, :forbidden}` on cross-org attempt |
 | `update_definition(flow, definition)` | Save Drawflow graph JSON |
 | `delete_flow(flow)` | Delete flow |
 

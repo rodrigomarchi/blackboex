@@ -244,6 +244,40 @@ Feature-bundle hooks are registered into `window.__hooks` before `app.js` runs; 
 
 ---
 
+### `SidebarTreeDnD` (`hooks/sidebar_tree_dnd.js`)
+
+**Purpose:** Enables drag-and-drop reordering and reparenting within the sidebar navigation tree. Mounts one [Sortable.js](https://sortablejs.github.io/Sortable/) instance per `[data-tree-list]` element inside the hook root, with cross-list drag enabled via a shared group name `"sidebar-tree"`.
+
+**Registered in:** `assets/js/app.js` — imported directly and added to the `hooks: {...}` map passed to `new LiveSocket(...)`.
+
+**Used by:** `BlackboexWeb.Components.SidebarTreeComponent` — `phx-hook="SidebarTreeDnD"` on the `<nav>` element (which also has `phx-target={@myself}` so events route to the LiveComponent)
+
+**Vendor dependency:** `assets/vendor/sortable.js` — Sortable.js 1.15.2 minified UMD bundle
+
+**DOM attributes (consumed, not set by this hook):**
+- `[data-tree-list]` on each group `<ul>` — marks it as a Sortable list
+- `data-parent-type` on `[data-tree-list]` — group type (`"apis"`, `"flows"`, `"pages"`, `"playgrounds"`)
+- `data-parent-id` on `[data-tree-list]` — project id of the containing project
+- `[data-tree-item]` on each leaf `<li>` — marks it as a draggable item
+- `data-node-id` on `[data-tree-item]` — resource UUID
+- `data-node-type` on `[data-tree-item]` — singular resource type (`"api"`, `"flow"`, `"page"`, `"playground"`)
+
+**Sortable config:**
+- `group: "sidebar-tree"` — enables cross-list drag between all lists in the tree
+- `delay: 150, delayOnTouchOnly: true` — prevents accidental drags on mobile
+- `animation: 120` — smooth 120 ms reorder animation
+- `draggable: "[data-tree-item]"` — only LI items are draggable (not the "No items" placeholder)
+
+**Pushes to LiveView (via `pushEventTo(this.el, ...)`):**
+- `"move_node"` — on drag-end; payload `%{node_id, node_type, new_parent_type, new_parent_id, new_index}`. Routes to the LiveComponent (not the parent LiveView) because `this.el` has `phx-target={@myself}`.
+
+**Handles from LiveView:**
+- `"sidebar_tree:rollback"` — destroys and reinitialises all Sortable instances on the next animation frame so the DOM snaps back to the server-authoritative order after a rejected move; payload `%{reason: string}` (ignored by client)
+
+**Lifecycle:** `mounted` (initialises Sortable instances + registers rollback handler), `updated` (destroys + reinitialises all Sortable instances to pick up new DOM from LiveView patch), `destroyed` (destroys all Sortable instances)
+
+---
+
 ## Adding a New Hook
 
 1. **Create** `assets/js/hooks/my_hook.js` exporting a plain object with `mounted()` and any other lifecycle methods needed.

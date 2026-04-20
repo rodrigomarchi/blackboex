@@ -14,6 +14,20 @@ defmodule Blackboex.Pages.PageQueries do
     |> order_by([p], desc: p.updated_at)
   end
 
+  @doc """
+  Returns root pages (parent_id IS NULL) for a project, ordered by title ASC.
+  Accepts `:limit` keyword option (default 100).
+  """
+  @spec root_pages_for_project(Ecto.UUID.t(), keyword()) :: Ecto.Query.t()
+  def root_pages_for_project(project_id, opts \\ []) do
+    limit = Keyword.get(opts, :limit, 100)
+
+    Page
+    |> where([p], p.project_id == ^project_id and is_nil(p.parent_id))
+    |> order_by([p], asc: p.title)
+    |> limit(^limit)
+  end
+
   @spec list_for_org(Ecto.UUID.t()) :: Ecto.Query.t()
   def list_for_org(organization_id) do
     Page
@@ -25,6 +39,12 @@ defmodule Blackboex.Pages.PageQueries do
   def by_project_and_id(project_id, page_id) do
     Page
     |> where([p], p.project_id == ^project_id and p.id == ^page_id)
+  end
+
+  @spec by_org_and_id(Ecto.UUID.t(), Ecto.UUID.t()) :: Ecto.Query.t()
+  def by_org_and_id(org_id, page_id) do
+    Page
+    |> where([p], p.organization_id == ^org_id and p.id == ^page_id)
   end
 
   @spec by_project_and_slug(Ecto.UUID.t(), String.t()) :: Ecto.Query.t()

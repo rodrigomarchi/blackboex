@@ -89,11 +89,14 @@ user-run executions — the status badge distinguishes them.
 | Function | Signature | Returns | Description |
 |----------|-----------|---------|-------------|
 | `create_playground/1` | `(map()) :: {:ok, Playground.t()} \| {:error, Ecto.Changeset.t()}` | New playground or changeset error | Inserts a new playground with the given attrs |
-| `list_playgrounds/1` | `(Ecto.UUID.t()) :: [Playground.t()]` | List of playgrounds | Lists all playgrounds for a project |
+| `list_playgrounds/1` | `(Ecto.UUID.t()) :: [Playground.t()]` | List of playgrounds | Lists all playgrounds for a project, ordered by updated_at DESC |
 | `list_playgrounds/2` | `(Ecto.UUID.t(), keyword()) :: [Playground.t()]` | List of playgrounds | Lists playgrounds with optional `search:` filter |
+| `list_for_project/2` | `(Ecto.UUID.t(), keyword()) :: [Playground.t()]` | List of playgrounds | Lists playgrounds ordered by name ASC; accepts `:limit` opt (default 50) |
 | `get_playground/2` | `(Ecto.UUID.t(), Ecto.UUID.t()) :: Playground.t() \| nil` | Playground or nil | Fetches by project_id + playground_id |
+| `get_for_org/2` | `(Ecto.UUID.t(), Ecto.UUID.t()) :: Playground.t() \| nil` | Playground or nil | Org-scoped fetch by id; returns nil when not found or cross-org |
 | `get_playground_by_slug/2` | `(Ecto.UUID.t(), String.t()) :: Playground.t() \| nil` | Playground or nil | Fetches by project_id + slug |
 | `update_playground/2` | `(Playground.t(), map()) :: {:ok, Playground.t()} \| {:error, Ecto.Changeset.t()}` | Updated playground or changeset error | Updates name/description/code fields |
+| `move_playground/2` | `(Playground.t(), Ecto.UUID.t()) :: {:ok, Playground.t()} \| {:error, Ecto.Changeset.t()} \| {:error, :forbidden}` | Moved playground or error | Moves playground to a different project within the same org; validates org membership via `ensure_project_in_org` |
 | `delete_playground/1` | `(Playground.t()) :: {:ok, Playground.t()} \| {:error, Ecto.Changeset.t()}` | Deleted playground or changeset error | Deletes a playground record |
 | `change_playground/2` | `(Playground.t(), map()) :: Ecto.Changeset.t()` | Changeset | Builds a changeset for form use; `attrs` defaults to `%{}` |
 | `execute_code/2` | `(Playground.t(), String.t()) :: {:ok, Playground.t()} \| {:error, String.t()}` | Updated playground or error string | Executes code in sandbox and persists result + code |

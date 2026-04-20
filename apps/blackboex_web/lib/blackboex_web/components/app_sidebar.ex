@@ -14,6 +14,8 @@ defmodule BlackboexWeb.Components.AppSidebar do
   import SaladUI.Tooltip
   import BlackboexWeb.Components.OrgProjectSwitcher
 
+  alias BlackboexWeb.Components.SidebarTreeComponent
+
   @doc """
   Renders the sidebar navigation.
 
@@ -29,17 +31,24 @@ defmodule BlackboexWeb.Components.AppSidebar do
   attr :id, :string, default: "app-sidebar"
 
   def sidebar(assigns) do
+    tree_active = tree_v2_enabled?(assigns[:current_scope])
+    effective_collapsed = assigns[:collapsed] and not tree_active
+
+    assigns =
+      assigns
+      |> assign(:tree_active, tree_active)
+      |> assign(:effective_collapsed, effective_collapsed)
+
     ~H"""
     <aside
       id={@id}
       class={[
         "relative flex flex-col border-r bg-card text-card-foreground shrink-0 transition-all duration-200",
-        if(@collapsed, do: "w-14 group/sidebar", else: "w-60")
+        if(@effective_collapsed, do: "w-14 group/sidebar", else: "w-60")
       ]}
     >
-      <%!-- Expand/collapse toggle for editor sidebar --%>
       <button
-        :if={@collapsed}
+        :if={@effective_collapsed}
         class="absolute top-2 -right-3 z-50 hidden group-hover/sidebar:flex h-6 w-6 items-center justify-center rounded-full border bg-card shadow-sm text-muted-foreground hover:text-foreground"
         phx-click={toggle_sidebar_expand(@id)}
       >
@@ -47,112 +56,156 @@ defmodule BlackboexWeb.Components.AppSidebar do
           <.icon name="hero-chevron-right-micro" class="size-3" />
         </span>
       </button>
-      <%!-- Header: Logo + Org/Project context --%>
       <div class="border-b">
-        <%!-- Logo row --%>
         <div class={[
           "flex items-center border-b border-border/50",
-          if(@collapsed, do: "justify-center px-2 py-3", else: "gap-2.5 px-4 py-3")
+          if(@effective_collapsed, do: "justify-center px-2 py-3", else: "gap-2.5 px-4 py-3")
         ]}>
           <.logo_icon class="h-6 w-6 shrink-0" />
-          <span :if={!@collapsed} class="text-sm font-bold tracking-tight">BlackBoex</span>
+          <span :if={!@effective_collapsed} class="text-sm font-bold tracking-tight">
+            BlackBoex
+          </span>
         </div>
 
-        <%!-- Org/Project context (always visible when scoped) --%>
-        <div :if={scoped?(@current_scope) and not @collapsed} class="px-3 py-2.5">
-          <.org_project_switcher current_scope={@current_scope} />
+        <div :if={scoped?(@current_scope) and not @effective_collapsed} class="px-3 py-2.5">
+          <.org_project_switcher
+            current_scope={@current_scope}
+            show_project={not @tree_active}
+          />
         </div>
-        <div :if={scoped?(@current_scope) and @collapsed} class="flex justify-center py-2">
+        <div :if={scoped?(@current_scope) and @effective_collapsed} class="flex justify-center py-2">
           <div class="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10 text-primary text-[10px] font-bold">
             {String.first(@current_scope.organization.name) |> String.upcase()}
           </div>
         </div>
       </div>
 
-      <%!-- Navigation groups --%>
       <nav class="flex-1 overflow-y-auto py-2">
-        <%!-- WORK group --%>
-        <.sidebar_group label="WORK" collapsed={@collapsed}>
-          <.sidebar_nav_item
-            icon="hero-bolt"
-            label="APIs"
-            href={project_path(@current_scope, "/apis")}
-            active={active?(@current_path, "/apis")}
-            collapsed={@collapsed}
-            accent="text-accent-amber"
-          />
-          <.sidebar_nav_item
-            icon="hero-arrow-path"
-            label="Flows"
-            href={project_path(@current_scope, "/flows")}
-            active={active?(@current_path, "/flows")}
-            collapsed={@collapsed}
-            accent="text-accent-violet"
-          />
-          <.sidebar_nav_item
-            icon="hero-document-text"
-            label="Pages"
-            href={project_path(@current_scope, "/pages")}
-            active={active?(@current_path, "/pages")}
-            collapsed={@collapsed}
-            accent="text-accent-sky"
-          />
-          <.sidebar_nav_item
-            icon="hero-code-bracket"
-            label="Playgrounds"
-            href={project_path(@current_scope, "/playgrounds")}
-            active={active?(@current_path, "/playgrounds")}
-            collapsed={@collapsed}
-            accent="text-accent-emerald"
-          />
-        </.sidebar_group>
+        <%= cond do %>
+          <% @tree_active -> %>
+            <.live_component
+              module={SidebarTreeComponent}
+              id={"#{@id}-tree"}
+              current_scope={@current_scope}
+              current_path={@current_path}
+              collapsed={false}
+            />
+          <% @effective_collapsed -> %>
+            <.sidebar_group label="WORK" collapsed={@effective_collapsed}>
+              <.sidebar_nav_item
+                icon="hero-bolt"
+                label="APIs"
+                href={project_path(@current_scope, "/apis")}
+                active={active?(@current_path, "/apis")}
+                collapsed={@effective_collapsed}
+                accent="text-accent-amber"
+              />
+              <.sidebar_nav_item
+                icon="hero-arrow-path"
+                label="Flows"
+                href={project_path(@current_scope, "/flows")}
+                active={active?(@current_path, "/flows")}
+                collapsed={@effective_collapsed}
+                accent="text-accent-violet"
+              />
+              <.sidebar_nav_item
+                icon="hero-document-text"
+                label="Pages"
+                href={project_path(@current_scope, "/pages")}
+                active={active?(@current_path, "/pages")}
+                collapsed={@effective_collapsed}
+                accent="text-accent-sky"
+              />
+              <.sidebar_nav_item
+                icon="hero-code-bracket"
+                label="Playgrounds"
+                href={project_path(@current_scope, "/playgrounds")}
+                active={active?(@current_path, "/playgrounds")}
+                collapsed={@effective_collapsed}
+                accent="text-accent-emerald"
+              />
+            </.sidebar_group>
+          <% true -> %>
+            <.sidebar_group label="WORK" collapsed={@effective_collapsed}>
+              <.sidebar_nav_item
+                icon="hero-bolt-slash"
+                label="APIs"
+                href={project_path(@current_scope, "/apis")}
+                active={active?(@current_path, "/apis")}
+                collapsed={@effective_collapsed}
+              />
+              <.sidebar_nav_item
+                icon="hero-arrows-right-left"
+                label="Flows"
+                href={project_path(@current_scope, "/flows")}
+                active={active?(@current_path, "/flows")}
+                collapsed={@effective_collapsed}
+              />
+              <.sidebar_nav_item
+                icon="hero-document-text"
+                label="Pages"
+                href={project_path(@current_scope, "/pages")}
+                active={active?(@current_path, "/pages")}
+                collapsed={@effective_collapsed}
+              />
+              <.sidebar_nav_item
+                icon="hero-code-bracket"
+                label="Playgrounds"
+                href={project_path(@current_scope, "/playgrounds")}
+                active={active?(@current_path, "/playgrounds")}
+                collapsed={@effective_collapsed}
+              />
+            </.sidebar_group>
+        <% end %>
 
         <.separator class="my-2" />
 
-        <%!-- CONFIG group --%>
-        <.sidebar_group label="CONFIG" collapsed={@collapsed}>
+        <.sidebar_group label="CONFIG" collapsed={@effective_collapsed}>
           <.sidebar_nav_item
             icon="hero-key"
             label="API Keys"
             href={project_path(@current_scope, "/api-keys")}
             active={active?(@current_path, "/api-keys")}
-            collapsed={@collapsed}
+            collapsed={@effective_collapsed}
             accent="text-accent-amber"
           />
         </.sidebar_group>
       </nav>
 
-      <%!-- Bottom section --%>
       <div class="border-t py-2">
-        <%!-- Theme toggle --%>
-        <div class={["px-2", if(@collapsed, do: "flex justify-center")]}>
-          <.theme_toggle_compact collapsed={@collapsed} />
+        <div class={["px-2", if(@effective_collapsed, do: "flex justify-center")]}>
+          <.theme_toggle_compact collapsed={@effective_collapsed} />
         </div>
 
-        <%!-- User info + logout --%>
         <%= if @current_scope && @current_scope.user do %>
           <div class={[
             "mt-2 px-2",
-            if(@collapsed, do: "flex flex-col items-center gap-1", else: "flex items-center gap-2")
+            if(@effective_collapsed,
+              do: "flex flex-col items-center gap-1",
+              else: "flex items-center gap-2"
+            )
           ]}>
             <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-medium">
               {String.first(@current_scope.user.email) |> String.upcase()}
             </div>
-            <span :if={!@collapsed} class="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+            <span
+              :if={!@effective_collapsed}
+              class="min-w-0 flex-1 truncate text-xs text-muted-foreground"
+            >
               {@current_scope.user.email}
             </span>
           </div>
-          <div class={["mt-1 px-2", if(@collapsed, do: "flex justify-center")]}>
+          <div class={["mt-1 px-2", if(@effective_collapsed, do: "flex justify-center")]}>
             <.link
               href="/users/log-out"
               method="delete"
               class={[
                 "flex items-center gap-2 rounded-md text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-                if(@collapsed, do: "justify-center p-2", else: "px-3 py-1.5")
+                if(@effective_collapsed, do: "justify-center p-2", else: "px-3 py-1.5")
               ]}
             >
               <.icon name="hero-arrow-right-on-rectangle" class="size-4" />
-              <span :if={!@collapsed}>Log out</span>
+              <span :if={!@effective_collapsed}>Log out</span>
             </.link>
           </div>
         <% end %>
@@ -274,6 +327,10 @@ defmodule BlackboexWeb.Components.AppSidebar do
 
   # ── Helpers ─────────────────────────────────────────────────
 
+  defp tree_v2_enabled?(nil), do: false
+  defp tree_v2_enabled?(%{user: nil}), do: false
+  defp tree_v2_enabled?(%{user: user}), do: FunWithFlags.enabled?(:sidebar_tree_v2, for: user)
+
   defp scoped?(nil), do: false
   defp scoped?(%{organization: nil}), do: false
   defp scoped?(%{organization: _org}), do: true
@@ -289,7 +346,6 @@ defmodule BlackboexWeb.Components.AppSidebar do
   end
 
   defp toggle_sidebar_expand(sidebar_id) do
-    # Toggle between collapsed (w-14) and expanded overlay (w-60 absolute shadow)
     JS.toggle_class("w-14", to: "##{sidebar_id}")
     |> JS.toggle_class("w-60 absolute z-50 h-full shadow-xl", to: "##{sidebar_id}")
     |> JS.toggle_class("rotate-180",

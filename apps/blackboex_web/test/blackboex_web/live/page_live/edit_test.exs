@@ -39,12 +39,6 @@ defmodule BlackboexWeb.PageLive.EditTest do
       assert html =~ "page-tiptap-editor"
     end
 
-    test "renders page tree sidebar", %{conn: conn, org: org, project: project, page: page} do
-      {:ok, _view, html} = live(conn, edit_path(org, project, page))
-      assert html =~ ~s(role="tree")
-      assert html =~ "Pages"
-    end
-
     test "shows current page in tree", %{conn: conn, org: org, project: project, page: page} do
       {:ok, _view, html} = live(conn, edit_path(org, project, page))
       assert html =~ "Test Page"
@@ -153,30 +147,6 @@ defmodule BlackboexWeb.PageLive.EditTest do
       assert path =~ other.slug
     end
 
-    test "toggle_tree_node expands collapsed node", %{
-      conn: conn,
-      org: org,
-      project: project,
-      page: page,
-      user: user
-    } do
-      child =
-        page_fixture(%{
-          user: user,
-          org: org,
-          project: project,
-          title: "Child Page",
-          parent_id: page.id
-        })
-
-      {:ok, view, _html} = live(conn, edit_path(org, project, page))
-
-      # Expand the current page's children
-      render_click(view, "toggle_tree_node", %{"id" => page.id})
-
-      assert render(view) =~ child.title
-    end
-
     # ── Create Pages ─────────────────────────────────────────
 
     test "new_page creates root page and navigates", %{
@@ -264,23 +234,6 @@ defmodule BlackboexWeb.PageLive.EditTest do
       assert Pages.get_page(project.id, page.id) == nil
     end
 
-    test "deleting a sibling page removes it from the tree and stays", %{
-      conn: conn,
-      org: org,
-      project: project,
-      page: page,
-      user: user
-    } do
-      other = page_fixture(%{user: user, org: org, project: project, title: "Sibling"})
-      {:ok, view, _html} = live(conn, edit_path(org, project, page))
-      assert render(view) =~ "Sibling"
-
-      html = render_click(view, "delete", %{"id" => other.id, "slug" => other.slug})
-
-      refute html =~ "Sibling"
-      assert Pages.get_page(project.id, other.id) == nil
-    end
-
     test "delete with unknown id shows not-found flash", %{
       conn: conn,
       org: org,
@@ -305,6 +258,12 @@ defmodule BlackboexWeb.PageLive.EditTest do
                live(conn, ~p"/orgs/#{org.slug}/projects/#{project.slug}/pages/invalid-slug/edit")
 
       assert path =~ "/pages"
+    end
+
+    test "sidebar in :editor layout does NOT render SidebarTreeComponent placeholder (collapsed mode)",
+         %{conn: conn, org: org, project: project, page: page} do
+      {:ok, _view, html} = live(conn, edit_path(org, project, page))
+      refute html =~ ~s(data-testid="sidebar-tree")
     end
   end
 end

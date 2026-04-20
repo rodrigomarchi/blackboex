@@ -14,12 +14,15 @@ defmodule Blackboex.Apis do
   - `Apis.Analytics` — invocation logging and metrics
   """
 
+  import Ecto.Query, warn: false
+
   alias Blackboex.Apis.Api
   alias Blackboex.Apis.ApiQueries
   alias Blackboex.Apis.Registry
   alias Blackboex.Billing.Enforcement
   alias Blackboex.CodeGen.Compiler
   alias Blackboex.Organizations
+  alias Blackboex.Projects
   alias Blackboex.Repo
 
   # ── API CRUD (direct in facade) ─────────────────────────────
@@ -27,16 +30,20 @@ defmodule Blackboex.Apis do
   @spec create_api(map()) ::
           {:ok, Api.t()}
           | {:error, Ecto.Changeset.t()}
+          | {:error, :forbidden}
           | {:error, :limit_exceeded, map()}
   def create_api(attrs) do
     org_id = attrs[:organization_id] || attrs["organization_id"]
+    project_id = attrs[:project_id] || attrs["project_id"]
 
-    if org_id do
-      create_api_with_lock(attrs, org_id)
-    else
-      %Api{}
-      |> Api.changeset(attrs)
-      |> Repo.insert()
+    with :ok <- ensure_project_in_org(project_id, org_id) do
+      if org_id do
+        create_api_with_lock(attrs, org_id)
+      else
+        %Api{}
+        |> Api.changeset(attrs)
+        |> Repo.insert()
+      end
     end
   end
 
@@ -48,6 +55,11 @@ defmodule Blackboex.Apis do
   @spec list_apis_for_project(Ecto.UUID.t()) :: [Api.t()]
   def list_apis_for_project(project_id) do
     project_id |> ApiQueries.list_for_project() |> Repo.all()
+  end
+
+  @spec list_for_project(Ecto.UUID.t(), keyword()) :: [Api.t()]
+  def list_for_project(project_id, opts \\ []) do
+    project_id |> ApiQueries.list_for_project_sorted(opts) |> Repo.all()
   end
 
   @spec count_apis_for_org(Ecto.UUID.t()) :: non_neg_integer()
@@ -70,11 +82,35 @@ defmodule Blackboex.Apis do
     project_id |> ApiQueries.by_project_and_slug(slug) |> Repo.one()
   end
 
+  @doc """
+  Fetches an API by organization_id and api_id. Returns `nil` when not found or
+  the API does not belong to the given organization.
+  """
+  @spec get_for_org(Ecto.UUID.t(), Ecto.UUID.t()) :: Api.t() | nil
+  def get_for_org(org_id, api_id) do
+    org_id |> ApiQueries.by_org_and_id_only(api_id) |> Repo.one()
+  end
+
   @spec update_api(Api.t(), map()) :: {:ok, Api.t()} | {:error, Ecto.Changeset.t()}
   def update_api(%Api{} = api, attrs) do
     api
     |> Api.update_changeset(attrs)
     |> Repo.update()
+  end
+
+  @doc """
+  Moves an API to a different project within the same organization.
+
+  Validates that `new_project_id` belongs to the same org as the API.
+  """
+  @spec move_api(Api.t(), Ecto.UUID.t()) ::
+          {:ok, Api.t()} | {:error, Ecto.Changeset.t()} | {:error, :forbidden}
+  def move_api(%Api{} = api, new_project_id) do
+    with :ok <- ensure_project_in_org(new_project_id, api.organization_id) do
+      api
+      |> Api.move_project_changeset(%{project_id: new_project_id})
+      |> Repo.update()
+    end
   end
 
   @spec delete_api(Api.t()) :: {:ok, Api.t()} | {:error, Ecto.Changeset.t()}
@@ -168,5 +204,19 @@ defmodule Blackboex.Apis do
     %Api{}
     |> Api.changeset(attrs)
     |> Repo.insert!()
+  end
+
+  # Returns :ok when project_id is nil (project is optional) or when the
+  # project exists and belongs to the given org. Returns {:error, :forbidden}
+  # when a project_id is provided but does not belong to the org.
+  defp ensure_project_in_org(nil, _org_id), do: :ok
+
+  defp ensure_project_in_org(_project_id, nil), do: :ok
+
+  defp ensure_project_in_org(project_id, org_id) do
+    case Projects.get_project(org_id, project_id) do
+      nil -> {:error, :forbidden}
+      _project -> :ok
+    end
   end
 end

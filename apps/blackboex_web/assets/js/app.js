@@ -207,6 +207,8 @@ const CommandPaletteNav = {
   }
 }
 
+import SidebarTreeDnD from "./hooks/sidebar_tree_dnd"
+
 // Collect hooks from feature bundles (editor_tiptap.js, editor_code.js, editor_flow.js)
 // Feature bundles register their hooks into window.__hooks before this script runs
 const featureHooks = window.__hooks || {}
@@ -215,7 +217,7 @@ const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks, KeyboardShortcuts, AutoFocus, ChatAutoScroll, EditorAutoScroll, CommandPaletteNav, ...featureHooks, ...BackpexHooks},
+  hooks: {...colocatedHooks, KeyboardShortcuts, AutoFocus, ChatAutoScroll, EditorAutoScroll, CommandPaletteNav, SidebarTreeDnD, ...featureHooks, ...BackpexHooks},
 })
 
 // Show progress bar on live navigation and form submits

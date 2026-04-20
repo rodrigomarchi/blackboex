@@ -39,9 +39,28 @@ defmodule Blackboex.Flows.FlowQueries do
     |> order_by([f], desc: f.inserted_at)
   end
 
+  @doc """
+  Returns flows for a project ordered by name ASC, with an optional `:limit` (default 50).
+  """
+  @spec list_for_project_sorted(Ecto.UUID.t(), keyword()) :: Ecto.Query.t()
+  def list_for_project_sorted(project_id, opts \\ []) do
+    limit = Keyword.get(opts, :limit, 50)
+
+    Flow
+    |> where([f], f.project_id == ^project_id)
+    |> order_by([f], asc: f.name)
+    |> limit(^limit)
+  end
+
   @spec by_project_and_slug(Ecto.UUID.t(), String.t()) :: Ecto.Query.t()
   def by_project_and_slug(project_id, slug) do
     Flow
     |> where([f], f.project_id == ^project_id and f.slug == ^slug)
+  end
+
+  @spec by_org_and_id_only(Ecto.UUID.t(), Ecto.UUID.t()) :: Ecto.Query.t()
+  def by_org_and_id_only(org_id, flow_id) do
+    Flow
+    |> where([f], f.organization_id == ^org_id and f.id == ^flow_id)
   end
 end

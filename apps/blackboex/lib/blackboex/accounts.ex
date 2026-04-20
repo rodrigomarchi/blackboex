@@ -8,6 +8,9 @@ defmodule Blackboex.Accounts do
   alias Blackboex.Projects.{Project, ProjectMembership}
   alias Blackboex.Repo
 
+  # Whitelisted top-level keys for user preferences. Add new roots here as features require them.
+  @preferences_allowed_roots ~w(sidebar_tree)
+
   ## Database getters
 
   @doc """
@@ -84,6 +87,51 @@ defmodule Blackboex.Accounts do
       |> Repo.update()
     end
   end
+
+  ## User preferences
+
+  @doc """
+  Writes a leaf value in the user's `preferences` JSONB blob at the given string-key path.
+  The first path segment must be in `@preferences_allowed_roots`; empty or unlisted roots
+  return `{:error, :forbidden}`. Missing intermediate keys are created automatically.
+  """
+  @spec update_user_preference(User.t(), [String.t()], term()) ::
+          {:ok, User.t()} | {:error, Ecto.Changeset.t() | :forbidden}
+  def update_user_preference(%User{} = user, path, value) do
+    with [root | _] <- path,
+         true <- root in @preferences_allowed_roots do
+      access_path = Enum.map(path, &Access.key(&1, %{}))
+      new_prefs = put_in(user.preferences, access_path, value)
+
+      user
+      |> User.preferences_changeset(%{preferences: new_prefs})
+      |> Repo.update()
+    else
+      _ -> {:error, :forbidden}
+    end
+  end
+
+  @doc """
+  Reads a value from the user's `preferences` JSONB blob at the given string-key path.
+  Returns `default` when the path does not exist or any intermediate key is missing.
+  """
+  @spec get_user_preference(User.t(), [String.t()], default) :: term() | default
+        when default: var
+  def get_user_preference(%User{preferences: prefs}, path, default) do
+    case Enum.reduce_while(path, prefs, &descend_preferences/2) do
+      :__not_found__ -> default
+      value -> value
+    end
+  end
+
+  defp descend_preferences(key, acc) when is_map(acc) do
+    case Map.fetch(acc, key) do
+      {:ok, val} -> {:cont, val}
+      :error -> {:halt, :__not_found__}
+    end
+  end
+
+  defp descend_preferences(_key, _acc), do: {:halt, :__not_found__}
 
   ## User registration
 

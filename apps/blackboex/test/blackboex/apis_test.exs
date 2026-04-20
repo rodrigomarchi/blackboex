@@ -14,6 +14,21 @@ defmodule Blackboex.ApisTest do
   # create_api/1
   # ---------------------------------------------------------------------------
 
+  describe "create_api/1 ownership" do
+    test "rejects cross-org project (T6 IDOR)", %{user: user, org: org_a} do
+      org_b = Blackboex.OrganizationsFixtures.org_fixture(%{user: user})
+      project_b = Blackboex.ProjectsFixtures.project_fixture(%{user: user, org: org_b})
+
+      assert {:error, :forbidden} =
+               Apis.create_api(%{
+                 name: "Hack",
+                 organization_id: org_a.id,
+                 project_id: project_b.id,
+                 user_id: user.id
+               })
+    end
+  end
+
   describe "create_api/1" do
     test "creates API in draft status", %{user: user, org: org} do
       attrs = %{
@@ -473,7 +488,6 @@ defmodule Blackboex.ApisTest do
 
     test "returns error for missing required fields", %{user: user, org: org} do
       api = api_fixture(%{user: user, org: org})
-      # source is required
       assert {:error, _} = Apis.create_version(api, %{})
     end
 
@@ -828,6 +842,85 @@ defmodule Blackboex.ApisTest do
 
       assert version.version_number ==
                Enum.max_by(all_publish_versions, & &1.version_number).version_number
+    end
+  end
+
+  describe "list_for_project/2" do
+    test "returns only apis belonging to the given project", %{user: user, org: org} do
+      project_a = project_fixture(%{user: user, org: org, name: "Project A"})
+      project_b = project_fixture(%{user: user, org: org, name: "Project B"})
+
+      _a1 = api_fixture(%{user: user, org: org, project: project_a, name: "Alpha API"})
+      _a2 = api_fixture(%{user: user, org: org, project: project_a, name: "Beta API"})
+      _a3 = api_fixture(%{user: user, org: org, project: project_a, name: "Gamma API"})
+      _b1 = api_fixture(%{user: user, org: org, project: project_b, name: "Delta API"})
+      _b2 = api_fixture(%{user: user, org: org, project: project_b, name: "Epsilon API"})
+
+      results_a = Apis.list_for_project(project_a.id)
+      results_b = Apis.list_for_project(project_b.id)
+
+      assert length(results_a) == 3
+      assert length(results_b) == 2
+      assert Enum.all?(results_a, &(&1.project_id == project_a.id))
+    end
+
+    test "returns apis ordered by name ASC", %{user: user, org: org} do
+      project = project_fixture(%{user: user, org: org, name: "Sorted Project"})
+
+      api_fixture(%{user: user, org: org, project: project, name: "Zeta"})
+      api_fixture(%{user: user, org: org, project: project, name: "Alpha"})
+      api_fixture(%{user: user, org: org, project: project, name: "Mango"})
+
+      results = Apis.list_for_project(project.id)
+      names = Enum.map(results, & &1.name)
+
+      assert names == Enum.sort(names)
+    end
+
+    test "respects :limit option", %{user: user, org: org} do
+      project = project_fixture(%{user: user, org: org, name: "Limited Project"})
+
+      api_fixture(%{user: user, org: org, project: project, name: "API One"})
+      api_fixture(%{user: user, org: org, project: project, name: "API Two"})
+      api_fixture(%{user: user, org: org, project: project, name: "API Three"})
+
+      results = Apis.list_for_project(project.id, limit: 2)
+
+      assert length(results) == 2
+    end
+  end
+
+  describe "move_api/2" do
+    test "moves api to another project in same org", %{user: user, org: org} do
+      project_a = project_fixture(%{user: user, org: org, name: "Source"})
+      project_b = project_fixture(%{user: user, org: org, name: "Dest"})
+      api = api_fixture(%{user: user, org: org, project: project_a})
+
+      assert {:ok, updated} = Apis.move_api(api, project_b.id)
+      assert updated.project_id == project_b.id
+    end
+
+    test "returns forbidden when destination project belongs to another org", %{
+      user: user,
+      org: org
+    } do
+      project_a = project_fixture(%{user: user, org: org, name: "Source"})
+      api = api_fixture(%{user: user, org: org, project: project_a})
+
+      {other_user, other_org} = user_and_org_fixture()
+      other_project = project_fixture(%{user: other_user, org: other_org})
+
+      assert {:error, :forbidden} = Apis.move_api(api, other_project.id)
+      assert Apis.get_api(org.id, api.id).project_id == project_a.id
+    end
+
+    test "returns forbidden when destination project_id does not exist", %{user: user, org: org} do
+      project_a = project_fixture(%{user: user, org: org, name: "Source"})
+      api = api_fixture(%{user: user, org: org, project: project_a})
+      nonexistent_id = Ecto.UUID.generate()
+
+      assert {:error, :forbidden} = Apis.move_api(api, nonexistent_id)
+      assert Apis.get_api(org.id, api.id).project_id == project_a.id
     end
   end
 end

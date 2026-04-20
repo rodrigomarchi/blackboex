@@ -54,6 +54,7 @@ Any group name not matched by the `in?/2` clauses returns `false` — new groups
 | Flag atom        | Strategy | Description                                                                 |
 |------------------|----------|-----------------------------------------------------------------------------|
 | `:agent_pipeline` | Global / user | Controls whether the AI agent code generation pipeline is active. Referenced in `scripts/test_agent_pipeline.exs`. The `Agent.KickoffWorker` and `Agent.Session` are the primary consumers. |
+| `:sidebar_tree_v2` | User | Gates the new hierarchical sidebar tree component (`SidebarTreeComponent`). When disabled, the flat WORK group (APIs/Flows/Pages/Playgrounds nav items) is shown as fallback. Checked in `AppSidebar.tree_v2_enabled?/1`. |
 
 When a new flag is added, append a row to this table.
 

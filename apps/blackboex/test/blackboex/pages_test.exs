@@ -1,10 +1,52 @@
 defmodule Blackboex.PagesTest do
   use Blackboex.DataCase, async: true
 
+  import Ecto.Query, only: [from: 2]
+
   alias Blackboex.Pages
   alias Blackboex.Pages.Page
+  alias Blackboex.Repo
 
   setup [:create_user_and_org]
+
+  describe "create_page/1 ownership" do
+    test "rejects cross-org project (T1 IDOR)", %{user: user, org: org_a} do
+      org_b = org_fixture(%{user: user})
+      project_b = project_fixture(%{user: user, org: org_b})
+
+      count_before = Repo.one(from(p in Page, select: count(p.id)))
+
+      assert {:error, :forbidden} =
+               Pages.create_page(%{
+                 title: "Hack",
+                 organization_id: org_a.id,
+                 project_id: project_b.id,
+                 user_id: user.id
+               })
+
+      assert Repo.one(from(p in Page, select: count(p.id))) == count_before
+    end
+
+    test "allows same-org project (T2 happy path)", %{user: user, org: org, project: project} do
+      assert {:ok, %Page{}} =
+               Pages.create_page(%{
+                 title: "ok",
+                 organization_id: org.id,
+                 project_id: project.id,
+                 user_id: user.id
+               })
+    end
+
+    test "returns changeset error when organization_id is missing (T3)", %{
+      user: user,
+      project: project
+    } do
+      assert {:error, %Ecto.Changeset{} = cs} =
+               Pages.create_page(%{title: "x", project_id: project.id, user_id: user.id})
+
+      assert %{organization_id: [_ | _]} = errors_on(cs)
+    end
+  end
 
   describe "create_page/1" do
     setup [:create_project]
@@ -59,6 +101,74 @@ defmodule Blackboex.PagesTest do
 
       assert {:error, changeset} = Pages.create_page(attrs)
       assert %{slug: ["has already been taken"]} = errors_on(changeset)
+    end
+  end
+
+  describe "list_root_pages_for_project/2" do
+    setup [:create_project]
+
+    test "returns only root pages (parent_id IS NULL)", %{user: user, org: org, project: project} do
+      root1 = page_fixture(%{user: user, org: org, project: project, title: "Alpha Root"})
+      root2 = page_fixture(%{user: user, org: org, project: project, title: "Beta Root"})
+      root3 = page_fixture(%{user: user, org: org, project: project, title: "Gamma Root"})
+
+      child =
+        page_fixture(%{
+          user: user,
+          org: org,
+          project: project,
+          title: "Child",
+          parent_id: root1.id
+        })
+
+      _grandchild =
+        page_fixture(%{
+          user: user,
+          org: org,
+          project: project,
+          title: "Grandchild",
+          parent_id: child.id
+        })
+
+      results = Pages.list_root_pages_for_project(project.id)
+
+      assert length(results) == 3
+      ids = Enum.map(results, & &1.id)
+      assert root1.id in ids
+      assert root2.id in ids
+      assert root3.id in ids
+    end
+
+    test "returns root pages ordered by title ASC", %{user: user, org: org, project: project} do
+      page_fixture(%{user: user, org: org, project: project, title: "Zeta"})
+      page_fixture(%{user: user, org: org, project: project, title: "Alpha"})
+      page_fixture(%{user: user, org: org, project: project, title: "Mango"})
+
+      results = Pages.list_root_pages_for_project(project.id)
+      titles = Enum.map(results, & &1.title)
+
+      assert titles == Enum.sort(titles)
+    end
+
+    test "respects :limit option", %{user: user, org: org, project: project} do
+      page_fixture(%{user: user, org: org, project: project, title: "Page A"})
+      page_fixture(%{user: user, org: org, project: project, title: "Page B"})
+      page_fixture(%{user: user, org: org, project: project, title: "Page C"})
+
+      results = Pages.list_root_pages_for_project(project.id, limit: 2)
+
+      assert length(results) == 2
+    end
+
+    test "does not return pages from other projects", %{user: user, org: org, project: project} do
+      other_project = project_fixture(%{user: user, org: org, name: "Other"})
+      page_fixture(%{user: user, org: org, project: project, title: "Mine"})
+      page_fixture(%{user: user, org: org, project: other_project, title: "Other"})
+
+      results = Pages.list_root_pages_for_project(project.id)
+
+      assert length(results) == 1
+      assert hd(results).title == "Mine"
     end
   end
 
@@ -403,7 +513,6 @@ defmodule Blackboex.PagesTest do
           parent_id: parent.id
         })
 
-      # Moving parent under its own child creates a cycle
       assert {:error, :circular_reference} = Pages.move_page(parent, child.id, 0)
     end
   end

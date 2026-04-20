@@ -42,6 +42,11 @@ defmodule Blackboex.Projects do
     create_project(organization, user, %{name: "Default"})
   end
 
+  @spec list_projects_with_counts(Blackboex.Organizations.Organization.t()) :: [map()]
+  def list_projects_with_counts(org) do
+    org |> ProjectQueries.list_with_counts() |> Repo.all()
+  end
+
   @spec list_projects(Ecto.UUID.t()) :: [Project.t()]
   def list_projects(organization_id) do
     organization_id

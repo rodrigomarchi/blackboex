@@ -4,6 +4,8 @@ defmodule Blackboex.Playgrounds do
   for Elixir experimentation and prototyping.
   """
 
+  import Ecto.Query, warn: false
+
   alias Blackboex.Playgrounds.ExecutionQueries
   alias Blackboex.Playgrounds.Executor
   alias Blackboex.Playgrounds.Playground
@@ -13,16 +15,27 @@ defmodule Blackboex.Playgrounds do
 
   # ── Playground CRUD ────────────────────────────────────────
 
-  @spec create_playground(map()) :: {:ok, Playground.t()} | {:error, Ecto.Changeset.t()}
+  @spec create_playground(map()) ::
+          {:ok, Playground.t()} | {:error, Ecto.Changeset.t()} | {:error, :forbidden}
   def create_playground(attrs) do
-    %Playground{}
-    |> Playground.changeset(attrs)
-    |> Repo.insert()
+    org_id = attrs[:organization_id] || attrs["organization_id"]
+    project_id = attrs[:project_id] || attrs["project_id"]
+
+    with :ok <- ensure_project_in_org(project_id, org_id) do
+      %Playground{}
+      |> Playground.changeset(attrs)
+      |> Repo.insert()
+    end
   end
 
   @spec list_playgrounds(Ecto.UUID.t()) :: [Playground.t()]
   def list_playgrounds(project_id) do
     project_id |> PlaygroundQueries.list_for_project() |> Repo.all()
+  end
+
+  @spec list_for_project(Ecto.UUID.t(), keyword()) :: [Playground.t()]
+  def list_for_project(project_id, opts \\ []) do
+    project_id |> PlaygroundQueries.list_for_project_sorted(opts) |> Repo.all()
   end
 
   @spec list_playgrounds(Ecto.UUID.t(), keyword()) :: [Playground.t()]
@@ -49,12 +62,36 @@ defmodule Blackboex.Playgrounds do
     project_id |> PlaygroundQueries.by_project_and_slug(slug) |> Repo.one()
   end
 
+  @doc """
+  Fetches a Playground by organization_id and playground_id. Returns `nil` when not found or
+  the playground does not belong to the given organization.
+  """
+  @spec get_for_org(Ecto.UUID.t(), Ecto.UUID.t()) :: Playground.t() | nil
+  def get_for_org(org_id, playground_id) do
+    org_id |> PlaygroundQueries.by_org_and_id(playground_id) |> Repo.one()
+  end
+
   @spec update_playground(Playground.t(), map()) ::
           {:ok, Playground.t()} | {:error, Ecto.Changeset.t()}
   def update_playground(%Playground{} = playground, attrs) do
     playground
     |> Playground.update_changeset(attrs)
     |> Repo.update()
+  end
+
+  @doc """
+  Moves a Playground to a different project within the same organization.
+
+  Validates that `new_project_id` belongs to the same org as the playground.
+  """
+  @spec move_playground(Playground.t(), Ecto.UUID.t()) ::
+          {:ok, Playground.t()} | {:error, Ecto.Changeset.t()} | {:error, :forbidden}
+  def move_playground(%Playground{} = playground, new_project_id) do
+    with :ok <- ensure_project_in_org(new_project_id, playground.organization_id) do
+      playground
+      |> Playground.move_project_changeset(%{project_id: new_project_id})
+      |> Repo.update()
+    end
   end
 
   @spec delete_playground(Playground.t()) ::
@@ -81,7 +118,6 @@ defmodule Blackboex.Playgrounds do
           |> Repo.update()
 
       {:error, reason} ->
-        # Save the code and store the error as output
         _save_result =
           playground
           |> Playground.update_changeset(%{code: source_code, last_output: "Error: #{reason}"})
@@ -91,10 +127,7 @@ defmodule Blackboex.Playgrounds do
     end
   end
 
-  @doc """
-  Executes code in the sandbox without persisting results.
-  Returns the raw executor result for the caller to handle persistence.
-  """
+  @doc "Executes code in the sandbox without persisting results."
   @spec execute_code_raw(Playground.t(), String.t()) ::
           {:ok, String.t()} | {:error, String.t()}
   def execute_code_raw(%Playground{} = playground, source_code) do
@@ -149,17 +182,26 @@ defmodule Blackboex.Playgrounds do
     playground_id |> ExecutionQueries.beyond_retention() |> Repo.delete_all()
   end
 
+  # ── Private ───────────────────────────────────────────────
+
+  defp ensure_project_in_org(nil, _org_id), do: :ok
+  defp ensure_project_in_org(_project_id, nil), do: :ok
+
+  defp ensure_project_in_org(project_id, org_id) do
+    query =
+      from p in Blackboex.Projects.Project,
+        where: p.id == ^project_id and p.organization_id == ^org_id,
+        select: 1
+
+    if Repo.exists?(query), do: :ok, else: {:error, :forbidden}
+  end
+
   # ── AI edits ──────────────────────────────────────────────
 
   @doc """
   Applies an AI-generated code change to a playground atomically.
-
-  Creates a `PlaygroundExecution` snapshot with status `"ai_snapshot"` and
-  `code_snapshot` set to the code BEFORE the edit (so the history sidebar
-  can be used to revert), then updates `playground.code` with the new code.
-
-  Both inserts happen inside a single `Repo.transaction`; if either fails,
-  the whole change is rolled back.
+  Creates an `"ai_snapshot"` execution with `code_snapshot` set to the code BEFORE the edit
+  (enabling revert via history), then updates `playground.code`. Both writes are transactional.
   """
   @spec record_ai_edit(Playground.t(), String.t(), String.t()) ::
           {:ok, %{playground: Playground.t(), snapshot: PlaygroundExecution.t()}}

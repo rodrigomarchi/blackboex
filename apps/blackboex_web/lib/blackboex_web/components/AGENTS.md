@@ -79,6 +79,7 @@ Violation of this rule creates inconsistent UI, breaks dark mode, bypasses seman
 | Playground list sidebar | `<.playground_tree>` | `editor/playground_tree.ex` |
 | Auto-save state indicator | `<.save_indicator>` | `editor/save_indicator.ex` |
 | Playground AI chat | `<.playground_chat_panel>` | `editor/playground_chat_panel.ex` |
+| Unified nav tree | `<SidebarTreeComponent>` (live_component) | `sidebar_tree_component.ex` |
 
 ### CSS Utilities (defined in `assets/css/app.css`)
 
@@ -1560,3 +1561,62 @@ One-time API key display banner with copy-friendly code block and dismiss button
 
 - `text-2xs` (10px) and `text-micro` (11px) — custom font sizes defined in `@theme inline`. Use instead of `text-[10px]` / `text-[11px]`.
 - `bg-editor-bg` — editor dark background color. Use instead of `bg-[#1e1e2e]`.
+
+### New Components (US-003)
+
+- **`BlackboexWeb.Components.SidebarTreeComponent`** (LiveComponent) — `sidebar_tree_component.ex`
+  - **Type:** `live_component` — use `<.live_component module={SidebarTreeComponent} ...>`
+  - **Assigns:** `:id` (required, string), `:current_scope` (map | nil), `:current_path` (string), `:collapsed` (boolean, accepted but ignored — sidebar hides us when collapsed)
+  - **Internal state:**
+    - `:projects` — list of `%{project: %Project{}, pages_count: int, apis_count: int, flows_count: int, playgrounds_count: int}` from `Projects.list_projects_with_counts/1`, loaded in `update/2`
+    - `:expanded` — list of string keys (e.g. `"project:uuid"`, `"apis:uuid"`) merged from `Accounts.get_user_preference/3` at `["sidebar_tree", "expanded"]` and auto-expand from current path
+    - `:tree_children` — map `%{"apis:<project_id>" => [%Api{}], ...}` populated lazily on expand
+  - **ID key convention:** `"project:<uuid>"` (project row), `"pages:<uuid>"`, `"apis:<uuid>"`, `"flows:<uuid>"`, `"playgrounds:<uuid>"` (group rows, keyed by project_id)
+  - **Internal state (US-201 additions):**
+    - `:create_modal` — `nil` (closed) or `%{type: string, project_id: string, parent_id: string | nil}`. Type is always singular (`"api"`, `"flow"`, `"page"`, `"playground"`). Group-type strings (`"apis"`, etc.) are normalised on open.
+    - `:create_error` — `string | nil` — inline error message set on failed create (changeset, limit, forbidden)
+  - **Internal state (US-301 additions):**
+    - `:open_menu_id` — `string | nil` — `"<singular_type>:<item_id>"` of the leaf whose ⋯ menu is open; only one at a time
+    - `:renaming` — `nil` or `%{type: string, id: string, value: string}` — which leaf is in inline-rename mode and its current value
+    - `:rename_error` — `string | nil` — error message from a failed rename (blank name or changeset error)
+    - `:delete_modal` — `nil` or `%{type: string, id: string, name: string, confirm_text: string}` — state of the destructive-delete confirmation modal
+  - **Internal state (US-401 additions):**
+    - `:move_error` — `string | nil` — human-readable error message set when a DnD move is rejected; cleared on the next successful move
+  - **DnD markup (US-401):**
+    - The `<nav>` root carries `phx-hook="SidebarTreeDnD"` and `phx-target={@myself}` so that the `SidebarTreeDnD` JS hook delivers `move_node` events directly to this LiveComponent
+    - Each group `<ul>` (when expanded) carries `data-tree-list data-parent-type={group_type} data-parent-id={project.id}` — used by Sortable.js to identify the drop zone and its type/parent
+    - Each leaf `<li>` carries `data-tree-item data-node-id={item.id} data-node-type={singular_type}` — used by Sortable.js as the draggable unit
+  - **Events handled:**
+    - `"expand_node"` — `%{"type" => type, "id" => id}` — adds key to `:expanded`, lazy-loads children into `:tree_children`, persists async
+    - `"collapse_node"` — `%{"type" => type, "id" => id}` — removes key from `:expanded`, persists async
+    - `"open_create_modal"` — `%{"type" => type, "project-id" => pid}` (+ optional `"parent-id"`) — normalises type to singular, sets `:create_modal` assign
+    - `"close_create_modal"` — clears `:create_modal` assign
+    - `"create_resource"` — `%{"type" => type, "project_id" => pid, "name" => name}` (+ optional `"parent_id"`) — authorises via `@create_actions` whitelist, calls domain context, then `push_navigate` to canonical URL
+    - `"open_item_menu"` — `%{"type" => singular_type, "id" => id}` — toggles `:open_menu_id`; closes if same item clicked again
+    - `"close_item_menu"` — clears `:open_menu_id`
+    - `"start_rename"` — `%{"type" => singular_type, "id" => id}` — sets `:renaming` from tree_children cache, closes menu
+    - `"cancel_rename"` — clears `:renaming` and `:rename_error`
+    - `"submit_rename"` — `%{"type" => type, "_id" => id, "value" => name}` — trims name, authorises via `@update_actions` whitelist, calls `fetch_owned_item` (IDOR check), calls `do_update`, then `refresh_children`; blank name sets `:rename_error`
+    - `"open_delete_modal"` — `%{"type" => singular_type, "id" => id}` — sets `:delete_modal` from tree_children cache, closes menu
+    - `"update_delete_confirm"` — `%{"confirm" => text}` — updates `:delete_modal.confirm_text` for live matching
+    - `"close_delete_modal"` — clears `:delete_modal`
+    - `"confirm_delete"` — authorises via `@delete_actions` whitelist, calls `fetch_owned_item` (IDOR check), calls `do_delete`, then `refresh_children`; if current path contains deleted item's id/slug, `push_navigate` to org overview
+    - `"move_node"` — `%{"node_id" => id, "node_type" => type, "new_parent_type" => pt, "new_parent_id" => pid, "new_index" => idx}` — pushed by `SidebarTreeDnD` JS hook on drag-end; validated against `@valid_move_combos` compile-time whitelist, then authorised (IDOR + policy), then applies domain move; on success refreshes source + destination groups; on failure sets `:move_error` and pushes `"sidebar_tree:rollback"` client event
+  - **Movement rules (US-401):**
+    | From | To | Allowed? |
+    |---|---|---|
+    | page → other parent page (same project) | same project | YES — `Pages.move_page/3` |
+    | page → other project | — | NO — `:forbidden` |
+    | api / flow / playground → other project (same org) | same org | YES — `Apis.move_api/2`, `Flows.move_flow/2`, `Playgrounds.move_playground/2` |
+    | any → other org | — | NO — `:forbidden` |
+    | cross-type (api → flows group, etc.) | — | NO — `:invalid_target_type` |
+  - **Security:** `@create_actions`, `@update_actions`, `@delete_actions` are compile-time whitelists mapping type strings to LetMe action atoms — no `String.to_atom/1` on user input. `fetch_owned_item/3` verifies resource belongs to `scope.organization.id` before any mutation (IDOR defense in depth). Confirm-to-delete pattern prevents accidental destructive actions. `@valid_move_combos` is a compile-time list of `{node_type, parent_type}` tuples; any unrecognised combination is rejected before hitting the DB.
+  - **Auto-expand:** parses `:current_path` for `/orgs/:slug/projects/:slug[/type]` pattern; auto-expands matching project + group without a round-trip
+  - **Canonical URL patterns:**
+    - APIs: `/orgs/:org_slug/projects/:project_slug/apis/:api_slug/edit`
+    - Flows: `/orgs/:org_slug/projects/:project_slug/flows/:flow_id/edit`
+    - Pages: `/orgs/:org_slug/projects/:project_slug/pages/:page_slug/edit`
+    - Playgrounds: `/orgs/:org_slug/projects/:project_slug/playgrounds/:playground_slug/edit`
+  - **Children loading:** uses `Apis.list_for_project/1`, `Flows.list_for_project/1`, `Pages.list_root_pages_for_project/1`, `Playgrounds.list_for_project/1`
+  - **Persistence:** expanded state written asynchronously via `Task.Supervisor.start_child(Blackboex.TaskSupervisor, ...)`
+  - **Wired in:** `app_sidebar.ex` — the WORK group renders this component when `collapsed: false`. When `collapsed: true` the original flat icon-strip items are shown unchanged (editor layout). The component `id` is derived as `"#{sidebar_id}-tree"` to avoid duplicate-ID errors.

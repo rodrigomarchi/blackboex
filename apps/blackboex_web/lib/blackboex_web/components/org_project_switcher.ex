@@ -15,6 +15,7 @@ defmodule BlackboexWeb.Components.OrgProjectSwitcher do
   attr :current_scope, :map, required: true
   attr :orgs, :list, default: nil
   attr :projects, :list, default: nil
+  attr :show_project, :boolean, default: true
 
   def org_project_switcher(assigns) do
     user = assigns.current_scope && assigns.current_scope.user
@@ -100,7 +101,7 @@ defmodule BlackboexWeb.Components.OrgProjectSwitcher do
       </div>
 
       <%!-- Project row --%>
-      <div class="flex items-center gap-2">
+      <div :if={@show_project} class="flex items-center gap-2">
         <div class="flex h-6 w-6 shrink-0 items-center justify-center">
           <.icon name="hero-folder-micro" class="size-4 text-muted-foreground/60" />
         </div>

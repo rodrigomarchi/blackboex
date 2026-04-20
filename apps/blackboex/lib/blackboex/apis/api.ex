@@ -125,6 +125,17 @@ defmodule Blackboex.Apis.Api do
   end
 
   @doc """
+  Changeset for moving an API to a different project (same org).
+  Only allows `:project_id` to change.
+  """
+  @spec move_project_changeset(t(), map()) :: Ecto.Changeset.t()
+  def move_project_changeset(api, attrs) do
+    api
+    |> cast(attrs, [:project_id])
+    |> validate_required([:project_id])
+  end
+
+  @doc """
   Admin changeset for Backpex admin panel operations.
   """
   @spec admin_changeset(t(), map(), map()) :: Ecto.Changeset.t()

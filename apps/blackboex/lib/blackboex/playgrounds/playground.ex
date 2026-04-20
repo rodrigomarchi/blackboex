@@ -69,6 +69,17 @@ defmodule Blackboex.Playgrounds.Playground do
     |> validate_length(:last_output, max: 65_536)
   end
 
+  @doc """
+  Changeset for moving a Playground to a different project (same org).
+  Only allows `:project_id` to change.
+  """
+  @spec move_project_changeset(t(), map()) :: Ecto.Changeset.t()
+  def move_project_changeset(playground, attrs) do
+    playground
+    |> cast(attrs, [:project_id])
+    |> validate_required([:project_id])
+  end
+
   defp maybe_generate_slug_with_hash(changeset) do
     case get_change(changeset, :slug) do
       nil ->

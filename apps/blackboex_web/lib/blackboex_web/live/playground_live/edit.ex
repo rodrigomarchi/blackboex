@@ -8,7 +8,6 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
   import BlackboexWeb.Components.Editor.ExecutionHistory
   import BlackboexWeb.Components.Editor.PageHeader
   import BlackboexWeb.Components.Editor.PlaygroundChatPanel
-  import BlackboexWeb.Components.Editor.PlaygroundTree
   import BlackboexWeb.Components.Editor.TerminalOutput
   import BlackboexWeb.Components.Shared.PlaygroundEditorField
   import BlackboexWeb.Components.Shared.UnderlineTabs
@@ -31,7 +30,6 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
          |> push_navigate(to: project_path(socket.assigns.current_scope, "/playgrounds"))}
 
       playground ->
-        playgrounds = Playgrounds.list_playgrounds(project.id)
         executions = Playgrounds.list_executions(playground.id)
         {selected, selected_id} = select_latest(executions)
         chat_messages = load_chat_messages(playground.id)
@@ -46,7 +44,6 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
         {:ok,
          assign(socket,
            playground: playground,
-           playgrounds: playgrounds,
            form: to_form(Playgrounds.change_playground(playground)),
            page_title: playground.name,
            output: playground.last_output,
@@ -242,12 +239,8 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
          |> put_flash(:info, "Playground deleted.")
          |> push_navigate(to: project_path(scope, "/playgrounds"))}
       else
-        playgrounds = Playgrounds.list_playgrounds(project.id)
-
         {:noreply,
-         socket
-         |> assign(playgrounds: playgrounds)
-         |> put_flash(:info, "Playground \"#{params["slug"] || pg.slug}\" deleted.")}
+         put_flash(socket, :info, "Playground \"#{params["slug"] || pg.slug}\" deleted.")}
       end
     else
       {:error, :unauthorized} ->
@@ -559,15 +552,6 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
   def render(assigns) do
     ~H"""
     <div id="playground-panels" class="flex h-full w-full overflow-hidden" phx-hook="ResizablePanels">
-      <%!-- Left sidebar: playground tree --%>
-      <div class="w-64 shrink-0 hidden md:block">
-        <.playground_tree
-          playgrounds={@playgrounds}
-          current_playground_id={@playground.id}
-        />
-      </div>
-
-      <%!-- Center: editor + output + history --%>
       <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
         <.editor_page_header
           title={@playground.name}

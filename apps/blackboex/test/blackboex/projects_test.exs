@@ -233,6 +233,66 @@ defmodule Blackboex.ProjectsTest do
     end
   end
 
+  describe "list_projects_with_counts/1" do
+    test "returns counts for each resource type per project" do
+      user = user_fixture()
+      org = org_fixture(%{user: user})
+
+      # org_fixture creates a "Default" project automatically; use it as p2 (empty)
+      p2 = Projects.get_default_project(org.id)
+      {:ok, %{project: p1}} = Projects.create_project(org, user, %{name: "Alpha Project"})
+
+      # p1: 3 pages, 2 apis, 1 flow, 0 playgrounds
+      _page1 = page_fixture(%{user: user, org: org, project: p1})
+      _page2 = page_fixture(%{user: user, org: org, project: p1})
+      _page3 = page_fixture(%{user: user, org: org, project: p1})
+      _api1 = api_fixture(%{user: user, org: org, project: p1})
+      _api2 = api_fixture(%{user: user, org: org, project: p1})
+      _flow1 = flow_fixture(%{user: user, org: org, project: p1})
+
+      results = Projects.list_projects_with_counts(org)
+
+      assert length(results) == 2
+
+      p1_row = Enum.find(results, &(&1.project.id == p1.id))
+      p2_row = Enum.find(results, &(&1.project.id == p2.id))
+
+      assert p1_row.pages_count == 3
+      assert p1_row.apis_count == 2
+      assert p1_row.flows_count == 1
+      assert p1_row.playgrounds_count == 0
+
+      assert p2_row.pages_count == 0
+      assert p2_row.apis_count == 0
+      assert p2_row.flows_count == 0
+      assert p2_row.playgrounds_count == 0
+    end
+
+    test "returns results ordered by project name ASC" do
+      user = user_fixture()
+      org = org_fixture(%{user: user})
+
+      # org starts with a "Default" project; add more to verify ordering
+      {:ok, %{project: _p_z}} = Projects.create_project(org, user, %{name: "Zebra"})
+      {:ok, %{project: _p_a}} = Projects.create_project(org, user, %{name: "Apple"})
+      {:ok, %{project: _p_m}} = Projects.create_project(org, user, %{name: "Mango"})
+
+      results = Projects.list_projects_with_counts(org)
+      names = Enum.map(results, & &1.project.name)
+
+      assert names == Enum.sort(names)
+    end
+
+    test "returns empty list for org with no projects" do
+      org = org_fixture()
+      # delete the default project to get a clean state
+      default = Projects.get_default_project(org.id)
+      if default, do: Projects.delete_project(default)
+
+      assert [] = Projects.list_projects_with_counts(org)
+    end
+  end
+
   describe "list_eligible_members/2" do
     test "retorna membros da org sem project membership" do
       owner = user_fixture()

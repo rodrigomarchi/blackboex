@@ -26,6 +26,7 @@ Free-form Markdown pages within projects for planning, documentation, and notes.
 | `delete_page/1` | `(page)` | `{:ok, Page.t()} \| {:error, ...}` | Delete a page (children become root) |
 | `move_page/3` | `(page, new_parent_id, position)` | `{:ok, Page.t()} \| {:error, atom()}` | Move page in tree; validates depth ≤5, no circular refs |
 | `change_page/2` | `(page, attrs \\ %{})` | `Ecto.Changeset.t()` | Build changeset for form use |
+| `record_ai_edit/3` | `(page, new_content, scope)` | `{:ok, Page.t()} \| {:error, Ecto.Changeset.t() \| :unauthorized}` | Applies an AI-generated content update. Defense-in-depth IDOR check: `page.organization_id` must equal `scope.organization.id`. Only `:content` is mutated. Called from `Blackboex.PageAgent.ChainRunner`. |
 
 ## Key Patterns
 

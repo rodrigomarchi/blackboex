@@ -39,6 +39,7 @@ defmodule Blackboex.DataCase do
       import Blackboex.PlaygroundsFixtures
       import Blackboex.PlaygroundExecutionsFixtures
       import Blackboex.PlaygroundConversationsFixtures
+      import Blackboex.PageConversationsFixtures
       import Blackboex.LlmFixtures
       import Blackboex.MockDefaults
     end

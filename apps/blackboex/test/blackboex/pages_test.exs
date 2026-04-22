@@ -517,6 +517,56 @@ defmodule Blackboex.PagesTest do
     end
   end
 
+  describe "record_ai_edit/3" do
+    setup [:create_project, :create_page]
+
+    test "owner successfully updates content", %{page: page, user: user, org: org} do
+      scope = %{user: user, organization: org}
+
+      assert {:ok, updated} = Pages.record_ai_edit(page, "# AI generated", scope)
+      assert updated.content == "# AI generated"
+      assert updated.id == page.id
+    end
+
+    test "rejects cross-org scope (IDOR)", %{page: page, user: user} do
+      other_org = org_fixture(%{user: user})
+      scope = %{user: user, organization: other_org}
+
+      assert {:error, :unauthorized} = Pages.record_ai_edit(page, "hacked", scope)
+
+      reloaded = Repo.reload!(page)
+      assert reloaded.content == page.content
+    end
+
+    test "rejects content over 1MB", %{page: page, user: user, org: org} do
+      scope = %{user: user, organization: org}
+      huge = String.duplicate("a", 1_048_577)
+
+      assert {:error, %Ecto.Changeset{} = cs} = Pages.record_ai_edit(page, huge, scope)
+      assert %{content: [_]} = errors_on(cs)
+    end
+
+    test "preserves title, slug, and status", %{page: page, user: user, org: org} do
+      scope = %{user: user, organization: org}
+      original_title = page.title
+      original_slug = page.slug
+      original_status = page.status
+
+      assert {:ok, updated} = Pages.record_ai_edit(page, "new body", scope)
+
+      assert updated.title == original_title
+      assert updated.slug == original_slug
+      assert updated.status == original_status
+    end
+
+    test "empty string is accepted", %{page: page, user: user, org: org} do
+      scope = %{user: user, organization: org}
+
+      assert {:ok, updated} = Pages.record_ai_edit(page, "", scope)
+      assert updated.content == ""
+    end
+  end
+
   describe "delete_page/1 with children" do
     setup [:create_project]
 

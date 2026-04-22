@@ -351,6 +351,15 @@ const TiptapEditor = {
       },
       onUpdate: ({ editor }) => {
         if (!eventName) return
+        // Skip when the change came from a programmatic setContent we just
+        // applied (server pushed new markdown via data-value). Without this
+        // guard the editor would push the AI-produced content back to the
+        // server as if the user typed it, racing with — and potentially
+        // overwriting — the user's actual keystrokes that arrived first.
+        if (this._suppressNextOnUpdate) {
+          this._suppressNextOnUpdate = false
+          return
+        }
         clearTimeout(this._debounce)
         this._debounce = setTimeout(() => {
           this._pushingUpdate = true
@@ -378,6 +387,8 @@ const TiptapEditor = {
     if (newValue !== undefined && this.editor) {
       const current = this.editor.storage.markdown.getMarkdown()
       if (newValue !== current) {
+        // Mark the next onUpdate as caused by us, not by user typing.
+        this._suppressNextOnUpdate = true
         this.editor.commands.setContent(newValue)
       }
     }

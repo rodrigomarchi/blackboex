@@ -91,7 +91,7 @@ defmodule BlackboexWeb.PageLive.EditTest do
       {:ok, view, _html} = live(conn, edit_path(org, project, page))
 
       view
-      |> form("form", %{"page" => %{"title" => "New Title"}})
+      |> form(~s(form[phx-submit="save_title"]), %{"page" => %{"title" => "New Title"}})
       |> render_submit()
 
       assert render(view) =~ "Title saved"

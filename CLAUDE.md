@@ -125,6 +125,7 @@ Every schema that needs to be inserted in a test MUST use a fixture function —
 | `PlaygroundsFixtures` | `playground_fixture/1`, `create_playground/1` | Playground |
 | `PlaygroundExecutionsFixtures` | `execution_fixture/1` | PlaygroundExecution |
 | `PlaygroundConversationsFixtures` | `playground_conversation_fixture/1`, `playground_run_fixture/1`, `playground_event_fixture/1` | PlaygroundConversation, PlaygroundRun, PlaygroundEvent |
+| `PageConversationsFixtures` | `page_conversation_fixture/1`, `page_run_fixture/1`, `page_event_fixture/1` | PageConversation, PageRun, PageEvent |
 | `TestingFixtures` | `test_suite_fixture/1` | TestSuite |
 | `MockDefaults` | `stub_llm_client/1`, `stub_stripe/1` | — |
 

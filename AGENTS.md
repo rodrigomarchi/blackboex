@@ -67,6 +67,8 @@ infra/                — Docker, deployment
 - `apps/blackboex/lib/blackboex/playgrounds/AGENTS.md` — Playgrounds context, Executor sandbox, `record_ai_edit/3`
 - `apps/blackboex/lib/blackboex/playground_agent/AGENTS.md` — AI chat pipeline for Playgrounds (Session, ChainRunner, CodePipeline, Prompts)
 - `apps/blackboex/lib/blackboex/playground_conversations/AGENTS.md` — Persisted chat conversations/runs/events for the Playground agent
+- `apps/blackboex/lib/blackboex/page_agent/AGENTS.md` — AI chat pipeline for Pages (markdown editor agent: Session, ChainRunner, ContentPipeline, Prompts)
+- `apps/blackboex/lib/blackboex/page_conversations/AGENTS.md` — Persisted chat conversations/runs/events for the Page agent
 - `apps/blackboex/lib/blackboex/flow_executions/AGENTS.md` — FlowExecution + NodeExecution schemas, status state machine, execution lifecycle API
 - `apps/blackboex/lib/blackboex/flow_secrets/AGENTS.md` — Encrypted credentials for flows, secret resolution at runtime
 - `apps/blackboex/lib/blackboex/projects/AGENTS.md` — Project grouping within orgs, ProjectMembership roles, access rules

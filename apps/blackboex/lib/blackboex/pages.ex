@@ -79,6 +79,22 @@ defmodule Blackboex.Pages do
     |> Repo.update()
   end
 
+  @doc """
+  Applies an AI-generated edit to a Page's content. Validates that the page
+  belongs to the scope's organization (defense-in-depth IDOR check; the
+  agent layer also gates this upstream). Updates only `:content`.
+  """
+  @spec record_ai_edit(Page.t(), String.t(), map()) ::
+          {:ok, Page.t()} | {:error, Ecto.Changeset.t() | :unauthorized}
+  def record_ai_edit(%Page{} = page, new_content, %{organization: %{id: org_id}})
+      when is_binary(new_content) do
+    if page.organization_id == org_id do
+      update_page(page, %{content: new_content})
+    else
+      {:error, :unauthorized}
+    end
+  end
+
   @spec delete_page(Page.t()) :: {:ok, Page.t()} | {:error, Ecto.Changeset.t()}
   def delete_page(%Page{} = page) do
     Repo.delete(page)

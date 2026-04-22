@@ -110,7 +110,14 @@ config :fun_with_flags, :cache_bust_notifications,
 # Oban job processing
 config :blackboex, Oban,
   repo: Blackboex.Repo,
-  queues: [billing: 10, analytics: 5, generation: 3, flows: 5, playground_agent: 5],
+  queues: [
+    billing: 10,
+    analytics: 5,
+    generation: 3,
+    flows: 5,
+    playground_agent: 5,
+    page_agent: 5
+  ],
   plugins: [
     Oban.Plugins.Pruner,
     {Oban.Plugins.Cron,

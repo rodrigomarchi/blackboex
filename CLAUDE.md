@@ -126,6 +126,7 @@ Every schema that needs to be inserted in a test MUST use a fixture function —
 | `PlaygroundExecutionsFixtures` | `execution_fixture/1` | PlaygroundExecution |
 | `PlaygroundConversationsFixtures` | `playground_conversation_fixture/1`, `playground_run_fixture/1`, `playground_event_fixture/1` | PlaygroundConversation, PlaygroundRun, PlaygroundEvent |
 | `PageConversationsFixtures` | `page_conversation_fixture/1`, `page_run_fixture/1`, `page_event_fixture/1` | PageConversation, PageRun, PageEvent |
+| `FlowConversationsFixtures` | `flow_conversation_fixture/1`, `flow_run_fixture/1`, `flow_event_fixture/1` | FlowConversation, FlowRun, FlowEvent |
 | `TestingFixtures` | `test_suite_fixture/1` | TestSuite |
 | `MockDefaults` | `stub_llm_client/1`, `stub_stripe/1` | — |
 
@@ -205,6 +206,8 @@ AGENTS.md                                          — Root: stack, structure, c
 │   ├── lib/blackboex/policy/AGENTS.md             — LetMe DSL, authorization
 │   ├── lib/blackboex/telemetry/AGENTS.md          — OpenTelemetry, events
 │   ├── lib/blackboex/testing/AGENTS.md            — TestRunner, validation
+│   ├── lib/blackboex/flow_agent/AGENTS.md         — Flow AI agent (NL → JSON)
+│   ├── lib/blackboex/flow_conversations/AGENTS.md — Flow chat persistence
 │   └── lib/blackboex/audit/AGENTS.md              — ExAudit, AuditLog
 ├── apps/blackboex_web/AGENTS.md                   — Web: routing, auth flow, plugs
 │   ├── lib/blackboex_web/components/AGENTS.md     — FULL component catalog (SaladUI + shared + editor)

@@ -97,6 +97,22 @@ defmodule Blackboex.Flows do
     |> Repo.update()
   end
 
+  @doc """
+  Persists a definition produced by the Flow AI agent. Scoped variant of
+  `update_definition/2` that enforces organization ownership before touching
+  the row. Used by `FlowAgent.ChainRunner` after a successful LLM run.
+  """
+  @spec record_ai_edit(Flow.t(), map(), map()) ::
+          {:ok, Flow.t()} | {:error, Ecto.Changeset.t() | :unauthorized}
+  def record_ai_edit(%Flow{} = flow, new_definition, %{organization: %{id: org_id}})
+      when is_map(new_definition) do
+    if flow.organization_id == org_id do
+      update_definition(flow, new_definition)
+    else
+      {:error, :unauthorized}
+    end
+  end
+
   @spec delete_flow(Flow.t()) :: {:ok, Flow.t()} | {:error, Ecto.Changeset.t()}
   def delete_flow(%Flow{} = flow) do
     Repo.delete(flow)

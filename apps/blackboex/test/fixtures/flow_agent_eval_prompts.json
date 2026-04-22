@@ -1,0 +1,42 @@
+[
+  {
+    "id": "hello_world",
+    "message": "crie um fluxo hello world que recebe um campo 'name' obrigatório e retorna 'Hello, <name>!'"
+  },
+  {
+    "id": "rest_api_crud",
+    "message": "fluxo que faz POST em https://jsonplaceholder.typicode.com/posts com título e corpo recebidos no input, e depois GET em /posts/1 pra validar roundtrip"
+  },
+  {
+    "id": "approval_with_timeout",
+    "message": "fluxo de aprovação: recebe uma descrição, pausa em webhook_wait esperando o evento 'approval' com timeout de 1 hora, ramifica entre approved/denied e termina com um end em cada ramo"
+  },
+  {
+    "id": "stripe_payment_router",
+    "message": "roteador de pagamento Stripe: recebe um payload de webhook, condiciona pelo método ('card', 'boleto', 'pix') em 3 ramos, cada ramo chama uma URL diferente"
+  },
+  {
+    "id": "lead_scoring",
+    "message": "enriquecimento de lead: recebe email, faz HTTP GET pra uma API de enriquecimento, calcula um score numérico em elixir_code e retorna {score, tier}"
+  },
+  {
+    "id": "saga_compensation",
+    "message": "saga com compensação: reserva inventário, cobra cliente, e se falhar em qualquer step faz fail com mensagem explicando"
+  },
+  {
+    "id": "notification_fanout",
+    "message": "recebe uma lista de contatos {email, phone}, usa for_each pra mandar notificação em cada canal, termina com um end que reporta quantos foram enviados"
+  },
+  {
+    "id": "async_poller",
+    "message": "fluxo que inicia um job remoto via POST, entra em loop com delay de 2s e condition pra testar status, retorna quando status=='completed' ou falha após 30 tentativas"
+  },
+  {
+    "id": "incident_alert",
+    "message": "pipeline de incidente: recebe severidade, se for crítico escala imediatamente via HTTP POST, se for alto aguarda aprovação via webhook_wait, caso contrário só loga debug"
+  },
+  {
+    "id": "llm_router",
+    "message": "LLM router: recebe uma categoria ('code', 'summary', 'translation'), roteia pro modelo apropriado via http_request e retorna a resposta"
+  }
+]

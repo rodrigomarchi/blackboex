@@ -333,6 +333,17 @@ const DrawflowEditor = {
     setTimeout(() => updateAllOutputLabels(this.editor), 100)
 
     // ── Node selection → push to LiveView for properties drawer ──
+    // Dirty flag — set by every mutation event Drawflow emits, cleared when
+    // the server confirms a save or when we just imported a fresh definition
+    // (e.g. on initial mount or after an AI agent run the user accepted).
+    this._dataChanged = false
+    const markDirty = () => { this._dataChanged = true }
+    this.editor.on("nodeCreated", markDirty)
+    this.editor.on("nodeRemoved", markDirty)
+    this.editor.on("nodeMoved", markDirty)
+    this.editor.on("connectionCreated", markDirty)
+    this.editor.on("connectionRemoved", markDirty)
+
     this.editor.on("nodeSelected", (nodeId) => {
       const node = this.editor.getNodeFromId(nodeId)
       if (node) {
@@ -445,7 +456,7 @@ const DrawflowEditor = {
       this.pushEvent("save_definition", { definition: blackboexData })
     })
 
-    this.handleEvent("definition_saved", () => {})
+    this.handleEvent("definition_saved", () => { this._dataChanged = false })
 
     // JSON preview modal — show BlackboexFlow format
     this.handleEvent("export_json_preview", () => {
@@ -589,6 +600,38 @@ const DrawflowEditor = {
 
     this.handleEvent("clear_execution_view", () => {
       clearExecView()
+    })
+
+    // ── Flow AI Agent: replace canvas with LLM-generated definition ──────────
+    this.handleEvent("flow_chat:reload_definition", ({ definition }) => {
+      if (!definition || !Array.isArray(definition.nodes)) return
+
+      // Guard against silently wiping out in-flight user edits. `dataChanged`
+      // is toggled on by the change handlers (node moves, edge creates,
+      // property updates) and cleared on explicit save. If the user has
+      // pending changes, ask before replacing. They can still cancel.
+      if (this._dataChanged) {
+        const proceed = window.confirm(
+          "Você tem alterações não salvas no canvas. " +
+          "Aplicar a resposta do agente vai sobrescrevê-las. Continuar?"
+        )
+        if (!proceed) return
+      }
+
+      const drawflowData = blackboexToDrawflow(definition, buildNodeHTML)
+      this.editor.clear()
+      this.editor.import(drawflowData)
+      this._dataChanged = false
+
+      // Drawflow needs a frame after import to measure actual port positions in
+      // the DOM before connection SVG paths render correctly (issue #914).
+      requestAnimationFrame(() => {
+        const ed = this.editor
+        setTimeout(() => {
+          const homeData = ed.export().drawflow[ed.module].data
+          Object.keys(homeData).forEach(id => ed.updateConnectionNodes(`node-${id}`))
+        }, 100)
+      })
     })
   },
 

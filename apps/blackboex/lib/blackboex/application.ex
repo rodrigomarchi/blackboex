@@ -35,7 +35,10 @@ defmodule Blackboex.Application do
        name: Blackboex.PlaygroundAgent.SessionSupervisor, strategy: :one_for_one},
       {Registry, keys: :unique, name: Blackboex.PageAgent.SessionRegistry},
       {DynamicSupervisor,
-       name: Blackboex.PageAgent.SessionSupervisor, strategy: :one_for_one, max_children: 100}
+       name: Blackboex.PageAgent.SessionSupervisor, strategy: :one_for_one, max_children: 100},
+      {Registry, keys: :unique, name: Blackboex.FlowAgent.SessionRegistry},
+      {DynamicSupervisor,
+       name: Blackboex.FlowAgent.SessionSupervisor, strategy: :one_for_one, max_children: 100}
     ]
 
     Supervisor.start_link(children, strategy: :one_for_one, name: Blackboex.Supervisor)

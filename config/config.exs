@@ -116,7 +116,8 @@ config :blackboex, Oban,
     generation: 3,
     flows: 5,
     playground_agent: 5,
-    page_agent: 5
+    page_agent: 5,
+    flow_agent: 5
   ],
   plugins: [
     Oban.Plugins.Pruner,

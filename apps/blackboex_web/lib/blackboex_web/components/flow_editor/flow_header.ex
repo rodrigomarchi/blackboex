@@ -12,6 +12,7 @@ defmodule BlackboexWeb.Components.FlowEditor.FlowHeader do
   attr :flow, :map, required: true
   attr :saving, :boolean, default: false
   attr :saved, :boolean, default: false
+  attr :chat_open, :boolean, default: false
 
   def flow_header(assigns) do
     ~H"""
@@ -88,6 +89,13 @@ defmodule BlackboexWeb.Components.FlowEditor.FlowHeader do
 
         <span :if={@saved} class="text-xs text-success-foreground">Saved</span>
 
+        <.button
+          variant={if @chat_open, do: "primary", else: "outline"}
+          size="sm"
+          phx-click="toggle_chat"
+        >
+          <.icon name="hero-sparkles" class="mr-1.5 size-4 text-accent-violet" /> Agente
+        </.button>
         <.button variant="outline" size="sm" phx-click="open_executions_drawer">
           <.icon name="hero-clock" class="mr-1.5 size-4 text-accent-sky" /> History
         </.button>

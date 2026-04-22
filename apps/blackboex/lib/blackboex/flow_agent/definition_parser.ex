@@ -1,0 +1,124 @@
+defmodule Blackboex.FlowAgent.DefinitionParser do
+  @moduledoc """
+  Extracts a flow definition JSON and an optional summary from an LLM
+  response. Expected response shape:
+
+      ~~~json
+      {"version":"1.0","nodes":[...],"edges":[...]}
+      ~~~
+
+      Resumo: breve descrição opcional.
+
+  Falls back to `~~~` without a language tag and to triple-backtick fences so
+  the pipeline is tolerant to small model deviations.
+  """
+
+  @tilde_json_fence ~r/~~~(?:json)?\s*\n(.*?)\n~~~/s
+  @tilde_any_fence ~r/~~~\s*\n(.*?)\n~~~/s
+  @backtick_json_fence ~r/```(?:json)?\s*\n(.*?)\n```/s
+  @summary_line ~r/^\s*Resumo:\s*(.+)$/m
+  @answer_prefix ~r/^\s*Resposta:\s*(.+)/s
+
+  @default_summary "Fluxo gerado pelo agente"
+  @default_explanation "Sem resposta"
+
+  @doc """
+  Classifies an LLM response into one of two modes:
+
+    * `{:edit, definition, summary}` — the response carries a flow JSON block
+      (edit mode). `definition` is the decoded map; `summary` is the optional
+      `Resumo:` line (or a default).
+
+    * `{:explain, text}` — the response is conversational. The text is
+      everything after `Resposta:`, or the whole body trimmed if the LLM
+      forgot the prefix (we accept this as fallback so the chat never fails
+      silently on a well-intentioned prose answer).
+
+    * `{:error, reason}` — the response has a fence but the payload doesn't
+      decode as JSON, or the body is empty.
+  """
+  @spec classify(String.t()) ::
+          {:edit, map(), String.t()}
+          | {:explain, String.t()}
+          | {:error, :no_content | {:invalid_json, term()}}
+  def classify(content) when is_binary(content) do
+    case find_block(content) do
+      {:ok, raw} ->
+        case Jason.decode(raw) do
+          {:ok, %{} = def} -> {:edit, def, extract_summary(content)}
+          {:ok, _non_map} -> {:error, {:invalid_json, :not_an_object}}
+          {:error, err} -> {:error, {:invalid_json, Exception.message(err)}}
+        end
+
+      {:error, :no_json_block} ->
+        # An empty/whitespace-only body is :no_content. Non-empty prose —
+        # whether it starts with `Resposta:` or not — is treated as explain.
+        if String.trim(content) == "" do
+          {:error, :no_content}
+        else
+          {:explain, extract_answer(content)}
+        end
+    end
+  end
+
+  @spec extract_definition(String.t()) ::
+          {:ok, map()} | {:error, :no_json_block | {:invalid_json, term()}}
+  def extract_definition(content) when is_binary(content) do
+    with {:ok, raw} <- find_block(content) do
+      decode(raw)
+    end
+  end
+
+  @spec extract_summary(String.t()) :: String.t()
+  def extract_summary(content) when is_binary(content) do
+    case Regex.run(@summary_line, content) do
+      [_, summary] -> String.trim(summary)
+      nil -> @default_summary
+    end
+  end
+
+  @doc """
+  Extracts a conversational answer from an LLM response. Preferred shape is
+  a `Resposta: ...` prefix, but if the LLM just responded with plain prose we
+  return that verbatim so the chat doesn't surface "sem resposta" to the
+  user when the model actually said something useful.
+  """
+  @spec extract_answer(String.t()) :: String.t()
+  def extract_answer(content) when is_binary(content) do
+    case Regex.run(@answer_prefix, content) do
+      [_, answer] ->
+        String.trim(answer)
+
+      nil ->
+        trimmed = String.trim(content)
+        if trimmed == "", do: @default_explanation, else: trimmed
+    end
+  end
+
+  defp find_block(content) do
+    cond do
+      match = Regex.run(@tilde_json_fence, content) ->
+        [_, raw] = match
+        {:ok, String.trim(raw)}
+
+      match = Regex.run(@tilde_any_fence, content) ->
+        [_, raw] = match
+        {:ok, String.trim(raw)}
+
+      match = Regex.run(@backtick_json_fence, content) ->
+        [_, raw] = match
+        {:ok, String.trim(raw)}
+
+      true ->
+        {:error, :no_json_block}
+    end
+  end
+
+  defp decode(raw) do
+    case Jason.decode(raw) do
+      {:ok, %{} = parsed} -> {:ok, parsed}
+      {:ok, _non_map} -> {:error, {:invalid_json, :not_an_object}}
+      {:error, %Jason.DecodeError{} = err} -> {:error, {:invalid_json, Exception.message(err)}}
+    end
+  end
+end

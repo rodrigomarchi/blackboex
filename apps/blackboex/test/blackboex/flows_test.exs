@@ -204,6 +204,68 @@ defmodule Blackboex.FlowsTest do
     end
   end
 
+  describe "record_ai_edit/3" do
+    setup %{user: user, org: org} do
+      flow = flow_fixture(%{user: user, org: org})
+      scope = %{organization: %{id: org.id}}
+      %{flow: flow, scope: scope}
+    end
+
+    test "updates the flow definition when scope org matches", %{flow: flow, scope: scope} do
+      definition = %{
+        "version" => "1.0",
+        "nodes" => [
+          %{"id" => "n1", "type" => "start", "position" => %{"x" => 0, "y" => 0}, "data" => %{}},
+          %{"id" => "n2", "type" => "end", "position" => %{"x" => 200, "y" => 0}, "data" => %{}}
+        ],
+        "edges" => [
+          %{
+            "id" => "e1",
+            "source" => "n1",
+            "source_port" => 0,
+            "target" => "n2",
+            "target_port" => 0
+          }
+        ]
+      }
+
+      assert {:ok, updated} = Flows.record_ai_edit(flow, definition, scope)
+      assert updated.definition["version"] == "1.0"
+      assert length(updated.definition["nodes"]) == 2
+    end
+
+    test "rejects when scope org mismatches flow org", %{flow: flow, user: user} do
+      other_org = org_fixture(%{user: user})
+      scope = %{organization: %{id: other_org.id}}
+
+      definition = %{
+        "version" => "1.0",
+        "nodes" => [
+          %{"id" => "n1", "type" => "start", "position" => %{"x" => 0, "y" => 0}, "data" => %{}},
+          %{"id" => "n2", "type" => "end", "position" => %{"x" => 200, "y" => 0}, "data" => %{}}
+        ],
+        "edges" => [
+          %{
+            "id" => "e1",
+            "source" => "n1",
+            "source_port" => 0,
+            "target" => "n2",
+            "target_port" => 0
+          }
+        ]
+      }
+
+      assert {:error, :unauthorized} = Flows.record_ai_edit(flow, definition, scope)
+    end
+
+    test "propagates validation errors from BlackboexFlow.validate",
+         %{flow: flow, scope: scope} do
+      definition = %{"version" => "9.99", "nodes" => [], "edges" => []}
+      assert {:error, changeset} = Flows.record_ai_edit(flow, definition, scope)
+      assert %{definition: _} = errors_on(changeset)
+    end
+  end
+
   describe "delete_flow/1" do
     test "deletes the flow", %{user: user, org: org} do
       flow = flow_fixture(%{user: user, org: org})

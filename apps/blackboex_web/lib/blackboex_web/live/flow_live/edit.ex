@@ -7,6 +7,8 @@ defmodule BlackboexWeb.FlowLive.Edit do
 
   use BlackboexWeb, :live_view
 
+  alias Blackboex.FlowAgent
+  alias Blackboex.FlowConversations
   alias Blackboex.FlowExecutions
   alias Blackboex.FlowExecutor
   alias Blackboex.FlowExecutor.BlackboexFlow
@@ -18,11 +20,17 @@ defmodule BlackboexWeb.FlowLive.Edit do
 
   import BlackboexWeb.Components.FlowEditor.CanvasToolbar
   import BlackboexWeb.Components.FlowEditor.ExecutionsDrawer
+  import BlackboexWeb.Components.FlowEditor.FlowChatDrawer
   import BlackboexWeb.Components.FlowEditor.FlowHeader
   import BlackboexWeb.Components.FlowEditor.JsonPreviewModal
   import BlackboexWeb.Components.FlowEditor.NodePalette
   import BlackboexWeb.Components.FlowEditor.PropertiesDrawer
   import BlackboexWeb.Components.FlowEditor.RunDrawer
+
+  @chat_message_cap 200
+  # UI safety net: if no terminal broadcast arrives, reset chat_loading so the
+  # user isn't stuck with a phantom spinner.
+  @chat_timeout_ms :timer.seconds(200)
 
   @impl true
   def mount(%{"id" => id}, _session, socket) do
@@ -42,6 +50,12 @@ defmodule BlackboexWeb.FlowLive.Edit do
           |> Flows.list_flows()
           |> Enum.filter(&(&1.id != flow.id && &1.status in ~w(draft active)))
           |> Enum.map(&%{id: &1.id, name: &1.name})
+
+        chat_messages = load_chat_history(flow.id)
+
+        if connected?(socket) do
+          Phoenix.PubSub.subscribe(Blackboex.PubSub, "flow_agent:flow:#{flow.id}")
+        end
 
         {:ok,
          assign(socket,
@@ -67,10 +81,37 @@ defmodule BlackboexWeb.FlowLive.Edit do
            executions: [],
            selected_execution: nil,
            expanded_exec_node: nil,
-           executions_drawer_expanded: false
+           executions_drawer_expanded: false,
+           chat_open: false,
+           chat_messages: chat_messages,
+           chat_input: "",
+           chat_loading: false,
+           current_run_id: nil,
+           current_stream: nil,
+           chat_timeout_ref: nil
          )}
     end
   end
+
+  defp load_chat_history(flow_id) do
+    flow_id
+    |> FlowConversations.list_active_conversation_events(limit: @chat_message_cap)
+    |> Enum.flat_map(&event_to_message/1)
+  end
+
+  defp event_to_message(%{event_type: "user_message", content: c, run_id: run_id})
+       when is_binary(c),
+       do: [%{role: "user", content: c, run_id: run_id}]
+
+  defp event_to_message(%{event_type: "completed", content: c, run_id: run_id})
+       when is_binary(c),
+       do: [%{role: "assistant", content: c, run_id: run_id}]
+
+  defp event_to_message(%{event_type: "failed", content: c})
+       when is_binary(c),
+       do: [%{role: "system", content: c}]
+
+  defp event_to_message(_), do: []
 
   # ── handle_params ────────────────────────────────────────────────────────
 
@@ -193,6 +234,50 @@ defmodule BlackboexWeb.FlowLive.Edit do
      socket
      |> assign(saving: true, saved: false)
      |> push_event("export_definition", %{})}
+  end
+
+  # ── Chat ─────────────────────────────────────────────────────────────────
+
+  @impl true
+  def handle_event("toggle_chat", _params, socket) do
+    {:noreply, assign(socket, chat_open: !socket.assigns.chat_open)}
+  end
+
+  @impl true
+  def handle_event("chat_input_change", params, socket) do
+    message = get_in(params, ["message"]) || get_in(params, ["chat", "message"]) || ""
+    {:noreply, assign(socket, chat_input: message)}
+  end
+
+  @impl true
+  def handle_event("send_chat", params, socket) do
+    message =
+      (get_in(params, ["message"]) || get_in(params, ["chat", "message"]) || "")
+      |> String.trim()
+
+    cond do
+      message == "" -> {:noreply, socket}
+      socket.assigns.chat_loading -> {:noreply, socket}
+      true -> dispatch_send_chat(socket, message)
+    end
+  end
+
+  @impl true
+  def handle_event("new_chat", _params, socket) do
+    flow = socket.assigns.flow
+
+    _ = FlowConversations.archive_active_conversation(flow.id)
+    cancel_timer(socket.assigns[:chat_timeout_ref])
+
+    {:noreply,
+     assign(socket,
+       chat_messages: [],
+       chat_input: "",
+       chat_loading: false,
+       current_run_id: nil,
+       current_stream: nil,
+       chat_timeout_ref: nil
+     )}
   end
 
   # ── Node selection ───────────────────────────────────────────────────────
@@ -658,6 +743,121 @@ defmodule BlackboexWeb.FlowLive.Edit do
     end
   end
 
+  # ── Flow Agent broadcasts ──────────────────────────────────────────────
+
+  @impl true
+  def handle_info({:run_started, %{run_id: run_id}}, socket) do
+    if connected?(socket) do
+      Phoenix.PubSub.subscribe(Blackboex.PubSub, "flow_agent:run:#{run_id}")
+    end
+
+    {:noreply,
+     assign(socket,
+       chat_loading: true,
+       current_run_id: run_id,
+       current_stream: "",
+       chat_open: true
+     )}
+  end
+
+  @impl true
+  def handle_info({:definition_delta, %{delta: delta, run_id: run_id}}, socket) do
+    # When chat_loading is true but current_run_id isn't yet set, the user's
+    # run_started broadcast was delayed — still belongs to the active chat,
+    # accept the delta and lock in the run_id now so completion can match.
+    if chat_run_match?(socket, run_id) do
+      next = (socket.assigns.current_stream || "") <> delta
+      {:noreply, assign(socket, current_run_id: run_id, current_stream: next)}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_info(
+        {:run_completed, %{kind: :explain, run_id: run_id, answer: answer}},
+        socket
+      ) do
+    if chat_run_match?(socket, run_id) do
+      assistant_msg = %{role: "assistant", content: answer, run_id: run_id}
+      cancel_timer(socket.assigns[:chat_timeout_ref])
+
+      {:noreply,
+       assign(socket,
+         chat_loading: false,
+         current_stream: nil,
+         current_run_id: nil,
+         chat_timeout_ref: nil,
+         chat_messages: cap_messages(socket.assigns.chat_messages ++ [assistant_msg])
+       )}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_info(
+        {:run_completed, %{run_id: run_id, definition: definition, summary: summary}},
+        socket
+      )
+      when is_map(definition) do
+    if chat_run_match?(socket, run_id) do
+      flow = %{socket.assigns.flow | definition: definition}
+      assistant_msg = %{role: "assistant", content: summary, run_id: run_id}
+      cancel_timer(socket.assigns[:chat_timeout_ref])
+
+      {:noreply,
+       socket
+       |> assign(
+         flow: flow,
+         chat_loading: false,
+         current_stream: nil,
+         current_run_id: nil,
+         chat_timeout_ref: nil,
+         chat_messages: cap_messages(socket.assigns.chat_messages ++ [assistant_msg])
+       )
+       |> push_event("flow_chat:reload_definition", %{definition: definition})}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_info({:run_failed, %{run_id: run_id, reason: reason}}, socket) do
+    if chat_run_match?(socket, run_id) do
+      system_msg = %{role: "system", content: reason}
+      cancel_timer(socket.assigns[:chat_timeout_ref])
+
+      {:noreply,
+       socket
+       |> assign(
+         chat_loading: false,
+         current_stream: nil,
+         current_run_id: nil,
+         chat_timeout_ref: nil,
+         chat_messages: cap_messages(socket.assigns.chat_messages ++ [system_msg])
+       )
+       |> put_flash(:error, "Agente falhou: #{reason}")}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_info(:chat_timeout, socket) do
+    if socket.assigns.chat_loading do
+      {:noreply,
+       socket
+       |> assign(chat_loading: false, current_stream: nil, chat_timeout_ref: nil)
+       |> put_flash(
+         :error,
+         "O agente não respondeu a tempo. Tente novamente."
+       )}
+    else
+      {:noreply, socket}
+    end
+  end
+
   # ── Async Task Results ─────────────────────────────────────────────────
 
   @impl true
@@ -690,13 +890,84 @@ defmodule BlackboexWeb.FlowLive.Edit do
      )}
   end
 
+  # ── Chat helpers ─────────────────────────────────────────────────────────
+
+  defp dispatch_send_chat(socket, message) do
+    case FlowAgent.start(socket.assigns.flow, socket.assigns.current_scope, message) do
+      {:ok, _job} ->
+        user_msg = %{role: "user", content: message, run_id: nil}
+        timer = Process.send_after(self(), :chat_timeout, @chat_timeout_ms)
+
+        {:noreply,
+         socket
+         |> assign(
+           chat_loading: true,
+           chat_input: "",
+           chat_messages: cap_messages(socket.assigns.chat_messages ++ [user_msg]),
+           chat_open: true,
+           chat_timeout_ref: timer
+         )}
+
+      {:error, :empty_message} ->
+        {:noreply, socket}
+
+      {:error, :message_too_long} ->
+        {:noreply, put_flash(socket, :error, "Mensagem muito longa (máx 10.000 caracteres).")}
+
+      {:error, :definition_too_large} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           "O fluxo atual é muito grande para edição pelo agente. Simplifique e tente novamente."
+         )}
+
+      {:error, :limit_exceeded} ->
+        {:noreply, put_flash(socket, :error, "Limite do plano atingido para gerações de IA.")}
+
+      {:error, :forbidden} ->
+        {:noreply, put_flash(socket, :error, "Não autorizado.")}
+
+      {:error, reason} ->
+        require Logger
+        Logger.warning("FlowAgent.start failed: #{inspect(reason)}")
+        {:noreply, put_flash(socket, :error, "Falha ao iniciar o agente. Tente novamente.")}
+    end
+  end
+
+  defp cap_messages(messages) when length(messages) > @chat_message_cap do
+    Enum.take(messages, -@chat_message_cap)
+  end
+
+  defp cap_messages(messages), do: messages
+
+  defp cancel_timer(nil), do: :ok
+  defp cancel_timer(ref), do: Process.cancel_timer(ref)
+
+  # Accept broadcasts both when current_run_id is known (normal path) and when
+  # it is still nil but a chat is in flight (race where :run_started hasn't
+  # been delivered yet). Rejects broadcasts that arrive when the LiveView
+  # isn't loading anything.
+  defp chat_run_match?(socket, run_id) do
+    cond do
+      socket.assigns.current_run_id == run_id -> true
+      is_nil(socket.assigns.current_run_id) and socket.assigns.chat_loading -> true
+      true -> false
+    end
+  end
+
   # ── Render ───────────────────────────────────────────────────────────────
 
   @impl true
   def render(assigns) do
     ~H"""
     <div class="flex h-screen flex-col overflow-hidden bg-background text-foreground">
-      <.flow_header flow={@flow} saving={@saving} saved={@saved} />
+      <.flow_header
+        flow={@flow}
+        saving={@saving}
+        saved={@saved}
+        chat_open={@chat_open}
+      />
 
       <%!-- Editor area --%>
       <div class="flex flex-1 overflow-hidden">
@@ -741,6 +1012,15 @@ defmodule BlackboexWeb.FlowLive.Edit do
           run_input={@run_input}
           running={@running}
           run_error={@run_error}
+        />
+
+        <%!-- Flow Agent chat drawer (right of canvas) --%>
+        <.flow_chat_drawer
+          show={@chat_open}
+          messages={@chat_messages}
+          input={@chat_input}
+          loading={@chat_loading}
+          current_stream={@current_stream}
         />
       </div>
 

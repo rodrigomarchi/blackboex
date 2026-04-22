@@ -192,6 +192,13 @@ defmodule Blackboex.Policy do
       allow role: :admin
       allow project_role: :admin
     end
+
+    action :agent_use do
+      allow role: :owner
+      allow role: :admin
+      allow role: :member
+      allow project_role: :editor
+    end
   end
 
   object :page do

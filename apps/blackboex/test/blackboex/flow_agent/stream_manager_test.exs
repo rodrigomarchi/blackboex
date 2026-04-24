@@ -87,6 +87,54 @@ defmodule Blackboex.FlowAgent.StreamManagerTest do
     end
   end
 
+  describe "explain mode streaming" do
+    test "emits :explain_delta once threshold reached with no fence", %{run_id: run_id} do
+      cb = StreamManager.build_token_callback(run_id)
+      # Push > 40 bytes of prose without a fence — manager commits to explain mode.
+      cb.("Resposta: esse fluxo recebe um evento e valida a assinatura.\n")
+
+      assert_receive {:explain_delta, %{delta: delta, run_id: ^run_id}}, 500
+      # The `Resposta:` prefix is stripped.
+      refute delta =~ "Resposta:"
+      assert delta =~ "esse fluxo"
+    end
+
+    test "emits :explain_delta for prose without Resposta: prefix", %{run_id: run_id} do
+      cb = StreamManager.build_token_callback(run_id)
+
+      cb.("O fluxo simplesmente passa os dados recebidos adiante e retorna.\n")
+
+      assert_receive {:explain_delta, %{delta: delta}}, 500
+      assert delta =~ "passa os dados"
+    end
+
+    test "does not emit :explain_delta while under threshold", %{run_id: run_id} do
+      cb = StreamManager.build_token_callback(run_id)
+      cb.("oi")
+
+      refute_receive {:explain_delta, _}, 100
+    end
+
+    test "does not emit :definition_delta in explain mode", %{run_id: run_id} do
+      cb = StreamManager.build_token_callback(run_id)
+
+      cb.("Resposta: isso aqui é uma resposta em prosa de tamanho generoso.\n")
+
+      refute_receive {:definition_delta, _}, 150
+    end
+
+    test "flush_remaining emits pending buffer in explain mode", %{run_id: run_id} do
+      cb = StreamManager.build_token_callback(run_id)
+      cb.("Resposta: inicio da resposta muito longa para travessia.")
+      # drain anything flushed so far
+      _ = receive_all_deltas(50)
+
+      cb.("xyz")
+      :ok = StreamManager.flush_remaining(run_id)
+      assert_receive {:explain_delta, %{delta: "xyz"}}, 200
+    end
+  end
+
   describe "resilience" do
     test "tokens split inside the opening fence header still trigger the transition",
          %{run_id: run_id} do

@@ -16,6 +16,9 @@ defmodule BlackboexWeb.Components.FlowEditor.FlowChatDrawer do
   attr :input, :string, default: ""
   attr :loading, :boolean, default: false
   attr :current_stream, :string, default: nil
+  attr :current_stream_mode, :atom, default: nil
+  attr :llm_configured?, :boolean, default: true
+  attr :configure_url, :string, default: nil
 
   def flow_chat_drawer(%{show: false} = assigns) do
     ~H"""
@@ -30,6 +33,9 @@ defmodule BlackboexWeb.Components.FlowEditor.FlowChatDrawer do
         input={@input}
         loading={@loading}
         current_stream={@current_stream}
+        current_stream_mode={@current_stream_mode}
+        llm_configured?={@llm_configured?}
+        configure_url={@configure_url}
       />
     </aside>
     """

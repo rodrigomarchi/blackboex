@@ -329,6 +329,81 @@ defmodule Blackboex.FlowExecutor.Nodes.HttpRequestTest do
   # undo/4
   # ---------------------------------------------------------------------------
 
+  describe "env var interpolation (pre-resolved by EnvResolver)" do
+    # These tests mirror what production sees AFTER FlowExecutor.EnvResolver
+    # walks the raw definition and substitutes {{env.X}} placeholders with
+    # plaintext values. HttpRequest itself does not evaluate {{env.X}} at
+    # runtime — only {{state.X}} / {{input.X}} — so the env values must
+    # already be substituted in :url / :body_template / :headers by the time
+    # run/3 is called.
+
+    test "resolved {{env.TOKEN}} in Authorization header is sent as-is" do
+      Req.Test.stub(:http_request_test, fn conn ->
+        auth = Plug.Conn.get_req_header(conn, "authorization")
+        body = Jason.encode!(%{"auth" => auth})
+        Plug.Conn.send_resp(conn, 200, body)
+      end)
+
+      args = args_with("x")
+
+      # Simulate post-EnvResolver: the literal token is already embedded.
+      opts =
+        test_plug_opts() ++
+          [headers: %{"authorization" => "Bearer super-secret-token"}]
+
+      assert {:ok, %{output: output}} = HttpRequest.run(args, %{}, opts)
+      decoded = Jason.decode!(output.body)
+      assert decoded["auth"] == ["Bearer super-secret-token"]
+    end
+
+    test "resolved env value in URL path reaches server intact" do
+      Req.Test.stub(:http_request_test, fn conn ->
+        body = Jason.encode!(%{"path" => conn.request_path})
+        Plug.Conn.send_resp(conn, 200, body)
+      end)
+
+      args = args_with(%{})
+
+      # URL after EnvResolver: {{env.BASE}} -> "/resolved"
+      opts = [
+        method: "GET",
+        url: "http://example.com/resolved/items",
+        plug: {Req.Test, :http_request_test}
+      ]
+
+      assert {:ok, %{output: output}} = HttpRequest.run(args, %{}, opts)
+      decoded = Jason.decode!(output.body)
+      assert decoded["path"] == "/resolved/items"
+    end
+
+    test "mixed resolved env + runtime state/input interpolation" do
+      Req.Test.stub(:http_request_test, fn conn ->
+        {:ok, body, _conn} = Plug.Conn.read_body(conn)
+        Plug.Conn.send_resp(conn, 200, body)
+      end)
+
+      args = args_with(%{"id" => "42"}, %{"org" => "acme"})
+
+      # The :body_template still has state/input placeholders; env is already
+      # resolved by EnvResolver into the literal "TOKEN-abc".
+      opts =
+        test_plug_opts() ++
+          [
+            method: "POST",
+            body_template:
+              ~s({"token": "TOKEN-abc", "id": "{{input.id}}", "org": "{{state.org}}"}),
+            expected_status: [200]
+          ]
+
+      assert {:ok, %{output: output}} = HttpRequest.run(args, %{}, opts)
+
+      decoded = Jason.decode!(output.body)
+      assert decoded["token"] == "TOKEN-abc"
+      assert decoded["id"] == "42"
+      assert decoded["org"] == "acme"
+    end
+  end
+
   describe "undo/4" do
     test "returns :ok when no undo_config provided" do
       args = %{prev_result: %{output: %{}, state: %{}}}

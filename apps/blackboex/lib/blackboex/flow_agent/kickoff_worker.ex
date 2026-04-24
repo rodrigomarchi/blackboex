@@ -70,6 +70,7 @@ defmodule Blackboex.FlowAgent.KickoffWorker do
              flow_id: flow_id,
              conversation_id: conversation.id,
              organization_id: organization_id,
+             project_id: project_id,
              user_id: user_id,
              run_type: String.to_existing_atom(run_type),
              trigger_message: trigger_message,

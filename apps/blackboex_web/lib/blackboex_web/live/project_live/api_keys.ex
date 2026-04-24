@@ -1,12 +1,18 @@
-defmodule BlackboexWeb.ApiKeyLive.Index do
+defmodule BlackboexWeb.ProjectLive.ApiKeys do
   @moduledoc """
-  LiveView for listing and creating API keys across all organization APIs.
+  Project-scoped LiveView for listing and creating API keys.
+
+  Replaces the former org-wide `ApiKeyLive.Index`. Access is enforced by
+  the `SetProjectFromUrl` on_mount hook — any user that cannot reach the
+  project URL is redirected to login. Mutations go through
+  `Policy.authorize_and_track/3`.
   """
   use BlackboexWeb, :live_view
 
   import BlackboexWeb.Components.Modal
   import BlackboexWeb.Components.Badge
   import BlackboexWeb.Components.Shared.PlainKeyBanner
+  import BlackboexWeb.Components.Shared.ProjectSettingsTabs
 
   alias Blackboex.Apis
   alias Blackboex.Apis.Keys
@@ -14,13 +20,22 @@ defmodule BlackboexWeb.ApiKeyLive.Index do
 
   @impl true
   def mount(_params, _session, socket) do
-    org = socket.assigns.current_scope.organization
-    keys = Keys.list_org_keys(org.id)
-    apis = Apis.list_apis(org.id)
+    scope = socket.assigns.current_scope
+    org = scope.organization
+    project = scope.project
+
+    {keys, apis} =
+      if project do
+        {Keys.list_keys_for_project(project.id), Apis.list_for_project(project.id)}
+      else
+        {[], []}
+      end
 
     {:ok,
      assign(socket,
        page_title: "API Keys",
+       org: org,
+       project: project,
        keys: keys,
        apis: apis,
        show_create_modal: false,
@@ -36,7 +51,10 @@ defmodule BlackboexWeb.ApiKeyLive.Index do
         <span class="flex items-center gap-2">
           <.icon name="hero-key" class="size-5 text-accent-amber" /> API Keys
         </span>
-        <:subtitle>Manage authentication keys across all your APIs</:subtitle>
+        <:subtitle>
+          Manage authentication keys for APIs in
+          <span class="font-medium">{@project && @project.name}</span>
+        </:subtitle>
         <:actions>
           <.button variant="primary" phx-click="toggle_create_modal">
             <.icon name="hero-plus" class="mr-2 size-4 text-accent-emerald" /> New Key
@@ -44,16 +62,21 @@ defmodule BlackboexWeb.ApiKeyLive.Index do
         </:actions>
       </.header>
 
-      <%!-- Plain key flash (shown after create/rotate) --%>
+      <.project_settings_tabs
+        :if={@project}
+        active={:api_keys}
+        org_slug={@org.slug}
+        project_slug={@project.slug}
+      />
+
       <.plain_key_banner :if={@plain_key_flash} plain_key={@plain_key_flash} />
 
-      <%!-- Keys table --%>
       <%= if @keys == [] do %>
         <.empty_state
           icon="hero-key"
           icon_class="text-accent-amber"
           title="No API keys yet"
-          description="Create a key to authenticate API requests"
+          description="Create a key to authenticate API requests for this project"
         />
       <% else %>
         <.table id="keys" rows={@keys}>
@@ -64,7 +87,7 @@ defmodule BlackboexWeb.ApiKeyLive.Index do
           <:col :let={key} label="API">
             <%= if key.api do %>
               <.link
-                navigate={~p"/apis/#{key.api_id}"}
+                navigate={~p"/orgs/#{@org.slug}/projects/#{@project.slug}/apis/#{key.api.slug}"}
                 class="link-entity"
               >
                 {key.api.name}
@@ -86,7 +109,7 @@ defmodule BlackboexWeb.ApiKeyLive.Index do
           </:col>
           <:action :let={key}>
             <.link
-              navigate={~p"/api-keys/#{key.id}"}
+              navigate={~p"/orgs/#{@org.slug}/projects/#{@project.slug}/api-keys/#{key.id}"}
               class="inline-flex items-center link-primary"
             >
               <.icon name="hero-eye-mini" class="mr-1 size-3" /> Details
@@ -95,7 +118,6 @@ defmodule BlackboexWeb.ApiKeyLive.Index do
         </.table>
       <% end %>
 
-      <%!-- Create Modal --%>
       <.modal show={@show_create_modal} on_close="toggle_create_modal" title="Create API Key">
         <.form :let={_f} for={%{}} as={:key} phx-submit="create_key" class="space-y-4">
           <.input
@@ -137,16 +159,18 @@ defmodule BlackboexWeb.ApiKeyLive.Index do
   def handle_event("create_key", %{"api_id" => api_id, "label" => label}, socket) do
     scope = socket.assigns.current_scope
     org = scope.organization
+    project = scope.project
 
     with :ok <- Policy.authorize_and_track(:api_key_create, scope, org),
-         api when not is_nil(api) <- Apis.get_api(org.id, api_id) do
+         api when not is_nil(api) <- Apis.get_api(org.id, api_id),
+         true <- api.project_id == project.id do
       case Keys.create_key(api, %{
              label: label,
              organization_id: org.id,
-             project_id: api.project_id
+             project_id: project.id
            }) do
         {:ok, plain_key, _api_key} ->
-          keys = Keys.list_org_keys(org.id)
+          keys = Keys.list_keys_for_project(project.id)
 
           {:noreply,
            assign(socket,
@@ -161,6 +185,7 @@ defmodule BlackboexWeb.ApiKeyLive.Index do
     else
       {:error, _reason} -> {:noreply, put_flash(socket, :error, "Not authorized.")}
       nil -> {:noreply, put_flash(socket, :error, "API not found")}
+      false -> {:noreply, put_flash(socket, :error, "API does not belong to this project")}
     end
   end
 

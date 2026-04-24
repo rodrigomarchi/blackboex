@@ -37,6 +37,29 @@ Source code
 - **No code generation:** No Code.compile_string, Code.eval_string, apply/3 with dynamic module
 - **SecurityConfig is the source:** `LLM.SecurityConfig` owns the lists — AstValidator reads from it. Never duplicate.
 
+## Runtime Env Vars (`conn.assigns.env`)
+
+Compiled API Handler code may read project-scoped env vars from
+`conn.assigns.env`. The runtime map is populated by
+`BlackboexWeb.Plugs.DynamicApiRouter` via
+`Blackboex.ProjectEnvVars.load_runtime_map(api.project_id)` *before* the
+module is invoked in the sandbox.
+
+Contract:
+
+```elixir
+def handle(params) do
+  # NOT: System.get_env("FOO") — SecurityViolation
+  # OK:
+  api_key = conn.assigns.env["MY_KEY"]
+  # ...
+end
+```
+
+`System.get_env/1`, `:os.getenv/1`, and `Application.get_env/2` are all blocked
+by `LLM.SecurityConfig`. `conn.assigns.env` is the only way to read env vars
+from Handler code.
+
 ## Sandbox Constraints
 
 | Limit | Default | Hard Cap |

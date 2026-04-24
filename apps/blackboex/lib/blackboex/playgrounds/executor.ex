@@ -35,17 +35,35 @@ defmodule Blackboex.Playgrounds.Executor do
   def execute(source_code) when is_binary(source_code) do
     with {:ok, ast} <- validate(source_code),
          :ok <- validate_playground_safety(ast) do
-      run_sandboxed(ast)
+      run_sandboxed(ast, %{})
     end
   end
 
   @spec execute(String.t(), integer() | String.t()) :: {:ok, String.t()} | {:error, String.t()}
   def execute(source_code, user_id) when is_binary(source_code) do
+    execute(source_code, user_id, nil)
+  end
+
+  @doc """
+  Runs playground code with an explicit `project_id`. The project's env vars
+  are loaded via `Blackboex.ProjectEnvVars.load_runtime_map/1` and exposed to
+  user code as the `env` binding (a `%{String.t() => String.t()}` map).
+  """
+  @spec execute(String.t(), integer() | String.t(), Ecto.UUID.t() | nil) ::
+          {:ok, String.t()} | {:error, String.t()}
+  def execute(source_code, user_id, project_id) when is_binary(source_code) do
     with :ok <- check_rate_limit(user_id),
          {:ok, ast} <- validate(source_code),
          :ok <- validate_playground_safety(ast) do
-      run_sandboxed(ast)
+      env_map = load_env_map(project_id)
+      run_sandboxed(ast, env_map)
     end
+  end
+
+  defp load_env_map(nil), do: %{}
+
+  defp load_env_map(project_id) do
+    Blackboex.ProjectEnvVars.load_runtime_map(project_id)
   end
 
   defp check_rate_limit(user_id) do
@@ -169,7 +187,7 @@ defmodule Blackboex.Playgrounds.Executor do
     Enum.any?(@allowed_modules, &String.ends_with?(&1, suffix))
   end
 
-  defp run_sandboxed(ast) do
+  defp run_sandboxed(ast, env_map) do
     task =
       Task.Supervisor.async_nolink(
         Blackboex.SandboxTaskSupervisor,
@@ -181,7 +199,10 @@ defmodule Blackboex.Playgrounds.Executor do
             original_gl = Process.group_leader()
             Process.group_leader(self(), string_io)
 
-            {result, _bindings} = Code.eval_quoted(ast, [])
+            # `env: env_map` is a binding (2nd arg is the bindings list). Pass
+            # an explicit __ENV__ to make the positional form unambiguous and
+            # prevent accidental reinterpretation as a `Macro.Env` option bag.
+            {result, _bindings} = Code.eval_quoted(ast, [env: env_map], __ENV__)
 
             Process.group_leader(self(), original_gl)
             {_input, io_output} = StringIO.contents(string_io)

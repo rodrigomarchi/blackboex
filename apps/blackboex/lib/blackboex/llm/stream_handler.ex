@@ -7,6 +7,10 @@ defmodule Blackboex.LLM.StreamHandler do
   - `{:llm_token, token}` — each streamed token
   - `{:llm_done, full_response}` — complete accumulated response
   - `{:llm_error, reason}` — error during streaming
+
+  Callers should include `api_key:` in `opts` (per-project Anthropic key).
+  If omitted, the production `ReqLLMClient` falls back to the Application
+  env and — when that's empty — emits `{:llm_error, :missing_api_key}`.
   """
 
   alias Blackboex.LLM.Config

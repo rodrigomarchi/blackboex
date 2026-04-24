@@ -6,7 +6,7 @@ defmodule BlackboexWeb.Components.Editor.Chat.ChatMessage do
   use BlackboexWeb, :html
 
   import BlackboexWeb.Components.Editor.ChatPanelHelpers,
-    only: [format_timestamp: 1]
+    only: [format_timestamp: 1, render_markdown: 1]
 
   import BlackboexWeb.Components.Editor.CodeLabel
 
@@ -47,7 +47,13 @@ defmodule BlackboexWeb.Components.Editor.Chat.ChatMessage do
             {format_timestamp(@event[:timestamp])}
           </span>
         </div>
-        <p class="whitespace-pre-wrap text-xs leading-relaxed">{@event.content || ""}</p>
+        <%= if @event.role == "assistant" do %>
+          <div class="chat-markdown text-xs leading-relaxed">
+            {Phoenix.HTML.raw(render_markdown(@event.content || ""))}
+          </div>
+        <% else %>
+          <p class="whitespace-pre-wrap text-xs leading-relaxed">{@event.content || ""}</p>
+        <% end %>
       </div>
     </div>
     """

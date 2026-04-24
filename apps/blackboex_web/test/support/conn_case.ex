@@ -46,6 +46,7 @@ defmodule BlackboexWeb.ConnCase do
       import Blackboex.PlaygroundConversationsFixtures
       import Blackboex.PageConversationsFixtures
       import Blackboex.LlmFixtures
+      import Blackboex.ProjectEnvVarsFixtures
       import Blackboex.MockDefaults
     end
   end

@@ -1,6 +1,10 @@
 defmodule Blackboex.Agent.Pipeline.Generation do
   @moduledoc """
   Code generation step functions for the code pipeline.
+
+  Every step receives the LLM `{client, llm_opts}` context as an explicit
+  parameter so there is no global / process-dictionary state for the
+  client.
   """
 
   require Logger
@@ -18,19 +22,25 @@ defmodule Blackboex.Agent.Pipeline.Generation do
 
   @type broadcast_fn :: (term() -> :ok)
   @type file_entry :: %{path: String.t(), content: String.t(), file_type: String.t()}
+  @type llm_ctx :: Budget.llm_ctx()
 
   # ── Step 1: Generate Code ──────────────────────────────────────
 
-  @spec step_generate_code(Api.t(), String.t(), broadcast_fn(), String.t() | nil) ::
-          {:ok, String.t()} | {:error, String.t()}
-  def step_generate_code(api, description, broadcast, run_id) do
+  @spec step_generate_code(
+          Api.t(),
+          String.t(),
+          llm_ctx(),
+          broadcast_fn(),
+          String.t() | nil
+        ) :: {:ok, String.t()} | {:error, String.t()}
+  def step_generate_code(api, description, llm_ctx, broadcast, run_id) do
     broadcast.({:step_started, %{step: :generating_code}})
     Budget.touch_run(run_id)
 
     template_type = Budget.template_atom(api.template_type)
     system = Prompts.generation_system_prompt(template_type)
 
-    case Budget.guarded_llm_call(description, system) do
+    case Budget.guarded_llm_call(llm_ctx, description, system) do
       {:ok, content} ->
         code = CodeParser.extract_code(content)
 
@@ -57,18 +67,19 @@ defmodule Blackboex.Agent.Pipeline.Generation do
           String.t(),
           String.t(),
           String.t(),
+          llm_ctx(),
           broadcast_fn(),
           String.t() | nil
         ) ::
           {:ok, String.t()} | {:error, String.t()}
-  def step_edit_code(_api, instruction, current_code, _current_tests, broadcast, run_id) do
+  def step_edit_code(_api, instruction, current_code, _current_tests, llm_ctx, broadcast, run_id) do
     broadcast.({:step_started, %{step: :generating_code}})
     Budget.touch_run(run_id)
 
     system = EditPrompts.system_prompt()
     prompt = EditPrompts.build_edit_prompt(current_code, instruction, [])
 
-    case Budget.guarded_llm_call(prompt, system) do
+    case Budget.guarded_llm_call(llm_ctx, prompt, system) do
       {:ok, content} ->
         code = CodeParser.apply_edits_or_extract(current_code, content)
         Budget.log_step("edit_code", :pass, "Applied edit: #{String.slice(instruction, 0, 100)}")
@@ -89,13 +100,14 @@ defmodule Blackboex.Agent.Pipeline.Generation do
           String.t(),
           String.t(),
           String.t(),
+          llm_ctx(),
           broadcast_fn(),
           String.t() | nil
         ) ::
           {:ok, String.t()} | {:error, String.t()}
-  def step_edit_tests(api, code, instruction, current_tests, broadcast, run_id) do
+  def step_edit_tests(api, code, instruction, current_tests, llm_ctx, broadcast, run_id) do
     if String.trim(current_tests) == "" do
-      step_generate_tests(api, code, broadcast, run_id)
+      step_generate_tests(api, code, llm_ctx, broadcast, run_id)
     else
       broadcast.({:step_started, %{step: :generating_tests}})
       Budget.touch_run(run_id)
@@ -116,14 +128,14 @@ defmodule Blackboex.Agent.Pipeline.Generation do
       Return ONLY SEARCH/REPLACE blocks for the test changes needed.
       """
 
-      case Budget.guarded_llm_call(prompt, system) do
+      case Budget.guarded_llm_call(llm_ctx, prompt, system) do
         {:ok, content} ->
           apply_test_edits_or_skip(content, current_tests, broadcast)
 
         {:error, reason} ->
           Budget.log_step("edit_tests", :fail, reason)
           # Fallback to full test generation
-          step_generate_tests(api, code, broadcast, run_id)
+          step_generate_tests(api, code, llm_ctx, broadcast, run_id)
       end
     end
   end
@@ -145,14 +157,23 @@ defmodule Blackboex.Agent.Pipeline.Generation do
 
   # ── Step 5: Generate Tests ─────────────────────────────────────
 
-  @spec step_generate_tests(Api.t(), String.t(), broadcast_fn(), String.t() | nil) ::
-          {:ok, String.t()} | {:error, String.t()}
-  def step_generate_tests(api, code, broadcast, run_id) do
+  @spec step_generate_tests(
+          Api.t(),
+          String.t(),
+          llm_ctx(),
+          broadcast_fn(),
+          String.t() | nil
+        ) :: {:ok, String.t()} | {:error, String.t()}
+  def step_generate_tests(api, code, {client, llm_opts}, broadcast, run_id) do
     broadcast.({:step_started, %{step: :generating_tests}})
     Budget.touch_run(run_id)
 
     tc = Process.get(:token_callback)
-    gen_opts = if tc, do: [token_callback: tc], else: []
+
+    gen_opts =
+      [client: client] ++
+        llm_opts ++
+        if(tc, do: [token_callback: tc], else: [])
 
     case TestGenerator.generate_tests_for_code(code, api.template_type || "computation", gen_opts) do
       {:ok, %{code: test_code}} ->
@@ -167,14 +188,23 @@ defmodule Blackboex.Agent.Pipeline.Generation do
 
   # ── Step 7: Generate Documentation ────────────────────────────
 
-  @spec step_generate_docs(Api.t(), String.t(), broadcast_fn(), String.t() | nil) ::
-          {:ok, String.t()} | {:error, String.t()}
-  def step_generate_docs(api, code, broadcast, run_id) do
+  @spec step_generate_docs(
+          Api.t(),
+          String.t(),
+          llm_ctx(),
+          broadcast_fn(),
+          String.t() | nil
+        ) :: {:ok, String.t()} | {:error, String.t()}
+  def step_generate_docs(api, code, {client, llm_opts}, broadcast, run_id) do
     broadcast.({:step_started, %{step: :generating_docs}})
     Budget.touch_run(run_id)
 
     doc_tc = Process.get(:token_callback)
-    doc_opts = [source_code: code] ++ if(doc_tc, do: [token_callback: doc_tc], else: [])
+
+    doc_opts =
+      [source_code: code, client: client] ++
+        llm_opts ++
+        if(doc_tc, do: [token_callback: doc_tc], else: [])
 
     case DocGenerator.generate(api, doc_opts) do
       {:ok, %{doc: doc} = result} ->
@@ -200,10 +230,11 @@ defmodule Blackboex.Agent.Pipeline.Generation do
           Api.t(),
           String.t(),
           [map()],
+          llm_ctx(),
           broadcast_fn(),
           String.t() | nil
         ) :: {:ok, String.t()} | {:error, String.t() | atom()}
-  def step_generate_handler(api, description, manifest, broadcast, run_id) do
+  def step_generate_handler(api, description, manifest, llm_ctx, broadcast, run_id) do
     broadcast.({:step_started, %{step: :generating_code}})
     broadcast.({:file_started, %{path: "/src/handler.ex"}})
     Budget.touch_run(run_id)
@@ -211,7 +242,7 @@ defmodule Blackboex.Agent.Pipeline.Generation do
     template_type = Budget.template_atom(api.template_type)
     system = Prompts.handler_system_prompt(template_type, description, manifest)
 
-    case Budget.guarded_llm_call("Generate the handler code as specified above.", system) do
+    case Budget.guarded_llm_call(llm_ctx, "Generate the handler code as specified above.", system) do
       {:ok, content} ->
         code = CodeParser.extract_code(content)
 
@@ -237,16 +268,25 @@ defmodule Blackboex.Agent.Pipeline.Generation do
           String.t(),
           String.t(),
           [map()],
+          llm_ctx(),
           broadcast_fn(),
           String.t() | nil
         ) :: {:ok, [file_entry()]} | {:error, String.t() | atom()}
-  def step_generate_helpers(_api, _description, _handler_code, manifest, broadcast, _run_id)
+  def step_generate_helpers(
+        _api,
+        _description,
+        _handler_code,
+        manifest,
+        _llm_ctx,
+        broadcast,
+        _run_id
+      )
       when length(manifest) <= 1 do
     broadcast.({:step_completed, %{step: :generating_helpers}})
     {:ok, []}
   end
 
-  def step_generate_helpers(_api, description, handler_code, manifest, broadcast, run_id) do
+  def step_generate_helpers(_api, description, handler_code, manifest, llm_ctx, broadcast, run_id) do
     helper_manifests = Enum.filter(manifest, &(&1["role"] == "helper"))
     generated_so_far = [%{"path" => "/src/handler.ex", "content" => handler_code}]
 
@@ -255,6 +295,7 @@ defmodule Blackboex.Agent.Pipeline.Generation do
       generated_so_far,
       description,
       handler_code,
+      llm_ctx,
       broadcast,
       run_id,
       []
@@ -266,11 +307,21 @@ defmodule Blackboex.Agent.Pipeline.Generation do
           [map()],
           String.t(),
           String.t(),
+          llm_ctx(),
           broadcast_fn(),
           String.t() | nil,
           [file_entry()]
         ) :: {:ok, [file_entry()]} | {:error, String.t() | atom()}
-  defp generate_helpers_sequentially([], _ctx, _desc, _handler, broadcast, _run_id, acc) do
+  defp generate_helpers_sequentially(
+         [],
+         _ctx,
+         _desc,
+         _handler,
+         _llm_ctx,
+         broadcast,
+         _run_id,
+         acc
+       ) do
     broadcast.({:step_completed, %{step: :generating_helpers}})
     {:ok, Enum.reverse(acc)}
   end
@@ -280,6 +331,7 @@ defmodule Blackboex.Agent.Pipeline.Generation do
          generated_so_far,
          description,
          handler_code,
+         llm_ctx,
          broadcast,
          run_id,
          acc
@@ -298,7 +350,7 @@ defmodule Blackboex.Agent.Pipeline.Generation do
 
     system = Prompts.helper_file_system_prompt(description, context, path, file_desc)
 
-    case Budget.guarded_llm_call("Generate #{path} as described.", system) do
+    case Budget.guarded_llm_call(llm_ctx, "Generate #{path} as described.", system) do
       {:ok, content} ->
         code = CodeParser.extract_code(content)
         entry = %{path: path, content: code, file_type: "source"}
@@ -318,6 +370,7 @@ defmodule Blackboex.Agent.Pipeline.Generation do
           new_context,
           description,
           handler_code,
+          llm_ctx,
           broadcast,
           run_id,
           [entry | acc]
@@ -347,17 +400,22 @@ defmodule Blackboex.Agent.Pipeline.Generation do
   @spec step_generate_test_files(
           Api.t(),
           [file_entry()],
+          llm_ctx(),
           broadcast_fn(),
           String.t() | nil
         ) :: {:ok, [file_entry()]} | {:error, String.t() | atom()}
-  def step_generate_test_files(api, source_files, broadcast, run_id) do
+  def step_generate_test_files(api, source_files, {client, llm_opts}, broadcast, run_id) do
     broadcast.({:step_started, %{step: :generating_tests}})
     Budget.touch_run(run_id)
 
     # Generate tests using existing TestGenerator with concatenated source
     handler_code = get_handler_content(source_files)
     tc = Process.get(:token_callback)
-    gen_opts = if tc, do: [token_callback: tc], else: []
+
+    gen_opts =
+      [client: client] ++
+        llm_opts ++
+        if(tc, do: [token_callback: tc], else: [])
 
     case TestGenerator.generate_tests_for_code(
            handler_code,
@@ -382,10 +440,11 @@ defmodule Blackboex.Agent.Pipeline.Generation do
           Api.t(),
           String.t(),
           [file_entry()],
+          llm_ctx(),
           broadcast_fn(),
           String.t() | nil
         ) :: {:ok, [file_entry()]} | {:error, String.t() | atom()}
-  def step_edit_files(_api, instruction, current_files, broadcast, run_id) do
+  def step_edit_files(_api, instruction, current_files, llm_ctx, broadcast, run_id) do
     broadcast.({:step_started, %{step: :generating_code}})
     Budget.touch_run(run_id)
 
@@ -393,7 +452,7 @@ defmodule Blackboex.Agent.Pipeline.Generation do
 
     prompt = Prompts.multi_file_edit_prompt(current_files, instruction)
 
-    case Budget.guarded_llm_call(prompt, system) do
+    case Budget.guarded_llm_call(llm_ctx, prompt, system) do
       {:ok, content} ->
         edited_files = apply_path_annotated_edits(current_files, content)
         Budget.log_step("edit_files", :pass, "Applied edit: #{String.slice(instruction, 0, 100)}")

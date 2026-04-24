@@ -1,6 +1,7 @@
-defmodule BlackboexWeb.ApiKeyLive.Show do
+defmodule BlackboexWeb.ProjectLive.ApiKeyShow do
   @moduledoc """
-  LiveView for viewing API key details, metrics, and performing key actions (rotate, revoke).
+  Project-scoped LiveView for viewing API key details, metrics, and
+  performing key actions (rotate, revoke).
   """
   use BlackboexWeb, :live_view
 
@@ -17,26 +18,38 @@ defmodule BlackboexWeb.ApiKeyLive.Show do
 
   @impl true
   def mount(%{"id" => id}, _session, socket) do
-    org = socket.assigns.current_scope.organization
+    scope = socket.assigns.current_scope
+    org = scope.organization
+    project = scope.project
     key = Keys.get_key(id)
 
-    if key && key.organization_id == org.id do
-      metrics = Keys.key_metrics(key.id, :week)
+    cond do
+      is_nil(key) ->
+        {:ok,
+         socket
+         |> put_flash(:error, "Key not found")
+         |> push_navigate(to: keys_index_path(org, project))}
 
-      {:ok,
-       assign(socket,
-         page_title: "Key: #{key.key_prefix}...",
-         key: key,
-         metrics: metrics,
-         period: "7d",
-         plain_key_flash: nil,
-         confirm: nil
-       )}
-    else
-      {:ok,
-       socket
-       |> put_flash(:error, "Key not found")
-       |> push_navigate(to: ~p"/api-keys")}
+      key.organization_id != org.id or key.project_id != project.id ->
+        {:ok,
+         socket
+         |> put_flash(:error, "Key not found")
+         |> push_navigate(to: keys_index_path(org, project))}
+
+      true ->
+        metrics = Keys.key_metrics(key.id, :week)
+
+        {:ok,
+         assign(socket,
+           page_title: "Key: #{key.key_prefix}...",
+           org: org,
+           project: project,
+           key: key,
+           metrics: metrics,
+           period: "7d",
+           plain_key_flash: nil,
+           confirm: nil
+         )}
     end
   end
 
@@ -44,10 +57,9 @@ defmodule BlackboexWeb.ApiKeyLive.Show do
   def render(assigns) do
     ~H"""
     <.page>
-      <%!-- Header --%>
       <.header>
         <div class="flex items-center gap-3">
-          <.link navigate={~p"/api-keys"} class="link-muted">
+          <.link navigate={keys_index_path(@org, @project)} class="link-muted">
             <.icon name="hero-arrow-left" class="size-5" />
           </.link>
           <span class="text-2xl font-bold tracking-tight font-mono">{@key.key_prefix}...</span>
@@ -58,7 +70,10 @@ defmodule BlackboexWeb.ApiKeyLive.Show do
         <:subtitle>
           {@key.label || "Unnamed key"} · API:
           <%= if @key.api do %>
-            <.link navigate={~p"/apis/#{@key.api_id}"} class="link-entity">
+            <.link
+              navigate={~p"/orgs/#{@org.slug}/projects/#{@project.slug}/apis/#{@key.api.slug}"}
+              class="link-entity"
+            >
               {@key.api.name}
             </.link>
           <% else %>
@@ -88,10 +103,8 @@ defmodule BlackboexWeb.ApiKeyLive.Show do
         </:actions>
       </.header>
 
-      <%!-- Plain key flash --%>
       <.plain_key_banner :if={@plain_key_flash} plain_key={@plain_key_flash} />
 
-      <%!-- Metrics --%>
       <.page_section>
         <div class="flex items-center justify-between">
           <.section_heading
@@ -126,7 +139,6 @@ defmodule BlackboexWeb.ApiKeyLive.Show do
         </.stat_grid>
       </.page_section>
 
-      <%!-- Details --%>
       <.card>
         <.card_content standalone>
           <.section_heading
@@ -248,6 +260,11 @@ defmodule BlackboexWeb.ApiKeyLive.Show do
   def handle_event("dismiss_flash", _params, socket) do
     {:noreply, assign(socket, plain_key_flash: nil)}
   end
+
+  # ── Helpers ──────────────────────────────────────────────────────────────
+
+  defp keys_index_path(org, project),
+    do: "/orgs/#{org.slug}/projects/#{project.slug}/api-keys"
 
   defp build_confirm("revoke", _params) do
     %{

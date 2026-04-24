@@ -15,6 +15,8 @@ defmodule BlackboexWeb.FlowLive.Edit do
   alias Blackboex.Flows
   alias Blackboex.Flows.SampleInput
   alias Blackboex.Policy
+  alias Blackboex.ProjectEnvVars
+  alias Blackboex.Projects
   alias BlackboexWeb.FlowLive.EditHelpers
   alias BlackboexWeb.FlowLive.ExecutionGraphMerger
 
@@ -57,6 +59,8 @@ defmodule BlackboexWeb.FlowLive.Edit do
           Phoenix.PubSub.subscribe(Blackboex.PubSub, "flow_agent:flow:#{flow.id}")
         end
 
+        {llm_configured?, configure_url} = resolve_llm_context(org, flow.project_id)
+
         {:ok,
          assign(socket,
            flow: flow,
@@ -88,9 +92,27 @@ defmodule BlackboexWeb.FlowLive.Edit do
            chat_loading: false,
            current_run_id: nil,
            current_stream: nil,
-           chat_timeout_ref: nil
+           current_stream_mode: nil,
+           chat_timeout_ref: nil,
+           llm_configured?: llm_configured?,
+           configure_url: configure_url
          )}
     end
+  end
+
+  @spec resolve_llm_context(map(), Ecto.UUID.t() | nil) :: {boolean(), String.t() | nil}
+  defp resolve_llm_context(_org, nil), do: {false, nil}
+
+  defp resolve_llm_context(org, project_id) do
+    configured? = match?({:ok, _key}, ProjectEnvVars.get_llm_key(project_id, :anthropic))
+
+    url =
+      case Projects.get_project(org.id, project_id) do
+        nil -> nil
+        project -> ~p"/orgs/#{org.slug}/projects/#{project.slug}/integrations"
+      end
+
+    {configured?, url}
   end
 
   defp load_chat_history(flow_id) do
@@ -276,6 +298,7 @@ defmodule BlackboexWeb.FlowLive.Edit do
        chat_loading: false,
        current_run_id: nil,
        current_stream: nil,
+       current_stream_mode: nil,
        chat_timeout_ref: nil
      )}
   end
@@ -756,6 +779,7 @@ defmodule BlackboexWeb.FlowLive.Edit do
        chat_loading: true,
        current_run_id: run_id,
        current_stream: "",
+       current_stream_mode: nil,
        chat_open: true
      )}
   end
@@ -767,7 +791,29 @@ defmodule BlackboexWeb.FlowLive.Edit do
     # accept the delta and lock in the run_id now so completion can match.
     if chat_run_match?(socket, run_id) do
       next = (socket.assigns.current_stream || "") <> delta
-      {:noreply, assign(socket, current_run_id: run_id, current_stream: next)}
+
+      {:noreply,
+       assign(socket,
+         current_run_id: run_id,
+         current_stream: next,
+         current_stream_mode: :edit
+       )}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_info({:explain_delta, %{delta: delta, run_id: run_id}}, socket) do
+    if chat_run_match?(socket, run_id) do
+      next = (socket.assigns.current_stream || "") <> delta
+
+      {:noreply,
+       assign(socket,
+         current_run_id: run_id,
+         current_stream: next,
+         current_stream_mode: :explain
+       )}
     else
       {:noreply, socket}
     end
@@ -1021,6 +1067,9 @@ defmodule BlackboexWeb.FlowLive.Edit do
           input={@chat_input}
           loading={@chat_loading}
           current_stream={@current_stream}
+          current_stream_mode={@current_stream_mode}
+          llm_configured?={@llm_configured?}
+          configure_url={@configure_url}
         />
       </div>
 

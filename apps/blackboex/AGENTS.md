@@ -13,7 +13,7 @@ Each context has its own AGENTS.md — **read it before generating code in that 
 | **Apis** | `Blackboex.Apis` | Api, ApiKey, ApiVersion, ApiFile | `ApiQueries`, `FileQueries`, `VersionQueries` |
 | **Flows** | `Blackboex.Flows` | Flow | `FlowQueries` |
 | **FlowExecutions** | `Blackboex.FlowExecutions` | FlowExecution, NodeExecution | `FlowExecutionQueries` |
-| **FlowSecrets** | `Blackboex.FlowSecrets` | FlowSecret | `FlowSecretQueries` |
+| **ProjectEnvVars** | `Blackboex.ProjectEnvVars` | ProjectEnvVar | `ProjectEnvVarQueries` |
 | **Projects** | `Blackboex.Projects` | Project, ProjectMembership | `ProjectQueries` |
 | **Conversations** | `Blackboex.Conversations` | Conversation, Run, Event | `ConversationQueries` |
 | **Agent** | `Blackboex.Agent` | — | — |

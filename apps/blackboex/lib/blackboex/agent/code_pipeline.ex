@@ -24,6 +24,7 @@ defmodule Blackboex.Agent.CodePipeline do
   alias Blackboex.Agent.Pipeline.Generation
   alias Blackboex.Agent.Pipeline.Validation
   alias Blackboex.Apis.Api
+  alias Blackboex.LLM.Config
   alias Blackboex.LLM.Prompts
   alias Blackboex.LLM.Templates
 
@@ -65,12 +66,16 @@ defmodule Blackboex.Agent.CodePipeline do
     Process.put(:pipeline_run_id, run_id)
     Process.put(:token_callback, opts[:token_callback])
 
-    with {:ok, code} <- Generation.step_generate_code(api, description, broadcast, run_id),
-         {:ok, code} <- Validation.step_validate_and_fix(api, code, broadcast, run_id),
-         {:ok, test_code} <- Generation.step_generate_tests(api, code, broadcast, run_id),
+    with {:ok, llm_ctx} <- resolve_llm_ctx(api),
+         {:ok, code} <-
+           Generation.step_generate_code(api, description, llm_ctx, broadcast, run_id),
+         {:ok, code} <- Validation.step_validate_and_fix(api, code, llm_ctx, broadcast, run_id),
          {:ok, test_code} <-
-           Validation.step_run_and_fix_tests(api, code, test_code, broadcast, run_id),
-         {:ok, doc_md} <- Generation.step_generate_docs(api, code, broadcast, run_id) do
+           Generation.step_generate_tests(api, code, llm_ctx, broadcast, run_id),
+         {:ok, test_code} <-
+           Validation.step_run_and_fix_tests(api, code, test_code, llm_ctx, broadcast, run_id),
+         {:ok, doc_md} <-
+           Generation.step_generate_docs(api, code, llm_ctx, broadcast, run_id) do
       broadcast.({:step_completed, %{step: :submitting}})
 
       {:ok,
@@ -97,10 +102,18 @@ defmodule Blackboex.Agent.CodePipeline do
     saved_callback = Process.get(:token_callback)
 
     result =
-      with {:ok, manifest} <- step_plan_files(api, description, broadcast, run_id),
+      with {:ok, llm_ctx} <- resolve_llm_ctx(api),
+           {:ok, manifest} <- step_plan_files(api, description, llm_ctx, broadcast, run_id),
            :ok <- Budget.set_dynamic_budget(manifest, opts),
            {:ok, handler_code} <-
-             Generation.step_generate_handler(api, description, manifest, broadcast, run_id),
+             Generation.step_generate_handler(
+               api,
+               description,
+               manifest,
+               llm_ctx,
+               broadcast,
+               run_id
+             ),
            :ok <- Budget.save_partial(:handler, handler_code),
            {:ok, helper_files} <-
              Generation.step_generate_helpers(
@@ -108,6 +121,7 @@ defmodule Blackboex.Agent.CodePipeline do
                description,
                handler_code,
                manifest,
+               llm_ctx,
                broadcast,
                run_id
              ),
@@ -116,12 +130,24 @@ defmodule Blackboex.Agent.CodePipeline do
            # Disable streaming for validation/fix phases — fixes must not appear in editor
            :ok <- Budget.disable_streaming(),
            {:ok, source_files} <-
-             Validation.step_validate_and_fix_files(api, source_files, broadcast, run_id),
+             Validation.step_validate_and_fix_files(
+               api,
+               source_files,
+               llm_ctx,
+               broadcast,
+               run_id
+             ),
            :ok <- Budget.save_partial(:source_files, source_files),
            # Re-enable streaming for test generation
            :ok <- Budget.restore_streaming(saved_callback),
            {:ok, test_files} <-
-             Generation.step_generate_test_files(api, source_files, broadcast, run_id),
+             Generation.step_generate_test_files(
+               api,
+               source_files,
+               llm_ctx,
+               broadcast,
+               run_id
+             ),
            # Disable streaming for test fix phase
            :ok <- Budget.disable_streaming(),
            {:ok, test_files} <-
@@ -129,6 +155,7 @@ defmodule Blackboex.Agent.CodePipeline do
                api,
                source_files,
                test_files,
+               llm_ctx,
                broadcast,
                run_id
              ),
@@ -137,6 +164,7 @@ defmodule Blackboex.Agent.CodePipeline do
              Generation.step_generate_docs(
                api,
                Generation.get_handler_content(source_files),
+               llm_ctx,
                broadcast,
                run_id
              ) do
@@ -174,10 +202,24 @@ defmodule Blackboex.Agent.CodePipeline do
     Process.put(:pipeline_run_id, run_id)
     Process.put(:token_callback, opts[:token_callback])
 
-    with {:ok, edited_files} <-
-           Generation.step_edit_files(api, instruction, current_files, broadcast, run_id),
+    with {:ok, llm_ctx} <- resolve_llm_ctx(api),
          {:ok, edited_files} <-
-           Validation.step_validate_and_fix_files(api, edited_files, broadcast, run_id),
+           Generation.step_edit_files(
+             api,
+             instruction,
+             current_files,
+             llm_ctx,
+             broadcast,
+             run_id
+           ),
+         {:ok, edited_files} <-
+           Validation.step_validate_and_fix_files(
+             api,
+             edited_files,
+             llm_ctx,
+             broadcast,
+             run_id
+           ),
          handler_code <- Generation.get_handler_content(edited_files),
          current_test_code <- Enum.map_join(current_test_files, "\n\n", & &1.content),
          {:ok, test_code} <-
@@ -186,12 +228,21 @@ defmodule Blackboex.Agent.CodePipeline do
              handler_code,
              instruction,
              current_test_code,
+             llm_ctx,
              broadcast,
              run_id
            ),
          {:ok, test_code} <-
-           Validation.step_run_and_fix_tests(api, handler_code, test_code, broadcast, run_id),
-         {:ok, doc_md} <- Generation.step_generate_docs(api, handler_code, broadcast, run_id) do
+           Validation.step_run_and_fix_tests(
+             api,
+             handler_code,
+             test_code,
+             llm_ctx,
+             broadcast,
+             run_id
+           ),
+         {:ok, doc_md} <-
+           Generation.step_generate_docs(api, handler_code, llm_ctx, broadcast, run_id) do
       broadcast.({:step_completed, %{step: :submitting}})
 
       test_files = [
@@ -222,21 +273,32 @@ defmodule Blackboex.Agent.CodePipeline do
     Process.put(:pipeline_run_id, run_id)
     Process.put(:token_callback, opts[:token_callback])
 
-    with {:ok, code} <-
+    with {:ok, llm_ctx} <- resolve_llm_ctx(api),
+         {:ok, code} <-
            Generation.step_edit_code(
              api,
              instruction,
              current_code,
              current_tests,
+             llm_ctx,
              broadcast,
              run_id
            ),
-         {:ok, code} <- Validation.step_validate_and_fix(api, code, broadcast, run_id),
+         {:ok, code} <- Validation.step_validate_and_fix(api, code, llm_ctx, broadcast, run_id),
          {:ok, test_code} <-
-           Generation.step_edit_tests(api, code, instruction, current_tests, broadcast, run_id),
+           Generation.step_edit_tests(
+             api,
+             code,
+             instruction,
+             current_tests,
+             llm_ctx,
+             broadcast,
+             run_id
+           ),
          {:ok, test_code} <-
-           Validation.step_run_and_fix_tests(api, code, test_code, broadcast, run_id),
-         {:ok, doc_md} <- Generation.step_generate_docs(api, code, broadcast, run_id) do
+           Validation.step_run_and_fix_tests(api, code, test_code, llm_ctx, broadcast, run_id),
+         {:ok, doc_md} <-
+           Generation.step_generate_docs(api, code, llm_ctx, broadcast, run_id) do
       broadcast.({:step_completed, %{step: :submitting}})
 
       {:ok,
@@ -250,11 +312,33 @@ defmodule Blackboex.Agent.CodePipeline do
     end
   end
 
+  # ── LLM context resolution ──────────────────────────────────────
+
+  # Resolves the project-scoped Anthropic key into `{client, llm_opts}`
+  # that is threaded explicitly through each step function. There is no
+  # platform fallback: APIs whose project has no key (or APIs without
+  # a project_id) propagate `{:error, :not_configured}` to the caller.
+  @spec resolve_llm_ctx(Api.t()) :: {:ok, Budget.llm_ctx()} | {:error, :not_configured}
+  defp resolve_llm_ctx(%Api{project_id: project_id}) when is_binary(project_id) do
+    case Config.client_for_project(project_id) do
+      {:ok, client, llm_opts} -> {:ok, {client, llm_opts}}
+      {:error, :not_configured} = err -> err
+    end
+  end
+
+  defp resolve_llm_ctx(%Api{}), do: {:error, :not_configured}
+
   # ── Private Planning Steps ──────────────────────────────────────
 
-  @spec step_plan_files(Api.t(), String.t(), broadcast_fn(), String.t() | nil) ::
+  @spec step_plan_files(
+          Api.t(),
+          String.t(),
+          Budget.llm_ctx(),
+          broadcast_fn(),
+          String.t() | nil
+        ) ::
           {:ok, [map()]} | {:error, String.t() | atom()}
-  defp step_plan_files(api, description, broadcast, run_id) do
+  defp step_plan_files(api, description, llm_ctx, broadcast, run_id) do
     broadcast.({:step_started, %{step: :planning_files}})
     Budget.touch_run(run_id)
 
@@ -266,7 +350,7 @@ defmodule Blackboex.Agent.CodePipeline do
     #{Templates.get_multi_file_guide()}
     """
 
-    case Budget.guarded_llm_call(description, system) do
+    case Budget.guarded_llm_call(llm_ctx, description, system) do
       {:ok, content} ->
         case parse_manifest(content) do
           {:ok, files} ->

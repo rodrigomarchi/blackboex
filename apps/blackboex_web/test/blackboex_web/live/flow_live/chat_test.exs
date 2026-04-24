@@ -112,6 +112,33 @@ defmodule BlackboexWeb.FlowLive.ChatTest do
       assert html =~ "Agente pensando"
     end
 
+    test "{:explain_delta} streams markdown into the panel", %{conn: conn, user: user} do
+      %{flow: flow} = do_setup_flow(user)
+      {:ok, view, _html} = live(conn, ~p"/flows/#{flow.id}/edit")
+
+      run_id = Ecto.UUID.generate()
+
+      Phoenix.PubSub.broadcast(
+        Blackboex.PubSub,
+        "flow_agent:flow:#{flow.id}",
+        {:run_started, %{run_id: run_id, run_type: "edit", flow_id: flow.id}}
+      )
+
+      :timer.sleep(50)
+
+      Phoenix.PubSub.broadcast(
+        Blackboex.PubSub,
+        "flow_agent:run:#{run_id}",
+        {:explain_delta, %{delta: "Esse fluxo **valida** eventos.", run_id: run_id}}
+      )
+
+      :timer.sleep(50)
+      html = render(view)
+
+      # Markdown is rendered — the bold tag must appear.
+      assert html =~ "<strong>valida</strong>"
+    end
+
     test "{:definition_delta} appends to the stream view", %{conn: conn, user: user} do
       %{flow: flow} = do_setup_flow(user)
       {:ok, view, _html} = live(conn, ~p"/flows/#{flow.id}/edit")
@@ -161,8 +188,7 @@ defmodule BlackboexWeb.FlowLive.ChatTest do
       Phoenix.PubSub.broadcast(
         Blackboex.PubSub,
         "flow_agent:run:#{run_id}",
-        {:run_completed,
-         %{kind: :explain, answer: "Esse fluxo valida o evento.", run_id: run_id}}
+        {:run_completed, %{kind: :explain, answer: "Esse fluxo valida o evento.", run_id: run_id}}
       )
 
       :timer.sleep(80)
@@ -250,6 +276,32 @@ defmodule BlackboexWeb.FlowLive.ChatTest do
       :timer.sleep(50)
       html = render(view)
       assert html =~ "boom"
+    end
+  end
+
+  describe "llm_not_configured banner" do
+    test "shows banner in drawer when project has no Anthropic key", %{conn: conn, user: user} do
+      %{flow: flow} = do_setup_flow(user)
+      {:ok, view, _html} = live(conn, ~p"/flows/#{flow.id}/edit")
+
+      view |> element("button", "Agente") |> render_click()
+
+      assert_has(view, ~s([data-role="llm-not-configured-banner"]))
+    end
+
+    test "hides banner when project has Anthropic key configured", %{conn: conn, user: user} do
+      %{flow: flow} = do_setup_flow(user)
+
+      llm_anthropic_key_fixture(%{
+        organization_id: flow.organization_id,
+        project_id: flow.project_id,
+        value: "sk-ant-has-a-key-value"
+      })
+
+      {:ok, view, _html} = live(conn, ~p"/flows/#{flow.id}/edit")
+      view |> element("button", "Agente") |> render_click()
+
+      refute_has(view, ~s([data-role="llm-not-configured-banner"]))
     end
   end
 

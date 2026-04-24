@@ -16,6 +16,7 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
   alias Blackboex.Billing.Enforcement
   alias Blackboex.CodeGen.Compiler
   alias Blackboex.CodeGen.Sandbox
+  alias Blackboex.ProjectEnvVars
   alias Blackboex.Telemetry.Events
   alias BlackboexWeb.Plugs.ApiAuth
   alias BlackboexWeb.Plugs.ApiDocsPlug
@@ -103,6 +104,7 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
       with {:ok, conn} <- maybe_rate_limit(conn, api, metadata),
            {:ok, conn} <- maybe_authenticate(conn, api, metadata),
            {:ok, conn} <- maybe_check_enforcement(conn, api) do
+        conn = assign_project_env(conn, api)
         {resp_conn, error_msg} = execute_module(conn, module, rest)
         {:ok, resp_conn, error_msg}
       end
@@ -341,6 +343,16 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
     end
   end
 
+  # Loads the project's env vars and assigns them to `conn.assigns.env` so
+  # compiled Handler code can read `conn.assigns.env["KEY"]`. Defensive against
+  # missing `project_id` (legacy APIs) — falls back to an empty map.
+  @spec assign_project_env(Plug.Conn.t(), Blackboex.Apis.Api.t()) :: Plug.Conn.t()
+  defp assign_project_env(conn, %{project_id: nil}), do: Plug.Conn.assign(conn, :env, %{})
+
+  defp assign_project_env(conn, %{project_id: project_id}) do
+    Plug.Conn.assign(conn, :env, ProjectEnvVars.load_runtime_map(project_id))
+  end
+
   defp execute_module(conn, module, rest) do
     conn = %{conn | path_info: rest, script_name: conn.script_name}
 
@@ -359,13 +371,17 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
         {send_json(conn, 503, %{error: error}), error}
 
       {:error, {:exception, message}} ->
-        sanitized = sanitize_error(message)
-        Logger.error("API execution error: #{message}")
+        env = conn.assigns[:env] || %{}
+        redacted_msg = redact_env_values(message, env)
+        sanitized = sanitize_error(redacted_msg)
+        Logger.error("API execution error: #{redacted_msg}")
         {send_json(conn, 500, %{error: "API execution failed", detail: sanitized}), sanitized}
 
       {:error, {:runtime, reason}} ->
-        sanitized = sanitize_error(reason)
-        Logger.error("API runtime error: #{inspect(module)} — #{inspect(reason)}")
+        env = conn.assigns[:env] || %{}
+        redacted_reason = redact_env_values(inspect(reason), env)
+        sanitized = sanitize_error(redacted_reason)
+        Logger.error("API runtime error: #{inspect(module)} — #{redacted_reason}")
         {send_json(conn, 500, %{error: "API execution failed", detail: sanitized}), sanitized}
     end
   end
@@ -433,7 +449,24 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
     |> String.slice(0, 500)
   end
 
-  defp sanitize_error(reason), do: inspect(reason) |> String.slice(0, 500)
+  # Redacts env values from error messages BEFORE logging / responding, so
+  # secrets like API keys can never leak via a 500 response or log line.
+  # Only values with `byte_size >= 8` are replaced — short env values
+  # (`"1"`, `"true"`, `"GET"`) would corrupt unrelated output text.
+  @env_redact_min_length 8
+
+  @spec redact_env_values(String.t(), map()) :: String.t()
+  defp redact_env_values(message, env) when is_binary(message) and is_map(env) do
+    Enum.reduce(env, message, fn {name, value}, acc ->
+      if is_binary(value) and byte_size(value) >= @env_redact_min_length do
+        String.replace(acc, value, "{{env.#{name}}}")
+      else
+        acc
+      end
+    end)
+  end
+
+  defp redact_env_values(message, _env) when is_binary(message), do: message
 
   defp send_json(conn, status, body) do
     conn

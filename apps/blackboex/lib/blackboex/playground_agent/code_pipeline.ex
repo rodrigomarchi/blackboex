@@ -28,13 +28,14 @@ defmodule Blackboex.PlaygroundAgent.CodePipeline do
           run_id: String.t() | nil,
           token_callback: (String.t() -> :ok) | nil,
           client: module() | nil,
-          history: [%{role: String.t(), content: String.t()}] | nil
+          history: [%{role: String.t(), content: String.t()}] | nil,
+          project_id: Ecto.UUID.t() | nil,
+          api_key: String.t() | nil
         ]
 
   @spec run(run_type(), String.t(), String.t() | nil, opts()) ::
-          {:ok, result()} | {:error, String.t()}
+          {:ok, result()} | {:error, :not_configured | String.t()}
   def run(run_type, message, code_before, opts \\ []) when run_type in [:generate, :edit] do
-    client = opts[:client] || Config.client()
     token_callback = opts[:token_callback]
     run_id = opts[:run_id]
     history = opts[:history] || []
@@ -42,13 +43,17 @@ defmodule Blackboex.PlaygroundAgent.CodePipeline do
     system = Prompts.system_prompt(run_type)
     prompt = Prompts.user_message(run_type, message, code_before, history: history)
 
-    with {:ok, %{content: content, usage: usage}} <-
-           call_llm(client, prompt, system, token_callback),
+    with {:ok, client, llm_opts} <- Config.resolve_client(opts),
+         {:ok, %{content: content, usage: usage}} <-
+           call_llm(client, prompt, system, token_callback, llm_opts),
          :ok <- maybe_flush(run_id),
          {:ok, code} <- CodeParser.extract_code(content) do
       summary = CodeParser.extract_summary(content)
       {:ok, build_result(code, summary, usage)}
     else
+      {:error, :not_configured} ->
+        {:error, :not_configured}
+
       {:error, :no_code_block} ->
         {:error, "resposta do modelo não continha bloco de código Elixir"}
 
@@ -62,8 +67,8 @@ defmodule Blackboex.PlaygroundAgent.CodePipeline do
 
   # ── LLM invocation ───────────────────────────────────────────────
 
-  defp call_llm(client, prompt, system, nil) do
-    case client.generate_text(prompt, system: system) do
+  defp call_llm(client, prompt, system, nil, llm_opts) do
+    case client.generate_text(prompt, Keyword.merge(llm_opts, system: system)) do
       {:ok, %{content: _content} = result} ->
         {:ok, %{content: result.content, usage: result[:usage] || %{}}}
 
@@ -72,8 +77,9 @@ defmodule Blackboex.PlaygroundAgent.CodePipeline do
     end
   end
 
-  defp call_llm(client, prompt, system, token_callback) when is_function(token_callback, 1) do
-    case client.stream_text(prompt, system: system) do
+  defp call_llm(client, prompt, system, token_callback, llm_opts)
+       when is_function(token_callback, 1) do
+    case client.stream_text(prompt, Keyword.merge(llm_opts, system: system)) do
       {:ok, %ReqLLM.StreamResponse{} = response} ->
         content =
           response
@@ -106,7 +112,7 @@ defmodule Blackboex.PlaygroundAgent.CodePipeline do
   rescue
     e ->
       Logger.debug("Playground stream failed, falling back to sync: #{Exception.message(e)}")
-      call_llm(client, prompt, system, nil)
+      call_llm(client, prompt, system, nil, llm_opts)
   end
 
   defp maybe_flush(nil), do: :ok

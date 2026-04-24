@@ -227,6 +227,32 @@ defmodule BlackboexWeb.Components.Editor.ChatPanelHelpers do
   def event_tag(%{type: :status}), do: :status
   def event_tag(_), do: :status
 
+  @doc """
+  Renders markdown to safe HTML via MDEx. Used by chat message components to
+  format assistant responses that arrive as CommonMark+GFM. HTML input is
+  escaped (`unsafe: false`) so LLM-generated content can't inject arbitrary
+  markup. Falls back to the raw markdown on parse failure.
+  """
+  @spec render_markdown(String.t() | nil) :: String.t()
+  def render_markdown(nil), do: ""
+  def render_markdown(""), do: ""
+
+  def render_markdown(markdown) when is_binary(markdown) do
+    case MDEx.to_html(markdown,
+           extension: [
+             table: true,
+             strikethrough: true,
+             autolink: true,
+             tasklist: true
+           ],
+           render: [unsafe: false],
+           syntax_highlight: [formatter: {:html_inline, theme: "github_dark"}]
+         ) do
+      {:ok, html} -> html
+      _ -> Phoenix.HTML.html_escape(markdown) |> Phoenix.HTML.safe_to_string()
+    end
+  end
+
   # Private helpers
 
   defp parse_lint_count(content) do

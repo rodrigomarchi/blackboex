@@ -19,6 +19,8 @@ defmodule BlackboexWeb.Components.Editor.FlowChatPanel do
 
   import BlackboexWeb.Components.Editor.Chat.ChatMessage, only: [render_message_step: 1]
   import BlackboexWeb.Components.Editor.Chat.CodeBlocks, only: [render_streaming_code: 1]
+  import BlackboexWeb.Components.Editor.ChatPanelHelpers, only: [render_markdown: 1]
+  import BlackboexWeb.Components.Shared.LlmNotConfiguredBanner
   import BlackboexWeb.Components.UI.InlineInput
   import BlackboexWeb.Components.UI.SectionHeading
 
@@ -33,6 +35,9 @@ defmodule BlackboexWeb.Components.Editor.FlowChatPanel do
   attr :input, :string, default: ""
   attr :loading, :boolean, default: false
   attr :current_stream, :string, default: nil
+  attr :current_stream_mode, :atom, default: nil
+  attr :llm_configured?, :boolean, default: true
+  attr :configure_url, :string, default: nil
 
   @spec flow_chat_panel(map()) :: Phoenix.LiveView.Rendered.t()
   def flow_chat_panel(assigns) do
@@ -60,6 +65,9 @@ defmodule BlackboexWeb.Components.Editor.FlowChatPanel do
         id="flow-chat-timeline"
         phx-hook="ChatAutoScroll"
       >
+        <div :if={!@llm_configured?} class="px-3 pt-3">
+          <.llm_not_configured_banner project_url={@configure_url} />
+        </div>
         <%= if @messages == [] and @current_stream in [nil, ""] and not @loading do %>
           <p class="text-muted-description text-center py-12 px-4">
             Peça ao agente para criar ou editar o fluxo: "fluxo de aprovação com webhook_wait",
@@ -83,7 +91,15 @@ defmodule BlackboexWeb.Components.Editor.FlowChatPanel do
                   <div class="size-[5px] rounded-full bg-info" />
                 </div>
                 <div class="ml-2">
-                  <.render_streaming_code code={@current_stream} />
+                  <%= if @current_stream_mode == :explain do %>
+                    <div class="rounded-md px-3 py-2 text-xs ml-0 bg-muted/50">
+                      <div class="chat-markdown text-xs leading-relaxed">
+                        {Phoenix.HTML.raw(render_markdown(@current_stream))}
+                      </div>
+                    </div>
+                  <% else %>
+                    <.render_streaming_code code={@current_stream} />
+                  <% end %>
                 </div>
               </div>
             <% end %>

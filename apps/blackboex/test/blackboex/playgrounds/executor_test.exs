@@ -117,4 +117,64 @@ defmodule Blackboex.Playgrounds.ExecutorTest do
       assert {:ok, _} = Executor.execute("[1, 2, 3] |> Enum.sum()")
     end
   end
+
+  describe "execute/3 env bindings" do
+    setup do
+      {_user, org} = user_and_org_fixture()
+      project = Blackboex.Projects.get_default_project(org.id)
+      %{org: org, project: project}
+    end
+
+    test "env is bound as a map and user code can read values", %{org: org, project: project} do
+      project_env_var_fixture(%{
+        organization_id: org.id,
+        project_id: project.id,
+        name: "API_URL",
+        value: "https://example.com"
+      })
+
+      assert {:ok, ~s("https://example.com")} =
+               Executor.execute(~s|env["API_URL"]|, "user-1", project.id)
+    end
+
+    test "env lookup of missing key returns nil", %{project: project} do
+      assert {:ok, "nil"} =
+               Executor.execute(~s|env["MISSING"]|, "user-1", project.id)
+    end
+
+    test "no project_id → env binding is an empty map" do
+      assert {:ok, "0"} = Executor.execute("map_size(env)", "user-2", nil)
+    end
+
+    test "execute/2 (legacy arity) still works — no env loaded" do
+      assert {:ok, "0"} = Executor.execute("map_size(env)", "user-3")
+    end
+
+    test "env updates are visible to subsequent executions", %{org: org, project: project} do
+      var =
+        project_env_var_fixture(%{
+          organization_id: org.id,
+          project_id: project.id,
+          name: "DYNAMIC",
+          value: "v1"
+        })
+
+      assert {:ok, ~s("v1")} =
+               Executor.execute(~s|env["DYNAMIC"]|, "user-4", project.id)
+
+      {:ok, _updated} = Blackboex.ProjectEnvVars.update(var, %{value: "v2"})
+
+      assert {:ok, ~s("v2")} =
+               Executor.execute(~s|env["DYNAMIC"]|, "user-4", project.id)
+    end
+
+    test "security: System.get_env/1 is still blocked regardless of env binding", %{
+      project: project
+    } do
+      assert {:error, msg} =
+               Executor.execute(~s|System.get_env("HOME")|, "user-5", project.id)
+
+      assert msg =~ "not allowed" or msg =~ "blocked" or msg =~ "System"
+    end
+  end
 end

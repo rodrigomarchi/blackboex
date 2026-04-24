@@ -1,21 +1,35 @@
 defmodule Blackboex.Agent.Pipeline.Budget do
   @moduledoc """
   LLM call budgeting, counters, context logging, and streaming control for the code pipeline.
+
+  The LLM `{client, llm_opts}` tuple must be passed explicitly via
+  `guarded_llm_call/3`. It is **not** stored in the process dictionary so
+  Tasks / re-entrant callers always use the resolved pair instead of a
+  stale snapshot.
   """
 
   require Logger
 
   alias Blackboex.Conversations
-  alias Blackboex.LLM.Config
   alias Blackboex.LogSanitizer
 
   @max_total_llm_calls 15
 
-  # Guarded LLM call — prevents runaway loops across all fix steps.
-  # Streams tokens via token_callback when available, falls back to sync.
-  @spec guarded_llm_call(String.t(), String.t()) ::
+  @type llm_ctx :: {module(), keyword()}
+
+  @doc """
+  Guarded LLM call — prevents runaway loops across all fix steps.
+
+  The `{client, llm_opts}` context is passed explicitly so there is no
+  global / process-dictionary state. Streaming uses `:token_callback`
+  from the process dictionary (which is set per-pipeline by the caller
+  and flipped on/off during the run — see `disable_streaming/0` and
+  `restore_streaming/1`).
+  """
+  @spec guarded_llm_call(llm_ctx(), String.t(), String.t()) ::
           {:ok, String.t()} | {:error, String.t()} | {:error, :budget_exhausted}
-  def guarded_llm_call(prompt, system) do
+  def guarded_llm_call({client, llm_opts}, prompt, system)
+      when is_atom(client) and is_list(llm_opts) do
     count = Process.get(:pipeline_llm_calls, 0)
     max_calls = Process.get(:pipeline_max_llm_calls, @max_total_llm_calls)
 
@@ -23,21 +37,20 @@ defmodule Blackboex.Agent.Pipeline.Budget do
       {:error, :budget_exhausted}
     else
       Process.put(:pipeline_llm_calls, count + 1)
-      client = Config.client()
       token_callback = Process.get(:token_callback)
 
       if token_callback do
-        stream_llm_call(client, prompt, system, token_callback)
+        stream_llm_call(client, prompt, system, token_callback, llm_opts)
       else
-        sync_llm_call(client, prompt, system)
+        sync_llm_call(client, prompt, system, llm_opts)
       end
     end
   end
 
-  @spec sync_llm_call(term(), String.t(), String.t()) ::
+  @spec sync_llm_call(term(), String.t(), String.t(), keyword()) ::
           {:ok, String.t()} | {:error, String.t()}
-  defp sync_llm_call(client, prompt, system) do
-    case client.generate_text(prompt, system: system) do
+  defp sync_llm_call(client, prompt, system, llm_opts) do
+    case client.generate_text(prompt, Keyword.merge(llm_opts, system: system)) do
       {:ok, %{content: content} = result} ->
         accumulate_usage(result[:usage])
         {:ok, content}
@@ -47,10 +60,10 @@ defmodule Blackboex.Agent.Pipeline.Budget do
     end
   end
 
-  @spec stream_llm_call(term(), String.t(), String.t(), (String.t() -> :ok)) ::
+  @spec stream_llm_call(term(), String.t(), String.t(), (String.t() -> :ok), keyword()) ::
           {:ok, String.t()} | {:error, String.t()}
-  defp stream_llm_call(client, prompt, system, token_callback) do
-    case client.stream_text(prompt, system: system) do
+  defp stream_llm_call(client, prompt, system, token_callback, llm_opts) do
+    case client.stream_text(prompt, Keyword.merge(llm_opts, system: system)) do
       {:ok, %ReqLLM.StreamResponse{} = response} ->
         content =
           response
@@ -91,7 +104,7 @@ defmodule Blackboex.Agent.Pipeline.Budget do
         Phoenix.PubSub.broadcast(Blackboex.PubSub, "run:#{run_id}", {:stream_reset, %{}})
       end
 
-      sync_llm_call(client, prompt, system)
+      sync_llm_call(client, prompt, system, llm_opts)
   end
 
   @spec flush_stream_buffer((String.t() -> :ok)) :: :ok

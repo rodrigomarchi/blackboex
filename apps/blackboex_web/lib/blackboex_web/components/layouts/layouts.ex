@@ -149,8 +149,12 @@ defmodule BlackboexWeb.Layouts do
     """
   end
 
+  # Full-screen editors hide the side nav to maximize canvas real-estate.
+  # The match covers project-scoped paths too (e.g.
+  # `/orgs/:slug/projects/:slug/flows/:id/edit`), not only the top-level
+  # `/flows/:id/edit` legacy route.
   defp hide_editor_sidebar?(%{current_path: path}) when is_binary(path) do
-    String.starts_with?(path, "/flows/") and String.ends_with?(path, "/edit")
+    Regex.match?(~r{/flows/[^/]+/edit(?:\?.*)?$}, path)
   end
 
   defp hide_editor_sidebar?(_), do: false

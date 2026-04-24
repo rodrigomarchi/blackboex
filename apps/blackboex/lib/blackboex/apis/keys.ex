@@ -196,6 +196,16 @@ defmodule Blackboex.Apis.Keys do
     |> Repo.all()
   end
 
+  @doc "Lists all API keys for a project, with preloaded API association."
+  @spec list_keys_for_project(Ecto.UUID.t()) :: [ApiKey.t()]
+  def list_keys_for_project(project_id) do
+    ApiKey
+    |> where([k], k.project_id == ^project_id)
+    |> order_by([k], desc: k.inserted_at)
+    |> preload(:api)
+    |> Repo.all()
+  end
+
   @doc "Gets a single API key by ID with preloaded API."
   @spec get_key(Ecto.UUID.t()) :: ApiKey.t() | nil
   def get_key(id) do

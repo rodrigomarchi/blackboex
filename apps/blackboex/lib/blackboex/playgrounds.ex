@@ -110,7 +110,7 @@ defmodule Blackboex.Playgrounds do
   @spec execute_code(Playground.t(), String.t()) ::
           {:ok, Playground.t()} | {:error, String.t()}
   def execute_code(%Playground{} = playground, source_code) do
-    case Executor.execute(source_code, playground.user_id) do
+    case Executor.execute(source_code, playground.user_id, playground.project_id) do
       {:ok, output} ->
         {:ok, _updated} =
           playground
@@ -131,7 +131,7 @@ defmodule Blackboex.Playgrounds do
   @spec execute_code_raw(Playground.t(), String.t()) ::
           {:ok, String.t()} | {:error, String.t()}
   def execute_code_raw(%Playground{} = playground, source_code) do
-    Executor.execute(source_code, playground.user_id)
+    Executor.execute(source_code, playground.user_id, playground.project_id)
   end
 
   # ── Execution History ─────────────────────────────────────

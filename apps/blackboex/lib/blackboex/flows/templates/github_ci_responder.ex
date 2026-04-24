@@ -199,7 +199,7 @@ defmodule Blackboex.Flows.Templates.GithubCiResponder do
         "data" => %{
           "name" => "Prepare Failure Ticket",
           "code" => ~S"""
-          ticket_id = "BUG-#{System.system_time(:millisecond) |> rem(100_000)}"
+          ticket_id = "BUG-" <> (Ecto.UUID.generate() |> String.slice(0, 8))
           new_state = Map.put(state, "ticket_id", ticket_id)
           {input, new_state}
           """

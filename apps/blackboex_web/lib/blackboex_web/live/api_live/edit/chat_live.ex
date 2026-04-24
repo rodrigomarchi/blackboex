@@ -6,6 +6,7 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
   import BlackboexWeb.ApiLive.Edit.EditorShell
   import BlackboexWeb.Components.Editor.FileTree
   import BlackboexWeb.Components.Editor.FileEditor
+  import BlackboexWeb.Components.Shared.LlmNotConfiguredBanner
 
   require Logger
 
@@ -13,6 +14,8 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
   alias Blackboex.Billing.Enforcement
   alias Blackboex.CodeGen.DiffEngine
   alias Blackboex.Conversations, as: AgentConversations
+  alias Blackboex.ProjectEnvVars
+  alias Blackboex.Projects
   alias BlackboexWeb.ApiLive.Edit.ChatLiveHelpers, as: H
   alias BlackboexWeb.ApiLive.Edit.Shared
 
@@ -39,6 +42,8 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
         test_content =
           files |> Enum.filter(&(&1.file_type == "test")) |> Enum.map_join("\n\n", & &1.content)
 
+        {llm_configured?, configure_url} = resolve_llm_context(socket.assigns.org, api)
+
         socket =
           assign(socket,
             chat_input: "",
@@ -56,7 +61,9 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
             files: files,
             selected_file: Enum.find(files, &(&1.path == "/src/handler.ex")),
             editor_live_content: nil,
-            confirm: nil
+            confirm: nil,
+            llm_configured?: llm_configured?,
+            configure_url: configure_url
           )
 
         {:ok, socket}
@@ -89,7 +96,10 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
           />
         </div>
         <%!-- Chat Panel (right) --%>
-        <div class="w-[420px] shrink-0 border-l">
+        <div class="w-[420px] shrink-0 border-l flex flex-col min-h-0">
+          <div :if={!@llm_configured?} class="px-3 pt-3">
+            <.llm_not_configured_banner project_url={@configure_url} />
+          </div>
           <.live_component
             module={BlackboexWeb.Components.Editor.ChatPanel}
             id="chat-panel"
@@ -854,5 +864,22 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
       %{content: content} when is_binary(content) -> content
       _ -> ""
     end
+  end
+
+  @spec resolve_llm_context(map() | nil, map()) :: {boolean(), String.t() | nil}
+  defp resolve_llm_context(_org, %{project_id: nil}), do: {false, nil}
+
+  defp resolve_llm_context(nil, _api), do: {false, nil}
+
+  defp resolve_llm_context(org, %{project_id: project_id}) do
+    configured? = match?({:ok, _key}, ProjectEnvVars.get_llm_key(project_id, :anthropic))
+
+    url =
+      case Projects.get_project(org.id, project_id) do
+        nil -> nil
+        project -> ~p"/orgs/#{org.slug}/projects/#{project.slug}/integrations"
+      end
+
+    {configured?, url}
   end
 end

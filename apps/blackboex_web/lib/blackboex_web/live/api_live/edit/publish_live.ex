@@ -10,6 +10,7 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLive do
   alias Blackboex.Apis
   alias Blackboex.Apis.Analytics
   alias Blackboex.Apis.Keys
+  alias Blackboex.Projects
   alias BlackboexWeb.ApiLive.Edit.Shared
 
   @command_palette_events ~w(toggle_command_palette toggle_chat close_panels command_palette_search
@@ -52,7 +53,7 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLive do
           <.metrics_grid metrics={@metrics} />
         <% end %>
 
-        <.auth_section api={@api} keys_summary={@keys_summary} />
+        <.auth_section api={@api} keys_summary={@keys_summary} org={@org} project={@project} />
 
         <%= if @api.status in ["compiled", "published"] do %>
           <.docs_section org={@org} api={@api} />
@@ -215,12 +216,15 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLive do
   @spec init_assigns(Phoenix.LiveView.Socket.t()) :: Phoenix.LiveView.Socket.t()
   defp init_assigns(socket) do
     api = socket.assigns.api
+    org = socket.assigns.org
+    project = api.project_id && org && Projects.get_project(org.id, api.project_id)
 
     socket
     |> assign(
       metrics: nil,
       published_version: Apis.published_version(api.id),
       keys_summary: Keys.keys_summary(api.id),
+      project: project,
       confirm: nil
     )
     |> load_metrics(api)

@@ -42,7 +42,8 @@ defmodule Blackboex.PageAgent.ChainRunner do
     ContentPipeline.run(state.run_type, state.trigger_message, content_before,
       run_id: state.run_id,
       token_callback: token_callback,
-      history: history
+      history: history,
+      project_id: state.project_id
     )
   end
 

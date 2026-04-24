@@ -7,10 +7,13 @@ defmodule BlackboexWeb.ProjectDashboardLive do
   use BlackboexWeb, :live_view
 
   import BlackboexWeb.Components.Shared.StatCard
+  import BlackboexWeb.Components.Shared.ProjectSettingsTabs
 
   @impl true
   def mount(_params, _session, socket) do
-    project = socket.assigns.current_scope.project
+    scope = socket.assigns.current_scope
+    project = scope.project
+    org = scope.organization
 
     {usage, total_apis} =
       if project do
@@ -30,6 +33,8 @@ defmodule BlackboexWeb.ProjectDashboardLive do
     socket =
       socket
       |> assign(:page_title, "#{(project && project.name) || "Project"} Dashboard")
+      |> assign(:org, org)
+      |> assign(:project, project)
       |> assign(:usage, usage)
       |> assign(:total_apis, total_apis)
 
@@ -47,6 +52,13 @@ defmodule BlackboexWeb.ProjectDashboardLive do
         </span>
         <:subtitle>Project overview</:subtitle>
       </.header>
+
+      <.project_settings_tabs
+        :if={@project && @org}
+        active={:dashboard}
+        org_slug={@org.slug}
+        project_slug={@project.slug}
+      />
 
       <.stat_grid cols="3">
         <.stat_card

@@ -2,8 +2,9 @@ defmodule Blackboex.FlowExecutor do
   @moduledoc """
   Public facade for executing flows.
 
-  Parses a flow's BlackboexFlow definition, validates code, resolves secrets,
-  builds a Reactor, and executes it. Supports both sync and async execution modes.
+  Parses a flow's BlackboexFlow definition, validates code, resolves project
+  env vars (`{{env.X}}` / legacy `{{secrets.X}}`), builds a Reactor, and
+  executes it. Supports both sync and async execution modes.
   """
 
   alias Blackboex.FlowExecutions
@@ -12,11 +13,12 @@ defmodule Blackboex.FlowExecutor do
     BlackboexFlow,
     CodeValidator,
     DefinitionParser,
-    ReactorBuilder,
-    SecretResolver
+    EnvResolver,
+    ReactorBuilder
   }
 
   alias Blackboex.Flows.Flow
+  alias Blackboex.ProjectEnvVars
   alias Blackboex.Workers.FlowExecutionWorker
 
   require Logger
@@ -29,11 +31,14 @@ defmodule Blackboex.FlowExecutor do
           {:ok, map()} | {:halted, map()} | {:error, any()}
   def run(%Flow{} = flow, input, execution_id \\ nil) do
     with :ok <- BlackboexFlow.validate(flow.definition || %{}),
-         {:ok, resolved_def} <- resolve_secrets(flow),
+         {:ok, resolved_def} <- resolve_env(flow),
          {:ok, parsed} <- DefinitionParser.parse(resolved_def),
          :ok <- CodeValidator.validate_flow(parsed),
          {:ok, reactor} <- ReactorBuilder.build(parsed) do
-      context = build_context(parsed, execution_id, flow.organization_id)
+      env_map = load_env_map(flow.project_id)
+
+      context =
+        build_context(parsed, execution_id, flow.organization_id, flow.project_id, env_map)
 
       case Reactor.run(reactor, %{payload: input}, context) do
         {:ok, result} ->
@@ -90,14 +95,17 @@ defmodule Blackboex.FlowExecutor do
 
   # ── Private ──────────────────────────────────────────────────
 
-  defp resolve_secrets(%Flow{definition: nil}), do: {:ok, %{}}
-  defp resolve_secrets(%Flow{definition: def_map}) when def_map == %{}, do: {:ok, def_map}
+  defp resolve_env(%Flow{definition: nil}), do: {:ok, %{}}
+  defp resolve_env(%Flow{definition: def_map}) when def_map == %{}, do: {:ok, def_map}
 
-  defp resolve_secrets(%Flow{definition: definition, organization_id: org_id}) do
-    SecretResolver.resolve(definition, org_id)
+  defp resolve_env(%Flow{definition: definition, project_id: project_id}) do
+    EnvResolver.resolve(definition, project_id)
   end
 
-  defp build_context(parsed, execution_id, organization_id) do
+  defp load_env_map(nil), do: %{}
+  defp load_env_map(project_id), do: ProjectEnvVars.load_runtime_map(project_id)
+
+  defp build_context(parsed, execution_id, organization_id, project_id, env_map) do
     node_map =
       Map.new(parsed.nodes, fn node ->
         {String.to_atom("node_#{node.id}"), %{id: node.id, type: node.type}}
@@ -106,7 +114,9 @@ defmodule Blackboex.FlowExecutor do
     %{
       execution_id: execution_id,
       node_map: node_map,
-      organization_id: organization_id
+      organization_id: organization_id,
+      project_id: project_id,
+      env: env_map
     }
   end
 

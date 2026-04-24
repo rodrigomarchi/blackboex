@@ -100,6 +100,7 @@ defmodule Blackboex.PageAgent.KickoffWorker do
              page_id: ctx.page_id,
              conversation_id: conversation.id,
              organization_id: ctx.organization_id,
+             project_id: ctx.project_id,
              user_id: ctx.user_id,
              run_type: ctx.run_type,
              trigger_message: ctx.trigger_message,

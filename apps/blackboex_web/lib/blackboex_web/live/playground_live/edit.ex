@@ -17,10 +17,13 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
   alias Blackboex.Playgrounds
   alias Blackboex.Playgrounds.Completer
   alias Blackboex.Policy
+  alias Blackboex.ProjectEnvVars
 
   @impl true
   def mount(%{"playground_slug" => slug}, _session, socket) do
-    project = socket.assigns.current_scope.project
+    scope = socket.assigns.current_scope
+    project = scope.project
+    org = scope.organization
 
     case Playgrounds.get_playground_by_slug(project.id, slug) do
       nil ->
@@ -58,9 +61,16 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
            chat_loading: false,
            chat_slow_timer: nil,
            current_run_id: nil,
-           current_stream: nil
+           current_stream: nil,
+           llm_configured?: llm_configured?(project.id),
+           configure_url: ~p"/orgs/#{org.slug}/projects/#{project.slug}/integrations"
          )}
     end
+  end
+
+  @spec llm_configured?(Ecto.UUID.t()) :: boolean()
+  defp llm_configured?(project_id) do
+    match?({:ok, _key}, ProjectEnvVars.get_llm_key(project_id, :anthropic))
   end
 
   @impl true
@@ -628,6 +638,8 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
                   input={@chat_input}
                   loading={@chat_loading}
                   current_stream={@current_stream}
+                  llm_configured?={@llm_configured?}
+                  configure_url={@configure_url}
                 />
               </div>
             </div>

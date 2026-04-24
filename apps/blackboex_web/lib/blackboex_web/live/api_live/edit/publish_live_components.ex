@@ -219,6 +219,8 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLiveComponents do
 
   attr :api, :map, required: true
   attr :keys_summary, :map, required: true
+  attr :org, :map, required: true
+  attr :project, :map, required: true
 
   @spec auth_section(map()) :: Phoenix.LiveView.Rendered.t()
   def auth_section(assigns) do
@@ -260,7 +262,7 @@ defmodule BlackboexWeb.ApiLive.Edit.PublishLiveComponents do
               <% end %>
             </span>
             <.link
-              href="/api-keys"
+              navigate={~p"/orgs/#{@org.slug}/projects/#{@project.slug}/api-keys"}
               class="link-primary font-medium"
             >
               <.icon name="hero-key-mini" class="mr-1 size-3 text-accent-amber" />Manage Keys

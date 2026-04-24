@@ -36,7 +36,8 @@ defmodule Blackboex.FlowAgent.ChainRunner do
       state.definition_before,
       run_id: state.run_id,
       token_callback: token_callback,
-      history: history
+      history: history,
+      project_id: state.project_id
     )
   end
 
@@ -139,7 +140,11 @@ defmodule Blackboex.FlowAgent.ChainRunner do
           run_id: state.run_id
         }
 
-        StreamManager.broadcast_run(state.run_id, {:run_completed, Map.put(payload, :run, completed)})
+        StreamManager.broadcast_run(
+          state.run_id,
+          {:run_completed, Map.put(payload, :run, completed)}
+        )
+
         StreamManager.broadcast_flow(state.flow_id, {:run_completed, payload})
         :ok
 

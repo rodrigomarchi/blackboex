@@ -34,7 +34,7 @@ defmodule Blackboex.DataCase do
       import Blackboex.ProjectsFixtures
       import Blackboex.FlowsFixtures
       import Blackboex.FlowExecutionsFixtures
-      import Blackboex.FlowSecretsFixtures
+      import Blackboex.ProjectEnvVarsFixtures
       import Blackboex.PagesFixtures
       import Blackboex.PlaygroundsFixtures
       import Blackboex.PlaygroundExecutionsFixtures

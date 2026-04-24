@@ -214,4 +214,119 @@ defmodule Blackboex.FlowExecutorTest do
       assert execution.input == %{"name" => "hello"}
     end
   end
+
+  describe "env injection via project_id" do
+    test "flow with {{env.X}} in ElixirCode resolves value from project", %{
+      user: user,
+      org: org
+    } do
+      project = Blackboex.Projects.get_default_project(org.id)
+
+      project_env_var_fixture(%{
+        organization_id: org.id,
+        project_id: project.id,
+        name: "FLOW_NAME",
+        value: "hello-from-env"
+      })
+
+      # ElixirCode does not interpolate {{env.X}} at runtime; it reads via the
+      # `env` binding. Assert the binding path.
+      definition = %{
+        "version" => "1.0",
+        "nodes" => [
+          %{
+            "id" => "n1",
+            "type" => "start",
+            "position" => %{"x" => 0, "y" => 0},
+            "data" => %{}
+          },
+          %{
+            "id" => "n2",
+            "type" => "elixir_code",
+            "position" => %{"x" => 200, "y" => 0},
+            "data" => %{"code" => ~s|env["FLOW_NAME"]|, "timeout_ms" => 5000}
+          },
+          %{"id" => "n3", "type" => "end", "position" => %{"x" => 400, "y" => 0}, "data" => %{}}
+        ],
+        "edges" => [
+          %{
+            "id" => "e1",
+            "source" => "n1",
+            "source_port" => 0,
+            "target" => "n2",
+            "target_port" => 0
+          },
+          %{
+            "id" => "e2",
+            "source" => "n2",
+            "source_port" => 0,
+            "target" => "n3",
+            "target_port" => 0
+          }
+        ]
+      }
+
+      flow = create_flow_with_definition(user, org, definition)
+
+      assert {:ok, %{output: "hello-from-env"}} =
+               FlowExecutor.execute_sync(flow, %{})
+    end
+
+    test "missing env var surfaces :missing_env error before execution", %{
+      user: user,
+      org: org
+    } do
+      definition =
+        put_in(@linear_definition["nodes"], [
+          %{"id" => "n1", "type" => "start", "position" => %{"x" => 0, "y" => 0}, "data" => %{}},
+          %{
+            "id" => "n2",
+            "type" => "elixir_code",
+            "position" => %{"x" => 200, "y" => 0},
+            "data" => %{"code" => ~s|"{{env.MISSING}}"|, "timeout_ms" => 5000}
+          },
+          %{"id" => "n3", "type" => "end", "position" => %{"x" => 400, "y" => 0}, "data" => %{}}
+        ])
+
+      flow = create_flow_with_definition(user, org, definition)
+
+      # env vars are resolved pre-parse by EnvResolver — missing ones abort run/3
+      assert {:error, {:missing_env, "MISSING"}} = FlowExecutor.run(flow, %{})
+    end
+
+    test "flow without any env vars runs with empty env binding", %{user: user, org: org} do
+      definition = %{
+        "version" => "1.0",
+        "nodes" => [
+          %{"id" => "n1", "type" => "start", "position" => %{"x" => 0, "y" => 0}, "data" => %{}},
+          %{
+            "id" => "n2",
+            "type" => "elixir_code",
+            "position" => %{"x" => 200, "y" => 0},
+            "data" => %{"code" => ~s|map_size(env)|, "timeout_ms" => 5000}
+          },
+          %{"id" => "n3", "type" => "end", "position" => %{"x" => 400, "y" => 0}, "data" => %{}}
+        ],
+        "edges" => [
+          %{
+            "id" => "e1",
+            "source" => "n1",
+            "source_port" => 0,
+            "target" => "n2",
+            "target_port" => 0
+          },
+          %{
+            "id" => "e2",
+            "source" => "n2",
+            "source_port" => 0,
+            "target" => "n3",
+            "target_port" => 0
+          }
+        ]
+      }
+
+      flow = create_flow_with_definition(user, org, definition)
+      assert {:ok, %{output: 0}} = FlowExecutor.execute_sync(flow, %{})
+    end
+  end
 end

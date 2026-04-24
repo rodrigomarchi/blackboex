@@ -29,28 +29,12 @@ if stripe_webhook_secret = System.get_env("STRIPE_WEBHOOK_SECRET") do
   config :blackboex, :stripe_webhook_secret, stripe_webhook_secret
 end
 
-# ReqLLM API keys — required in prod, optional in dev/test
-if config_env() == :prod do
-  config :req_llm,
-    anthropic_api_key:
-      System.get_env("ANTHROPIC_API_KEY") ||
-        raise("missing ANTHROPIC_API_KEY env var"),
-    openai_api_key:
-      System.get_env("OPENAI_API_KEY") ||
-        raise("missing OPENAI_API_KEY env var")
-
-  config :langchain,
-    anthropic_key:
-      System.get_env("ANTHROPIC_API_KEY") ||
-        raise("missing ANTHROPIC_API_KEY env var")
-else
-  config :req_llm,
-    anthropic_api_key: System.get_env("ANTHROPIC_API_KEY"),
-    openai_api_key: System.get_env("OPENAI_API_KEY")
-
-  config :langchain,
-    anthropic_key: System.get_env("ANTHROPIC_API_KEY")
-end
+# Anthropic API keys are now configured PER PROJECT via
+# `Blackboex.ProjectEnvVars.put_llm_key/4`. There is no platform-wide
+# fallback: projects without a key cannot use AI-assist features, and
+# user-configured APIs cannot invoke Anthropic. The `ANTHROPIC_API_KEY`
+# environment variable used to live here (C4 of structured-meandering-petal)
+# — it was intentionally removed.
 
 # Structured JSON logging in production
 if config_env() == :prod do

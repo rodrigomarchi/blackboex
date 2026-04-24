@@ -240,8 +240,10 @@ defmodule BlackboexWeb.Router do
       live "/flows", FlowLive.Index, :index
       live "/pages", PageLive.Index, :index
       live "/playgrounds", PlaygroundLive.Index, :index
-      live "/api-keys", ApiKeyLive.Index, :index
-      live "/api-keys/:id", ApiKeyLive.Show, :show
+      live "/api-keys", ProjectLive.ApiKeys, :index
+      live "/api-keys/:id", ProjectLive.ApiKeyShow, :show
+      live "/env-vars", ProjectLive.EnvVars, :index
+      live "/integrations", ProjectLive.LlmIntegrations, :index
       live "/members", ProjectMemberLive.Index, :index
       live "/settings", ProjectSettingsLive, :index
     end
@@ -285,8 +287,6 @@ defmodule BlackboexWeb.Router do
       live "/apis/:id", ApiLive.Show, :show
       live "/apis/:id/analytics", ApiLive.Analytics, :analytics
       live "/flows", FlowLive.Index, :index
-      live "/api-keys", ApiKeyLive.Index, :index
-      live "/api-keys/:id", ApiKeyLive.Show, :show
       live "/billing", BillingLive.Plans, :index
       live "/billing/manage", BillingLive.Manage, :manage
       live "/users/settings", UserLive.Settings, :edit

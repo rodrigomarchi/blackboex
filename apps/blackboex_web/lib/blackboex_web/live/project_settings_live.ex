@@ -7,17 +7,21 @@ defmodule BlackboexWeb.ProjectSettingsLive do
   use BlackboexWeb, :live_view
 
   import BlackboexWeb.Components.UI.SectionHeading
+  import BlackboexWeb.Components.Shared.ProjectSettingsTabs
 
   alias Blackboex.Projects
 
   @impl true
   def mount(_params, _session, socket) do
-    project = socket.assigns.current_scope.project
+    scope = socket.assigns.current_scope
+    project = scope.project
+    org = scope.organization
     changeset = if project, do: Projects.Project.changeset(project, %{}), else: nil
 
     {:ok,
      socket
      |> assign(:page_title, "Project Settings")
+     |> assign(:org, org)
      |> assign(:project, project)
      |> assign(:form, changeset && to_form(changeset))}
   end
@@ -60,7 +64,14 @@ defmodule BlackboexWeb.ProjectSettingsLive do
         <:subtitle>Manage your project</:subtitle>
       </.header>
 
-      <div class="max-w-lg space-y-8">
+      <.project_settings_tabs
+        :if={@project && @org}
+        active={:settings}
+        org_slug={@org.slug}
+        project_slug={@project.slug}
+      />
+
+      <div class="max-w-lg space-y-8 mt-6">
         <div class="space-y-3">
           <.section_heading>General</.section_heading>
 

@@ -17,6 +17,7 @@ defmodule BlackboexWeb.Components.Editor.PageChatPanel do
 
   import BlackboexWeb.Components.Editor.Chat.ChatMessage, only: [render_message_step: 1]
   import BlackboexWeb.Components.Editor.Chat.CodeBlocks, only: [render_streaming_code: 1]
+  import BlackboexWeb.Components.Shared.LlmNotConfiguredBanner
   import BlackboexWeb.Components.UI.InlineInput
   import BlackboexWeb.Components.UI.SectionHeading
 
@@ -31,6 +32,8 @@ defmodule BlackboexWeb.Components.Editor.PageChatPanel do
   attr :input, :string, default: ""
   attr :loading, :boolean, default: false
   attr :current_stream, :string, default: nil
+  attr :llm_configured?, :boolean, default: true
+  attr :configure_url, :string, default: nil
 
   @spec page_chat_panel(map()) :: Phoenix.LiveView.Rendered.t()
   def page_chat_panel(assigns) do
@@ -58,6 +61,9 @@ defmodule BlackboexWeb.Components.Editor.PageChatPanel do
         id="page-chat-timeline"
         phx-hook="ChatAutoScroll"
       >
+        <div :if={!@llm_configured?} class="px-3 pt-3">
+          <.llm_not_configured_banner project_url={@configure_url} />
+        </div>
         <%= if @messages == [] and @current_stream in [nil, ""] and not @loading do %>
           <p class="text-muted-description text-center py-12 px-4">
             Peça ao agente para escrever ou editar o conteúdo desta página.

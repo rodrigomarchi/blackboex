@@ -1,6 +1,9 @@
 defmodule Blackboex.Agent.Pipeline.Validation do
   @moduledoc """
   Validation and fix step functions for the code pipeline.
+
+  Every step receives the LLM `{client, llm_opts}` context as an explicit
+  parameter — the Budget module holds no global client state.
   """
 
   require Logger
@@ -19,15 +22,21 @@ defmodule Blackboex.Agent.Pipeline.Validation do
 
   @type broadcast_fn :: (term() -> :ok)
   @type file_entry :: %{path: String.t(), content: String.t(), file_type: String.t()}
+  @type llm_ctx :: Budget.llm_ctx()
 
   # ── Step 2-4: Validate and Fix ─────────────────────────────────
 
-  @spec step_validate_and_fix(Api.t(), String.t(), broadcast_fn(), String.t() | nil) ::
-          {:ok, String.t()} | {:error, String.t()}
-  def step_validate_and_fix(api, code, broadcast, run_id) do
+  @spec step_validate_and_fix(
+          Api.t(),
+          String.t(),
+          llm_ctx(),
+          broadcast_fn(),
+          String.t() | nil
+        ) :: {:ok, String.t()} | {:error, String.t()}
+  def step_validate_and_fix(api, code, llm_ctx, broadcast, run_id) do
     with {:ok, code} <- step_format(code, broadcast),
-         {:ok, code} <- step_compile_with_fix(api, code, broadcast, run_id, 0),
-         {:ok, code} <- step_lint_with_fix(api, code, broadcast, run_id, 0) do
+         {:ok, code} <- step_compile_with_fix(api, code, llm_ctx, broadcast, run_id, 0),
+         {:ok, code} <- step_lint_with_fix(api, code, llm_ctx, broadcast, run_id, 0) do
       {:ok, code}
     end
   end
@@ -53,12 +62,13 @@ defmodule Blackboex.Agent.Pipeline.Validation do
   @spec step_compile_with_fix(
           Api.t(),
           String.t(),
+          llm_ctx(),
           broadcast_fn(),
           String.t() | nil,
           non_neg_integer()
         ) ::
           {:ok, String.t()} | {:error, String.t()}
-  def step_compile_with_fix(api, code, broadcast, run_id, attempt) do
+  def step_compile_with_fix(api, code, llm_ctx, broadcast, run_id, attempt) do
     broadcast.({:step_started, %{step: :compiling}})
     Budget.touch_run(run_id)
 
@@ -81,13 +91,13 @@ defmodule Blackboex.Agent.Pipeline.Validation do
         error_text = Enum.join(errors, "\n")
         Budget.log_step("compile", :fail, error_text)
         broadcast.({:step_completed, %{step: :compiling, success: false, content: error_text}})
-        maybe_fix_compilation(api, code, error_text, broadcast, run_id, attempt)
+        maybe_fix_compilation(api, code, error_text, llm_ctx, broadcast, run_id, attempt)
 
       {:error, {:compilation, reason}} ->
         error_text = inspect(reason)
         Budget.log_step("compile", :fail, error_text)
         broadcast.({:step_completed, %{step: :compiling, success: false, content: error_text}})
-        maybe_fix_compilation(api, code, error_text, broadcast, run_id, attempt)
+        maybe_fix_compilation(api, code, error_text, llm_ctx, broadcast, run_id, attempt)
     end
   end
 
@@ -95,23 +105,24 @@ defmodule Blackboex.Agent.Pipeline.Validation do
           Api.t(),
           String.t(),
           String.t(),
+          llm_ctx(),
           broadcast_fn(),
           String.t() | nil,
           non_neg_integer()
         ) ::
           {:ok, String.t()} | {:error, String.t()}
-  defp maybe_fix_compilation(_api, _code, error_text, _broadcast, _run_id, attempt)
+  defp maybe_fix_compilation(_api, _code, error_text, _llm_ctx, _broadcast, _run_id, attempt)
        when attempt >= @max_fix_attempts do
     {:error, "Compilation failed after #{@max_fix_attempts} fix attempts: #{error_text}"}
   end
 
-  defp maybe_fix_compilation(api, code, error_text, broadcast, run_id, attempt) do
+  defp maybe_fix_compilation(api, code, error_text, llm_ctx, broadcast, run_id, attempt) do
     broadcast.({:step_started, %{step: :fixing_compilation, attempt: attempt + 1}})
     Budget.touch_run(run_id)
 
     {system, prompt} = FixPrompts.fix_compilation(code, error_text, Budget.get_context_log())
 
-    case Budget.guarded_llm_call(prompt, system) do
+    case Budget.guarded_llm_call(llm_ctx, prompt, system) do
       {:ok, content} ->
         fixed_code = CodeParser.apply_edits_or_extract(code, content)
         Budget.log_step("fix_compile", :pass, "Fix applied (attempt #{attempt + 1})")
@@ -125,7 +136,7 @@ defmodule Blackboex.Agent.Pipeline.Validation do
         )
 
         with {:ok, formatted} <- step_format(fixed_code, broadcast) do
-          step_compile_with_fix(api, formatted, broadcast, run_id, attempt + 1)
+          step_compile_with_fix(api, formatted, llm_ctx, broadcast, run_id, attempt + 1)
         end
 
       {:error, reason} ->
@@ -136,12 +147,13 @@ defmodule Blackboex.Agent.Pipeline.Validation do
   @spec step_lint_with_fix(
           Api.t(),
           String.t(),
+          llm_ctx(),
           broadcast_fn(),
           String.t() | nil,
           non_neg_integer()
         ) ::
           {:ok, String.t()} | {:error, String.t()}
-  def step_lint_with_fix(api, code, broadcast, run_id, attempt) do
+  def step_lint_with_fix(api, code, llm_ctx, broadcast, run_id, attempt) do
     broadcast.({:step_started, %{step: :linting}})
 
     results = Linter.run_all(code)
@@ -164,7 +176,7 @@ defmodule Blackboex.Agent.Pipeline.Validation do
         issue_text = format_lint_results(results)
         Budget.log_step("lint", :fail, issue_text)
         broadcast.({:step_completed, %{step: :linting, success: false, content: issue_text}})
-        maybe_fix_lint(api, code, issue_text, broadcast, run_id, attempt)
+        maybe_fix_lint(api, code, issue_text, llm_ctx, broadcast, run_id, attempt)
     end
   end
 
@@ -172,23 +184,24 @@ defmodule Blackboex.Agent.Pipeline.Validation do
           Api.t(),
           String.t(),
           String.t(),
+          llm_ctx(),
           broadcast_fn(),
           String.t() | nil,
           non_neg_integer()
         ) ::
           {:ok, String.t()} | {:error, String.t()}
-  defp maybe_fix_lint(_api, _code, issue_text, _broadcast, _run_id, attempt)
+  defp maybe_fix_lint(_api, _code, issue_text, _llm_ctx, _broadcast, _run_id, attempt)
        when attempt >= @max_fix_attempts do
     {:error, "Lint issues not resolved after #{@max_fix_attempts} fix attempts: #{issue_text}"}
   end
 
-  defp maybe_fix_lint(api, code, issue_text, broadcast, run_id, attempt) do
+  defp maybe_fix_lint(api, code, issue_text, llm_ctx, broadcast, run_id, attempt) do
     broadcast.({:step_started, %{step: :fixing_lint, attempt: attempt + 1}})
     Budget.touch_run(run_id)
 
     {system, prompt} = FixPrompts.fix_lint(code, issue_text, Budget.get_context_log())
 
-    case Budget.guarded_llm_call(prompt, system) do
+    case Budget.guarded_llm_call(llm_ctx, prompt, system) do
       {:ok, content} ->
         fixed_code = CodeParser.apply_edits_or_extract(code, content)
         Budget.log_step("fix_lint", :pass, "Fix applied (attempt #{attempt + 1})")
@@ -199,8 +212,9 @@ defmodule Blackboex.Agent.Pipeline.Validation do
         )
 
         with {:ok, formatted} <- step_format(fixed_code, broadcast),
-             {:ok, compiled} <- step_compile_with_fix(api, formatted, broadcast, run_id, attempt) do
-          step_lint_with_fix(api, compiled, broadcast, run_id, attempt + 1)
+             {:ok, compiled} <-
+               step_compile_with_fix(api, formatted, llm_ctx, broadcast, run_id, attempt) do
+          step_lint_with_fix(api, compiled, llm_ctx, broadcast, run_id, attempt + 1)
         end
 
       {:error, reason} ->
@@ -214,12 +228,13 @@ defmodule Blackboex.Agent.Pipeline.Validation do
           Api.t(),
           String.t(),
           String.t(),
+          llm_ctx(),
           broadcast_fn(),
           String.t() | nil,
           non_neg_integer()
         ) ::
           {:ok, String.t()} | {:error, String.t()}
-  def step_run_and_fix_tests(api, code, test_code, broadcast, run_id, attempt \\ 0) do
+  def step_run_and_fix_tests(api, code, test_code, llm_ctx, broadcast, run_id, attempt \\ 0) do
     broadcast.({:step_started, %{step: :running_tests}})
     Budget.touch_run(run_id)
     Process.put(:last_test_code, test_code)
@@ -250,7 +265,7 @@ defmodule Blackboex.Agent.Pipeline.Validation do
             {:step_completed, %{step: :running_tests, success: false, content: failure_text}}
           )
 
-          maybe_fix_tests(api, code, test_code, failure_text, broadcast, run_id, attempt)
+          maybe_fix_tests(api, code, test_code, failure_text, llm_ctx, broadcast, run_id, attempt)
         end
 
       {:error, :compile_error, message} ->
@@ -266,6 +281,7 @@ defmodule Blackboex.Agent.Pipeline.Validation do
           code,
           test_code,
           "Test compilation failed: #{message}",
+          llm_ctx,
           broadcast,
           run_id,
           attempt
@@ -292,25 +308,35 @@ defmodule Blackboex.Agent.Pipeline.Validation do
           String.t(),
           String.t(),
           String.t(),
+          llm_ctx(),
           broadcast_fn(),
           String.t() | nil,
           non_neg_integer()
         ) :: {:ok, String.t()} | {:error, String.t()}
-  defp maybe_fix_tests(_api, _code, _test_code, failure_text, _broadcast, _run_id, attempt)
+  defp maybe_fix_tests(
+         _api,
+         _code,
+         _test_code,
+         failure_text,
+         _llm_ctx,
+         _broadcast,
+         _run_id,
+         attempt
+       )
        when attempt >= @max_fix_attempts do
     {:error, "Tests not passing after #{@max_fix_attempts} fix attempts: #{failure_text}"}
   end
 
-  defp maybe_fix_tests(api, code, test_code, failure_text, broadcast, run_id, attempt) do
+  defp maybe_fix_tests(api, code, test_code, failure_text, llm_ctx, broadcast, run_id, attempt) do
     broadcast.({:step_started, %{step: :fixing_tests, attempt: attempt + 1}})
     Budget.touch_run(run_id)
 
     {system, prompt} =
       FixPrompts.fix_tests(code, test_code, failure_text, Budget.get_context_log())
 
-    case Budget.guarded_llm_call(prompt, system) do
+    case Budget.guarded_llm_call(llm_ctx, prompt, system) do
       {:ok, content} ->
-        apply_test_fix(api, code, content, broadcast, run_id, attempt)
+        apply_test_fix(api, code, content, llm_ctx, broadcast, run_id, attempt)
 
       {:error, reason} ->
         {:error, reason}
@@ -321,12 +347,13 @@ defmodule Blackboex.Agent.Pipeline.Validation do
           Api.t(),
           String.t(),
           String.t(),
+          llm_ctx(),
           broadcast_fn(),
           String.t() | nil,
           non_neg_integer()
         ) ::
           {:ok, String.t()} | {:error, String.t()}
-  defp apply_test_fix(api, code, content, broadcast, run_id, attempt) do
+  defp apply_test_fix(api, code, content, llm_ctx, broadcast, run_id, attempt) do
     case FixPrompts.parse_test_fix_edits(content) do
       {code_edits, test_edits} ->
         # Apply search/replace edits to code and tests
@@ -353,13 +380,21 @@ defmodule Blackboex.Agent.Pipeline.Validation do
         )
 
         if code_edits != [] do
-          revalidate_and_rerun_tests(api, fixed_code, fixed_tests, broadcast, run_id, attempt)
+          revalidate_and_rerun_tests(
+            api,
+            fixed_code,
+            fixed_tests,
+            llm_ctx,
+            broadcast,
+            run_id,
+            attempt
+          )
         else
-          step_run_and_fix_tests(api, code, fixed_tests, broadcast, run_id, attempt + 1)
+          step_run_and_fix_tests(api, code, fixed_tests, llm_ctx, broadcast, run_id, attempt + 1)
         end
 
       :error ->
-        apply_legacy_test_fix(api, code, content, broadcast, run_id, attempt)
+        apply_legacy_test_fix(api, code, content, llm_ctx, broadcast, run_id, attempt)
     end
   end
 
@@ -367,12 +402,13 @@ defmodule Blackboex.Agent.Pipeline.Validation do
           Api.t(),
           String.t(),
           String.t(),
+          llm_ctx(),
           broadcast_fn(),
           String.t() | nil,
           non_neg_integer()
         ) ::
           {:ok, String.t()} | {:error, String.t()}
-  defp apply_legacy_test_fix(api, code, content, broadcast, run_id, attempt) do
+  defp apply_legacy_test_fix(api, code, content, llm_ctx, broadcast, run_id, attempt) do
     case FixPrompts.parse_code_and_tests(content) do
       {fixed_code, fixed_tests} ->
         Budget.log_step("fix_tests", :pass, "Full fix applied (attempt #{attempt + 1})")
@@ -382,11 +418,19 @@ defmodule Blackboex.Agent.Pipeline.Validation do
            %{step: :fixing_tests, content: "Test fix applied (attempt #{attempt + 1})"}}
         )
 
-        revalidate_and_rerun_tests(api, fixed_code, fixed_tests, broadcast, run_id, attempt)
+        revalidate_and_rerun_tests(
+          api,
+          fixed_code,
+          fixed_tests,
+          llm_ctx,
+          broadcast,
+          run_id,
+          attempt
+        )
 
       :error ->
         fixed_tests = CodeParser.extract_code(content)
-        step_run_and_fix_tests(api, code, fixed_tests, broadcast, run_id, attempt + 1)
+        step_run_and_fix_tests(api, code, fixed_tests, llm_ctx, broadcast, run_id, attempt + 1)
     end
   end
 
@@ -394,14 +438,23 @@ defmodule Blackboex.Agent.Pipeline.Validation do
           Api.t(),
           String.t(),
           String.t(),
+          llm_ctx(),
           broadcast_fn(),
           String.t() | nil,
           non_neg_integer()
         ) :: {:ok, String.t()} | {:error, String.t()}
-  defp revalidate_and_rerun_tests(api, code, tests, broadcast, run_id, attempt) do
-    case step_validate_and_fix(api, code, broadcast, run_id) do
+  defp revalidate_and_rerun_tests(api, code, tests, llm_ctx, broadcast, run_id, attempt) do
+    case step_validate_and_fix(api, code, llm_ctx, broadcast, run_id) do
       {:ok, validated_code} ->
-        step_run_and_fix_tests(api, validated_code, tests, broadcast, run_id, attempt + 1)
+        step_run_and_fix_tests(
+          api,
+          validated_code,
+          tests,
+          llm_ctx,
+          broadcast,
+          run_id,
+          attempt + 1
+        )
 
       error ->
         error
@@ -461,10 +514,11 @@ defmodule Blackboex.Agent.Pipeline.Validation do
   @spec step_validate_and_fix_files(
           Api.t(),
           [file_entry()],
+          llm_ctx(),
           broadcast_fn(),
           String.t() | nil
         ) :: {:ok, [file_entry()]} | {:error, String.t() | atom()}
-  def step_validate_and_fix_files(api, source_files, broadcast, run_id) do
+  def step_validate_and_fix_files(api, source_files, llm_ctx, broadcast, run_id) do
     # Format each file individually
     formatted_files =
       Enum.map(source_files, fn file ->
@@ -500,13 +554,31 @@ defmodule Blackboex.Agent.Pipeline.Validation do
         error_text = Enum.join(errors, "\n")
         Budget.log_step("compile_files", :fail, error_text)
         broadcast.({:step_completed, %{step: :compiling, success: false, content: error_text}})
-        maybe_fix_files_compilation(api, formatted_files, error_text, broadcast, run_id, 0)
+
+        maybe_fix_files_compilation(
+          api,
+          formatted_files,
+          error_text,
+          llm_ctx,
+          broadcast,
+          run_id,
+          0
+        )
 
       {:error, {:compilation, reason}} ->
         error_text = inspect(reason)
         Budget.log_step("compile_files", :fail, error_text)
         broadcast.({:step_completed, %{step: :compiling, success: false, content: error_text}})
-        maybe_fix_files_compilation(api, formatted_files, error_text, broadcast, run_id, 0)
+
+        maybe_fix_files_compilation(
+          api,
+          formatted_files,
+          error_text,
+          llm_ctx,
+          broadcast,
+          run_id,
+          0
+        )
     end
   end
 
@@ -514,16 +586,25 @@ defmodule Blackboex.Agent.Pipeline.Validation do
           Api.t(),
           [file_entry()],
           String.t(),
+          llm_ctx(),
           broadcast_fn(),
           String.t() | nil,
           non_neg_integer()
         ) :: {:ok, [file_entry()]} | {:error, String.t() | atom()}
-  defp maybe_fix_files_compilation(_api, _files, error_text, _broadcast, _run_id, attempt)
+  defp maybe_fix_files_compilation(
+         _api,
+         _files,
+         error_text,
+         _llm_ctx,
+         _broadcast,
+         _run_id,
+         attempt
+       )
        when attempt >= @max_fix_attempts do
     {:error, "Multi-file compilation failed after #{@max_fix_attempts} attempts: #{error_text}"}
   end
 
-  defp maybe_fix_files_compilation(api, files, error_text, broadcast, run_id, attempt) do
+  defp maybe_fix_files_compilation(api, files, error_text, llm_ctx, broadcast, run_id, attempt) do
     broadcast.({:step_started, %{step: :fixing_compilation, attempt: attempt + 1}})
     Budget.touch_run(run_id)
 
@@ -558,7 +639,7 @@ defmodule Blackboex.Agent.Pipeline.Validation do
     Fix the errors using path-annotated SEARCH/REPLACE blocks.
     """
 
-    case Budget.guarded_llm_call(prompt, system) do
+    case Budget.guarded_llm_call(llm_ctx, prompt, system) do
       {:ok, content} ->
         fixed_files = Generation.apply_path_annotated_edits(files, content)
         Budget.log_step("fix_compile_files", :pass, "Fix applied (attempt #{attempt + 1})")
@@ -569,7 +650,7 @@ defmodule Blackboex.Agent.Pipeline.Validation do
         )
 
         formatted = format_all_files(fixed_files)
-        recompile_or_retry(api, formatted, broadcast, run_id, attempt + 1)
+        recompile_or_retry(api, formatted, llm_ctx, broadcast, run_id, attempt + 1)
 
       {:error, reason} ->
         {:error, reason}
@@ -589,12 +670,13 @@ defmodule Blackboex.Agent.Pipeline.Validation do
   @spec recompile_or_retry(
           Api.t(),
           [file_entry()],
+          llm_ctx(),
           broadcast_fn(),
           String.t() | nil,
           non_neg_integer()
         ) ::
           {:ok, [file_entry()]} | {:error, String.t() | atom()}
-  defp recompile_or_retry(api, files, broadcast, run_id, attempt) do
+  defp recompile_or_retry(api, files, llm_ctx, broadcast, run_id, attempt) do
     compile_input = Enum.map(files, &%{path: &1.path, content: &1.content})
 
     case Compiler.compile_files(api, compile_input) do
@@ -606,13 +688,22 @@ defmodule Blackboex.Agent.Pipeline.Validation do
           api,
           files,
           Enum.join(errors, "\n"),
+          llm_ctx,
           broadcast,
           run_id,
           attempt
         )
 
       {:error, {:compilation, reason}} ->
-        maybe_fix_files_compilation(api, files, inspect(reason), broadcast, run_id, attempt)
+        maybe_fix_files_compilation(
+          api,
+          files,
+          inspect(reason),
+          llm_ctx,
+          broadcast,
+          run_id,
+          attempt
+        )
     end
   end
 
@@ -662,14 +753,15 @@ defmodule Blackboex.Agent.Pipeline.Validation do
           Api.t(),
           [file_entry()],
           [file_entry()],
+          llm_ctx(),
           broadcast_fn(),
           String.t() | nil
         ) :: {:ok, [file_entry()]} | {:error, String.t() | atom()}
-  def step_run_and_fix_test_files(api, source_files, test_files, broadcast, run_id) do
+  def step_run_and_fix_test_files(api, source_files, test_files, llm_ctx, broadcast, run_id) do
     handler_code = Generation.get_handler_content(source_files)
     test_code = Enum.map_join(test_files, "\n\n", & &1.content)
 
-    case step_run_and_fix_tests(api, handler_code, test_code, broadcast, run_id) do
+    case step_run_and_fix_tests(api, handler_code, test_code, llm_ctx, broadcast, run_id) do
       {:ok, fixed_test_code} ->
         {:ok, [%{path: "/test/handler_test.ex", content: fixed_test_code, file_type: "test"}]}
 

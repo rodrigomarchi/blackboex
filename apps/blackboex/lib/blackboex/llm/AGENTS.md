@@ -5,13 +5,34 @@ AI model interface layer. Facade: `Blackboex.LLM` (`llm.ex`).
 ## Request Flow
 
 ```
-1. LLM.allow?(user_id, plan)              ← RateLimiter check
-2. LLM.CircuitBreaker.allow?(provider)    ← reject if open
-3. client = LLM.Config.client()           ← resolves mock in test
-4. client.generate_text(prompt, opts)
+1. LLM.allow?(user_id, plan)                             ← RateLimiter check
+2. LLM.CircuitBreaker.allow?(provider)                   ← reject if open
+3. {:ok, client, opts} = LLM.Config.client_for_project(project_id)
+4. client.generate_text(prompt, Keyword.merge(opts, user_opts))
 5. on success: LLM.record_success(provider) + LLM.record_usage(attrs)
    on failure: LLM.record_failure(provider)
 ```
+
+### Per-project API key
+
+There is **no platform Anthropic key**. Every caller must thread `project_id`
+down to `LLM.Config.client_for_project/1`, which resolves:
+
+- `{:ok, client, [api_key: plaintext]}` when the project has an Anthropic key
+  configured via `ProjectEnvVars.put_llm_key/4`
+- `{:error, :not_configured}` when the project has no key — callers surface
+  this to the UI via the `llm_not_configured_banner` component
+
+In test env, when `client()` resolves to `Blackboex.LLM.ClientMock` and no
+key is configured, a dummy key is returned. Production always enforces
+`:not_configured`.
+
+### Legacy `Config.client/0`
+
+The old `Config.client/0` is still exported (returns the resolved client
+module), but callers **must** use `client_for_project/1` to obtain the
+api_key opts. Never call `ReqLLMClient` directly — the client would have no
+key to use.
 
 ## LLM Facade (`llm.ex`)
 

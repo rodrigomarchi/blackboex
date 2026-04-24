@@ -25,7 +25,6 @@ Each directory has its own AGENTS.md — **read it before generating code in tha
 - `GET /apis/:id` → ApiLive.Show
 - `GET /apis/:id/edit` → ApiLive.Edit (separate live_session with editor layout)
 - `GET /apis/:id/analytics` → ApiLive.Analytics
-- `GET /api-keys` → ApiKeyLive.Index
 - `GET /billing` → BillingLive.Plans
 - `GET /billing/manage` → BillingLive.Manage
 - `GET /settings` → SettingsLive

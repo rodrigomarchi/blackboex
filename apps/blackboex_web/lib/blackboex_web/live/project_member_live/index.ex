@@ -10,6 +10,7 @@ defmodule BlackboexWeb.ProjectMemberLive.Index do
   import BlackboexWeb.Components.Badge
   import BlackboexWeb.Components.UI.SectionHeading
   import BlackboexWeb.Components.UI.InlineSelect
+  import BlackboexWeb.Components.Shared.ProjectSettingsTabs
 
   alias Blackboex.Organizations
   alias Blackboex.Projects
@@ -151,6 +152,13 @@ defmodule BlackboexWeb.ProjectMemberLive.Index do
         </span>
         <:subtitle>Manage access to this project</:subtitle>
       </.header>
+
+      <.project_settings_tabs
+        :if={@project && @org}
+        active={:members}
+        org_slug={@org.slug}
+        project_slug={@project.slug}
+      />
 
       <%!-- Direct members --%>
       <div class="space-y-3">

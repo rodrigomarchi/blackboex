@@ -119,7 +119,7 @@ Every schema that needs to be inserted in a test MUST use a fixture function —
 | `ConversationsFixtures` | `conversation_fixture/3`, `run_fixture/1` | Conversation, Run |
 | `FlowsFixtures` | `flow_fixture/1`, `flow_from_template_fixture/1`, `create_flow/1`, `create_org_and_flow/1` | Flow |
 | `FlowExecutionsFixtures` | `flow_execution_fixture/1`, `node_execution_fixture/1` | FlowExecution, NodeExecution |
-| `FlowSecretsFixtures` | `flow_secret_fixture/1` | FlowSecret |
+| `ProjectEnvVarsFixtures` | `project_env_var_fixture/1`, `llm_anthropic_key_fixture/1` | ProjectEnvVar |
 | `LlmFixtures` | `llm_usage_fixture/1` | LLM.Usage |
 | `PagesFixtures` | `page_fixture/1`, `create_page/1`, `create_page_tree/1` | Page |
 | `PlaygroundsFixtures` | `playground_fixture/1`, `create_playground/1` | Playground |

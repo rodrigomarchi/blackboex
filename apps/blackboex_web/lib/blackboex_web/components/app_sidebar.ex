@@ -2,15 +2,16 @@ defmodule BlackboexWeb.Components.AppSidebar do
   @moduledoc """
   Vertical sidebar navigation component for the app layout.
 
-  Renders grouped navigation items: WORK (APIs, Flows, Pages, Playgrounds),
-  CONFIG (API Keys), and a bottom section (Settings, User menu).
+  Renders grouped navigation items: WORK (APIs, Flows, Pages, Playgrounds)
+  and a bottom section (Theme toggle, User menu). Project-level config
+  (API Keys, Env Vars, LLM Integrations) is exposed via the project
+  settings tabs inside each project page — not duplicated in the sidebar.
 
   Supports collapsed mode (icon strip) for editor layouts.
   """
 
   use BlackboexWeb, :html
 
-  import SaladUI.Separator
   import SaladUI.Tooltip
   import BlackboexWeb.Components.OrgProjectSwitcher
 
@@ -157,19 +158,6 @@ defmodule BlackboexWeb.Components.AppSidebar do
               />
             </.sidebar_group>
         <% end %>
-
-        <.separator class="my-2" />
-
-        <.sidebar_group label="CONFIG" collapsed={@effective_collapsed}>
-          <.sidebar_nav_item
-            icon="hero-key"
-            label="API Keys"
-            href={project_path(@current_scope, "/api-keys")}
-            active={active?(@current_path, "/api-keys")}
-            collapsed={@effective_collapsed}
-            accent="text-accent-amber"
-          />
-        </.sidebar_group>
       </nav>
 
       <div class="border-t py-2">

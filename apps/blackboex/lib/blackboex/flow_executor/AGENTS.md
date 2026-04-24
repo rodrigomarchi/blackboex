@@ -8,12 +8,29 @@ The flow executor parses, validates, builds, and runs BlackboexFlow definitions 
 FlowExecutor (facade)
   ├── BlackboexFlow        — Validates canonical JSON format (9 node types)
   ├── DefinitionParser     — Parses JSON into ParsedFlow/ParsedNode structs
-  ├── CodeValidator         — AST-level validation of Elixir code in nodes
-  ├── SecretResolver       — Replaces {{secrets.X}} placeholders
+  ├── CodeValidator        — AST-level validation of Elixir code in nodes
+  ├── EnvResolver          — Replaces {{env.X}} / legacy {{secrets.X}} placeholders
+  │                          (lookup via ProjectEnvVars by flow.project_id)
   ├── ReactorBuilder       — Builds Reactor DAG from ParsedFlow
   │   └── Collector        — Picks first non-skipped result from multiple end nodes
   ├── ExecutionMiddleware  — Persists NodeExecution records, shared_state, PubSub
   └── Nodes/               — Reactor.Step implementations (one per node type)
+
+## Reactor Context
+
+`FlowExecutor.run/3` passes a context map to `Reactor.run/3` with:
+
+| Key | Purpose |
+|-----|---------|
+| `:execution_id`    | UUID for per-run DB persistence / PubSub topic |
+| `:node_map`        | `%{step_atom => %{id, type}}` used by `ExecutionMiddleware` |
+| `:organization_id` | Owning org (for audit + authorization) |
+| `:project_id`      | Owning project (used by nodes that need scoped lookups) |
+| `:env`             | `%{String.t() => String.t()}` env vars for the project (`ProjectEnvVars.load_runtime_map/1`) |
+
+Nodes that need env values read `context[:env]` in their `run/3`. The
+`ElixirCode` node exposes `env` as an additional binding alongside `input`
+and `state`.
 ```
 
 ## Node Types (9)

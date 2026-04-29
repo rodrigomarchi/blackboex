@@ -6,7 +6,6 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
   use BlackboexWeb, :live_view
 
   import BlackboexWeb.Components.Editor.ExecutionHistory
-  import BlackboexWeb.Components.Editor.PageHeader
   import BlackboexWeb.Components.Editor.PlaygroundChatPanel
   import BlackboexWeb.Components.Editor.TerminalOutput
   import BlackboexWeb.Components.Shared.PlaygroundEditorField
@@ -563,7 +562,7 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
     ~H"""
     <div id="playground-panels" class="flex h-full w-full overflow-hidden" phx-hook="ResizablePanels">
       <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <.editor_page_header
+        <.page_header
           title={@playground.name}
           back_path={project_path(@current_scope, "/playgrounds")}
           back_label="Playgrounds"
@@ -584,7 +583,7 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
               {if @running, do: "Running...", else: "Run"}
             </.button>
           </:actions>
-        </.editor_page_header>
+        </.page_header>
 
         <div class="flex flex-1 min-h-0">
           <%!-- Editor + Output vertical stack --%>

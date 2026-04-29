@@ -24,19 +24,14 @@ defmodule BlackboexWeb.ProjectLive.Index do
   @impl true
   def render(assigns) do
     ~H"""
+    <.page_header icon="hero-folder" icon_class="text-accent-blue" title="Projects">
+      <:actions>
+        <.button variant="primary" navigate={~p"/orgs/#{@org.slug}/projects/new"}>
+          <.icon name="hero-plus" class="mr-2 size-4 text-accent-emerald" /> New Project
+        </.button>
+      </:actions>
+    </.page_header>
     <.page>
-      <.header>
-        <span class="flex items-center gap-2">
-          <.icon name="hero-folder" class="size-5 text-accent-blue" /> Projects
-        </span>
-        <:subtitle>Manage projects in this organization</:subtitle>
-        <:actions>
-          <.button variant="primary" navigate={~p"/orgs/#{@org.slug}/projects/new"}>
-            <.icon name="hero-plus" class="mr-2 size-4 text-accent-emerald" /> New Project
-          </.button>
-        </:actions>
-      </.header>
-
       <%= if @projects == [] do %>
         <.empty_state
           icon="hero-folder"

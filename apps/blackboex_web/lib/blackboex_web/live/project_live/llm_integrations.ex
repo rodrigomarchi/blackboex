@@ -50,14 +50,8 @@ defmodule BlackboexWeb.ProjectLive.LlmIntegrations do
   @impl true
   def render(assigns) do
     ~H"""
+    <.page_header icon="hero-cpu-chip" icon_class="text-accent-violet" title="LLM Integrations" />
     <.page>
-      <.header>
-        <span class="flex items-center gap-2">
-          <.icon name="hero-cpu-chip" class="size-5 text-accent-violet" /> LLM Integrations
-        </span>
-        <:subtitle>Configure provider API keys used by AI-assist features</:subtitle>
-      </.header>
-
       <.project_settings_tabs
         :if={@project}
         active={:llm_integrations}
@@ -65,7 +59,7 @@ defmodule BlackboexWeb.ProjectLive.LlmIntegrations do
         project_slug={@project.slug}
       />
 
-      <div class="mt-6 max-w-xl space-y-4">
+      <div class="max-w-xl space-y-4">
         <h2 class="text-lg font-semibold">Anthropic</h2>
 
         <%= if @key_configured? do %>

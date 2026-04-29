@@ -1,26 +1,79 @@
 defmodule BlackboexWeb.Components.Shared.Page do
   @moduledoc """
-  Layout primitives for normal content pages.
+  Layout primitives for normal content pages (app layout).
 
-  `.page/1` is the root wrapper — owns page-level vertical spacing. Replaces
-  the ad-hoc `<div class="space-y-6">` previously repeated across LiveViews.
-  Max-width and horizontal padding live in `BlackboexWeb.Layouts.app` and must
-  NOT be re-defined here.
+  `.page_header/1` is the single unified header bar for the entire platform —
+  same visual as editor toolbars (h-12, border-b, bg-card). Supports two modes:
 
-  `.page_section/1` is a lightweight grouping element for subsections inside a
-  page, with a `spacing` variant (`tight`, `default`, `loose`).
+    * Content pages: pass `icon` + `title` (no back navigation)
+    * Editor pages: pass `back_path` + `title` (shows back arrow instead of icon)
 
-  ## Example
+  `.page/1` is the scrollable content area below the header — owns padding,
+  max-width, and vertical spacing.
 
+  `.page_section/1` is a lightweight grouping element for subsections.
+
+  ## Content page example
+
+      <.page_header icon="hero-bolt" icon_class="text-accent-amber" title="APIs">
+        <:actions>
+          <.button variant="primary">Create API</.button>
+        </:actions>
+      </.page_header>
       <.page>
-        <.header>...</.header>
-        <.page_section>
-          <.card>...</.card>
-          <.card>...</.card>
-        </.page_section>
+        <.card>...</.card>
       </.page>
+
+  ## Editor page example
+
+      <.page_header back_path={~p"/pages"} back_label="Pages" title={@page.title}>
+        <:badge><.badge variant="secondary">draft</.badge></:badge>
+        <:actions>
+          <.button phx-click="save">Save</.button>
+        </:actions>
+      </.page_header>
   """
   use BlackboexWeb.Component
+
+  import BlackboexWeb.Components.Icon
+
+  attr :title, :string, required: true
+  attr :back_path, :string, default: nil
+  attr :back_label, :string, default: "Back"
+  attr :icon, :string, default: nil
+  attr :icon_class, :string, default: nil
+  attr :class, :any, default: nil
+
+  slot :badge
+  slot :actions
+
+  @spec page_header(map()) :: Phoenix.LiveView.Rendered.t()
+  def page_header(assigns) do
+    ~H"""
+    <header class={classes(["flex h-12 shrink-0 items-center border-b bg-card px-4 gap-3", @class])}>
+      <.link
+        :if={@back_path}
+        navigate={@back_path}
+        class="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent"
+        title={@back_label}
+      >
+        <.icon name="hero-arrow-left" class="size-4" />
+      </.link>
+
+      <.icon :if={@icon && !@back_path} name={@icon} class={["size-4 shrink-0", @icon_class]} />
+
+      <h1 class="text-sm font-semibold truncate">{@title}</h1>
+
+      {render_slot(@badge)}
+
+      <div class="flex-1" />
+
+      <div :if={@actions != []} class="flex items-center gap-2">
+        {render_slot(@actions)}
+      </div>
+    </header>
+    """
+  end
 
   attr :class, :any, default: nil
   attr :rest, :global
@@ -29,8 +82,10 @@ defmodule BlackboexWeb.Components.Shared.Page do
   @spec page(map()) :: Phoenix.LiveView.Rendered.t()
   def page(assigns) do
     ~H"""
-    <div class={classes(["space-y-6", @class])} {@rest}>
-      {render_slot(@inner_block)}
+    <div class={classes(["flex-1 overflow-y-auto", @class])} {@rest}>
+      <div class="mx-auto max-w-6xl px-4 py-6 md:px-6 md:py-8 space-y-6">
+        {render_slot(@inner_block)}
+      </div>
     </div>
     """
   end

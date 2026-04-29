@@ -145,14 +145,8 @@ defmodule BlackboexWeb.ProjectMemberLive.Index do
   @impl true
   def render(assigns) do
     ~H"""
+    <.page_header icon="hero-user-group" icon_class="text-accent-blue" title="Project Members" />
     <.page>
-      <.header>
-        <span class="flex items-center gap-2">
-          <.icon name="hero-user-group" class="size-5 text-accent-blue" /> Project Members
-        </span>
-        <:subtitle>Manage access to this project</:subtitle>
-      </.header>
-
       <.project_settings_tabs
         :if={@project && @org}
         active={:members}

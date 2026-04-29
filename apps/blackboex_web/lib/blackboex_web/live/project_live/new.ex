@@ -29,10 +29,8 @@ defmodule BlackboexWeb.ProjectLive.New do
   @impl true
   def render(assigns) do
     ~H"""
+    <.page_header icon="hero-folder-plus" icon_class="text-accent-blue" title="New Project" />
     <.page>
-      <.header>
-        New Project
-      </.header>
       <.form for={@form} phx-submit="create">
         <.input field={@form[:name]} label="Name" />
         <.button type="submit">Create</.button>

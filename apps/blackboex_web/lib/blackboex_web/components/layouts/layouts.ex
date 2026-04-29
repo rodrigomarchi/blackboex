@@ -74,10 +74,8 @@ defmodule BlackboexWeb.Layouts do
           />
         </div>
 
-        <main class="flex-1 overflow-y-auto px-4 py-6 md:px-6 md:py-8">
-          <div class="mx-auto max-w-6xl">
-            {@inner_content}
-          </div>
+        <main class="flex-1 flex flex-col overflow-hidden">
+          {@inner_content}
         </main>
       </div>
     </div>

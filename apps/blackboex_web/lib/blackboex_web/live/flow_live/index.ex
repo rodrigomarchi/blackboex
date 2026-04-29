@@ -214,18 +214,14 @@ defmodule BlackboexWeb.FlowLive.Index do
   @impl true
   def render(assigns) do
     ~H"""
+    <.page_header icon="hero-arrow-path" icon_class="text-accent-violet" title="Flows">
+      <:actions>
+        <.button variant="primary" phx-click="open_create_modal">
+          <.icon name="hero-plus" class="mr-2 size-4 text-accent-emerald" /> Create Flow
+        </.button>
+      </:actions>
+    </.page_header>
     <.page>
-      <.header>
-        <span class="flex items-center gap-2">
-          <.icon name="hero-arrow-path" class="size-5 text-accent-violet" /> Flows
-        </span>
-        <:subtitle>Build visual workflows by connecting nodes</:subtitle>
-        <:actions>
-          <.button variant="primary" phx-click="open_create_modal">
-            <.icon name="hero-plus" class="mr-2 size-4 text-accent-emerald" /> Create Flow
-          </.button>
-        </:actions>
-      </.header>
 
       <.form :let={_f} for={%{}} as={:search} phx-change="search" class="w-full">
         <.input

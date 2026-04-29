@@ -79,14 +79,8 @@ defmodule BlackboexWeb.OrgMemberLive.Index do
   @impl true
   def render(assigns) do
     ~H"""
+    <.page_header icon="hero-user-group" icon_class="text-accent-blue" title="Members" />
     <.page>
-      <.header>
-        <span class="flex items-center gap-2">
-          <.icon name="hero-user-group" class="size-5 text-accent-blue" /> Members
-        </span>
-        <:subtitle>Manage organization members and roles</:subtitle>
-      </.header>
-
       <.org_settings_tabs current_scope={@current_scope} active="members" />
 
       <%= if @members == [] do %>

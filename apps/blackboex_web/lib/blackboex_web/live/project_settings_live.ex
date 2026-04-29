@@ -116,14 +116,8 @@ defmodule BlackboexWeb.ProjectSettingsLive do
   @impl true
   def render(assigns) do
     ~H"""
+    <.page_header icon="hero-cog-6-tooth" icon_class="text-accent-blue" title="Project Settings" />
     <.page>
-      <.header>
-        <span class="flex items-center gap-2">
-          <.icon name="hero-cog-6-tooth" class="size-5 text-accent-blue" /> Project Settings
-        </span>
-        <:subtitle>Manage your project</:subtitle>
-      </.header>
-
       <.project_settings_tabs
         :if={@project && @org}
         active={tab_active(@live_action)}

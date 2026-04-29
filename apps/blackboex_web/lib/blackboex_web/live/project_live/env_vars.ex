@@ -42,21 +42,14 @@ defmodule BlackboexWeb.ProjectLive.EnvVars do
   @impl true
   def render(assigns) do
     ~H"""
+    <.page_header icon="hero-variable" icon_class="text-accent-violet" title="Env Vars">
+      <:actions>
+        <.button variant="primary" phx-click="open_create_modal">
+          <.icon name="hero-plus" class="mr-2 size-4 text-accent-emerald" /> New Env Var
+        </.button>
+      </:actions>
+    </.page_header>
     <.page>
-      <.header>
-        <span class="flex items-center gap-2">
-          <.icon name="hero-variable" class="size-5 text-accent-violet" /> Env Vars
-        </span>
-        <:subtitle>
-          Project-scoped environment variables injected into APIs, Flows and Playgrounds
-        </:subtitle>
-        <:actions>
-          <.button variant="primary" phx-click="open_create_modal">
-            <.icon name="hero-plus" class="mr-2 size-4 text-accent-emerald" /> New Env Var
-          </.button>
-        </:actions>
-      </.header>
-
       <.project_settings_tabs
         :if={@project}
         active={:env_vars}

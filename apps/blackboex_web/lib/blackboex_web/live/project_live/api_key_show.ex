@@ -11,6 +11,7 @@ defmodule BlackboexWeb.ProjectLive.ApiKeyShow do
   import BlackboexWeb.Components.Shared.DescriptionList
   import BlackboexWeb.Components.Shared.DashboardHelpers, only: [format_latency: 1]
   import BlackboexWeb.Components.Shared.PlainKeyBanner
+  import BlackboexWeb.Components.Shared.ProjectSettingsTabs
   import BlackboexWeb.Components.UI.SectionHeading
 
   alias Blackboex.Apis.Keys
@@ -56,52 +57,36 @@ defmodule BlackboexWeb.ProjectLive.ApiKeyShow do
   @impl true
   def render(assigns) do
     ~H"""
-    <.page>
-      <.header>
-        <div class="flex items-center gap-3">
-          <.link navigate={keys_index_path(@org, @project)} class="link-muted">
-            <.icon name="hero-arrow-left" class="size-5" />
-          </.link>
-          <span class="text-2xl font-bold tracking-tight font-mono">{@key.key_prefix}...</span>
-          <.badge class={api_key_status_classes(status_label(@key))}>
-            {status_label(@key)}
-          </.badge>
+    <.page_header icon="hero-key" icon_class="text-accent-amber" title={"#{@key.key_prefix}..."}>
+      <:badge>
+        <.badge class={api_key_status_classes(status_label(@key))}>
+          {status_label(@key)}
+        </.badge>
+      </:badge>
+      <:actions>
+        <div class="flex gap-2">
+          <.button :if={!@key.revoked_at} phx-click="rotate" variant="default" size="sm">
+            <.icon name="hero-arrow-path" class="mr-1.5 size-4 text-accent-amber" /> Rotate
+          </.button>
+          <.button
+            :if={!@key.revoked_at}
+            phx-click="request_confirm"
+            phx-value-action="revoke"
+            variant="destructive"
+            size="sm"
+          >
+            <.icon name="hero-x-circle" class="mr-1.5 size-4 text-accent-red" /> Revoke
+          </.button>
         </div>
-        <:subtitle>
-          {@key.label || "Unnamed key"} · API:
-          <%= if @key.api do %>
-            <.link
-              navigate={~p"/orgs/#{@org.slug}/projects/#{@project.slug}/apis/#{@key.api.slug}"}
-              class="link-entity"
-            >
-              {@key.api.name}
-            </.link>
-          <% else %>
-            <span>Unknown</span>
-          <% end %>
-        </:subtitle>
-        <:actions>
-          <div class="flex gap-2">
-            <.button
-              :if={!@key.revoked_at}
-              phx-click="rotate"
-              variant="default"
-              size="sm"
-            >
-              <.icon name="hero-arrow-path" class="mr-1.5 size-4 text-accent-amber" /> Rotate
-            </.button>
-            <.button
-              :if={!@key.revoked_at}
-              phx-click="request_confirm"
-              phx-value-action="revoke"
-              variant="destructive"
-              size="sm"
-            >
-              <.icon name="hero-x-circle" class="mr-1.5 size-4 text-accent-red" /> Revoke
-            </.button>
-          </div>
-        </:actions>
-      </.header>
+      </:actions>
+    </.page_header>
+    <.page>
+      <.project_settings_tabs
+        :if={@project && @org}
+        active={:api_keys}
+        org_slug={@org.slug}
+        project_slug={@project.slug}
+      />
 
       <.plain_key_banner :if={@plain_key_flash} plain_key={@plain_key_flash} />
 

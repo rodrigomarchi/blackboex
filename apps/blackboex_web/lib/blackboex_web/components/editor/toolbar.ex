@@ -14,7 +14,7 @@ defmodule BlackboexWeb.Components.Editor.Toolbar do
   @spec editor_toolbar(map()) :: Phoenix.LiveView.Rendered.t()
   def editor_toolbar(assigns) do
     ~H"""
-    <header class="flex h-11 shrink-0 items-center border-b bg-card px-3 gap-2">
+    <header class="flex h-12 shrink-0 items-center border-b bg-card px-4 gap-3">
       <.link
         navigate={~p"/apis"}
         class="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent"
@@ -22,8 +22,6 @@ defmodule BlackboexWeb.Components.Editor.Toolbar do
       >
         <.icon name="hero-arrow-left" class="size-4" />
       </.link>
-
-      <div class="h-4 w-px bg-border" />
 
       <h1 class="text-sm font-semibold truncate max-w-[200px]">{@api.name}</h1>
 

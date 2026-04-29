@@ -9,7 +9,6 @@ defmodule BlackboexWeb.PageLive.Edit do
 
   import BlackboexWeb.Components.Badge
   import BlackboexWeb.Components.Editor.PageChatPanel
-  import BlackboexWeb.Components.Editor.PageHeader
   import BlackboexWeb.Components.Editor.SaveIndicator
   import BlackboexWeb.Components.Shared.TiptapEditorField
 
@@ -83,7 +82,7 @@ defmodule BlackboexWeb.PageLive.Edit do
     ~H"""
     <div class="flex h-full w-full overflow-hidden" id="page-edit-root" phx-hook="ResizablePanels">
       <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <.editor_page_header
+        <.page_header
           title={@page.title}
           back_path={project_path(@current_scope, "/pages")}
           back_label="Pages"
@@ -106,7 +105,7 @@ defmodule BlackboexWeb.PageLive.Edit do
               <.icon name="hero-sparkles" class="size-3.5" /> Chat
             </button>
           </:badge>
-        </.editor_page_header>
+        </.page_header>
 
         <%!-- Inline title --%>
         <div class="px-8 pt-6 pb-2">

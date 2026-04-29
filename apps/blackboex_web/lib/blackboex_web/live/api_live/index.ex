@@ -327,18 +327,14 @@ defmodule BlackboexWeb.ApiLive.Index do
   @impl true
   def render(assigns) do
     ~H"""
+    <.page_header icon="hero-cube" icon_class="text-accent-blue" title="APIs">
+      <:actions>
+        <.button variant="primary" phx-click="open_create_modal">
+          <.icon name="hero-plus" class="mr-2 size-4 text-accent-emerald" /> Create API
+        </.button>
+      </:actions>
+    </.page_header>
     <.page>
-      <.header>
-        <span class="flex items-center gap-2">
-          <.icon name="hero-cube" class="size-5 text-accent-blue" /> APIs
-        </span>
-        <:subtitle>Manage and monitor your API endpoints</:subtitle>
-        <:actions>
-          <.button variant="primary" phx-click="open_create_modal">
-            <.icon name="hero-plus" class="mr-2 size-4 text-accent-emerald" /> Create API
-          </.button>
-        </:actions>
-      </.header>
 
       <.form :let={_f} for={%{}} as={:search} phx-change="search" class="w-full">
         <.input

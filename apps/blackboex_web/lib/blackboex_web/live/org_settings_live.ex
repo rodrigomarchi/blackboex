@@ -111,15 +111,8 @@ defmodule BlackboexWeb.OrgSettingsLive do
   @impl true
   def render(assigns) do
     ~H"""
+    <.page_header icon="hero-building-office-2" icon_class="text-accent-blue" title="Organization Settings" />
     <.page>
-      <.header>
-        <span class="flex items-center gap-2">
-          <.icon name="hero-building-office-2" class="size-5 text-accent-blue" />
-          Organization Settings
-        </span>
-        <:subtitle>Manage your organization</:subtitle>
-      </.header>
-
       <.org_settings_tabs current_scope={@current_scope} active={tab_active(@live_action)} />
 
       <%= if @live_action in [:dashboard, :apis, :flows, :llm, :usage] do %>

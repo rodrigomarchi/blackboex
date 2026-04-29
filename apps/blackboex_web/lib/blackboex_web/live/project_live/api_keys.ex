@@ -46,22 +46,14 @@ defmodule BlackboexWeb.ProjectLive.ApiKeys do
   @impl true
   def render(assigns) do
     ~H"""
+    <.page_header icon="hero-key" icon_class="text-accent-amber" title="API Keys">
+      <:actions>
+        <.button variant="primary" phx-click="toggle_create_modal">
+          <.icon name="hero-plus" class="mr-2 size-4 text-accent-emerald" /> New Key
+        </.button>
+      </:actions>
+    </.page_header>
     <.page>
-      <.header>
-        <span class="flex items-center gap-2">
-          <.icon name="hero-key" class="size-5 text-accent-amber" /> API Keys
-        </span>
-        <:subtitle>
-          Manage authentication keys for APIs in
-          <span class="font-medium">{@project && @project.name}</span>
-        </:subtitle>
-        <:actions>
-          <.button variant="primary" phx-click="toggle_create_modal">
-            <.icon name="hero-plus" class="mr-2 size-4 text-accent-emerald" /> New Key
-          </.button>
-        </:actions>
-      </.header>
-
       <.project_settings_tabs
         :if={@project}
         active={:api_keys}

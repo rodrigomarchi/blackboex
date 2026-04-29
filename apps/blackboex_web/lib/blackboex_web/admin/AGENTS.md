@@ -283,7 +283,7 @@ The admin panel uses a two-level layout system distinct from the regular app:
 Loaded via the `:admin_layout` pipeline plug (`put_root_layout html: {BlackboexWeb.Layouts, :admin_root}`).
 
 - Loads `admin.css` and `admin.js` (the separate Backpex asset bundle, **not** the app bundle)
-- Sets `data-theme="dark"` by default
+- Renders in dark theme (single theme — no switcher; dark values are in `:root` of `admin.css`)
 - Page title prefix: "BlackBoex Admin"
 - Body is bare — Backpex renders its own sidebar/navigation inside `@inner_content`
 

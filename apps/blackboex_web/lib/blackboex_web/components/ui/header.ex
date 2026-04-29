@@ -10,7 +10,7 @@ defmodule BlackboexWeb.Components.Header do
 
   def header(assigns) do
     ~H"""
-    <header class={[@actions != [] && "flex items-center justify-between gap-6", "pb-4"]}>
+    <header class="flex items-center justify-between gap-6 pb-4">
       <div>
         <h1 class="text-lg font-semibold leading-8">
           {render_slot(@inner_block)}

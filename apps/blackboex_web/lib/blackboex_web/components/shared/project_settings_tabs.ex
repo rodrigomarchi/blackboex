@@ -39,7 +39,7 @@ defmodule BlackboexWeb.Components.Shared.ProjectSettingsTabs do
     assigns = assign(assigns, :tabs, @tab_defs)
 
     ~H"""
-    <nav class="mt-4 flex gap-1 border-b" data-role="project-settings-tabs">
+    <nav class="flex gap-1 border-b" data-role="project-settings-tabs">
       <.project_tab
         :for={{tab_id, label, suffix} <- @tabs}
         label={label}

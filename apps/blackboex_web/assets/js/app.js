@@ -209,6 +209,19 @@ const CommandPaletteNav = {
 
 import SidebarTreeDnD from "./hooks/sidebar_tree_dnd"
 
+const SidebarCollapse = {
+  mounted() {
+    if (localStorage.getItem("sidebar-collapsed") === "true") {
+      this.el.classList.add("sidebar-collapsed", "w-14")
+      this.el.classList.remove("w-60")
+    }
+    this.el.addEventListener("sidebar:toggled", () => {
+      localStorage.setItem("sidebar-collapsed",
+        String(this.el.classList.contains("sidebar-collapsed")))
+    })
+  }
+}
+
 // Collect hooks from feature bundles (editor_tiptap.js, editor_code.js, editor_flow.js)
 // Feature bundles register their hooks into window.__hooks before this script runs
 const featureHooks = window.__hooks || {}
@@ -217,7 +230,7 @@ const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks, KeyboardShortcuts, AutoFocus, ChatAutoScroll, EditorAutoScroll, CommandPaletteNav, SidebarTreeDnD, ...featureHooks, ...BackpexHooks},
+  hooks: {...colocatedHooks, KeyboardShortcuts, AutoFocus, ChatAutoScroll, EditorAutoScroll, CommandPaletteNav, SidebarTreeDnD, SidebarCollapse, ...featureHooks, ...BackpexHooks},
 })
 
 // Show progress bar on live navigation and form submits

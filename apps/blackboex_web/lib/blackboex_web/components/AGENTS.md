@@ -240,7 +240,7 @@ Page-level heading with optional subtitle and action area.
 Slots:
 - `:inner_block` — required; the main title text
 - `:subtitle` — optional descriptive text below the title
-- `:actions` — optional; when present, header becomes flex row with actions on the right
+- `:actions` — optional; slot for primary action button(s) rendered on the right. Header is always a flex row regardless of whether actions are present.
 
 ```heex
 <.header>

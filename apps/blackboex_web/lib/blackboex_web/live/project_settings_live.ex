@@ -132,37 +132,33 @@ defmodule BlackboexWeb.ProjectSettingsLive do
       />
 
       <%= if @live_action in [:dashboard, :apis, :flows, :llm] do %>
-        <div class="mt-4 space-y-6">
-          <.dashboard_nav active={nav_key(@live_action)} base_path={@base_path} />
-          <%= if @live_action == :dashboard do %>
-            <.overview_content summary={@summary} />
-          <% end %>
-          <%= if @live_action == :apis do %>
-            <.apis_content metrics={@metrics} period={@period} base_path={@base_path} />
-          <% end %>
-          <%= if @live_action == :flows do %>
-            <.flows_content metrics={@metrics} period={@period} base_path={@base_path} />
-          <% end %>
-          <%= if @live_action == :llm do %>
-            <.llm_content metrics={@metrics} series={@series} period={@period} base_path={@base_path} />
-          <% end %>
-        </div>
+        <.dashboard_nav active={nav_key(@live_action)} base_path={@base_path} />
+        <%= if @live_action == :dashboard do %>
+          <.overview_content summary={@summary} />
+        <% end %>
+        <%= if @live_action == :apis do %>
+          <.apis_content metrics={@metrics} period={@period} base_path={@base_path} />
+        <% end %>
+        <%= if @live_action == :flows do %>
+          <.flows_content metrics={@metrics} period={@period} base_path={@base_path} />
+        <% end %>
+        <%= if @live_action == :llm do %>
+          <.llm_content metrics={@metrics} series={@series} period={@period} base_path={@base_path} />
+        <% end %>
       <% end %>
 
       <%= if @live_action == :general do %>
-        <div class="max-w-lg space-y-8 mt-6">
-          <div class="space-y-3">
-            <.section_heading>General</.section_heading>
+        <div class="max-w-lg space-y-4">
+          <.section_heading>General</.section_heading>
 
-            <.form :let={f} for={@form} phx-change="validate" phx-submit="save" class="space-y-4">
-              <.input field={f[:name]} type="text" label="Project Name" required />
-              <.input field={f[:description]} type="textarea" label="Description" />
-              <.input field={f[:slug]} type="text" label="Slug" disabled />
-              <.form_actions spacing="tight">
-                <.button type="submit" variant="primary">Save Changes</.button>
-              </.form_actions>
-            </.form>
-          </div>
+          <.form :let={f} for={@form} phx-change="validate" phx-submit="save" class="space-y-4">
+            <.input field={f[:name]} type="text" label="Project Name" required />
+            <.input field={f[:description]} type="textarea" label="Description" />
+            <.input field={f[:slug]} type="text" label="Slug" disabled />
+            <.form_actions spacing="tight">
+              <.button type="submit" variant="primary">Save Changes</.button>
+            </.form_actions>
+          </.form>
         </div>
       <% end %>
     </.page>

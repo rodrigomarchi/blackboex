@@ -527,7 +527,7 @@ defmodule BlackboexWeb.Components.SidebarTreeComponent do
 
     ~H"""
     <div class="group flex flex-col">
-      <div class="flex items-center">
+      <div class="relative flex items-center">
         <button
           type="button"
           class="flex flex-1 items-center gap-1.5 rounded px-2 py-0.5 text-xs hover:bg-muted text-left text-muted-foreground"
@@ -545,7 +545,7 @@ defmodule BlackboexWeb.Components.SidebarTreeComponent do
           <span class="truncate">{@label}</span>
           <span
             :if={@count > 0}
-            class="ml-auto text-[10px] tabular-nums text-muted-foreground/70"
+            class="ml-auto text-[10px] tabular-nums text-muted-foreground/70 group-hover:opacity-0"
           >
             {@count}
           </span>
@@ -553,7 +553,7 @@ defmodule BlackboexWeb.Components.SidebarTreeComponent do
 
         <button
           type="button"
-          class="hidden group-hover:inline-flex items-center justify-center rounded px-1 py-0.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+          class="absolute right-1 top-1/2 -translate-y-1/2 hidden group-hover:inline-flex items-center justify-center rounded px-1 py-0.5 text-xs text-muted-foreground hover:bg-background hover:text-foreground"
           phx-click="open_create_modal"
           phx-value-type={@type}
           phx-value-project-id={@project.id}
@@ -682,61 +682,66 @@ defmodule BlackboexWeb.Components.SidebarTreeComponent do
           <span class="truncate">{@label}</span>
         </.link>
 
-        <button
-          :if={@type == "pages"}
-          type="button"
-          class="hidden group-hover:inline-flex items-center justify-center rounded px-1 py-0.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
-          phx-click="open_create_modal"
-          phx-value-type="pages"
-          phx-value-project-id={@project.id}
-          phx-value-parent-id={@item.id}
-          phx-target={@myself}
-          aria-label="Create sub-page"
-        >
-          +
-        </button>
-
-        <%!-- Context menu trigger --%>
-        <div class="relative">
+        <div class={[
+          "absolute right-1 top-1/2 -translate-y-1/2 items-center gap-0.5",
+          if(@is_menu_open, do: "flex", else: "hidden group-hover:flex")
+        ]}>
           <button
+            :if={@type == "pages"}
             type="button"
-            phx-click="open_item_menu"
-            phx-value-type={@singular}
-            phx-value-id={@item.id}
+            class="inline-flex items-center justify-center rounded px-1 py-0.5 text-xs text-muted-foreground hover:bg-background hover:text-foreground"
+            phx-click="open_create_modal"
+            phx-value-type="pages"
+            phx-value-project-id={@project.id}
+            phx-value-parent-id={@item.id}
             phx-target={@myself}
-            class="hidden group-hover:inline-flex items-center justify-center rounded px-1 py-0.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
-            aria-label="Item actions"
+            aria-label="Create sub-page"
           >
-            ⋯
+            +
           </button>
 
-          <div
-            :if={@is_menu_open}
-            role="menu"
-            class="absolute right-0 z-20 mt-1 min-w-[8rem] rounded border bg-popover p-1 shadow-md"
-          >
+          <%!-- Context menu trigger --%>
+          <div class="relative">
             <button
-              role="menuitem"
               type="button"
-              phx-click="start_rename"
+              phx-click="open_item_menu"
               phx-value-type={@singular}
               phx-value-id={@item.id}
               phx-target={@myself}
-              class="w-full rounded px-2 py-1 text-left text-xs hover:bg-muted"
+              class="inline-flex items-center justify-center rounded px-1 py-0.5 text-xs text-muted-foreground hover:bg-background hover:text-foreground"
+              aria-label="Item actions"
             >
-              Rename
+              ⋯
             </button>
-            <button
-              role="menuitem"
-              type="button"
-              phx-click="open_delete_modal"
-              phx-value-type={@singular}
-              phx-value-id={@item.id}
-              phx-target={@myself}
-              class="w-full rounded px-2 py-1 text-left text-xs text-destructive hover:bg-muted"
+
+            <div
+              :if={@is_menu_open}
+              role="menu"
+              class="absolute right-0 z-20 mt-1 min-w-[8rem] rounded border bg-popover p-1 shadow-md"
             >
-              Delete
-            </button>
+              <button
+                role="menuitem"
+                type="button"
+                phx-click="start_rename"
+                phx-value-type={@singular}
+                phx-value-id={@item.id}
+                phx-target={@myself}
+                class="w-full rounded px-2 py-1 text-left text-xs hover:bg-muted"
+              >
+                Rename
+              </button>
+              <button
+                role="menuitem"
+                type="button"
+                phx-click="open_delete_modal"
+                phx-value-type={@singular}
+                phx-value-id={@item.id}
+                phx-target={@myself}
+                class="w-full rounded px-2 py-1 text-left text-xs text-destructive hover:bg-muted"
+              >
+                Delete
+              </button>
+            </div>
           </div>
         </div>
       <% end %>

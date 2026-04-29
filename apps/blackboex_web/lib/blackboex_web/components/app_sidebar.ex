@@ -161,10 +161,6 @@ defmodule BlackboexWeb.Components.AppSidebar do
       </nav>
 
       <div class="border-t py-2">
-        <div class={["px-2", if(@effective_collapsed, do: "flex justify-center")]}>
-          <.theme_toggle_compact collapsed={@effective_collapsed} />
-        </div>
-
         <%= if @current_scope && @current_scope.user do %>
           <div class={[
             "mt-2 px-2",
@@ -266,50 +262,6 @@ defmodule BlackboexWeb.Components.AppSidebar do
         {@label}
       </.link>
     <% end %>
-    """
-  end
-
-  attr :collapsed, :boolean, default: false
-
-  defp theme_toggle_compact(assigns) do
-    ~H"""
-    <div class={[
-      "relative flex flex-row items-center border border-border bg-muted rounded-full",
-      if(@collapsed, do: "w-10", else: "w-auto")
-    ]}>
-      <.button
-        type="button"
-        variant="ghost"
-        size="icon"
-        class="flex h-auto w-1/3 cursor-pointer rounded-none p-1.5"
-        phx-click={Phoenix.LiveView.JS.dispatch("phx:set-theme")}
-        data-phx-theme="system"
-      >
-        <.icon name="hero-computer-desktop-micro" class="size-3 opacity-75 hover:opacity-100" />
-      </.button>
-      <.button
-        :if={!@collapsed}
-        type="button"
-        variant="ghost"
-        size="icon"
-        class="flex h-auto w-1/3 cursor-pointer rounded-none p-1.5"
-        phx-click={Phoenix.LiveView.JS.dispatch("phx:set-theme")}
-        data-phx-theme="light"
-      >
-        <.icon name="hero-sun-micro" class="size-3 opacity-75 hover:opacity-100" />
-      </.button>
-      <.button
-        :if={!@collapsed}
-        type="button"
-        variant="ghost"
-        size="icon"
-        class="flex h-auto w-1/3 cursor-pointer rounded-none p-1.5"
-        phx-click={Phoenix.LiveView.JS.dispatch("phx:set-theme")}
-        data-phx-theme="dark"
-      >
-        <.icon name="hero-moon-micro" class="size-3 opacity-75 hover:opacity-100" />
-      </.button>
-    </div>
     """
   end
 

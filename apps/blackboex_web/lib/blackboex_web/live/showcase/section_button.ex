@@ -13,7 +13,6 @@ defmodule BlackboexWeb.Showcase.Sections.Button do
   <.button variant="outline-destructive">outline-destructive</.button>
   <.button variant="ghost">ghost</.button>
   <.button variant="ghost-muted">ghost-muted</.button>
-  <.button variant="ghost-dark">ghost-dark</.button>
   <.button variant="success">success</.button>
   <.button variant="info">info</.button>
   <.button variant="link">link</.button>
@@ -82,9 +81,9 @@ defmodule BlackboexWeb.Showcase.Sections.Button do
           <.button variant="link">link</.button>
         </div>
         <div class="mt-4 bg-gray-900 rounded p-3 flex gap-2">
-          <.button variant="ghost-dark">ghost-dark</.button>
-          <.button variant="ghost-dark">
-            <.icon name="hero-cog-6-tooth" class="size-4" /> ghost-dark with icon
+          <.button variant="ghost">ghost</.button>
+          <.button variant="ghost">
+            <.icon name="hero-cog-6-tooth" class="size-4" /> ghost with icon
           </.button>
         </div>
       </.showcase_block>

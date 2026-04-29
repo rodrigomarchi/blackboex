@@ -299,9 +299,6 @@ defmodule BlackboexWeb.ShowcaseLive do
             <% end %>
           </div>
         </nav>
-        <div class="p-3 border-t shrink-0">
-          <Layouts.theme_toggle {assigns} />
-        </div>
       </aside>
 
       <%!-- Content --%>

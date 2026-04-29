@@ -24,7 +24,6 @@ defmodule BlackboexWeb.Components.Button do
     "outline-destructive" => "border border-destructive text-destructive hover:bg-destructive/10",
     "ghost" => "hover:bg-accent hover:text-accent-foreground",
     "ghost-muted" => "text-muted-foreground hover:bg-accent hover:text-foreground",
-    "ghost-dark" => "text-white/40 hover:bg-white/10 hover:text-white/70",
     "success" => "bg-success text-success-foreground hover:bg-success/90",
     "info" => "bg-info text-info-foreground hover:bg-info/90",
     "link" => "text-primary underline-offset-4 hover:underline"
@@ -48,7 +47,7 @@ defmodule BlackboexWeb.Components.Button do
 
   attr :variant, :string,
     values:
-      ~w(default primary secondary destructive outline outline-destructive ghost ghost-muted ghost-dark success info link),
+      ~w(default primary secondary destructive outline outline-destructive ghost ghost-muted success info link),
     default: "default"
 
   attr :size, :string,

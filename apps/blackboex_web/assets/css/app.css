@@ -190,110 +190,8 @@
   right: -8px;
 }
 
-/* SaladUI / shadcn-style CSS variables — light theme (default) */
+/* SaladUI / shadcn-style CSS variables — dark theme */
 :root {
-  --background: 0 0% 100%;
-  --foreground: 240 10% 10%;
-  --card: 0 0% 100%;
-  --card-foreground: 240 10% 10%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 240 10% 10%;
-  --primary: 239 65% 58%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 240 5% 96%;
-  --secondary-foreground: 240 6% 10%;
-  --muted: 240 5% 96%;
-  --muted-foreground: 240 4% 46%;
-  --accent: 240 5% 96%;
-  --accent-foreground: 240 6% 10%;
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 0 0% 98%;
-  --border: 240 6% 90%;
-  --input: 240 6% 90%;
-  --ring: 239 65% 58%;
-  --radius: 0.5rem;
-
-  /* ── Status: API lifecycle ─────────────────────── */
-  --status-draft: 240 5% 96%;
-  --status-draft-foreground: 240 4% 46%;
-  --status-compiled: 142 71% 45%;
-  --status-compiled-foreground: 144 61% 20%;
-  --status-published: 221 83% 53%;
-  --status-published-foreground: 224 76% 20%;
-  --status-archived: 240 6% 65%;
-  --status-archived-foreground: 240 4% 46%;
-
-  /* ── Status: process states ────────────────────── */
-  --status-pending: 38 92% 50%;
-  --status-pending-foreground: 32 81% 29%;
-  --status-generating: 38 92% 50%;
-  --status-generating-foreground: 32 81% 29%;
-  --status-running: 221 83% 53%;
-  --status-running-foreground: 224 76% 20%;
-  --status-active: 142 71% 45%;
-  --status-active-foreground: 144 61% 20%;
-  --status-expired: 0 84% 60%;
-  --status-expired-foreground: 0 74% 22%;
-
-  /* ── Semantic feedback ─────────────────────────── */
-  --success: 142 71% 45%;
-  --success-foreground: 144 61% 20%;
-  --warning: 38 92% 50%;
-  --warning-foreground: 32 81% 29%;
-  --info: 221 83% 53%;
-  --info-foreground: 224 76% 20%;
-
-  /* ── Icon accents (contextual differentiation) ── */
-  --accent-blue: 213 94% 68%;
-  --accent-violet: 255 92% 76%;
-  --accent-amber: 45 93% 47%;
-  --accent-emerald: 156 72% 57%;
-  --accent-red: 0 84% 60%;
-  --accent-purple: 272 51% 60%;
-  --accent-sky: 199 89% 48%;
-  --accent-teal: 172 66% 50%;
-  --accent-rose: 347 77% 50%;
-  --accent-orange: 25 95% 53%;
-  --accent-cyan: 188 78% 41%;
-
-  /* ── Schema field types ────────────────────────── */
-  --type-string: 160 84% 39%;
-  --type-string-foreground: 155 65% 30%;
-  --type-number: 217 91% 60%;
-  --type-number-foreground: 224 76% 35%;
-  --type-boolean: 38 92% 50%;
-  --type-boolean-foreground: 32 81% 29%;
-  --type-array: 270 60% 55%;
-  --type-array-foreground: 270 50% 35%;
-  --type-object: 235 60% 55%;
-  --type-object-foreground: 235 50% 35%;
-
-  /* ── Execution status (extends process states) ── */
-  --status-completed: 142 71% 45%;
-  --status-completed-foreground: 144 61% 20%;
-  --status-failed: 0 84% 60%;
-  --status-failed-foreground: 0 74% 22%;
-  --status-cancelled: 240 6% 65%;
-  --status-cancelled-foreground: 240 4% 46%;
-  --status-halted: 38 92% 50%;
-  --status-halted-foreground: 32 81% 29%;
-  --status-skipped: 240 5% 96%;
-  --status-skipped-foreground: 240 4% 46%;
-
-  /* ── Editor ─────────────────────────────────────── */
-  --editor-bg: 240 21% 15%;
-
-  /* ── Charts ────────────────────────────────────── */
-  --chart-1: 239 65% 58%;
-  --chart-2: 0 84% 60%;
-  --chart-3: 38 92% 50%;
-  --chart-4: 142 71% 45%;
-  --chart-5: 262 83% 58%;
-  --chart-axis: 240 6% 83%;
-}
-
-/* Dark theme */
-[data-theme="dark"] {
   --background: 240 10% 16%;
   --foreground: 0 0% 95%;
   --card: 240 10% 18%;
@@ -313,6 +211,7 @@
   --border: 240 6% 28%;
   --input: 240 6% 28%;
   --ring: 239 65% 58%;
+  --radius: 0.5rem;
 
   /* ── Status: API lifecycle ─────────────────────── */
   --status-draft: 240 6% 25%;
@@ -506,9 +405,6 @@
 @custom-variant phx-click-loading (.phx-click-loading&, .phx-click-loading &);
 @custom-variant phx-submit-loading (.phx-submit-loading&, .phx-submit-loading &);
 @custom-variant phx-change-loading (.phx-change-loading&, .phx-change-loading &);
-
-/* Use the data attribute for dark mode */
-@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 
 /* Make LiveView wrapper divs transparent for layout */
 [data-phx-session], [data-phx-teleported-src] { display: contents }
@@ -836,14 +732,10 @@
 }
 
 .tiptap-container .tiptap mark {
-  background-color: hsl(38 92% 50% / 0.25);
+  background-color: hsl(38 92% 50% / 0.35);
   color: inherit;
   border-radius: 2px;
   padding: 0.05em 0.2em;
-}
-
-[data-theme="dark"] .tiptap-container .tiptap mark {
-  background-color: hsl(38 92% 50% / 0.35);
 }
 
 /* ── Bullet list ─────────────────────────────────────────── */

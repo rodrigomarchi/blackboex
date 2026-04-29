@@ -19,32 +19,6 @@
     </script>
     <script defer phx-track-static type="text/javascript" src={~p"/assets/js/app.js"}>
     </script>
-    <script>
-      (() => {
-        const resolveTheme = (pref) => {
-          if (pref === "system" || !pref) {
-            return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-          }
-          return pref;
-        };
-        const setTheme = (pref) => {
-          if (pref === "system") {
-            localStorage.removeItem("phx:theme");
-          } else {
-            localStorage.setItem("phx:theme", pref);
-          }
-          document.documentElement.setAttribute("data-theme", resolveTheme(pref));
-        };
-        if (!document.documentElement.hasAttribute("data-theme")) {
-          setTheme(localStorage.getItem("phx:theme") || "system");
-        }
-        window.addEventListener("storage", (e) => e.key === "phx:theme" && setTheme(e.newValue || "system"));
-        window.addEventListener("phx:set-theme", (e) => setTheme(e.target.dataset.phxTheme));
-        window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
-          if (!localStorage.getItem("phx:theme")) setTheme("system");
-        });
-      })();
-    </script>
   </head>
   <body class="bg-background text-foreground">
     {@inner_content}

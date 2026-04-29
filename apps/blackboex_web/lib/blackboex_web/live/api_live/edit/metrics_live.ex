@@ -139,7 +139,7 @@ defmodule BlackboexWeb.ApiLive.Edit.MetricsLive do
                   "shrink-0 rounded px-1.5 py-0.5 font-mono font-medium",
                   if(error.status_code >= 500,
                     do: "bg-destructive/10 text-destructive",
-                    else: "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400"
+                    else: "bg-yellow-500/10 text-yellow-600 text-yellow-400"
                   )
                 ]}>
                   {error.status_code}

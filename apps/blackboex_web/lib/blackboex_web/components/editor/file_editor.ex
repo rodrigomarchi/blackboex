@@ -47,7 +47,7 @@ defmodule BlackboexWeb.Components.Editor.FileEditor do
           <div class="ml-auto flex items-center gap-1">
             <.button
               type="button"
-              variant="ghost-dark"
+              variant="ghost"
               size="icon-sm"
               phx-click="copy_file"
               title="Copy to clipboard"
@@ -56,7 +56,7 @@ defmodule BlackboexWeb.Components.Editor.FileEditor do
             </.button>
             <.button
               type="button"
-              variant="ghost-dark"
+              variant="ghost"
               size="icon-sm"
               phx-click="download_file"
               title="Download file"
@@ -68,7 +68,7 @@ defmodule BlackboexWeb.Components.Editor.FileEditor do
         <div class="flex-1 min-h-0 relative" id="editor-scroll-region" phx-hook="EditorAutoScroll">
           <%= if @is_markdown do %>
             <div class="absolute inset-0 overflow-y-auto p-6">
-              <div class="prose prose-sm dark:prose-invert max-w-none">
+              <div class="prose prose-sm prose-invert max-w-none">
                 {raw(render_markdown(@display_content))}
               </div>
             </div>

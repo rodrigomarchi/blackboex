@@ -7,70 +7,8 @@
 
 @plugin "../vendor/heroicons";
 
-/* SaladUI / shadcn-style CSS variables — light theme (default) */
+/* SaladUI / shadcn-style CSS variables — dark theme */
 :root {
-  --background: 0 0% 100%;
-  --foreground: 240 10% 10%;
-  --card: 0 0% 100%;
-  --card-foreground: 240 10% 10%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 240 10% 10%;
-  --primary: 239 65% 58%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 240 5% 96%;
-  --secondary-foreground: 240 6% 10%;
-  --muted: 240 5% 96%;
-  --muted-foreground: 240 4% 46%;
-  --accent: 240 5% 96%;
-  --accent-foreground: 240 6% 10%;
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 0 0% 98%;
-  --border: 240 6% 90%;
-  --input: 240 6% 90%;
-  --ring: 239 65% 58%;
-  --radius: 0.5rem;
-
-  /* ── Status: API lifecycle ─────────────────────── */
-  --status-draft: 240 5% 96%;
-  --status-draft-foreground: 240 4% 46%;
-  --status-compiled: 142 71% 45%;
-  --status-compiled-foreground: 144 61% 20%;
-  --status-published: 221 83% 53%;
-  --status-published-foreground: 224 76% 20%;
-  --status-archived: 240 6% 65%;
-  --status-archived-foreground: 240 4% 46%;
-
-  /* ── Status: process states ────────────────────── */
-  --status-pending: 38 92% 50%;
-  --status-pending-foreground: 32 81% 29%;
-  --status-generating: 38 92% 50%;
-  --status-generating-foreground: 32 81% 29%;
-  --status-running: 221 83% 53%;
-  --status-running-foreground: 224 76% 20%;
-  --status-active: 142 71% 45%;
-  --status-active-foreground: 144 61% 20%;
-  --status-expired: 0 84% 60%;
-  --status-expired-foreground: 0 74% 22%;
-
-  /* ── Semantic feedback ─────────────────────────── */
-  --success: 142 71% 45%;
-  --success-foreground: 144 61% 20%;
-  --warning: 38 92% 50%;
-  --warning-foreground: 32 81% 29%;
-  --info: 221 83% 53%;
-  --info-foreground: 224 76% 20%;
-
-  /* ── Charts ────────────────────────────────────── */
-  --chart-1: 239 65% 58%;
-  --chart-2: 0 84% 60%;
-  --chart-3: 38 92% 50%;
-  --chart-4: 142 71% 45%;
-  --chart-5: 262 83% 58%;
-  --chart-axis: 240 6% 83%;
-}
-
-/* Dark theme */
-[data-theme="dark"] {
   --background: 240 10% 16%;
   --foreground: 0 0% 95%;
   --card: 240 10% 18%;
@@ -90,6 +28,7 @@
   --border: 240 6% 28%;
   --input: 240 6% 28%;
   --ring: 239 65% 58%;
+  --radius: 0.5rem;
 
   /* ── Status: API lifecycle ─────────────────────── */
   --status-draft: 240 6% 25%;

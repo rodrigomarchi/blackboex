@@ -208,52 +208,6 @@ defmodule BlackboexWeb.Layouts do
     """
   end
 
-  @doc """
-  Provides dark vs light theme toggle based on themes defined in app.css.
-
-  See <head> in root.html.heex which applies the theme before page load.
-  """
-  def theme_toggle(assigns) do
-    ~H"""
-    <div class="relative flex flex-row items-center border-2 border-border bg-muted rounded-full">
-      <div class="absolute w-1/3 h-full rounded-full border border-border bg-background left-0 [[data-theme=light]_&]:left-1/3 [[data-theme=dark]_&]:left-2/3 transition-[left]" />
-
-      <.button
-        type="button"
-        variant="ghost"
-        size="icon"
-        class="flex h-auto w-1/3 cursor-pointer rounded-none p-2"
-        phx-click={JS.dispatch("phx:set-theme")}
-        data-phx-theme="system"
-      >
-        <.icon name="hero-computer-desktop-micro" class="size-4 opacity-75 hover:opacity-100" />
-      </.button>
-
-      <.button
-        type="button"
-        variant="ghost"
-        size="icon"
-        class="flex h-auto w-1/3 cursor-pointer rounded-none p-2"
-        phx-click={JS.dispatch("phx:set-theme")}
-        data-phx-theme="light"
-      >
-        <.icon name="hero-sun-micro" class="size-4 opacity-75 hover:opacity-100" />
-      </.button>
-
-      <.button
-        type="button"
-        variant="ghost"
-        size="icon"
-        class="flex h-auto w-1/3 cursor-pointer rounded-none p-2"
-        phx-click={JS.dispatch("phx:set-theme")}
-        data-phx-theme="dark"
-      >
-        <.icon name="hero-moon-micro" class="size-4 opacity-75 hover:opacity-100" />
-      </.button>
-    </div>
-    """
-  end
-
   @doc "Design system showcase layout — minimal shell, no auth, dev-only."
   attr :flash, :map, required: true
   attr :current_scope, :map, default: nil

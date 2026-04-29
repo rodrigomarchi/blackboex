@@ -15,6 +15,7 @@ alias Blackboex.Accounts.User
 alias Blackboex.Organizations
 alias Blackboex.Repo
 
+# Example credentials for local development — change before deploying to production
 admin_email = "admin@admin.com"
 admin_password = "adminadminadmin"
 

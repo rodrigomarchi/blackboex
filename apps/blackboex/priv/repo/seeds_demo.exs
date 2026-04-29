@@ -1,4 +1,4 @@
-# Demo seed: Pages + Playgrounds for rodtroll@gmail.com
+# Demo seed: Pages + Playgrounds for demo@example.com
 #
 # Usage:
 #   mix run apps/blackboex/priv/repo/seeds_demo.exs
@@ -10,8 +10,8 @@ alias Blackboex.{Accounts, Organizations, Projects, Pages, Playgrounds, Flows}
 # ── Find user & org ───────────────────────────────────────────
 
 user =
-  Accounts.get_user_by_email("rodtroll@gmail.com") ||
-    raise "User rodtroll@gmail.com not found — register first"
+  Accounts.get_user_by_email("demo@example.com") ||
+    raise "User demo@example.com not found — register first"
 
 [org | _] = Organizations.list_user_organizations(user)
 project = Projects.get_default_project(org.id) || raise "No default project for org #{org.id}"

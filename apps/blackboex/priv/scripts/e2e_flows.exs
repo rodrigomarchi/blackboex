@@ -1,7 +1,7 @@
 # E2E Flow Tests — Full Suite
 #
 # Runs against the local dev server (localhost:4000).
-# Creates flows on the rodtroll@gmail.com account, activates them,
+# Creates flows on the demo@example.com account, activates them,
 # fires webhook requests, validates outputs, and cleans up.
 #
 # Usage:
@@ -12,7 +12,7 @@
 # Prerequisites:
 #   - `make server` running in another terminal (normal mode)
 #   - `make stress-server` running for --stress / --full-stress (disables code reloader)
-#   - User rodtroll@gmail.com exists in the local DB
+#   - User demo@example.com exists in the local DB
 
 script_dir = __DIR__
 Code.require_file("e2e/helpers.exs", script_dir)

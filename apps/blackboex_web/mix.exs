@@ -5,6 +5,9 @@ defmodule BlackboexWeb.MixProject do
     [
       app: :blackboex_web,
       version: "0.1.0",
+      description: "Web application for Blackboex — Phoenix LiveView, admin panel, dynamic API routing",
+      licenses: ["MIT"],
+      links: %{"GitHub" => "https://github.com/rodrigomarchi/blackboex"},
       build_path: "../../_build",
       config_path: "../../config/config.exs",
       deps_path: "../../deps",

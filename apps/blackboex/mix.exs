@@ -5,6 +5,9 @@ defmodule Blackboex.MixProject do
     [
       app: :blackboex,
       version: "0.1.0",
+      description: "Domain application for Blackboex — business logic, schemas, and workers",
+      licenses: ["MIT"],
+      links: %{"GitHub" => "https://github.com/rodrigomarchi/blackboex"},
       build_path: "../../_build",
       config_path: "../../config/config.exs",
       deps_path: "../../deps",

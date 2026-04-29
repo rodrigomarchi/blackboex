@@ -20,11 +20,11 @@ defmodule E2E.Setup do
   end
 
   def setup_account do
-    IO.puts(cyan("▸ Looking up rodtroll@gmail.com..."))
+    IO.puts(cyan("▸ Looking up demo@example.com..."))
 
-    case Blackboex.Accounts.get_user_by_email("rodtroll@gmail.com") do
+    case Blackboex.Accounts.get_user_by_email("demo@example.com") do
       nil ->
-        {:error, "User rodtroll@gmail.com not found. Sign up or run seeds first."}
+        {:error, "User demo@example.com not found. Sign up or run seeds first."}
 
       user ->
         case Blackboex.Organizations.list_user_organizations(user) do

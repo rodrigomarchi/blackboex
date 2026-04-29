@@ -8,8 +8,7 @@
 #   docker run -p 4000:4000 \
 #     -e DATABASE_URL=ecto://... \
 #     -e SECRET_KEY_BASE=$(mix phx.gen.secret) \
-#     -e STRIPE_SECRET_KEY=... \
-#     -e STRIPE_WEBHOOK_SECRET=... \
+#     -e CLOAK_KEY=... \
 #     -e MAILER_API_KEY=... \
 #     blackboex
 

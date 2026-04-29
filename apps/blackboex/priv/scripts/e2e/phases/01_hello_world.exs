@@ -7,12 +7,12 @@ defmodule E2E.Phase.HelloWorld do
     [
       run_test("HW: email route", fn ->
         {:ok, resp} =
-          webhook_post(flow.webhook_token, %{"name" => "Rodrigo", "email" => "rodtroll@gmail.com"})
+          webhook_post(flow.webhook_token, %{"name" => "Rodrigo", "email" => "test@example.com"})
 
         assert_status!(resp, 200)
         output = resp.body["output"]
         assert_eq!(output["channel"], "email", "channel")
-        assert_eq!(output["to"], "rodtroll@gmail.com", "to")
+        assert_eq!(output["to"], "test@example.com", "to")
         assert_eq!(output["message"], "Hello, Rodrigo!", "message")
         assert_present!(resp.body["execution_id"], "execution_id")
         assert_gte!(resp.body["duration_ms"], 0, "duration_ms")

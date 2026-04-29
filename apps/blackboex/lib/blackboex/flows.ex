@@ -5,7 +5,6 @@ defmodule Blackboex.Flows do
   Each flow stores its graph definition as JSONB (Drawflow export format).
   """
 
-  alias Blackboex.Billing.Enforcement
   alias Blackboex.Flows.Flow
   alias Blackboex.Flows.FlowQueries
   alias Blackboex.Organizations
@@ -225,17 +224,8 @@ defmodule Blackboex.Flows do
     Repo.query!("SELECT pg_advisory_xact_lock($1)", [lock_key])
   end
 
-  defp check_and_insert_flow(attrs, org_id) do
-    case Organizations.get_organization(org_id) do
-      nil ->
-        insert_flow!(attrs)
-
-      org ->
-        case Enforcement.check_limit(org, :create_flow) do
-          {:ok, _remaining} -> insert_flow!(attrs)
-          {:error, :limit_exceeded, details} -> Repo.rollback({:limit_exceeded, details})
-        end
-    end
+  defp check_and_insert_flow(attrs, _org_id) do
+    insert_flow!(attrs)
   end
 
   defp insert_flow!(attrs) do

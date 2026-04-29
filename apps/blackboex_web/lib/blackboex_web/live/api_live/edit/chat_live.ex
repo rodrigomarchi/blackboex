@@ -11,7 +11,6 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
   require Logger
 
   alias Blackboex.Apis
-  alias Blackboex.Billing.Enforcement
   alias Blackboex.CodeGen.DiffEngine
   alias Blackboex.Conversations, as: AgentConversations
   alias Blackboex.ProjectEnvVars
@@ -614,43 +613,35 @@ defmodule BlackboexWeb.ApiLive.Edit.ChatLive do
   end
 
   defp do_agent_chat(socket, message) do
-    org = socket.assigns.org
+    api = socket.assigns.api
+    scope = socket.assigns.current_scope
 
-    case Enforcement.check_limit(org, :llm_generation) do
-      {:ok, _remaining} ->
-        api = socket.assigns.api
-        scope = socket.assigns.current_scope
+    case Blackboex.Agent.start_edit(api, message, scope.user.id) do
+      {:ok, _api_id} ->
+        user_msg = %{"role" => "user", "content" => message}
 
-        case Blackboex.Agent.start_edit(api, message, scope.user.id) do
-          {:ok, _api_id} ->
-            user_msg = %{"role" => "user", "content" => message}
+        {:noreply,
+         socket
+         |> assign(
+           chat_loading: true,
+           chat_input: "",
+           streaming_tokens: "",
+           agent_events:
+             socket.assigns.agent_events ++
+               [
+                 %{
+                   type: :message,
+                   role: "user",
+                   content: user_msg["content"],
+                   timestamp: DateTime.utc_now(),
+                   id: length(socket.assigns.agent_events)
+                 }
+               ]
+         )}
 
-            {:noreply,
-             socket
-             |> assign(
-               chat_loading: true,
-               chat_input: "",
-               streaming_tokens: "",
-               agent_events:
-                 socket.assigns.agent_events ++
-                   [
-                     %{
-                       type: :message,
-                       role: "user",
-                       content: user_msg["content"],
-                       timestamp: DateTime.utc_now(),
-                       id: length(socket.assigns.agent_events)
-                     }
-                   ]
-             )}
-
-          {:error, reason} ->
-            Logger.warning("Failed to start agent edit: #{inspect(reason)}")
-            {:noreply, put_flash(socket, :error, "Failed to start agent")}
-        end
-
-      {:error, :limit_exceeded, _details} ->
-        {:noreply, put_flash(socket, :error, "LLM generation limit reached. Upgrade your plan.")}
+      {:error, reason} ->
+        Logger.warning("Failed to start agent edit: #{inspect(reason)}")
+        {:noreply, put_flash(socket, :error, "Failed to start agent")}
     end
   end
 

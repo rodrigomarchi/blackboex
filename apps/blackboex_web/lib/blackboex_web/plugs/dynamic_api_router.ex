@@ -12,8 +12,6 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
 
   alias Blackboex.Apis.Analytics
   alias Blackboex.Apis.Registry
-  alias Blackboex.Billing
-  alias Blackboex.Billing.Enforcement
   alias Blackboex.CodeGen.Compiler
   alias Blackboex.CodeGen.Sandbox
   alias Blackboex.ProjectEnvVars
@@ -102,8 +100,7 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
 
     result =
       with {:ok, conn} <- maybe_rate_limit(conn, api, metadata),
-           {:ok, conn} <- maybe_authenticate(conn, api, metadata),
-           {:ok, conn} <- maybe_check_enforcement(conn, api) do
+           {:ok, conn} <- maybe_authenticate(conn, api, metadata) do
         conn = assign_project_env(conn, api)
         {resp_conn, error_msg} = execute_module(conn, module, rest)
         {:ok, resp_conn, error_msg}
@@ -121,19 +118,6 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
           conn
           |> Plug.Conn.put_resp_header("retry-after", to_string(retry_after))
           |> send_json(429, %{error: "Rate limit exceeded", retry_after: retry_after})
-
-        log_request(conn, resp_conn, metadata, api, duration_ms)
-        resp_conn
-
-      {:error, :limit_exceeded, details} ->
-        resp_conn =
-          send_json(conn, 402, %{
-            error: "Plan limit exceeded",
-            limit: details.limit,
-            current: details.current,
-            plan: details.plan,
-            upgrade_url: "/billing"
-          })
 
         log_request(conn, resp_conn, metadata, api, duration_ms)
         resp_conn
@@ -158,22 +142,6 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
       ApiAuth.authenticate(conn, api, metadata)
     else
       {:ok, conn}
-    end
-  end
-
-  defp maybe_check_enforcement(conn, %{status: "published"} = api) do
-    case Blackboex.Organizations.get_organization(api.organization_id) do
-      nil -> {:ok, conn}
-      org -> check_invocation_limit(conn, org)
-    end
-  end
-
-  defp maybe_check_enforcement(conn, _api), do: {:ok, conn}
-
-  defp check_invocation_limit(conn, org) do
-    case Enforcement.check_limit(org, :api_invocation) do
-      {:ok, _remaining} -> {:ok, conn}
-      {:error, :limit_exceeded, details} -> {:error, :limit_exceeded, details}
     end
   end
 
@@ -413,15 +381,6 @@ defmodule BlackboexWeb.Plugs.DynamicApiRouter do
       ip_address: ip,
       error_message: error_message
     })
-
-    if api.status == "published" do
-      Billing.record_usage_event(%{
-        organization_id: api.organization_id,
-        project_id: api.project_id,
-        event_type: "api_invocation",
-        metadata: %{api_id: api.id}
-      })
-    end
   end
 
   defp raw_body_size(nil), do: 0

@@ -9,7 +9,7 @@ Blackboex is a platform where users describe APIs in natural language and an AI 
 - Elixir 1.19+ / OTP 28+ / Phoenix 1.8+ / LiveView 1.1+ / Ecto 3.x
 - PostgreSQL 16+ / Oban (async jobs) / PubSub (real-time)
 - Tailwind CSS + esbuild (no npm for build) / SaladUI + Backpex
-- LangChain for AI orchestration / Stripe for billing
+- LangChain for AI orchestration
 
 ## Project Structure
 
@@ -54,7 +54,6 @@ infra/                — Docker, deployment
 - `apps/blackboex/lib/blackboex/apis/AGENTS.md` — Core entity, sub-contexts, lifecycle, Registry
 - `apps/blackboex/lib/blackboex/flows/AGENTS.md` — Visual workflow flows, Drawflow editor, CRUD
 - `apps/blackboex/lib/blackboex/agent/AGENTS.md` — AI agent facade, Pipeline.*, Session.*
-- `apps/blackboex/lib/blackboex/billing/AGENTS.md` — Stripe/billing, BillingQueries
 - `apps/blackboex/lib/blackboex/code_gen/AGENTS.md` — Compiler, sandbox, DiffEngine
 - `apps/blackboex/lib/blackboex/conversations/AGENTS.md` — Event-sourced runs/events, ConversationQueries
 - `apps/blackboex/lib/blackboex/docs/AGENTS.md` — Docs facade, DocGenerator, OpenAPI
@@ -101,7 +100,7 @@ make test.web     # Web app only
 3. **Credo strict mode + Dialyzer** — both must pass before any merge
 4. **LiveViews MUST be thin** — delegate all logic to domain contexts
 5. **All async work uses Task.async** — never `send(self(), :blocking_work)` in LiveView
-6. **Mox for external services** — `ClientMock` (LLM), `StripeClientMock` (Stripe)
+6. **Mox for external services** — `ClientMock` (LLM)
 7. **Oban for background jobs** — never spawn unsupervised processes for business logic
 8. **TDD mandatory** — write tests FIRST, see them fail, then implement. No exceptions.
 9. **Always run `make test` + `make lint` after changes** — fix ALL issues including pre-existing ones
@@ -111,9 +110,8 @@ make test.web     # Web app only
 
 ```
 Agent ──→ CodeGen, LLM, Conversations, Apis, Testing, Docs
-CodeGen ──→ LLM, Billing.Enforcement
-Apis ──→ Billing.Enforcement, CodeGen.Compiler, Audit
-Billing ──→ Audit, Organizations
+CodeGen ──→ LLM
+Apis ──→ CodeGen.Compiler, Audit
 Accounts ──→ Organizations (creates personal org on registration)
 ```
 
@@ -121,9 +119,7 @@ Accounts ──→ Organizations (creates personal org on registration)
 
 **1. Agent Generation:** User message → `Agent.start_generation/3` → Oban `KickoffWorker` → `Agent.Session` GenServer → `Agent.Pipeline.*` (2-4 LLM calls) → `Conversations` event persistence → PubSub broadcast → LiveView update
 
-**2. API Invocation:** HTTP `POST /api/*` → `DynamicApiRouter` → `ApiAuth` (key verification) → `RateLimiter` (4 layers) → `Billing.Enforcement` → Sandbox execution → JSON response
-
-**3. Billing:** Stripe Checkout → Webhook → `Billing.create_or_update_subscription/1` → `Enforcement` gates (create_api, llm_generation) → `UsageAggregationWorker` (daily rollup)
+**2. API Invocation:** HTTP `POST /api/*` → `DynamicApiRouter` → `ApiAuth` (key verification) → `RateLimiter` (4 layers) → Sandbox execution → JSON response
 
 ## Test Patterns
 
@@ -134,13 +130,12 @@ Accounts ──→ Organizations (creates personal org on registration)
 ```
 test/support/
 ├── data_case.ex                          — Auto-imports all fixtures + Mox.verify_on_exit!
-├── mock_defaults.ex                      — stub_llm_client/1, stub_stripe/1 (named setups)
+├── mock_defaults.ex                      — stub_llm_client/1 (named setups)
 ├── mocks.ex                              — Mox.defmock definitions
 └── fixtures/
     ├── accounts_fixtures.ex              — user_fixture/1, user_scope_fixture/0,1
     ├── organizations_fixtures.ex         — org_fixture/1, user_and_org_fixture/1, named setups: create_user_and_org, create_org
     ├── apis_fixtures.ex                  — api_fixture/1, api_key_fixture/2, invocation_log_fixture/1, metric_rollup_fixture/1, named setups: create_api, create_org_and_api
-    ├── billing_fixtures.ex              — subscription_fixture/1, daily_usage_fixture/1, usage_event_fixture/1
     ├── conversations_fixtures.ex        — conversation_fixture/2, run_fixture/1
     └── testing_fixtures.ex              — test_suite_fixture/1
 ```
@@ -165,10 +160,10 @@ setup :create_user_and_org
 
 ### Mocks
 
-- Mox — `ClientMock` (LLM), `StripeClientMock` (Stripe)
+- Mox — `ClientMock` (LLM)
 - `Mox.verify_on_exit!` is automatic in DataCase — no manual setup needed
 - Only add `import Mox` if tests use `expect/3` or `stub/3` directly
-- Use `setup :stub_llm_client` or `setup :stub_stripe` for default stubs
+- Use `setup :stub_llm_client` for default LLM stubs
 
 ### Other
 

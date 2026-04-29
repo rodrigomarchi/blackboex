@@ -25,10 +25,6 @@ defmodule BlackboexWeb.Components.DropdownMenu do
               <.dropdown_menu_shortcut>⌘P</.dropdown_menu_shortcut>
             </.dropdown_menu_item>
             <.dropdown_menu_item>
-              Billing
-              <.dropdown_menu_shortcut>⌘B</.dropdown_menu_shortcut>
-            </.dropdown_menu_item>
-            <.dropdown_menu_item>
               Settings
               <.dropdown_menu_shortcut>⌘S</.dropdown_menu_shortcut>
             </.dropdown_menu_item>

@@ -20,7 +20,7 @@ Facade: `Blackboex.Flows` (`flows.ex`). All web/worker code calls through this f
 
 | Function | Purpose |
 |----------|---------|
-| `create_flow(attrs)` | Create flow with billing enforcement |
+| `create_flow(attrs)` | Create a new flow |
 | `list_flows(org_id)` | List all flows for an org, ordered by inserted_at DESC |
 | `list_flows(org_id, opts)` | List with search filter |
 | `list_flows_for_project(project_id)` | List flows for a project, ordered by inserted_at DESC |
@@ -41,7 +41,7 @@ Facade: `Blackboex.Flows` (`flows.ex`). All web/worker code calls through this f
 - **Organization scoping**: Always use `org_id` in lookups — never expose cross-org data
 - **Slug uniqueness**: Per organization, auto-generated from name
 - **Definition as opaque JSONB**: Server does not validate Drawflow internal structure
-- **Billing enforcement**: Uses same `max_apis` limit via `Enforcement.check_limit/2`
+
 
 ## Web Layer
 

@@ -11,16 +11,6 @@ defmodule BlackboexWeb.RouterTest do
   setup :register_and_log_in_user
 
   describe "authenticated live routes" do
-    test "GET /billing renders billing plans page", %{conn: conn} do
-      {:ok, _lv, html} = live(conn, ~p"/billing")
-      assert html =~ "Billing" or html =~ "Plan" or html =~ "dashboard"
-    end
-
-    test "GET /billing/manage renders billing manage page", %{conn: conn} do
-      {:ok, _lv, html} = live(conn, ~p"/billing/manage")
-      assert html =~ "Billing" or html =~ "Manage" or html =~ "dashboard"
-    end
-
     test "GET /api-keys returns 404 (route removed)", %{conn: conn} do
       conn = get(conn, "/api-keys")
       assert conn.status == 404
@@ -43,13 +33,6 @@ defmodule BlackboexWeb.RouterTest do
       conn = build_conn()
       {:ok, _lv, html} = live(conn, ~p"/users/log-in")
       assert html =~ "Log in" or html =~ "Sign in" or html =~ "Email"
-    end
-  end
-
-  describe "authenticated billing route" do
-    test "GET /billing renders plans page", %{conn: conn} do
-      {:ok, _lv, html} = live(conn, ~p"/billing")
-      assert html =~ "Plan" or html =~ "plan" or html =~ "Free"
     end
   end
 

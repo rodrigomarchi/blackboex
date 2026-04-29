@@ -9,15 +9,13 @@ defmodule Blackboex.PlaygroundAgent do
   the `Session` GenServer.
   """
 
-  alias Blackboex.Billing.Enforcement
-  alias Blackboex.Organizations
   alias Blackboex.PlaygroundAgent.KickoffWorker
   alias Blackboex.Playgrounds.Playground
 
   @type scope :: %{user: %{id: term()}}
 
   @spec start(Playground.t(), scope(), String.t()) ::
-          {:ok, Oban.Job.t()} | {:error, :limit_exceeded | :empty_message | term()}
+          {:ok, Oban.Job.t()} | {:error, :empty_message | term()}
   def start(%Playground{} = playground, scope, message) when is_binary(message) do
     case String.trim(message) do
       "" -> {:error, :empty_message}
@@ -26,38 +24,21 @@ defmodule Blackboex.PlaygroundAgent do
   end
 
   defp do_start(playground, scope, message) do
-    with {:ok, org} <- fetch_org(playground.organization_id),
-         :ok <- check_enforcement(org) do
-      run_type = if String.trim(playground.code || "") == "", do: "generate", else: "edit"
+    run_type = if String.trim(playground.code || "") == "", do: "generate", else: "edit"
 
-      args = %{
-        "playground_id" => playground.id,
-        "organization_id" => playground.organization_id,
-        "project_id" => playground.project_id,
-        "user_id" => user_id(scope),
-        "run_type" => run_type,
-        "trigger_message" => message,
-        "code_before" => playground.code || ""
-      }
+    args = %{
+      "playground_id" => playground.id,
+      "organization_id" => playground.organization_id,
+      "project_id" => playground.project_id,
+      "user_id" => user_id(scope),
+      "run_type" => run_type,
+      "trigger_message" => message,
+      "code_before" => playground.code || ""
+    }
 
-      args
-      |> KickoffWorker.new()
-      |> Oban.insert()
-    end
-  end
-
-  defp check_enforcement(org) do
-    case Enforcement.check_limit(org, :llm_generation) do
-      {:ok, _} -> :ok
-      {:error, :limit_exceeded, _details} -> {:error, :limit_exceeded}
-    end
-  end
-
-  defp fetch_org(org_id) do
-    case Organizations.get_organization(org_id) do
-      nil -> {:error, :organization_not_found}
-      org -> {:ok, org}
-    end
+    args
+    |> KickoffWorker.new()
+    |> Oban.insert()
   end
 
   defp user_id(%{user: %{id: id}}), do: id

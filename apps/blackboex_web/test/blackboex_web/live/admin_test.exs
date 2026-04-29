@@ -22,10 +22,6 @@ defmodule BlackboexWeb.AdminLiveTest do
       assert {:error, {:redirect, %{to: "/"}}} = live(conn, "/admin/apis")
     end
 
-    test "non-admin cannot access /admin/subscriptions", %{conn: conn} do
-      assert {:error, {:redirect, %{to: "/"}}} = live(conn, "/admin/subscriptions")
-    end
-
     test "non-admin cannot access /admin/audit-logs", %{conn: conn} do
       assert {:error, {:redirect, %{to: "/"}}} = live(conn, "/admin/audit-logs")
     end

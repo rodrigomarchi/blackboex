@@ -107,7 +107,7 @@ Org-level aggregated queries. `get_org_summary/1`, `list_apis_with_stats/2`, `se
 ## Invariants — Never Violate
 
 1. `get_api(org_id, api_id)` — both args required. Bare `api_id` is IDOR.
-2. `create_api` always goes through `create_api_with_lock/2` (advisory lock + billing check).
+2. `create_api` always goes through `create_api_with_lock/2` (advisory lock).
 3. Version numbering inside `Ecto.Multi` only.
 4. `publish/2` pattern-matches `status: "compiled"`.
 5. Order on delete: `Registry.unregister/1` → `Compiler.unload/1` → DB delete.

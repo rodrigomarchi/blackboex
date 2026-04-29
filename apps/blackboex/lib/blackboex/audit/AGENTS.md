@@ -15,7 +15,7 @@ Row-level change tracking and operation-level audit logging. Facade: `Blackboex.
 
 ## Tracked Schemas (config/config.exs)
 
-`Billing.Subscription`, `Apis.Api`, `Apis.ApiKey`, `Organizations.Organization`
+`Apis.Api`, `Apis.ApiKey`, `Organizations.Organization`
 
 To add: append to `tracked_schemas` list in config. No other code changes needed.
 

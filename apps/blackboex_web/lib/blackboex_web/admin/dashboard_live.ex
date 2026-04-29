@@ -50,12 +50,6 @@ defmodule BlackboexWeb.Admin.DashboardLive do
           />
           <.stat_card title="APIs" value={@stats.apis} icon="hero-bolt" href={~p"/admin/apis"} />
           <.stat_card title="Published APIs" value={@stats.published_apis} icon="hero-globe-alt" />
-          <.stat_card
-            title="Subscriptions"
-            value={@stats.subscriptions}
-            icon="hero-credit-card"
-            href={~p"/admin/subscriptions"}
-          />
         </div>
 
         <.section_heading level="h1" class="mb-4" compact>
@@ -97,30 +91,6 @@ defmodule BlackboexWeb.Admin.DashboardLive do
             value={@stats.metric_rollups}
             icon="hero-chart-bar"
             href={~p"/admin/metric-rollups"}
-          />
-        </div>
-
-        <.section_heading level="h1" class="mb-4" compact>
-          Billing
-        </.section_heading>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <.stat_card
-            title="Daily Usage"
-            value={@stats.daily_usage}
-            icon="hero-calendar-days"
-            href={~p"/admin/daily-usage"}
-          />
-          <.stat_card
-            title="Usage Events"
-            value={@stats.usage_events}
-            icon="hero-signal"
-            href={~p"/admin/usage-events"}
-          />
-          <.stat_card
-            title="Processed Events"
-            value={@stats.processed_events}
-            icon="hero-check-badge"
-            href={~p"/admin/processed-events"}
           />
         </div>
 
@@ -216,7 +186,6 @@ defmodule BlackboexWeb.Admin.DashboardLive do
         Blackboex.Apis.Api
         |> where([a], a.status == "published")
         |> Repo.aggregate(:count),
-      subscriptions: Repo.aggregate(Blackboex.Billing.Subscription, :count),
       # API data
       api_keys: Repo.aggregate(Blackboex.Apis.ApiKey, :count),
       api_versions: Repo.aggregate(Blackboex.Apis.ApiVersion, :count),
@@ -224,10 +193,6 @@ defmodule BlackboexWeb.Admin.DashboardLive do
       data_store_entries: Repo.aggregate(Blackboex.Apis.DataStore.Entry, :count),
       invocation_logs: Repo.aggregate(Blackboex.Apis.InvocationLog, :count),
       metric_rollups: Repo.aggregate(Blackboex.Apis.MetricRollup, :count),
-      # Billing
-      daily_usage: Repo.aggregate(Blackboex.Billing.DailyUsage, :count),
-      usage_events: Repo.aggregate(Blackboex.Billing.UsageEvent, :count),
-      processed_events: Repo.aggregate(Blackboex.Billing.ProcessedEvent, :count),
       # Testing
       test_requests: Repo.aggregate(Blackboex.Testing.TestRequest, :count),
       test_suites: Repo.aggregate(Blackboex.Testing.TestSuite, :count),

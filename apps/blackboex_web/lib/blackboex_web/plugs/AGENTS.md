@@ -71,7 +71,7 @@ Readiness sub-checks:
 
 **File:** `cache_body_reader.ex`
 
-**Purpose:** Custom `body_reader` for `Plug.Parsers`. Intercepts every call to `Plug.Conn.read_body/2` and accumulates chunks into `conn.assigns[:raw_body]` as a list of binaries. Required so that `WebhookController` can reconstruct the exact raw request body for Stripe HMAC signature verification after `Plug.Parsers` has already consumed the body stream.
+**Purpose:** Custom `body_reader` for `Plug.Parsers`. Intercepts every call to `Plug.Conn.read_body/2` and accumulates chunks into `conn.assigns[:raw_body]` as a list of binaries. Required so that webhook controllers can reconstruct the exact raw request body for HMAC signature verification after `Plug.Parsers` has already consumed the body stream.
 
 **Position:** Endpoint, wired as the `body_reader` option of `Plug.Parsers`. Not a standalone `call/2` plug.
 
@@ -272,7 +272,7 @@ resolve → maybe_rate_limit → maybe_authenticate → maybe_check_enforcement 
 |---|---|---|
 | `maybe_rate_limit` | 4-layer (`RateLimiter.check_rate/2`) | IP-only draft limit (`RateLimiter.check_rate_draft/1`) |
 | `maybe_authenticate` | `ApiAuth.authenticate/3` | skipped (always `{:ok, conn}`) |
-| `maybe_check_enforcement` | checks `Billing.Enforcement.check_limit/2` for `:api_invocation` | skipped |
+
 | `execute_module` | `CodeGen.Sandbox.execute_plug/3` with 30 s timeout | same |
 
 **`execute_module` error responses:**
@@ -290,11 +290,7 @@ Error sanitization: strips `Elixir.` prefixes and `Blackboex.DynamicApi.Api_<has
 **Post-execution side effects (always run, even on pipeline errors):**
 1. `Telemetry.Events.emit_api_request/1` — duration + status code metrics.
 2. `Analytics.log_invocation/1` — writes an `InvocationLog` row with method, path, status, duration, body sizes, IP, and optional error message.
-3. `Billing.record_usage_event/1` — records a billable `api_invocation` event (published APIs only).
-
 **Conn assigns added:** `:api_key` (set by `ApiAuth`, used for invocation log).
-
-**Enforcement error response:** HTTP 402 `{"error":"Plan limit exceeded","limit":...,"current":...,"plan":...,"upgrade_url":"/billing"}`.
 
 ---
 

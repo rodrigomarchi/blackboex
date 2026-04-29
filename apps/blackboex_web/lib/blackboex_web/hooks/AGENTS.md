@@ -17,7 +17,7 @@ All hooks in this directory are registered exclusively via `live_session ... on_
 **Sets assigns:**
 - `socket.assigns.current_scope` — enriched with `organization` and `membership` fields via `Scope.with_organization/3`
 
-**Use when:** Routes that are NOT URL-prefixed with `/orgs/:org_slug` but still need an org context (the legacy flat namespace: `/apis`, `/flows`, `/billing`, `/users/settings`, `/admin`).
+**Use when:** Routes that are NOT URL-prefixed with `/orgs/:org_slug` but still need an org context (the legacy flat namespace: `/apis`, `/flows`, `/users/settings`, `/admin`).
 
 **Do NOT use when:** The route is under `/orgs/:org_slug/` — use `SetOrganizationFromUrl` instead so the URL slug is the source of truth.
 

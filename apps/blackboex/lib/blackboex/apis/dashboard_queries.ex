@@ -7,7 +7,6 @@ defmodule Blackboex.Apis.DashboardQueries do
   import Ecto.Query, warn: false
 
   alias Blackboex.Apis.{Api, ApiKey, InvocationLog, MetricRollup}
-  alias Blackboex.Billing.{DailyUsage, UsageEvent}
   alias Blackboex.Conversations.{Conversation, Run}
   alias Blackboex.FlowExecutions.FlowExecution
   alias Blackboex.Flows.Flow
@@ -188,39 +187,6 @@ defmodule Blackboex.Apis.DashboardQueries do
       latency_avg_series: build_series(rollups, start_date, group_by, :avg_latency),
       latency_p95_series: build_series(rollups, start_date, group_by, :p95_latency),
       top_apis: top_apis
-    }
-  end
-
-  @spec get_llm_usage_series(Ecto.UUID.t(), String.t()) :: %{
-          generations_series: [%{label: String.t(), value: non_neg_integer()}],
-          tokens_in_total: non_neg_integer(),
-          tokens_out_total: non_neg_integer(),
-          cost_total_cents: non_neg_integer()
-        }
-  def get_llm_usage_series(org_id, period \\ "30d") do
-    days =
-      case period do
-        "24h" -> 1
-        "7d" -> 7
-        "30d" -> 30
-        _ -> 30
-      end
-
-    start_date = Date.add(Date.utc_today(), -days)
-
-    daily_data =
-      DailyUsage
-      |> where([d], d.organization_id == ^org_id and d.date >= ^start_date)
-      |> order_by([d], d.date)
-      |> Repo.all()
-
-    generations_series = build_daily_series(daily_data, start_date, :llm_generations)
-
-    %{
-      generations_series: generations_series,
-      tokens_in_total: daily_data |> Enum.map(&(&1.tokens_input || 0)) |> Enum.sum(),
-      tokens_out_total: daily_data |> Enum.map(&(&1.tokens_output || 0)) |> Enum.sum(),
-      cost_total_cents: daily_data |> Enum.map(&(&1.llm_cost_cents || 0)) |> Enum.sum()
     }
   end
 
@@ -644,131 +610,10 @@ defmodule Blackboex.Apis.DashboardQueries do
     }
   end
 
-  @spec get_usage_metrics(Ecto.UUID.t(), String.t()) :: %{
-          api_invocations_series: [%{label: String.t(), value: non_neg_integer()}],
-          api_invocations_total: non_neg_integer(),
-          generations_series: [%{label: String.t(), value: non_neg_integer()}],
-          llm_generations_total: non_neg_integer(),
-          tokens_in_series: [%{label: String.t(), value: non_neg_integer()}],
-          tokens_out_series: [%{label: String.t(), value: non_neg_integer()}],
-          tokens_in_total: non_neg_integer(),
-          tokens_out_total: non_neg_integer(),
-          cost_series: [%{label: String.t(), value: float()}],
-          cost_total_cents: non_neg_integer()
-        }
-  def get_usage_metrics(org_id, period \\ "30d") do
-    {start_date, daily_data} = load_daily_usage(org_id, period)
-    build_usage_result(daily_data, start_date)
-  end
-
-  defp load_daily_usage(org_id, period) do
-    days = period_to_days(period)
-    start_date = Date.add(Date.utc_today(), -days)
-
-    daily_data =
-      DailyUsage
-      |> where([d], d.organization_id == ^org_id and d.date >= ^start_date)
-      |> order_by([d], d.date)
-      |> Repo.all()
-
-    {start_date, daily_data}
-  end
-
-  defp build_usage_result(daily_data, start_date) do
-    %{
-      api_invocations_series: build_daily_series(daily_data, start_date, :api_invocations),
-      api_invocations_total: sum_field(daily_data, :api_invocations),
-      generations_series: build_daily_series(daily_data, start_date, :llm_generations),
-      llm_generations_total: sum_field(daily_data, :llm_generations),
-      tokens_in_series: build_daily_series(daily_data, start_date, :tokens_input),
-      tokens_out_series: build_daily_series(daily_data, start_date, :tokens_output),
-      tokens_in_total: sum_field(daily_data, :tokens_input),
-      tokens_out_total: sum_field(daily_data, :tokens_output),
-      cost_series:
-        build_daily_series(daily_data, start_date, :llm_cost_cents)
-        |> Enum.map(fn %{label: l, value: v} -> %{label: l, value: v / 100} end),
-      cost_total_cents: sum_field(daily_data, :llm_cost_cents)
-    }
-  end
-
-  defp sum_field(data, field), do: data |> Enum.map(&(Map.get(&1, field) || 0)) |> Enum.sum()
-
   defp period_to_days("24h"), do: 1
   defp period_to_days("7d"), do: 7
   defp period_to_days("30d"), do: 30
   defp period_to_days(_), do: 30
-
-  @doc """
-  Aggregated usage metrics for an org or project scope.
-
-  Reads the daily rollup table for the per-day series. Hits the raw
-  `usage_events` table for the by-event-type breakdown and totals so
-  that partial-day windows (i.e. "24h") still reflect events that have
-  not yet been aggregated.
-  """
-  @spec usage_metrics(scope(), String.t()) :: %{
-          by_event_type: [%{event_type: String.t(), count: non_neg_integer()}],
-          daily_series: [
-            %{
-              date: Date.t(),
-              api_invocations: non_neg_integer(),
-              llm_generations: non_neg_integer(),
-              tokens_input: non_neg_integer(),
-              tokens_output: non_neg_integer(),
-              llm_cost_cents: non_neg_integer()
-            }
-          ],
-          totals: %{
-            api_invocations: non_neg_integer(),
-            llm_generations: non_neg_integer(),
-            tokens_input: non_neg_integer(),
-            tokens_output: non_neg_integer(),
-            llm_cost_cents: non_neg_integer()
-          }
-        }
-  def usage_metrics(scope, period \\ "30d") do
-    days = period_to_days(period)
-    start_date = Date.add(Date.utc_today(), -(days - 1))
-    start_dt = DateTime.new!(start_date, ~T[00:00:00], "Etc/UTC")
-
-    daily_rows =
-      scope
-      |> scoped_query(DailyUsage)
-      |> where([d], d.date >= ^start_date)
-      |> order_by([d], d.date)
-      |> select([d], %{
-        date: d.date,
-        api_invocations: d.api_invocations,
-        llm_generations: d.llm_generations,
-        tokens_input: d.tokens_input,
-        tokens_output: d.tokens_output,
-        llm_cost_cents: d.llm_cost_cents
-      })
-      |> Repo.all()
-
-    by_event_type =
-      scope
-      |> scoped_query(UsageEvent)
-      |> where([e], e.inserted_at >= ^start_dt)
-      |> group_by([e], e.event_type)
-      |> order_by([e], desc: count(e.id))
-      |> select([e], %{event_type: e.event_type, count: count(e.id)})
-      |> Repo.all()
-
-    totals = %{
-      api_invocations: sum_field(daily_rows, :api_invocations),
-      llm_generations: sum_field(daily_rows, :llm_generations),
-      tokens_input: sum_field(daily_rows, :tokens_input),
-      tokens_output: sum_field(daily_rows, :tokens_output),
-      llm_cost_cents: sum_field(daily_rows, :llm_cost_cents)
-    }
-
-    %{
-      by_event_type: by_event_type,
-      daily_series: daily_rows,
-      totals: totals
-    }
-  end
 
   @spec get_api_extended_metrics(Ecto.UUID.t(), String.t()) :: map()
   def get_api_extended_metrics(org_id, period \\ "24h") do
@@ -1175,19 +1020,6 @@ defmodule Blackboex.Apis.DashboardQueries do
   defp build_series(rollups, start_date, :daily, field) do
     today = Date.utc_today()
     lookup = Map.new(rollups, fn r -> {r.bucket, safe_number(Map.get(r, field))} end)
-
-    Date.range(start_date, today)
-    |> Enum.map(fn date ->
-      %{
-        label: Calendar.strftime(date, "%b %d"),
-        value: Map.get(lookup, date, 0)
-      }
-    end)
-  end
-
-  defp build_daily_series(daily_data, start_date, field) do
-    today = Date.utc_today()
-    lookup = Map.new(daily_data, fn d -> {d.date, Map.get(d, field) || 0} end)
 
     Date.range(start_date, today)
     |> Enum.map(fn date ->

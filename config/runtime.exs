@@ -20,15 +20,6 @@ if playground_base_url = System.get_env("PLAYGROUND_BASE_URL") do
   config :blackboex, Blackboex.Playgrounds.Api, base_url: playground_base_url
 end
 
-# Stripe configuration (all environments — loaded from env vars when present)
-if stripe_key = System.get_env("STRIPE_SECRET_KEY") do
-  config :stripity_stripe, api_key: stripe_key
-end
-
-if stripe_webhook_secret = System.get_env("STRIPE_WEBHOOK_SECRET") do
-  config :blackboex, :stripe_webhook_secret, stripe_webhook_secret
-end
-
 # Anthropic API keys are now configured PER PROJECT via
 # `Blackboex.ProjectEnvVars.put_llm_key/4`. There is no platform-wide
 # fallback: projects without a key cannot use AI-assist features, and
@@ -98,17 +89,6 @@ if config_env() == :prod do
     secret_key_base: secret_key_base
 
   config :blackboex, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
-
-  # Stripe keys — required in production
-  config :stripity_stripe,
-    api_key:
-      System.get_env("STRIPE_SECRET_KEY") ||
-        raise("missing STRIPE_SECRET_KEY env var")
-
-  config :blackboex,
-         :stripe_webhook_secret,
-         System.get_env("STRIPE_WEBHOOK_SECRET") ||
-           raise("missing STRIPE_WEBHOOK_SECRET env var")
 
   # Use real LLM client in production
   config :blackboex, :llm_client, Blackboex.LLM.ReqLLMClient

@@ -31,7 +31,7 @@ get_user_primary_plan(User.t()) :: atom()   # only used by Features.GroupImpl
 
 | Role | Permissions |
 |------|-------------|
-| `:owner` | Full control — members, delete org, billing |
+| `:owner` | Full control — members, delete org |
 | `:admin` | Create/update/delete APIs, manage members and keys |
 | `:member` | Read + create/update APIs. No delete, no member management |
 

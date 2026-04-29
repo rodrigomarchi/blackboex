@@ -9,7 +9,7 @@ and applied atomically to `page.content`.
 
 | Module | Role |
 |--------|------|
-| `Blackboex.PageAgent` | Facade — `start/3` validates `Billing.Enforcement.check_limit(org, :llm_generation)`, picks `:generate` vs `:edit` from `page.content`, checks org-scope IDOR, enqueues `KickoffWorker`. |
+| `Blackboex.PageAgent` | Facade — `start/3` picks `:generate` vs `:edit` from `page.content`, checks org-scope IDOR, enqueues `KickoffWorker`. |
 | `PageAgent.KickoffWorker` | Oban worker on queue `:page_agent`, `max_attempts: 1`, `unique: [keys: [:page_id], period: 30]`. Creates conversation + run + initial user-message event, broadcasts `:run_started`, starts `Session`. |
 | `PageAgent.Session` | GenServer — CircuitBreaker check → `Task.Supervisor.async_nolink` on `Blackboex.SandboxTaskSupervisor` → 3-minute timeout. Monitored via Registry `PageAgent.SessionRegistry`. |
 | `PageAgent.ChainRunner` | Runs the pipeline in the task; on success calls `Pages.record_ai_edit` to apply the edit and broadcasts `:run_completed`; on failure marks run failed and broadcasts `:run_failed`. |
@@ -58,8 +58,6 @@ becomes the run's `run_summary`. Failing to emit a fence yields an error
 
 ## Budgeting and safety
 
-- `Billing.Enforcement.check_limit(org, :llm_generation)` is checked in the
-  facade. Rejections surface as `{:error, :limit_exceeded}`.
 - IDOR check in `start/3`: `page.organization_id` must equal `scope.organization.id`.
 - Session timeout: **3 minutes**.
 - Unique-job constraint on `page_id` for 30s prevents double-click spam.

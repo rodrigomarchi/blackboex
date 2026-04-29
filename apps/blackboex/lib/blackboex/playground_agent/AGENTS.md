@@ -10,7 +10,7 @@ and dedicated prompts teaching the model about that sandbox.
 
 | Module | Role |
 |--------|------|
-| `Blackboex.PlaygroundAgent` | Facade — `start/3` validates `Billing.Enforcement.check_limit(org, :llm_generation)`, picks `:generate` vs `:edit` from `playground.code`, enqueues `KickoffWorker`. |
+| `Blackboex.PlaygroundAgent` | Facade — `start/3` picks `:generate` vs `:edit` from `playground.code`, enqueues `KickoffWorker`. |
 | `PlaygroundAgent.KickoffWorker` | Oban worker on queue `:playground_agent`, `max_attempts: 1`, `unique: [keys: [:playground_id], period: 30]`. Creates conversation + run + initial user-message event, broadcasts `:run_started`, starts `Session`. |
 | `PlaygroundAgent.Session` | GenServer — CircuitBreaker check → `Task.Supervisor.async_nolink` on `Blackboex.SandboxTaskSupervisor` → 3-minute timeout. Monitored via Registry `PlaygroundAgent.SessionRegistry`. |
 | `PlaygroundAgent.ChainRunner` | Runs the pipeline in the task; on success calls `Playgrounds.record_ai_edit` to apply the edit atomically and broadcasts `:run_completed`; on failure marks run failed and broadcasts `:run_failed`. |
@@ -23,7 +23,7 @@ and dedicated prompts teaching the model about that sandbox.
 
 | Function | Signature | Returns | Description |
 |----------|-----------|---------|-------------|
-| `start/3` | `(Playground.t(), scope(), String.t()) :: {:ok, Oban.Job.t()} \| {:error, :limit_exceeded \| :empty_message \| term()}` | Enqueued Oban job or error | Validates quota, picks `generate`/`edit` run type, enqueues `KickoffWorker`; returns `{:error, :empty_message}` if message is blank, `{:error, :limit_exceeded}` if billing quota exceeded |
+| `start/3` | `(Playground.t(), scope(), String.t()) :: {:ok, Oban.Job.t()} \| {:error, :empty_message \| term()}` | Enqueued Oban job or error | Picks `generate`/`edit` run type, enqueues `KickoffWorker`; returns `{:error, :empty_message}` if message is blank |
 
 `scope` is `%{user: %{id: term()}}` — the standard `Blackboex.Accounts.Scope` struct satisfies this.
 
@@ -57,8 +57,6 @@ the run's `run_summary`. Failing to emit a code fence yields an error
 
 ## Budgeting and safety
 
-- `Billing.Enforcement.check_limit(org, :llm_generation)` is checked in the facade — same
-  quota as the API Agent. Rejections surface as `{:error, :limit_exceeded}`.
 - Session timeout: **3 minutes** (vs 7 min for the API pipeline — single LLM call is fast).
 - Unique-job constraint on `playground_id` for 30s prevents double-click spam.
 - `CircuitBreaker.allow?(:anthropic)` gates chain execution; on open, run fails with a

@@ -10,7 +10,7 @@ auto-layouted, validated, and atomically applied to `flow.definition`.
 
 | Module | Role |
 |--------|------|
-| `Blackboex.FlowAgent` | Facade — `start/3` validates message length, checks org ownership (IDOR), checks `Billing.Enforcement.check_limit(org, :llm_generation)`, picks `:generate` (empty definition) vs `:edit`, enqueues `KickoffWorker`. |
+| `Blackboex.FlowAgent` | Facade — `start/3` validates message length, checks org ownership (IDOR), picks `:generate` (empty definition) vs `:edit`, enqueues `KickoffWorker`. |
 | `FlowAgent.KickoffWorker` | Oban worker on queue `:flow_agent`, `max_attempts: 1`, `unique: [keys: [:flow_id], period: 30]`. Creates conversation + run + initial user-message event, broadcasts `:run_started`, starts `Session`. |
 | `FlowAgent.Session` | GenServer — CircuitBreaker check → `Task.Supervisor.async_nolink` on `Blackboex.SandboxTaskSupervisor` → 3-minute timeout. Monitored via `FlowAgent.SessionRegistry`. |
 | `FlowAgent.ChainRunner` | Runs the pipeline in the task; on success calls `Flows.record_ai_edit` and broadcasts `:run_completed`; on failure marks run failed and broadcasts `:run_failed`. |
@@ -68,8 +68,6 @@ All three mark the run as failed.
 
 ## Budgeting and safety
 
-- `Billing.Enforcement.check_limit(org, :llm_generation)` is checked in the
-  facade. Rejections surface as `{:error, :limit_exceeded}`.
 - IDOR check in `start/3`: `flow.organization_id` must equal `scope.organization.id`.
 - `message` trimmed to max 10_000 chars.
 - Session timeout: **3 minutes**.

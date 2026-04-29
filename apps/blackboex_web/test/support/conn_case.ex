@@ -33,7 +33,6 @@ defmodule BlackboexWeb.ConnCase do
       import Blackboex.AccountsFixtures
       import Blackboex.OrganizationsFixtures
       import Blackboex.ApisFixtures
-      import Blackboex.BillingFixtures
       import Blackboex.ConversationsFixtures
       import Blackboex.TestingFixtures
       import Blackboex.ApiFilesFixtures

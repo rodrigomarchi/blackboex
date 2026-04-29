@@ -102,12 +102,6 @@ defmodule BlackboexWeb.Router do
     end
   end
 
-  # Stripe webhooks — no auth, no CSRF, signature verified in controller
-  scope "/webhooks", BlackboexWeb do
-    pipe_through :api
-    post "/stripe", WebhookController, :handle
-  end
-
   # Backpex cookie route
   scope "/" do
     pipe_through :browser
@@ -139,8 +133,6 @@ defmodule BlackboexWeb.Router do
       live_resources "/organizations", OrganizationLive
       live_resources "/memberships", MembershipLive
       live_resources "/apis", ApiLive
-      live_resources "/subscriptions", SubscriptionLive
-
       # API data
       live_resources "/api-keys", ApiKeyLive
       live_resources "/api-versions", ApiVersionLive
@@ -150,11 +142,6 @@ defmodule BlackboexWeb.Router do
       live_resources "/data-store-entries", DataStoreEntryLive
       live_resources "/invocation-logs", InvocationLogLive
       live_resources "/metric-rollups", MetricRollupLive
-
-      # Billing
-      live_resources "/daily-usage", DailyUsageLive
-      live_resources "/usage-events", UsageEventLive
-      live_resources "/processed-events", ProcessedEventLive
 
       # Projects
       live_resources "/projects", ProjectLive
@@ -196,10 +183,7 @@ defmodule BlackboexWeb.Router do
       live "/settings/apis", OrgSettingsLive, :apis
       live "/settings/flows", OrgSettingsLive, :flows
       live "/settings/llm", OrgSettingsLive, :llm
-      live "/settings/usage", OrgSettingsLive, :usage
       live "/settings/general", OrgSettingsLive, :general
-      live "/billing", BillingLive.Plans, :index
-      live "/billing/manage", BillingLive.Manage, :manage
       live "/members", OrgMemberLive.Index, :index
       live "/projects", ProjectLive.Index, :index
       live "/projects/new", ProjectLive.New, :new
@@ -230,7 +214,6 @@ defmodule BlackboexWeb.Router do
       live "/settings/apis", ProjectSettingsLive, :apis
       live "/settings/flows", ProjectSettingsLive, :flows
       live "/settings/llm", ProjectSettingsLive, :llm
-      live "/settings/usage", ProjectSettingsLive, :usage
       live "/settings/general", ProjectSettingsLive, :general
       live "/apis", ApiLive.Index, :index
       live "/apis/new", ApiLive.New, :new
@@ -285,8 +268,6 @@ defmodule BlackboexWeb.Router do
       live "/apis/:id", ApiLive.Show, :show
       live "/apis/:id/analytics", ApiLive.Analytics, :analytics
       live "/flows", FlowLive.Index, :index
-      live "/billing", BillingLive.Plans, :index
-      live "/billing/manage", BillingLive.Manage, :manage
       live "/users/settings", UserLive.Settings, :edit
       live "/users/settings/confirm-email/:token", UserLive.Settings, :confirm_email
     end

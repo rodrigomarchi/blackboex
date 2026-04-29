@@ -1,7 +1,7 @@
 defmodule BlackboexWeb.OrgSettingsLive do
   @moduledoc """
   Organization settings.
-  Tabbed layout: Dashboard (default), General, Members, Billing.
+  Tabbed layout: Dashboard (default), General, Members.
   Dashboard tab embeds the full metrics dashboard with sub-navigation.
   """
 
@@ -15,7 +15,7 @@ defmodule BlackboexWeb.OrgSettingsLive do
   alias Blackboex.Organizations
   alias BlackboexWeb.DashboardLive.Scope
 
-  @dashboard_actions [:dashboard, :apis, :flows, :llm, :usage]
+  @dashboard_actions [:dashboard, :apis, :flows, :llm]
   @valid_periods ~w(24h 7d 30d)
   @default_period "24h"
 
@@ -63,9 +63,6 @@ defmodule BlackboexWeb.OrgSettingsLive do
             metrics: DashboardQueries.llm_metrics(scope, period),
             series: DashboardQueries.llm_usage_series(scope, period)
           }
-
-        :usage ->
-          %{metrics: DashboardQueries.usage_metrics(scope, period)}
       end
 
     socket
@@ -140,9 +137,6 @@ defmodule BlackboexWeb.OrgSettingsLive do
           <%= if @live_action == :llm do %>
             <.llm_content metrics={@metrics} series={@series} period={@period} base_path={@base_path} />
           <% end %>
-          <%= if @live_action == :usage do %>
-            <.usage_content metrics={@metrics} period={@period} base_path={@base_path} />
-          <% end %>
         </div>
       <% end %>
 
@@ -165,7 +159,7 @@ defmodule BlackboexWeb.OrgSettingsLive do
     """
   end
 
-  defp tab_active(action) when action in [:dashboard, :apis, :flows, :llm, :usage],
+  defp tab_active(action) when action in [:dashboard, :apis, :flows, :llm],
     do: "dashboard"
 
   defp tab_active(:general), do: "general"
@@ -175,7 +169,7 @@ defmodule BlackboexWeb.OrgSettingsLive do
 
   @doc """
   Shared tab navigation for org settings pages.
-  Used by OrgSettingsLive, OrgMemberLive, and BillingLive.
+  Used by OrgSettingsLive and OrgMemberLive.
   """
   attr :current_scope, :map, required: true
   attr :active, :string, required: true
@@ -198,11 +192,6 @@ defmodule BlackboexWeb.OrgSettingsLive do
         label="Members"
         href={org_path(@current_scope, "/members")}
         active={@active == "members"}
-      />
-      <.settings_tab
-        label="Billing"
-        href={org_path(@current_scope, "/billing")}
-        active={@active == "billing"}
       />
     </nav>
     """

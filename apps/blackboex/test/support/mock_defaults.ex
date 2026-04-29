@@ -26,22 +26,4 @@ defmodule Blackboex.MockDefaults do
 
     :ok
   end
-
-  @doc """
-  Named setup: stubs Stripe client with safe defaults.
-
-  Usage: `setup :stub_stripe`
-  """
-  @spec stub_stripe(map()) :: :ok
-  def stub_stripe(_context \\ %{}) do
-    stub(Blackboex.Billing.StripeClientMock, :create_checkout_session, fn _params ->
-      {:ok, %{id: "cs_test_123", url: "https://checkout.stripe.com/test"}}
-    end)
-
-    stub(Blackboex.Billing.StripeClientMock, :create_portal_session, fn _cid, _return_url ->
-      {:ok, %{url: "https://billing.stripe.com/test"}}
-    end)
-
-    :ok
-  end
 end

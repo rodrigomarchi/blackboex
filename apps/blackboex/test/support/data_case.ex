@@ -27,7 +27,6 @@ defmodule Blackboex.DataCase do
       import Blackboex.AccountsFixtures
       import Blackboex.OrganizationsFixtures
       import Blackboex.ApisFixtures
-      import Blackboex.BillingFixtures
       import Blackboex.ConversationsFixtures
       import Blackboex.TestingFixtures
       import Blackboex.ApiFilesFixtures

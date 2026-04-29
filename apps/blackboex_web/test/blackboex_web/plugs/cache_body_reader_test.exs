@@ -76,7 +76,7 @@ defmodule BlackboexWeb.Plugs.CacheBodyReaderTest do
     test "preserves body integrity for webhook signature verification" do
       # This is the primary use-case: raw body must match exactly for HMAC
       payload = ~s({"type":"payment_intent.succeeded","data":{"object":{"id":"pi_123"}}})
-      conn = conn(:post, "/webhooks/stripe", payload)
+      conn = conn(:post, "/webhooks/generic", payload)
 
       {:ok, _read, conn} = CacheBodyReader.read_body(conn, [])
 

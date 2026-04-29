@@ -186,7 +186,6 @@ Prevents the field from being edited. Used together with `only: [:show]` for dis
 | `Admin.OrganizationLive` | `Blackboex.Organizations.Organization` | `/admin/organizations` | Editable: `name`, `slug`, `plan`. Searchable by name/slug. |
 | `Admin.MembershipLive` | `Blackboex.Organizations.Membership` | `/admin/memberships` | Edit limited to `role` changes only. |
 | `Admin.ApiLive` | `Blackboex.Apis.Api` | `/admin/apis` | Editable. JSONB fields (`param_schema`, `example_request`, `example_response`) rendered read-only with pretty-printed JSON in show view. |
-| `Admin.SubscriptionLive` | `Blackboex.Billing.Subscription` | `/admin/subscriptions` | Editable (Stripe IDs, plan, status). Read-only in practice — prefer Stripe dashboard for billing ops. |
 
 ### API Data
 
@@ -200,14 +199,6 @@ Prevents the field from being edited. Used together with `only: [:show]` for dis
 | `Admin.DataStoreEntryLive` | `Blackboex.Apis.DataStore.Entry` | `/admin/data-store-entries` | Editable with caution. JSONB `value` rendered with `inspect/2` in show view. |
 | `Admin.InvocationLogLive` | `Blackboex.Apis.InvocationLog` | `/admin/invocation-logs` | Sorted newest-first. Searchable by method, path, IP. |
 | `Admin.MetricRollupLive` | `Blackboex.Apis.MetricRollup` | `/admin/metric-rollups` | Hourly rollups with p95 duration. |
-
-### Billing
-
-| Module | Schema | Route | Notes |
-|---|---|---|---|
-| `Admin.DailyUsageLive` | `Blackboex.Billing.DailyUsage` | `/admin/daily-usage` | Per-org daily aggregates. Uses `Backpex.Fields.Date` for the `date` column. |
-| `Admin.UsageEventLive` | `Blackboex.Billing.UsageEvent` | `/admin/usage-events` | Sorted newest-first. JSONB `metadata` shown in detail view only. |
-| `Admin.ProcessedEventLive` | `Blackboex.Billing.ProcessedEvent` | `/admin/processed-events` | Stripe webhook idempotency table. Searchable by event_id, event_type. |
 
 ### Testing
 
@@ -325,7 +316,7 @@ Follow the standard template above. File name: `snake_case_live.ex`.
 live_resources "/foos", FooLive
 ```
 
-Place it in the appropriate group comment (Core / API data / Billing / Testing / LLM / Audit).
+Place it in the appropriate group comment (Core / API data / Testing / LLM / Audit).
 
 **4. Add a stat card** to `DashboardLive` (`dashboard_live.ex`):
 

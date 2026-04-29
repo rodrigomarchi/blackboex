@@ -514,7 +514,6 @@ advanced = create_page!.(%{
   | Accounts       | `Blackboex.Accounts`       | Autenticação e sessões  |
   | Organizations  | `Blackboex.Organizations`  | Multi-tenancy           |
   | Apis           | `Blackboex.Apis`           | CRUD de APIs            |
-  | Billing        | `Blackboex.Billing`        | Stripe + usage tracking |
   | Conversations  | `Blackboex.Conversations`  | Chat event-sourced      |
 
   ---

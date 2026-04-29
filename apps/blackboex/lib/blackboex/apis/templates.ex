@@ -48,7 +48,6 @@ defmodule Blackboex.Apis.Templates do
     Blackboex.Apis.Templates.ConversorMoedas.template(),
     Blackboex.Apis.Templates.JurosCompostos.template(),
     Blackboex.Apis.Templates.VerificadorElegibilidade.template(),
-    Blackboex.Apis.Templates.StripeWebhook.template(),
     Blackboex.Apis.Templates.GithubWebhook.template(),
     Blackboex.Apis.Templates.SlackEventHandler.template(),
     Blackboex.Apis.Templates.OauthCallback.template(),

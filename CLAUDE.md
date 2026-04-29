@@ -115,7 +115,6 @@ Every schema that needs to be inserted in a test MUST use a fixture function —
 | `ProjectsFixtures` | `project_fixture/1`, `project_membership_fixture/1`, `create_project/1` | Project, ProjectMembership |
 | `ApisFixtures` | `api_fixture/1`, `api_key_fixture/2`, `invocation_log_fixture/1`, `metric_rollup_fixture/1`, `create_api/1`, `create_org_and_api/1` | Api, ApiKey, InvocationLog, MetricRollup |
 | `ApiFilesFixtures` | `api_file_fixture/1`, `default_files_fixture/2`, `latest_revision/1` | ApiFile, ApiFileRevision |
-| `BillingFixtures` | `subscription_fixture/1`, `daily_usage_fixture/1`, `usage_event_fixture/1` | Subscription, DailyUsage, UsageEvent |
 | `ConversationsFixtures` | `conversation_fixture/3`, `run_fixture/1` | Conversation, Run |
 | `FlowsFixtures` | `flow_fixture/1`, `flow_from_template_fixture/1`, `create_flow/1`, `create_org_and_flow/1` | Flow |
 | `FlowExecutionsFixtures` | `flow_execution_fixture/1`, `node_execution_fixture/1` | FlowExecution, NodeExecution |
@@ -128,7 +127,7 @@ Every schema that needs to be inserted in a test MUST use a fixture function —
 | `PageConversationsFixtures` | `page_conversation_fixture/1`, `page_run_fixture/1`, `page_event_fixture/1` | PageConversation, PageRun, PageEvent |
 | `FlowConversationsFixtures` | `flow_conversation_fixture/1`, `flow_run_fixture/1`, `flow_event_fixture/1` | FlowConversation, FlowRun, FlowEvent |
 | `TestingFixtures` | `test_suite_fixture/1` | TestSuite |
-| `MockDefaults` | `stub_llm_client/1`, `stub_stripe/1` | — |
+| `MockDefaults` | `stub_llm_client/1` | — |
 
 ### Named Setup Composition
 
@@ -159,7 +158,6 @@ Available named setups:
 - `:create_page_tree` — creates root + 2 children + 1 grandchild pages for existing user + org + project, returns `%{root_page, child_1, child_2, grandchild}`
 - `:create_playground` — creates playground for existing user + org (optionally uses `:project` from context), returns `%{playground}`
 - `:stub_llm_client` — stubs LLM mock with safe defaults
-- `:stub_stripe` — stubs Stripe mock with safe defaults
 
 ### Test Structure Rules
 
@@ -196,7 +194,6 @@ AGENTS.md                                          — Root: stack, structure, c
 │   ├── lib/blackboex/accounts/AGENTS.md           — Auth, Scope, UserToken, multi-tenancy
 │   ├── lib/blackboex/apis/AGENTS.md               — Core entity, lifecycle, Registry, deployment
 │   ├── lib/blackboex/agent/AGENTS.md              — AI pipeline, Session, CodePipeline
-│   ├── lib/blackboex/billing/AGENTS.md            — Stripe, enforcement, webhooks
 │   ├── lib/blackboex/code_gen/AGENTS.md           — Compiler, sandbox, validation
 │   ├── lib/blackboex/conversations/AGENTS.md      — Event-sourced runs/events
 │   ├── lib/blackboex/docs/AGENTS.md               — DocGenerator, OpenAPI

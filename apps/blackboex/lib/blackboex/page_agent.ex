@@ -9,8 +9,6 @@ defmodule Blackboex.PageAgent do
   (`KickoffWorker`) that sets up persistence and starts the `Session`.
   """
 
-  alias Blackboex.Billing.Enforcement
-  alias Blackboex.Organizations
   alias Blackboex.PageAgent.KickoffWorker
   alias Blackboex.Pages.Page
 
@@ -21,8 +19,7 @@ defmodule Blackboex.PageAgent do
   @spec start(Page.t(), scope(), String.t()) ::
           {:ok, Oban.Job.t()}
           | {:error,
-             :limit_exceeded
-             | :empty_message
+             :empty_message
              | :message_too_long
              | :unauthorized
              | :agent_busy
@@ -41,9 +38,7 @@ defmodule Blackboex.PageAgent do
   end
 
   defp do_start(page, scope, message) do
-    with :ok <- authorize(page, scope),
-         {:ok, org} <- fetch_org(page.organization_id),
-         :ok <- check_enforcement(org) do
+    with :ok <- authorize(page, scope) do
       run_type = if String.trim(page.content || "") == "", do: "generate", else: "edit"
 
       # Note: content_before is NOT in Oban args (would bloat the queue with up
@@ -71,20 +66,6 @@ defmodule Blackboex.PageAgent do
        do: :ok
 
   defp authorize(_page, _scope), do: {:error, :unauthorized}
-
-  defp check_enforcement(org) do
-    case Enforcement.check_limit(org, :llm_generation) do
-      {:ok, _} -> :ok
-      {:error, :limit_exceeded, _details} -> {:error, :limit_exceeded}
-    end
-  end
-
-  defp fetch_org(org_id) do
-    case Organizations.get_organization(org_id) do
-      nil -> {:error, :organization_not_found}
-      org -> {:ok, org}
-    end
-  end
 
   defp user_id(%{user: %{id: id}}), do: id
   defp user_id(%{user_id: id}), do: id

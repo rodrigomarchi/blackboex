@@ -24,7 +24,6 @@ defmodule E2E.Phase.StressSuite do
     {E2E.Phase.AdvancedFeatures, "advanced_features", "AdvancedFeatures"},
     {E2E.Phase.LeadScoring, "lead_scoring", "LeadScoring"},
     {E2E.Phase.WebhookProcessor, "webhook_processor", "WebhookProcessor"},
-    {E2E.Phase.StripePaymentRouter, "stripe_payment_router", "StripePaymentRouter"},
     {E2E.Phase.SupportTicketRouter, "support_ticket_router", "SupportTicketRouter"},
     {E2E.Phase.EscalationApproval, "escalation_approval", "EscalationApproval"},
     {E2E.Phase.DataEnrichmentChain, "data_enrichment_chain", "DataEnrichmentChain"},

@@ -105,7 +105,6 @@ defmodule E2E.Flows do
       E2E.Phase.AdvancedFeatures.run(user, org),
       E2E.Phase.LeadScoring.run(user, org),
       E2E.Phase.WebhookProcessor.run(user, org),
-      E2E.Phase.StripePaymentRouter.run(user, org),
       E2E.Phase.SupportTicketRouter.run(user, org),
       E2E.Phase.EscalationApproval.run(user, org),
       E2E.Phase.DataEnrichmentChain.run(user, org),

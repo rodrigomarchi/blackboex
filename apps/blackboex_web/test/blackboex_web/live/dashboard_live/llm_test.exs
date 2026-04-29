@@ -43,7 +43,6 @@ defmodule BlackboexWeb.DashboardLive.LlmTest do
       assert html =~ "By model"
       assert html =~ "gpt-4o-mini"
       # Nav highlights LLM tab and links resolve to org base_path
-      assert html =~ "/orgs/#{org.slug}/settings/usage"
       assert html =~ "/orgs/#{org.slug}/settings/llm"
     end
   end

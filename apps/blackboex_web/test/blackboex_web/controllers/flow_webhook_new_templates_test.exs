@@ -1,8 +1,7 @@
 defmodule BlackboexWeb.FlowWebhookNewTemplatesTest do
   @moduledoc """
-  E2E webhook tests for the 8 new flow templates:
+  E2E webhook tests for the new flow templates:
 
-    * stripe_payment_router
     * support_ticket_router
     * escalation_approval
     * data_enrichment_chain
@@ -42,99 +41,6 @@ defmodule BlackboexWeb.FlowWebhookNewTemplatesTest do
     conn
     |> put_req_header("content-type", "application/json")
     |> post("/webhook/#{token}", payload)
-  end
-
-  # ── Stripe Payment Router ───────────────────────────────────
-
-  describe "POST /webhook/:token — stripe_payment_router" do
-    setup do
-      %{flow: create_active_flow("stripe_payment_router")}
-    end
-
-    test "payment.succeeded → fulfill_order", %{flow: flow} do
-      conn =
-        webhook_post(build_conn(), flow.webhook_token, %{
-          "event_type" => "payment.succeeded",
-          "payment_id" => "pi_001",
-          "amount" => 4999,
-          "customer_id" => "cus_001"
-        })
-
-      resp = json_response(conn, 200)
-      output = resp["output"]
-      assert output["status"] == "succeeded"
-      assert output["action"] == "fulfill_order"
-    end
-
-    test "payment.failed → retry_payment path", %{flow: flow} do
-      conn =
-        webhook_post(build_conn(), flow.webhook_token, %{
-          "event_type" => "payment.failed",
-          "payment_id" => "pi_002",
-          "amount" => 1000,
-          "customer_id" => "cus_002"
-        })
-
-      resp = json_response(conn, 200)
-      output = resp["output"]
-      assert output["status"] == "failed"
-      assert output["action"] == "retry_payment"
-    end
-
-    test "charge.disputed → create_case", %{flow: flow} do
-      conn =
-        webhook_post(build_conn(), flow.webhook_token, %{
-          "event_type" => "charge.disputed",
-          "payment_id" => "pi_003",
-          "amount" => 5000,
-          "customer_id" => "cus_003"
-        })
-
-      resp = json_response(conn, 200)
-      output = resp["output"]
-      assert output["status"] == "disputed"
-      assert output["action"] == "create_case"
-    end
-
-    test "unknown event_type → fail node returns 422", %{flow: flow} do
-      conn =
-        webhook_post(build_conn(), flow.webhook_token, %{
-          "event_type" => "refund.created",
-          "payment_id" => "pi_004",
-          "amount" => 1,
-          "customer_id" => "cus_004"
-        })
-
-      resp = json_response(conn, 422)
-      assert resp["error"] =~ "Unknown payment event"
-    end
-
-    test "missing event_type → 422 schema validation", %{flow: flow} do
-      conn =
-        webhook_post(build_conn(), flow.webhook_token, %{
-          "payment_id" => "pi_005",
-          "amount" => 1,
-          "customer_id" => "cus_005"
-        })
-
-      resp = json_response(conn, 422)
-      assert resp["error"] =~ "Payload validation failed"
-      assert resp["error"] =~ "event_type"
-    end
-
-    test "debug node stores event info in shared_state", %{flow: flow} do
-      conn =
-        webhook_post(build_conn(), flow.webhook_token, %{
-          "event_type" => "payment.succeeded",
-          "payment_id" => "pi_dbg",
-          "amount" => 100,
-          "customer_id" => "cus_dbg"
-        })
-
-      resp = json_response(conn, 200)
-      exec = FlowExecutions.get_execution(resp["execution_id"])
-      assert exec.shared_state["debug_event"]["payment_id"] == "pi_dbg"
-    end
   end
 
   # ── Support Ticket Router ───────────────────────────────────

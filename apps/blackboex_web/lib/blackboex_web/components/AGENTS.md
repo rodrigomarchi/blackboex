@@ -149,7 +149,7 @@ Module: `BlackboexWeb.Components.Icon`
 
 Styles via suffix: default (outline), `-solid`, `-mini`, `-micro`. Common sizes: `size-3`–`size-8`. Color inherits `currentColor`; override with `text-*` utilities.
 
-Common icons: `hero-bolt` (APIs), `hero-key` (keys), `hero-credit-card` (billing), `hero-cog-6-tooth` (settings), `hero-plus` (add), `hero-trash` (delete), `hero-eye` (view), `hero-pencil-square` (edit), `hero-check-circle` (success), `hero-x-circle` (error), `hero-exclamation-circle` (warning), `hero-arrow-path` (refresh — add `animate-spin`), `hero-ellipsis-horizontal` (more menu), `hero-x-mark` (close), `hero-sparkles` (AI), `hero-beaker` (tests), `hero-document-text` (docs), `hero-command-line` (palette).
+Common icons: `hero-bolt` (APIs), `hero-key` (keys), `hero-cog-6-tooth` (settings), `hero-plus` (add), `hero-trash` (delete), `hero-eye` (view), `hero-pencil-square` (edit), `hero-check-circle` (success), `hero-x-circle` (error), `hero-exclamation-circle` (warning), `hero-arrow-path` (refresh — add `animate-spin`), `hero-ellipsis-horizontal` (more menu), `hero-x-mark` (close), `hero-sparkles` (AI), `hero-beaker` (tests), `hero-document-text` (docs), `hero-command-line` (palette).
 
 ---
 
@@ -276,7 +276,7 @@ Elixir functions, not components. Use to build `class` attribute values on `<.ba
 | `api_status_border/1` | same | Border + text only (for inline chips) |
 | `process_status_classes/1` | `"pending"`, `"generating"`, `"validating"`, `"running"` | Badge classes for agent process states |
 | `result_classes/1` | `"pass"/:pass`, `"fail"/:fail`, `"skip"/:skip`, `"passed"`, `"failed"` | Pass/fail badge classes |
-| `subscription_classes/1` | `"active"`, `"trialing"`, `"past_due"`, `"canceled"`, `"incomplete"` | Billing status badge classes |
+
 | `api_key_status_classes/1` | `"Active"`, `"Expired"`, `"Revoked"` | API key status badge classes |
 | `execution_status_classes/1` | `"completed"`, `"running"`, `"failed"`, `"pending"`, `"cancelled"`, `"halted"` | Flow execution badge classes |
 | `execution_status_dot/1` | same | Solid background for status dot circles |

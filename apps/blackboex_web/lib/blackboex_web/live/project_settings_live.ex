@@ -16,7 +16,7 @@ defmodule BlackboexWeb.ProjectSettingsLive do
   alias Blackboex.Projects
   alias BlackboexWeb.DashboardLive.Scope
 
-  @dashboard_actions [:dashboard, :apis, :flows, :llm, :usage]
+  @dashboard_actions [:dashboard, :apis, :flows, :llm]
   @valid_periods ~w(24h 7d 30d)
   @default_period "24h"
 
@@ -68,9 +68,6 @@ defmodule BlackboexWeb.ProjectSettingsLive do
             metrics: DashboardQueries.llm_metrics(scope, period),
             series: DashboardQueries.llm_usage_series(scope, period)
           }
-
-        :usage ->
-          %{metrics: DashboardQueries.usage_metrics(scope, period)}
       end
 
     socket
@@ -134,7 +131,7 @@ defmodule BlackboexWeb.ProjectSettingsLive do
         project_slug={@project.slug}
       />
 
-      <%= if @live_action in [:dashboard, :apis, :flows, :llm, :usage] do %>
+      <%= if @live_action in [:dashboard, :apis, :flows, :llm] do %>
         <div class="mt-4 space-y-6">
           <.dashboard_nav active={nav_key(@live_action)} base_path={@base_path} />
           <%= if @live_action == :dashboard do %>
@@ -148,9 +145,6 @@ defmodule BlackboexWeb.ProjectSettingsLive do
           <% end %>
           <%= if @live_action == :llm do %>
             <.llm_content metrics={@metrics} series={@series} period={@period} base_path={@base_path} />
-          <% end %>
-          <%= if @live_action == :usage do %>
-            <.usage_content metrics={@metrics} period={@period} base_path={@base_path} />
           <% end %>
         </div>
       <% end %>
@@ -175,7 +169,7 @@ defmodule BlackboexWeb.ProjectSettingsLive do
     """
   end
 
-  defp tab_active(action) when action in [:dashboard, :apis, :flows, :llm, :usage], do: :dashboard
+  defp tab_active(action) when action in [:dashboard, :apis, :flows, :llm], do: :dashboard
   defp tab_active(:general), do: :general
 
   defp nav_key(:dashboard), do: :overview

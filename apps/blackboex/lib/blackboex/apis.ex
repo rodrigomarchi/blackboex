@@ -19,7 +19,6 @@ defmodule Blackboex.Apis do
   alias Blackboex.Apis.Api
   alias Blackboex.Apis.ApiQueries
   alias Blackboex.Apis.Registry
-  alias Blackboex.Billing.Enforcement
   alias Blackboex.CodeGen.Compiler
   alias Blackboex.Organizations
   alias Blackboex.Projects
@@ -31,7 +30,6 @@ defmodule Blackboex.Apis do
           {:ok, Api.t()}
           | {:error, Ecto.Changeset.t()}
           | {:error, :forbidden}
-          | {:error, :limit_exceeded, map()}
   def create_api(attrs) do
     org_id = attrs[:organization_id] || attrs["organization_id"]
     project_id = attrs[:project_id] || attrs["project_id"]
@@ -187,17 +185,8 @@ defmodule Blackboex.Apis do
     Repo.query!("SELECT pg_advisory_xact_lock($1)", [lock_key])
   end
 
-  defp check_and_insert_api(attrs, org_id) do
-    case Organizations.get_organization(org_id) do
-      nil ->
-        insert_api!(attrs)
-
-      org ->
-        case Enforcement.check_limit(org, :create_api) do
-          {:ok, _remaining} -> insert_api!(attrs)
-          {:error, :limit_exceeded, details} -> Repo.rollback({:limit_exceeded, details})
-        end
-    end
+  defp check_and_insert_api(attrs, _org_id) do
+    insert_api!(attrs)
   end
 
   defp insert_api!(attrs) do

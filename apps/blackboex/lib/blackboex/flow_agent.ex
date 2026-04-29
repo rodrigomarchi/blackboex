@@ -9,10 +9,8 @@ defmodule Blackboex.FlowAgent do
   persistence and starts the `Session` GenServer.
   """
 
-  alias Blackboex.Billing.Enforcement
   alias Blackboex.FlowAgent.KickoffWorker
   alias Blackboex.Flows.Flow
-  alias Blackboex.Organizations
 
   @max_message_chars 10_000
   # Serialized flow definitions above this size are rejected before the LLM
@@ -45,9 +43,7 @@ defmodule Blackboex.FlowAgent do
 
   defp maybe_start(flow, scope, trimmed) do
     with :ok <- authorize(flow, scope),
-         :ok <- check_definition_size(flow.definition),
-         {:ok, org} <- fetch_org(flow.organization_id),
-         :ok <- check_enforcement(org) do
+         :ok <- check_definition_size(flow.definition) do
       run_type = if empty_definition?(flow.definition), do: "generate", else: "edit"
 
       args = %{
@@ -82,20 +78,6 @@ defmodule Blackboex.FlowAgent do
   end
 
   defp authorize(_flow, _scope), do: {:error, :forbidden}
-
-  defp check_enforcement(org) do
-    case Enforcement.check_limit(org, :llm_generation) do
-      {:ok, _} -> :ok
-      {:error, :limit_exceeded, _details} -> {:error, :limit_exceeded}
-    end
-  end
-
-  defp fetch_org(org_id) do
-    case Organizations.get_organization(org_id) do
-      nil -> {:error, :organization_not_found}
-      org -> {:ok, org}
-    end
-  end
 
   defp empty_definition?(nil), do: true
   defp empty_definition?(def) when def == %{}, do: true

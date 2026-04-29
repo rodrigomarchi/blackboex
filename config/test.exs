@@ -47,9 +47,6 @@ config :blackboex, :llm_client, Blackboex.LLM.ClientMock
 # Oban: manual testing mode (jobs don't auto-execute)
 config :blackboex, Oban, testing: :manual
 
-# Use mock Stripe client in tests
-config :blackboex, :stripe_client, Blackboex.Billing.StripeClientMock
-
 # FunWithFlags: disable ETS cache in tests for determinism
 config :fun_with_flags, :cache, enabled: false
 

@@ -42,7 +42,7 @@ Interactive single-cell Elixir REPL within projects for code experimentation.
 - `Api.call_flow(webhook_token, input)` — POST to `/webhook/:token`, returns parsed JSON
 - `Api.call_api(org, project, api, params, api_key)` — POST to `/api/:org/:project/:api` with Bearer auth
 - Uses `Http` internally — all SSRF protections, rate limits, and timeouts apply
-- Self-calls go through HTTP (not direct context invocation) so all middleware runs (auth, rate limiting, billing)
+- Self-calls go through HTTP (not direct context invocation) so all middleware runs (auth, rate limiting)
 
 ## Completer
 

@@ -72,5 +72,4 @@ from Handler code.
 
 1. **Module.create/3 persists until purge** — always call `Compiler.unload/1` before recompiling same module.
 2. **Dynamic modules lost on restart** — Registry reloads from DB on init. Never clear `source_code` on a published API.
-3. **Billing gate** — `Agent.CodePipeline` checks `Billing.Enforcement` before LLM generation calls.
-4. **ExUnit module leak** — use `SandboxCase` instead of `use ExUnit.Case` in generated tests.
+3. **ExUnit module leak** — use `SandboxCase` instead of `use ExUnit.Case` in generated tests.

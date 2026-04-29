@@ -86,7 +86,6 @@ config :ex_audit,
   ecto_repos: [Blackboex.Repo],
   version_schema: Blackboex.Audit.Version,
   tracked_schemas: [
-    Blackboex.Billing.Subscription,
     Blackboex.Apis.Api,
     Blackboex.Apis.ApiKey,
     Blackboex.Organizations.Organization
@@ -94,9 +93,6 @@ config :ex_audit,
 
 # Playground API self-call base URL (override via PLAYGROUND_BASE_URL in prod)
 config :blackboex, Blackboex.Playgrounds.Api, base_url: "http://localhost:4000"
-
-# Stripe client configuration
-config :blackboex, :stripe_client, Blackboex.Billing.StripeClient.Live
 
 # FunWithFlags feature flag configuration
 config :fun_with_flags, :persistence,
@@ -111,7 +107,6 @@ config :fun_with_flags, :cache_bust_notifications,
 config :blackboex, Oban,
   repo: Blackboex.Repo,
   queues: [
-    billing: 10,
     analytics: 5,
     generation: 3,
     flows: 5,

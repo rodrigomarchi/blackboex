@@ -29,7 +29,7 @@ defmodule Blackboex.ProjectEnvVarsFixtures do
   @spec project_env_var_fixture(map()) :: Blackboex.ProjectEnvVars.ProjectEnvVar.t()
   def project_env_var_fixture(attrs \\ %{}) do
     {org_id, project_id} = org_and_project(attrs)
-    uid = System.unique_integer([:positive])
+    uid = :crypto.strong_rand_bytes(6) |> Base.encode16(case: :lower)
 
     {:ok, env_var} =
       create_for_kind(attrs[:kind] || "env", %{

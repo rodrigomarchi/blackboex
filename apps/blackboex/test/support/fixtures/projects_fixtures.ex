@@ -16,7 +16,7 @@ defmodule Blackboex.ProjectsFixtures do
   def project_fixture(attrs \\ %{}) do
     user = attrs[:user] || Blackboex.AccountsFixtures.user_fixture()
     org = attrs[:org] || Blackboex.OrganizationsFixtures.org_fixture(%{user: user})
-    uid = System.unique_integer([:positive])
+    uid = :crypto.strong_rand_bytes(6) |> Base.encode16(case: :lower)
 
     {:ok, %{project: project}} =
       Projects.create_project(org, user, %{

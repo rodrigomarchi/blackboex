@@ -21,7 +21,7 @@ defmodule Blackboex.OrganizationsFixtures do
   @spec org_fixture(map()) :: Blackboex.Organizations.Organization.t()
   def org_fixture(attrs \\ %{}) do
     user = attrs[:user] || Blackboex.AccountsFixtures.user_fixture()
-    uid = System.unique_integer([:positive])
+    uid = :crypto.strong_rand_bytes(6) |> Base.encode16(case: :lower)
 
     {:ok, %{organization: org}} =
       Organizations.create_organization(user, %{

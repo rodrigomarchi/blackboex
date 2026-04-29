@@ -63,7 +63,8 @@ defmodule Blackboex.MixProject do
       {:mox, "~> 1.0", only: :test},
       {:langchain, "~> 0.6.2"},
       {:reactor, "~> 1.0"},
-      {:nanoid, "~> 2.1"}
+      {:nanoid, "~> 2.1"},
+      {:cloak_ecto, "~> 1.3"}
     ]
   end
 

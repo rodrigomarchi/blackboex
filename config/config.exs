@@ -153,6 +153,19 @@ config :swoosh, :api_client, false
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 
+# Cloak.Ecto vault used for at-rest encryption of `ProjectEnvVar` values
+# (generic env vars + LLM integration keys).
+#
+# The key below is a well-known DEVELOPMENT/TEST-ONLY key — never use it in
+# production. `config/runtime.exs` reads the real key from the `CLOAK_KEY`
+# environment variable in the `:prod` environment and raises if missing.
+config :blackboex, Blackboex.Vault,
+  ciphers: [
+    default:
+      {Cloak.Ciphers.AES.GCM,
+       tag: "AES.GCM.V1", key: Base.decode64!("8TxNXdY99VoN3raC3P5/gIxpuQ1FHr9oi3+Qi8zrpDo=")}
+  ]
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{config_env()}.exs"

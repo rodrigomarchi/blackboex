@@ -22,7 +22,7 @@ defmodule Blackboex.ProjectEnvVars.CrudTest do
 
       assert env_var.id
       assert env_var.kind == "env"
-      assert ProjectEnvVar.decrypt_value(env_var.encrypted_value) == "https://example.com"
+      assert env_var.encrypted_value == "https://example.com"
     end
 
     test "returns changeset error with invalid name", %{org: org, project: project} do
@@ -84,7 +84,7 @@ defmodule Blackboex.ProjectEnvVars.CrudTest do
 
       {:ok, updated} = ProjectEnvVars.update(env_var, %{value: "new"})
 
-      assert ProjectEnvVar.decrypt_value(updated.encrypted_value) == "new"
+      assert updated.encrypted_value == "new"
       refute updated.encrypted_value == env_var.encrypted_value
     end
 

@@ -20,5 +20,17 @@
   # map values that Dialyzer misreads as a dead `false` pattern match.
   # This is a known false positive in the Phoenix.Component.Declarative machinery
   # when a LiveComponent defines private function components with `attr` declarations.
-  {"lib/blackboex_web/components/sidebar_tree_component.ex", :pattern_match}
+  {"lib/blackboex_web/components/sidebar_tree_component.ex", :pattern_match},
+  # Cloak library internals: `Cloak.Vault.read_config/1` and `decrypt!/2`
+  # are only defined on concrete vault modules via `use Cloak.Vault`, but
+  # Cloak's own code references them through the behaviour name — Dialyzer
+  # analyzes the library without the concrete vault's PLT info and can't
+  # resolve them.
+  ~r{deps/cloak/lib/cloak/vault\.ex.*:unknown_function},
+  # Cloak.Ecto.Type + Cloak.Vault declare @callback without matching
+  # behaviour_info/1 the PLT can resolve. Library-side false positives
+  # visible from the lib directory and from the embedded gen_server.ex
+  # (whose path is a tempdir in the Elixir distribution).
+  ~r{deps/cloak_ecto/lib/cloak_ecto/type\.ex.*:callback_info_missing},
+  ~r{gen_server\.ex.*:callback_info_missing}
 ]

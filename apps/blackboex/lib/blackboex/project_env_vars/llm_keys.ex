@@ -29,7 +29,7 @@ defmodule Blackboex.ProjectEnvVars.LlmKeys do
   def get_llm_key(project_id, :anthropic) do
     case fetch_anthropic(project_id) do
       nil -> {:error, :not_configured}
-      %ProjectEnvVar{} = env_var -> {:ok, ProjectEnvVar.decrypt_value(env_var.encrypted_value)}
+      %ProjectEnvVar{} = env_var -> {:ok, env_var.encrypted_value}
     end
   end
 
@@ -51,8 +51,7 @@ defmodule Blackboex.ProjectEnvVars.LlmKeys do
         {:error, :not_configured}
 
       %ProjectEnvVar{} = env_var ->
-        plaintext = ProjectEnvVar.decrypt_value(env_var.encrypted_value)
-        {:ok, mask_key(plaintext)}
+        {:ok, mask_key(env_var.encrypted_value)}
     end
   end
 

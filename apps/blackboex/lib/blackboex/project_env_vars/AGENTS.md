@@ -20,7 +20,7 @@ previous `FlowSecrets` context (which was organization-scoped, flow-only).
 |-------|------|-------|
 | `id` | UUID | |
 | `name` | String | `~r/^[a-zA-Z0-9_]+$/`, max 255 |
-| `encrypted_value` | Binary | Base64 (placeholder — upgrade to Cloak TBD) |
+| `encrypted_value` | `Blackboex.Encrypted.Binary` | AES-256-GCM via `Cloak.Ecto` (`Blackboex.Vault`). Reading the field returns plaintext; writing encrypts on save. |
 | `kind` | String | `"env"` \| `"llm_anthropic"`, check constraint at DB level |
 | `organization_id` | UUID | |
 | `project_id` | UUID | |
@@ -101,7 +101,11 @@ Flow placeholders also accept the legacy `{{secrets.NAME}}` syntax.
 
 ## Gotchas
 
-1. **Base64 is placeholder "encryption"** — upgrade to Cloak is pending.
+1. **Encryption at rest**: `Blackboex.Vault` (AES-256-GCM via `Cloak.Ecto`).
+   The vault key comes from `CLOAK_KEY` env var in prod (base64-encoded 32
+   bytes) and from a static well-known key in dev/test (see `config/config.exs`).
+   Rotating the key means prepending a new cipher in `Blackboex.Vault` and
+   running `mix cloak.migrate.ecto`.
 2. **Kind is immutable** — a `kind="env"` row cannot become `"llm_anthropic"`
    (changeset validates `:kind` against the persisted value on update).
 3. **`load_runtime_map` is fetched per execution** — ETS cache is a future

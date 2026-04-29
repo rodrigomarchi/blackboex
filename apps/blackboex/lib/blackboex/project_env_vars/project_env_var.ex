@@ -1,10 +1,13 @@
 defmodule Blackboex.ProjectEnvVars.ProjectEnvVar do
   @moduledoc """
-  Schema for ProjectEnvVars. Stores encrypted (Base64-encoded) env var values
-  scoped to a project, with a `kind` discriminator separating generic env vars
-  from special integrations (currently just the Anthropic API key).
+  Schema for ProjectEnvVars. Stores env var values at rest with AES-256-GCM
+  encryption via `Blackboex.Vault` (Cloak.Ecto). A `kind` discriminator
+  separates generic env vars from special integrations (currently just the
+  Anthropic API key).
 
-  Note: "encryption" is Base64 encoding for MVP — placeholder for Cloak later.
+  Callers write and read the plaintext value through the `:encrypted_value`
+  field — Cloak encrypts transparently on save and decrypts on load. The
+  column on disk is `:binary` and holds the Cloak envelope (tag + IV + ct).
   """
 
   use Blackboex.Schema
@@ -22,7 +25,7 @@ defmodule Blackboex.ProjectEnvVars.ProjectEnvVar do
   @foreign_key_type :binary_id
   schema "project_env_vars" do
     field :name, :string
-    field :encrypted_value, :binary
+    field :encrypted_value, Blackboex.Encrypted.Binary
     field :kind, :string, default: "env"
 
     belongs_to :organization, Blackboex.Organizations.Organization
@@ -33,7 +36,8 @@ defmodule Blackboex.ProjectEnvVars.ProjectEnvVar do
 
   @doc """
   Changeset for create + update. Pass `value` (plaintext) in attrs — it is
-  encoded into `encrypted_value` via `maybe_encrypt_value/2`.
+  placed into `:encrypted_value` via `put_plaintext_value/2`; Cloak handles
+  the actual encryption at persistence time.
   """
   @spec changeset(t(), map()) :: Ecto.Changeset.t()
   def changeset(env_var, attrs) do
@@ -47,7 +51,7 @@ defmodule Blackboex.ProjectEnvVars.ProjectEnvVar do
     |> validate_length(:name, max: @name_max_length)
     |> validate_inclusion(:kind, @kinds)
     |> validate_value_length(attrs)
-    |> maybe_encrypt_value(attrs)
+    |> put_plaintext_value(attrs)
     |> validate_required([:encrypted_value])
     |> unique_constraint([:project_id, :kind, :name])
     |> unique_constraint(:project_id,
@@ -56,28 +60,16 @@ defmodule Blackboex.ProjectEnvVars.ProjectEnvVar do
     )
   end
 
-  @doc "Encodes a plaintext value into the opaque storage representation."
-  @spec encrypt_value(String.t()) :: binary()
-  def encrypt_value(plaintext) do
-    Base.encode64(plaintext)
-  end
-
-  @doc "Decodes the opaque storage representation back to plaintext."
-  @spec decrypt_value(binary()) :: String.t()
-  def decrypt_value(encrypted) do
-    Base.decode64!(encrypted)
-  end
-
   @doc "Returns the list of valid `kind` values."
   @spec valid_kinds() :: [String.t()]
   def valid_kinds, do: @kinds
 
-  defp maybe_encrypt_value(changeset, attrs) do
+  defp put_plaintext_value(changeset, attrs) do
     value = attrs[:value] || attrs["value"]
 
     case value do
       nil -> changeset
-      v when is_binary(v) -> put_change(changeset, :encrypted_value, encrypt_value(v))
+      v when is_binary(v) -> put_change(changeset, :encrypted_value, v)
       _ -> add_error(changeset, :value, "must be a string")
     end
   end

@@ -113,6 +113,28 @@ if config_env() == :prod do
   # Use real LLM client in production
   config :blackboex, :llm_client, Blackboex.LLM.ReqLLMClient
 
+  # At-rest encryption key for project env vars / LLM keys. Must be a
+  # base64-encoded 32-byte random value. Generate once with:
+  #
+  #   iex> :crypto.strong_rand_bytes(32) |> Base.encode64()
+  #
+  # Rotate by adding a new cipher at the top of the list with a fresh tag
+  # and running `mix cloak.migrate.ecto`; the old cipher must remain for
+  # decryption until all rows are re-encrypted.
+  cloak_key =
+    System.get_env("CLOAK_KEY") ||
+      raise """
+      environment variable CLOAK_KEY is missing.
+      It must be a base64-encoded 32-byte random value used by
+      `Blackboex.Vault` to encrypt project env vars and LLM API keys.
+      Generate one with: `iex> :crypto.strong_rand_bytes(32) |> Base.encode64()`
+      """
+
+  config :blackboex, Blackboex.Vault,
+    ciphers: [
+      default: {Cloak.Ciphers.AES.GCM, tag: "AES.GCM.V1", key: Base.decode64!(cloak_key)}
+    ]
+
   # Swoosh mailer - requires SMTP or API-based adapter in production.
   # Override with env vars for your provider (e.g., Postmark, SendGrid, AWS SES).
   config :blackboex, Blackboex.Mailer,

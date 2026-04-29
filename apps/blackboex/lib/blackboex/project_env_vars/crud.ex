@@ -36,7 +36,7 @@ defmodule Blackboex.ProjectEnvVars.Crud do
   def get_env_value(project_id, name) do
     case get_env_var(project_id, name) do
       nil -> {:error, :not_found}
-      env_var -> {:ok, ProjectEnvVar.decrypt_value(env_var.encrypted_value)}
+      env_var -> {:ok, env_var.encrypted_value}
     end
   end
 
@@ -132,9 +132,7 @@ defmodule Blackboex.ProjectEnvVars.Crud do
     project_id
     |> ProjectEnvVarQueries.list_for_project()
     |> Repo.all()
-    |> Map.new(fn env_var ->
-      {env_var.name, ProjectEnvVar.decrypt_value(env_var.encrypted_value)}
-    end)
+    |> Map.new(fn env_var -> {env_var.name, env_var.encrypted_value} end)
   end
 
   defp put_default_kind(attrs) when is_map(attrs) do

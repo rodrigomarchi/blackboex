@@ -21,7 +21,9 @@ defmodule Blackboex.ProjectEnvVars.ProjectEnvVarTest do
         })
 
       assert cs.valid?
-      assert get_change(cs, :encrypted_value) == ProjectEnvVar.encrypt_value("secret")
+      # Cloak encrypts at Repo.insert time — at changeset stage the change
+      # is the plaintext value that will be encrypted on persist.
+      assert get_change(cs, :encrypted_value) == "secret"
     end
 
     test "valid with kind=llm_anthropic", %{org: org, project: project} do
@@ -81,22 +83,49 @@ defmodule Blackboex.ProjectEnvVars.ProjectEnvVarTest do
     end
   end
 
-  describe "encrypt_value/1 and decrypt_value/1" do
-    test "round-trips plain ASCII" do
-      assert ProjectEnvVar.encrypt_value("hello") |> ProjectEnvVar.decrypt_value() == "hello"
+  describe "at-rest encryption (Cloak.Vault)" do
+    test "plaintext round-trips through insert+reload", %{org: org, project: project} do
+      for text <- ["hello", "olá 👋 maçã", "sk-ant-" <> String.duplicate("x", 40)] do
+        {:ok, inserted} =
+          Repo.insert(
+            ProjectEnvVar.changeset(%ProjectEnvVar{}, %{
+              name: "ROUNDTRIP_#{System.unique_integer([:positive])}",
+              value: text,
+              organization_id: org.id,
+              project_id: project.id
+            })
+          )
+
+        reloaded = Repo.get!(ProjectEnvVar, inserted.id)
+        assert reloaded.encrypted_value == text
+      end
     end
 
-    test "round-trips unicode (emoji, accents)" do
-      text = "olá 👋 maçã"
-      assert ProjectEnvVar.encrypt_value(text) |> ProjectEnvVar.decrypt_value() == text
-    end
+    test "column bytes at rest are not equal to the plaintext", %{
+      org: org,
+      project: project
+    } do
+      plaintext = "sk-ant-plaintext-leak-canary"
 
-    test "round-trips empty string" do
-      assert ProjectEnvVar.encrypt_value("") |> ProjectEnvVar.decrypt_value() == ""
-    end
+      {:ok, %{id: id}} =
+        Repo.insert(
+          ProjectEnvVar.changeset(%ProjectEnvVar{}, %{
+            name: "CANARY",
+            value: plaintext,
+            organization_id: org.id,
+            project_id: project.id
+          })
+        )
 
-    test "encoded form is not equal to the plaintext" do
-      refute ProjectEnvVar.encrypt_value("plaintext") == "plaintext"
+      # Read the raw column bypassing Cloak decoding.
+      %{rows: [[raw]]} =
+        Repo.query!(
+          "SELECT encrypted_value FROM project_env_vars WHERE id = $1",
+          [Ecto.UUID.dump!(id)]
+        )
+
+      refute raw == plaintext
+      refute String.contains?(raw, plaintext)
     end
   end
 
@@ -320,7 +349,7 @@ defmodule Blackboex.ProjectEnvVars.ProjectEnvVarTest do
           })
         )
 
-      assert ProjectEnvVar.decrypt_value(env_var.encrypted_value) == value
+      assert env_var.encrypted_value == value
     end
 
     test "rejects kind=env value larger than 8KiB", %{org: org, project: project} do
@@ -495,7 +524,7 @@ defmodule Blackboex.ProjectEnvVars.ProjectEnvVarTest do
       assert env_var.id
       assert env_var.kind == "env"
       assert String.starts_with?(env_var.name, "ENV_VAR_")
-      assert String.starts_with?(ProjectEnvVar.decrypt_value(env_var.encrypted_value), "value-")
+      assert String.starts_with?(env_var.encrypted_value, "value-")
     end
 
     test "llm_anthropic_key_fixture persists the Anthropic row" do
@@ -503,8 +532,7 @@ defmodule Blackboex.ProjectEnvVars.ProjectEnvVarTest do
       assert env_var.kind == "llm_anthropic"
       assert env_var.name == "ANTHROPIC_API_KEY"
 
-      assert ProjectEnvVar.decrypt_value(env_var.encrypted_value) ==
-               "sk-ant-test-xxxxxxxxxxxxxxxxxxxx"
+      assert env_var.encrypted_value == "sk-ant-test-xxxxxxxxxxxxxxxxxxxx"
     end
   end
 end

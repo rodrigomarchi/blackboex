@@ -19,6 +19,9 @@ defmodule Blackboex.Application do
     attach_telemetry_handlers()
 
     children = [
+      # Vault MUST start before Repo — Cloak.Ecto field types call the vault
+      # on load/save, so any schema read before the vault is up would crash.
+      Blackboex.Vault,
       Blackboex.Repo,
       {Oban, Application.fetch_env!(:blackboex, Oban)},
       {DNSCluster, query: Application.get_env(:blackboex, :dns_cluster_query) || :ignore},

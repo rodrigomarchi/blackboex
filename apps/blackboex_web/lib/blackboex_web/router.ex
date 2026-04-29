@@ -192,15 +192,14 @@ defmodule BlackboexWeb.Router do
         {BlackboexWeb.Hooks.TrackCurrentPath, :default},
         {BlackboexWeb.Hooks.TrackLastVisited, :default}
       ] do
-      live "/", OrgDashboardLive, :index
-      live "/dashboard", DashboardLive.Overview, :overview
-      live "/dashboard/apis", DashboardLive.Apis, :apis
-      live "/dashboard/flows", DashboardLive.Flows, :flows
-      live "/dashboard/llm", DashboardLive.Llm, :llm
-      live "/dashboard/usage", DashboardLive.Usage, :usage
+      live "/settings", OrgSettingsLive, :dashboard
+      live "/settings/apis", OrgSettingsLive, :apis
+      live "/settings/flows", OrgSettingsLive, :flows
+      live "/settings/llm", OrgSettingsLive, :llm
+      live "/settings/usage", OrgSettingsLive, :usage
+      live "/settings/general", OrgSettingsLive, :general
       live "/billing", BillingLive.Plans, :index
       live "/billing/manage", BillingLive.Manage, :manage
-      live "/settings", OrgSettingsLive, :index
       live "/members", OrgMemberLive.Index, :index
       live "/projects", ProjectLive.Index, :index
       live "/projects/new", ProjectLive.New, :new
@@ -227,12 +226,12 @@ defmodule BlackboexWeb.Router do
         {BlackboexWeb.Hooks.TrackCurrentPath, :default},
         {BlackboexWeb.Hooks.TrackLastVisited, :default}
       ] do
-      live "/", ProjectDashboardLive, :index
-      live "/dashboard", DashboardLive.Overview, :overview
-      live "/dashboard/apis", DashboardLive.Apis, :apis
-      live "/dashboard/flows", DashboardLive.Flows, :flows
-      live "/dashboard/llm", DashboardLive.Llm, :llm
-      live "/dashboard/usage", DashboardLive.Usage, :usage
+      live "/settings", ProjectSettingsLive, :dashboard
+      live "/settings/apis", ProjectSettingsLive, :apis
+      live "/settings/flows", ProjectSettingsLive, :flows
+      live "/settings/llm", ProjectSettingsLive, :llm
+      live "/settings/usage", ProjectSettingsLive, :usage
+      live "/settings/general", ProjectSettingsLive, :general
       live "/apis", ApiLive.Index, :index
       live "/apis/new", ApiLive.New, :new
       live "/apis/:api_slug", ApiLive.Show, :show
@@ -245,7 +244,6 @@ defmodule BlackboexWeb.Router do
       live "/env-vars", ProjectLive.EnvVars, :index
       live "/integrations", ProjectLive.LlmIntegrations, :index
       live "/members", ProjectMemberLive.Index, :index
-      live "/settings", ProjectSettingsLive, :index
     end
 
     live_session :project_editor,

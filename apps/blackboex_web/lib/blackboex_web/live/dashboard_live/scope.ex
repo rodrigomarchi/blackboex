@@ -41,14 +41,14 @@ defmodule BlackboexWeb.DashboardLive.Scope do
   def from_socket(_socket, _params), do: nil
 
   @doc """
-  Returns the `/dashboard` URL prefix for the given scope.
+  Returns the `/settings` URL prefix for the given scope.
   """
   @spec base_path(scope(), Organization.t(), Project.t() | nil) :: String.t()
   def base_path({:project, _id}, %Organization{slug: org_slug}, %Project{slug: project_slug}) do
-    "/orgs/#{org_slug}/projects/#{project_slug}/dashboard"
+    "/orgs/#{org_slug}/projects/#{project_slug}/settings"
   end
 
   def base_path({:org, _id}, %Organization{slug: org_slug}, _project) do
-    "/orgs/#{org_slug}/dashboard"
+    "/orgs/#{org_slug}/settings"
   end
 end

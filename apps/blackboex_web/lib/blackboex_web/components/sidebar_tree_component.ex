@@ -423,14 +423,6 @@ defmodule BlackboexWeb.Components.SidebarTreeComponent do
       <ul :if={@is_expanded} class="ml-3 space-y-0.5" role="group">
         <li>
           <.project_action_link
-            icon="hero-chart-bar-micro"
-            label="Dashboard"
-            url={project_action_url(@current_scope, @project, "dashboard")}
-            current_path={@current_path}
-          />
-        </li>
-        <li>
-          <.project_action_link
             icon="hero-cog-6-tooth-micro"
             label="Settings"
             url={project_action_url(@current_scope, @project, "settings")}

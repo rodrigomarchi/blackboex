@@ -1,6 +1,6 @@
 defmodule BlackboexWeb.DashboardLive.LlmTest do
   @moduledoc """
-  Tests for the LLM dashboard LiveView in both org and project scopes.
+  Tests for the LLM dashboard content in both org and project scopes.
   """
   use BlackboexWeb.ConnCase, async: true
 
@@ -19,7 +19,7 @@ defmodule BlackboexWeb.DashboardLive.LlmTest do
     %{org: org, project: project}
   end
 
-  describe "org scope at /orgs/:slug/dashboard/llm" do
+  describe "org scope at /orgs/:slug/settings/llm" do
     test "renders header, nav and aggregated stats", %{
       conn: conn,
       org: org,
@@ -34,22 +34,21 @@ defmodule BlackboexWeb.DashboardLive.LlmTest do
         cost_cents: 5
       })
 
-      {:ok, _lv, html} = live(conn, ~p"/orgs/#{org.slug}/dashboard/llm")
+      {:ok, _lv, html} = live(conn, ~p"/orgs/#{org.slug}/settings/llm")
 
       assert html =~ "Dashboard"
-      assert html =~ "Organization LLM usage"
       assert html =~ "Generations"
       assert html =~ "Tokens (in / out)"
       assert html =~ "Estimated cost"
       assert html =~ "By model"
       assert html =~ "gpt-4o-mini"
       # Nav highlights LLM tab and links resolve to org base_path
-      assert html =~ "/orgs/#{org.slug}/dashboard/usage"
-      assert html =~ "/orgs/#{org.slug}/dashboard/llm"
+      assert html =~ "/orgs/#{org.slug}/settings/usage"
+      assert html =~ "/orgs/#{org.slug}/settings/llm"
     end
   end
 
-  describe "project scope at /orgs/:slug/projects/:slug/dashboard/llm" do
+  describe "project scope at /orgs/:slug/projects/:slug/settings/llm" do
     test "renders project-scoped stats", %{
       conn: conn,
       org: org,
@@ -65,11 +64,10 @@ defmodule BlackboexWeb.DashboardLive.LlmTest do
       })
 
       {:ok, _lv, html} =
-        live(conn, ~p"/orgs/#{org.slug}/projects/#{project.slug}/dashboard/llm")
+        live(conn, ~p"/orgs/#{org.slug}/projects/#{project.slug}/settings/llm")
 
-      assert html =~ "Project LLM usage"
       assert html =~ "claude-haiku"
-      assert html =~ "/orgs/#{org.slug}/projects/#{project.slug}/dashboard/llm"
+      assert html =~ "/orgs/#{org.slug}/projects/#{project.slug}/settings/llm"
     end
 
     test "excludes usage from other projects in same org", %{
@@ -90,7 +88,7 @@ defmodule BlackboexWeb.DashboardLive.LlmTest do
       })
 
       {:ok, _lv, html} =
-        live(conn, ~p"/orgs/#{org.slug}/projects/#{project.slug}/dashboard/llm")
+        live(conn, ~p"/orgs/#{org.slug}/projects/#{project.slug}/settings/llm")
 
       refute html =~ "other-model-xyz"
     end
@@ -108,12 +106,9 @@ defmodule BlackboexWeb.DashboardLive.LlmTest do
         model: "gpt-4o-mini"
       })
 
-      {:ok, lv, _html} = live(conn, ~p"/orgs/#{org.slug}/dashboard/llm")
+      {:ok, lv, _html} = live(conn, ~p"/orgs/#{org.slug}/settings/llm")
 
-      html =
-        lv
-        |> element("a", "7d")
-        |> render_click()
+      html = render_patch(lv, ~p"/orgs/#{org.slug}/settings/llm?period=7d")
 
       assert html =~ "period=7d"
       assert html =~ "Generations"
@@ -127,7 +122,7 @@ defmodule BlackboexWeb.DashboardLive.LlmTest do
       project: project
     } do
       {:ok, _lv, html} =
-        live(conn, ~p"/orgs/#{org.slug}/projects/#{project.slug}/dashboard/llm")
+        live(conn, ~p"/orgs/#{org.slug}/projects/#{project.slug}/settings/llm")
 
       assert html =~ "Generations"
       assert html =~ "Tokens (in / out)"

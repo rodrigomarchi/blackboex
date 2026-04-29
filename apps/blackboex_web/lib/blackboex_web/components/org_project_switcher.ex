@@ -81,14 +81,6 @@ defmodule BlackboexWeb.Components.OrgProjectSwitcher do
           </.dropdown_menu>
           <div :if={@current_org} class="ml-auto flex items-center gap-0.5">
             <.link
-              navigate={"/orgs/#{@current_org.slug}/dashboard"}
-              class="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent"
-              title="Org dashboard"
-              aria-label="Org dashboard"
-            >
-              <.icon name="hero-home-micro" class="size-3.5" />
-            </.link>
-            <.link
               navigate={"/orgs/#{@current_org.slug}/settings"}
               class="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent"
               title="Org settings"
@@ -153,14 +145,6 @@ defmodule BlackboexWeb.Components.OrgProjectSwitcher do
             </.dropdown_menu_content>
           </.dropdown_menu>
           <div :if={@current_org && @current_project} class="ml-auto flex items-center gap-0.5">
-            <.link
-              navigate={"/orgs/#{@current_org.slug}/projects/#{@current_project.slug}/dashboard"}
-              class="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent"
-              title="Project dashboard"
-              aria-label="Project dashboard"
-            >
-              <.icon name="hero-home-micro" class="size-3.5" />
-            </.link>
             <.link
               navigate={"/orgs/#{@current_org.slug}/projects/#{@current_project.slug}/settings"}
               class="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent"

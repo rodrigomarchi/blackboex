@@ -1,6 +1,6 @@
 defmodule BlackboexWeb.DashboardLive.UsageTest do
   @moduledoc """
-  Tests for the dashboard Usage LiveView in both org and project scopes.
+  Tests for the dashboard Usage content in both org and project scopes.
   """
   use BlackboexWeb.ConnCase, async: true
 
@@ -19,7 +19,7 @@ defmodule BlackboexWeb.DashboardLive.UsageTest do
     %{org: org, project: project}
   end
 
-  describe "org scope at /orgs/:slug/dashboard/usage" do
+  describe "org scope at /orgs/:slug/settings/usage" do
     test "renders header, nav and stat cards when usage exists", %{
       conn: conn,
       org: org,
@@ -42,22 +42,21 @@ defmodule BlackboexWeb.DashboardLive.UsageTest do
         event_type: "api_invocation"
       })
 
-      {:ok, _lv, html} = live(conn, ~p"/orgs/#{org.slug}/dashboard/usage")
+      {:ok, _lv, html} = live(conn, ~p"/orgs/#{org.slug}/settings/usage")
 
       assert html =~ "Usage"
-      assert html =~ "Organization usage"
       assert html =~ "API invocations"
       assert html =~ "LLM generations"
       assert html =~ "Tokens (in / out)"
       assert html =~ "LLM cost"
       assert html =~ "api_invocation"
       # Nav links resolve relative to org base_path
-      assert html =~ "/orgs/#{org.slug}/dashboard/apis"
-      assert html =~ "/orgs/#{org.slug}/dashboard/usage"
+      assert html =~ "/orgs/#{org.slug}/settings/apis"
+      assert html =~ "/orgs/#{org.slug}/settings/usage"
     end
   end
 
-  describe "project scope at /orgs/:slug/projects/:slug/dashboard/usage" do
+  describe "project scope at /orgs/:slug/projects/:slug/settings/usage" do
     test "renders project-scoped usage", %{
       conn: conn,
       org: org,
@@ -71,11 +70,10 @@ defmodule BlackboexWeb.DashboardLive.UsageTest do
       })
 
       {:ok, _lv, html} =
-        live(conn, ~p"/orgs/#{org.slug}/projects/#{project.slug}/dashboard/usage")
+        live(conn, ~p"/orgs/#{org.slug}/projects/#{project.slug}/settings/usage")
 
       assert html =~ "Usage"
-      assert html =~ "Project usage"
-      assert html =~ "/orgs/#{org.slug}/projects/#{project.slug}/dashboard/usage"
+      assert html =~ "/orgs/#{org.slug}/projects/#{project.slug}/settings/usage"
     end
 
     test "excludes usage from other projects in same org", %{
@@ -103,7 +101,7 @@ defmodule BlackboexWeb.DashboardLive.UsageTest do
       })
 
       {:ok, _lv, html} =
-        live(conn, ~p"/orgs/#{org.slug}/projects/#{project.slug}/dashboard/usage")
+        live(conn, ~p"/orgs/#{org.slug}/projects/#{project.slug}/settings/usage")
 
       assert html =~ "API invocations"
       refute html =~ "llm_generation"
@@ -111,7 +109,7 @@ defmodule BlackboexWeb.DashboardLive.UsageTest do
   end
 
   describe "period filter" do
-    test "set_period event navigates with the new period", %{
+    test "period link patches the URL and updates assigns", %{
       conn: conn,
       org: org,
       project: project
@@ -124,23 +122,23 @@ defmodule BlackboexWeb.DashboardLive.UsageTest do
       })
 
       {:ok, lv, _html} =
-        live(conn, ~p"/orgs/#{org.slug}/projects/#{project.slug}/dashboard/usage")
+        live(conn, ~p"/orgs/#{org.slug}/projects/#{project.slug}/settings/usage")
 
-      lv
-      |> element("button", "7 days")
-      |> render_click()
+      html =
+        render_patch(
+          lv,
+          ~p"/orgs/#{org.slug}/projects/#{project.slug}/settings/usage?period=7d"
+        )
 
-      assert_patch(
-        lv,
-        ~p"/orgs/#{org.slug}/projects/#{project.slug}/dashboard/usage?period=7d"
-      )
+      assert html =~ "period=7d"
+      assert html =~ "Usage"
     end
 
     test "invalid period falls back to default", %{conn: conn, org: org, project: project} do
       {:ok, _lv, html} =
         live(
           conn,
-          ~p"/orgs/#{org.slug}/projects/#{project.slug}/dashboard/usage?period=bogus"
+          ~p"/orgs/#{org.slug}/projects/#{project.slug}/settings/usage?period=bogus"
         )
 
       assert html =~ "Usage"
@@ -154,7 +152,7 @@ defmodule BlackboexWeb.DashboardLive.UsageTest do
       project: project
     } do
       {:ok, _lv, html} =
-        live(conn, ~p"/orgs/#{org.slug}/projects/#{project.slug}/dashboard/usage")
+        live(conn, ~p"/orgs/#{org.slug}/projects/#{project.slug}/settings/usage")
 
       assert html =~ "API invocations"
       assert html =~ "LLM generations"

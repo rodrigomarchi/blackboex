@@ -16,7 +16,7 @@ defmodule BlackboexWeb.Components.Shared.ProjectSettingsTabsTest do
         )
 
       assert html =~ "Dashboard"
-      assert html =~ "Settings"
+      assert html =~ "General"
       assert html =~ "Members"
       assert html =~ "API Keys"
       assert html =~ "Env Vars"
@@ -43,7 +43,7 @@ defmodule BlackboexWeb.Components.Shared.ProjectSettingsTabsTest do
         )
 
       refute html =~ ~s(aria-current="page" data-tab="dashboard")
-      refute html =~ ~s(aria-current="page" data-tab="settings")
+      refute html =~ ~s(aria-current="page" data-tab="general")
     end
 
     test "URLs are built with org_slug and project_slug" do

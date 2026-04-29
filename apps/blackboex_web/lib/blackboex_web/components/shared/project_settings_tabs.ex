@@ -3,7 +3,7 @@ defmodule BlackboexWeb.Components.Shared.ProjectSettingsTabs do
   Shared tab navigation for project-scoped settings pages.
 
   Renders a horizontal tab bar with links to the six project-scope pages:
-  Dashboard, Settings, Members, API Keys, Env Vars, LLM Integrations.
+  Dashboard, General, Members, API Keys, Env Vars, LLM Integrations.
 
   Active tab is highlighted; inactive tabs render as navigate links
   scoped under `/orgs/:org_slug/projects/:project_slug/...`.
@@ -12,8 +12,8 @@ defmodule BlackboexWeb.Components.Shared.ProjectSettingsTabs do
   use BlackboexWeb, :html
 
   @tab_defs [
-    {:dashboard, "Dashboard", ""},
-    {:settings, "Settings", "/settings"},
+    {:dashboard, "Dashboard", "/settings"},
+    {:general, "General", "/settings/general"},
     {:members, "Members", "/members"},
     {:api_keys, "API Keys", "/api-keys"},
     {:env_vars, "Env Vars", "/env-vars"},
@@ -25,7 +25,7 @@ defmodule BlackboexWeb.Components.Shared.ProjectSettingsTabs do
 
   ## Attrs
 
-    * `active` - the currently active tab. One of `:dashboard`, `:settings`,
+    * `active` - the currently active tab. One of `:dashboard`, `:general`,
       `:members`, `:api_keys`, `:env_vars`, `:llm_integrations`.
     * `org_slug` - organization slug used to build links.
     * `project_slug` - project slug used to build links.

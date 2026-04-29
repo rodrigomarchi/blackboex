@@ -53,7 +53,9 @@ defmodule BlackboexWeb.ProjectLive.Index do
         <.table
           id="projects"
           rows={@projects}
-          row_click={fn project -> JS.navigate(~p"/orgs/#{@org.slug}/projects/#{project.slug}") end}
+          row_click={
+            fn project -> JS.navigate(~p"/orgs/#{@org.slug}/projects/#{project.slug}/settings") end
+          }
         >
           <:col :let={project} label="Name">
             <span class="font-medium">{project.name}</span>
@@ -63,7 +65,7 @@ defmodule BlackboexWeb.ProjectLive.Index do
           </:col>
           <:action :let={project}>
             <.link
-              navigate={~p"/orgs/#{@org.slug}/projects/#{project.slug}"}
+              navigate={~p"/orgs/#{@org.slug}/projects/#{project.slug}/settings"}
               class="link-primary"
             >
               <.icon name="hero-arrow-right-mini" class="size-4" />

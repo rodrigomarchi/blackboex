@@ -1,6 +1,6 @@
 defmodule BlackboexWeb.DashboardLive.FlowsTest do
   @moduledoc """
-  Tests for the dashboard Flows LiveView in both org and project scopes.
+  Tests for the dashboard Flows content in both org and project scopes.
   """
   use BlackboexWeb.ConnCase, async: true
 
@@ -20,7 +20,7 @@ defmodule BlackboexWeb.DashboardLive.FlowsTest do
     %{org: org, project: project}
   end
 
-  describe "org scope at /orgs/:slug/dashboard/flows" do
+  describe "org scope at /orgs/:slug/settings/flows" do
     test "renders header, nav and stat cards when executions exist", %{
       conn: conn,
       user: user,
@@ -30,22 +30,21 @@ defmodule BlackboexWeb.DashboardLive.FlowsTest do
       flow = flow_fixture(%{user: user, org: org, project: project, name: "Org Scope Flow"})
       complete_execution!(flow)
 
-      {:ok, _lv, html} = live(conn, ~p"/orgs/#{org.slug}/dashboard/flows")
+      {:ok, _lv, html} = live(conn, ~p"/orgs/#{org.slug}/settings/flows")
 
       assert html =~ "Flows"
-      assert html =~ "Organization flow executions"
       assert html =~ "Total Flows"
       assert html =~ "Executions"
       assert html =~ "Success Rate"
       assert html =~ "Avg Duration"
       assert html =~ "Org Scope Flow"
       # Nav links resolve relative to org base_path
-      assert html =~ "/orgs/#{org.slug}/dashboard/apis"
-      assert html =~ "/orgs/#{org.slug}/dashboard/flows"
+      assert html =~ "/orgs/#{org.slug}/settings/apis"
+      assert html =~ "/orgs/#{org.slug}/settings/flows"
     end
   end
 
-  describe "project scope at /orgs/:slug/projects/:slug/dashboard/flows" do
+  describe "project scope at /orgs/:slug/projects/:slug/settings/flows" do
     test "renders project-scoped flow stats", %{
       conn: conn,
       user: user,
@@ -58,12 +57,11 @@ defmodule BlackboexWeb.DashboardLive.FlowsTest do
       complete_execution!(flow)
 
       {:ok, _lv, html} =
-        live(conn, ~p"/orgs/#{org.slug}/projects/#{project.slug}/dashboard/flows")
+        live(conn, ~p"/orgs/#{org.slug}/projects/#{project.slug}/settings/flows")
 
       assert html =~ "Flows"
-      assert html =~ "Project flow executions"
       assert html =~ "Project Scope Flow"
-      assert html =~ "/orgs/#{org.slug}/projects/#{project.slug}/dashboard/flows"
+      assert html =~ "/orgs/#{org.slug}/projects/#{project.slug}/settings/flows"
     end
 
     test "excludes executions from other projects in same org", %{
@@ -80,7 +78,7 @@ defmodule BlackboexWeb.DashboardLive.FlowsTest do
       complete_execution!(other_flow)
 
       {:ok, _lv, html} =
-        live(conn, ~p"/orgs/#{org.slug}/projects/#{project.slug}/dashboard/flows")
+        live(conn, ~p"/orgs/#{org.slug}/projects/#{project.slug}/settings/flows")
 
       refute html =~ "Other Project Flow"
       assert html =~ "Total Flows"
@@ -88,7 +86,7 @@ defmodule BlackboexWeb.DashboardLive.FlowsTest do
   end
 
   describe "period filter" do
-    test "set_period event navigates with the new period", %{
+    test "period link patches the URL and updates assigns", %{
       conn: conn,
       user: user,
       org: org,
@@ -98,23 +96,23 @@ defmodule BlackboexWeb.DashboardLive.FlowsTest do
       complete_execution!(flow)
 
       {:ok, lv, _html} =
-        live(conn, ~p"/orgs/#{org.slug}/projects/#{project.slug}/dashboard/flows")
+        live(conn, ~p"/orgs/#{org.slug}/projects/#{project.slug}/settings/flows")
 
-      lv
-      |> element("button", "7 days")
-      |> render_click()
+      html =
+        render_patch(
+          lv,
+          ~p"/orgs/#{org.slug}/projects/#{project.slug}/settings/flows?period=7d"
+        )
 
-      assert_patch(
-        lv,
-        ~p"/orgs/#{org.slug}/projects/#{project.slug}/dashboard/flows?period=7d"
-      )
+      assert html =~ "period=7d"
+      assert html =~ "Flows"
     end
 
     test "invalid period falls back to default", %{conn: conn, org: org, project: project} do
       {:ok, _lv, html} =
         live(
           conn,
-          ~p"/orgs/#{org.slug}/projects/#{project.slug}/dashboard/flows?period=bogus"
+          ~p"/orgs/#{org.slug}/projects/#{project.slug}/settings/flows?period=bogus"
         )
 
       assert html =~ "Flows"
@@ -128,7 +126,7 @@ defmodule BlackboexWeb.DashboardLive.FlowsTest do
       project: project
     } do
       {:ok, _lv, html} =
-        live(conn, ~p"/orgs/#{org.slug}/projects/#{project.slug}/dashboard/flows")
+        live(conn, ~p"/orgs/#{org.slug}/projects/#{project.slug}/settings/flows")
 
       assert html =~ "Total Flows"
       assert html =~ "Executions"

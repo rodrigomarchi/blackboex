@@ -9,6 +9,7 @@ defmodule Blackboex.Apis.Templates do
   alias Blackboex.Apis
   alias Blackboex.Apis.Files
   alias Blackboex.CodeGen.GenerationResult
+  alias Blackboex.Samples.Manifest
 
   @type template :: %{
           id: String.t(),
@@ -39,43 +40,21 @@ defmodule Blackboex.Apis.Templates do
     "Protótipos"
   ]
 
-  @templates [
-    Blackboex.Apis.Templates.CotacaoFrete.template(),
-    Blackboex.Apis.Templates.CalculadoraImpostos.template(),
-    Blackboex.Apis.Templates.ValidadorDocumentos.template(),
-    Blackboex.Apis.Templates.ScoringCredito.template(),
-    Blackboex.Apis.Templates.TabelaPrecos.template(),
-    Blackboex.Apis.Templates.ConversorMoedas.template(),
-    Blackboex.Apis.Templates.JurosCompostos.template(),
-    Blackboex.Apis.Templates.VerificadorElegibilidade.template(),
-    Blackboex.Apis.Templates.GithubWebhook.template(),
-    Blackboex.Apis.Templates.SlackEventHandler.template(),
-    Blackboex.Apis.Templates.OauthCallback.template(),
-    Blackboex.Apis.Templates.FormSubmission.template(),
-    Blackboex.Apis.Templates.OpenaiStub.template(),
-    Blackboex.Apis.Templates.PaymentGateway.template(),
-    Blackboex.Apis.Templates.NotificationMock.template(),
-    Blackboex.Apis.Templates.ErrorSimulation.template(),
-    Blackboex.Apis.Templates.CrudResource.template(),
-    Blackboex.Apis.Templates.ProductCatalog.template(),
-    Blackboex.Apis.Templates.HealthCheck.template()
-  ]
-
   @doc "Returns all available templates."
   @spec list() :: [template()]
-  def list, do: @templates
+  def list, do: Manifest.list_by_kind(:api)
 
   @doc "Returns a template by its id, or nil if not found."
   @spec get(String.t()) :: template() | nil
   def get(id) do
-    Enum.find(@templates, fn t -> t.id == id end)
+    Manifest.get_by_kind_and_id(:api, id)
   end
 
   @doc "Returns the unique sorted list of categories present in the template library."
   @spec categories() :: [String.t()]
   def categories do
     present =
-      @templates
+      list()
       |> Enum.map(& &1.category)
       |> Enum.uniq()
       |> MapSet.new()
@@ -86,7 +65,7 @@ defmodule Blackboex.Apis.Templates do
   @doc "Returns templates grouped by category, in canonical category order."
   @spec list_by_category() :: [{String.t(), [template()]}]
   def list_by_category do
-    grouped = Enum.group_by(@templates, & &1.category)
+    grouped = Enum.group_by(list(), & &1.category)
 
     @category_order
     |> Enum.filter(&Map.has_key?(grouped, &1))

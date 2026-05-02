@@ -26,5 +26,7 @@
   # visible from the lib directory and from the embedded gen_server.ex
   # (whose path is a tempdir in the Elixir distribution).
   ~r{deps/cloak_ecto/lib/cloak_ecto/type\.ex.*:callback_info_missing},
-  ~r{gen_server\.ex.*:callback_info_missing}
+  ~r{gen_server\.ex.*:callback_info_missing},
+  # Mix tasks are compile-time/dev tooling and are not part of the runtime PLT.
+  ~r{lib/mix/tasks/blackboex\.samples\.sync\.ex.*}
 ]

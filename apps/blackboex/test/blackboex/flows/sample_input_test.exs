@@ -3,8 +3,8 @@ defmodule Blackboex.Flows.SampleInputTest do
 
   alias Blackboex.FlowExecutor.SchemaValidator
   alias Blackboex.Flows.SampleInput
-  alias Blackboex.Flows.Templates.AllNodesDemo
-  alias Blackboex.Flows.Templates.HelloWorld
+  alias Blackboex.Samples.FlowTemplates.AllNodesDemo
+  alias Blackboex.Samples.FlowTemplates.HelloWorld
 
   # ── Helpers ──────────────────────────────────────────────────────────────
 

@@ -14,7 +14,7 @@ defmodule Blackboex.FlowAgent.Prompts.Examples do
   dependency), keeping the prompt in sync with the live templates.
   """
 
-  alias Blackboex.Flows.Templates.{AllNodesDemo, HelloWorld, RestApiCrud}
+  alias Blackboex.Samples.FlowTemplates.{AllNodesDemo, HelloWorld, RestApiCrud}
 
   @examples [
     {"Exemplo 1 — hello_world (roteamento condicional 3-way)", HelloWorld.template().definition},

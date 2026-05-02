@@ -57,6 +57,7 @@ Interactive single-cell Elixir REPL within projects for code experimentation.
 - **Code validation**: Max 256KB (262,144 chars)
 - **`last_output` validation**: Max 64KB (65,536 chars)
 - **Denormalized `organization_id`**: Follows project-scoped entity convention
+- Managed sample playgrounds store `sample_uuid` and `sample_manifest_version`; `Blackboex.Samples.Manifest` is the source of truth.
 
 ## Policy Rules
 

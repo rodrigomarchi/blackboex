@@ -266,12 +266,6 @@ defmodule BlackboexWeb.ApiLive.Index do
            to: ~p"/apis/#{api.id}/edit"
          )}
 
-      {:error, :limit_exceeded, details} ->
-        {:noreply,
-         assign(socket,
-           create_error: "You've reached the #{details.plan} plan limit of #{details.limit} APIs."
-         )}
-
       {:error, changeset} ->
         {:noreply, assign(socket, create_error: IndexHelpers.format_changeset_errors(changeset))}
     end
@@ -304,12 +298,6 @@ defmodule BlackboexWeb.ApiLive.Index do
 
       {:error, :template_not_found} ->
         {:noreply, assign(socket, create_error: "Template not found.")}
-
-      {:error, :limit_exceeded, details} ->
-        {:noreply,
-         assign(socket,
-           create_error: "You've reached the #{details.plan} plan limit of #{details.limit} APIs."
-         )}
 
       {:error, changeset} ->
         {:noreply, assign(socket, create_error: IndexHelpers.format_changeset_errors(changeset))}

@@ -5,11 +5,11 @@ defmodule BlackboexWeb.LastVisited do
   Order of preference:
     1. The user's persisted `last_organization_id` + `last_project_id` (if the
        user still has access to both).
-    2. The persisted `last_organization_id` alone with its Default project.
-    3. The first organization the user belongs to with its Default project.
+    2. The persisted `last_organization_id` alone with its fallback project.
+    3. The first organization the user belongs to with its fallback project.
     4. The first organization only, when no project is reachable.
     5. `:none` when the user has no organizations (should not happen in
-       practice — registration seeds a personal org + Default project).
+       practice — registration seeds a personal org + sample project).
   """
 
   alias Blackboex.Accounts.User
@@ -92,7 +92,7 @@ defmodule BlackboexWeb.LastVisited do
   Preference order:
     1. The user's persisted `last_project_id` when it belongs to `org` and the
        user still has access.
-    2. The org's Default project when the user has access.
+    2. The org's fallback project when the user has access.
     3. The first project in `org` the user can reach.
     4. `:none` when the org has no reachable projects.
   """

@@ -8,14 +8,14 @@ defmodule BlackboexWeb.LastVisitedTest do
 
   describe "resolve/1" do
     setup do
-      # user_fixture registers the user, which seeds a personal org + Default project.
+      # user_fixture registers the user, which seeds a personal org + sample project.
       user = user_fixture()
       [personal_org | _] = Organizations.list_user_organizations(user)
       personal_default = Projects.get_default_project(personal_org.id)
       %{user: user, personal_org: personal_org, personal_default: personal_default}
     end
 
-    test "returns the user's personal org + its Default project with no last-visited", %{
+    test "returns the user's personal org + its sample project with no last-visited", %{
       user: user,
       personal_org: org,
       personal_default: default
@@ -38,7 +38,7 @@ defmodule BlackboexWeb.LastVisitedTest do
       assert resolved_project.id == second_project.id
     end
 
-    test "falls back to the stored org's Default project when last_project is stale", %{
+    test "falls back to the stored org's sample project when last_project is stale", %{
       user: user,
       personal_org: org,
       personal_default: default
@@ -82,19 +82,19 @@ defmodule BlackboexWeb.LastVisitedTest do
       # Switching back to personal_org must NOT reuse the second org's project.
       assert {:ok, resolved} = LastVisited.resolve_project_for_org(user, personal_org)
       assert resolved.organization_id == personal_org.id
-      assert resolved.name == "Default"
+      assert resolved.name == "Exemplos"
 
       # And switching to second_org must return the remembered project.
       assert {:ok, resolved2} = LastVisited.resolve_project_for_org(user, second_org)
       assert resolved2.id == project_in_second.id
     end
 
-    test "falls back to Default when no last_project", %{
+    test "falls back to sample project when no last_project", %{
       user: user,
       personal_org: org
     } do
       assert {:ok, project} = LastVisited.resolve_project_for_org(user, org)
-      assert project.name == "Default"
+      assert project.name == "Exemplos"
     end
   end
 

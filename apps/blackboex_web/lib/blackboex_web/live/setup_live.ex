@@ -34,7 +34,7 @@ defmodule BlackboexWeb.SetupLive do
       password: :string,
       password_confirmation: :string
     },
-    organization: %{org_name: :string, project_name: :string}
+    organization: %{org_name: :string}
   }
 
   @impl true
@@ -136,7 +136,6 @@ defmodule BlackboexWeb.SetupLive do
                 as={:setup}
               >
                 <.input field={f[:org_name]} type="text" label="Organization name" required />
-                <.input field={f[:project_name]} type="text" label="First project name" required />
                 <div class="flex gap-2">
                   <.button type="button" phx-click="back" variant="secondary">Back</.button>
                   <.button type="submit" class="flex-1">Next</.button>
@@ -159,7 +158,7 @@ defmodule BlackboexWeb.SetupLive do
                 </div>
                 <div>
                   <dt class="font-semibold inline">Organization:</dt>
-                  <dd class="inline">{@data[:org_name]} / {@data[:project_name]}</dd>
+                  <dd class="inline">{@data[:org_name]} / Exemplos</dd>
                 </div>
               </dl>
               <.separator class="my-4" />
@@ -219,9 +218,6 @@ defmodule BlackboexWeb.SetupLive do
 
       {:error, %Ecto.Changeset{} = cs} ->
         {:noreply, assign(socket, :error, format_errors(cs))}
-
-      {:error, _other} ->
-        {:noreply, assign(socket, :error, "Setup failed. Please review your inputs.")}
     end
   end
 
@@ -274,7 +270,7 @@ defmodule BlackboexWeb.SetupLive do
   defp step_changeset(:organization, params) do
     {%{}, @types[:organization]}
     |> Ecto.Changeset.cast(params, Map.keys(@types[:organization]))
-    |> Ecto.Changeset.validate_required([:org_name, :project_name])
+    |> Ecto.Changeset.validate_required([:org_name])
   end
 
   defp validate_confirmation(changeset) do

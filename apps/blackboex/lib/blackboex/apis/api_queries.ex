@@ -11,7 +11,13 @@ defmodule Blackboex.Apis.ApiQueries do
   def list_for_org(organization_id) do
     Api
     |> where([a], a.organization_id == ^organization_id)
+    |> without_samples()
     |> order_by([a], desc: a.inserted_at)
+  end
+
+  @spec without_samples(Ecto.Queryable.t()) :: Ecto.Query.t()
+  def without_samples(query) do
+    where(query, [a], is_nil(a.sample_uuid))
   end
 
   @spec by_org_and_id(Ecto.UUID.t(), Ecto.UUID.t()) :: Ecto.Query.t()

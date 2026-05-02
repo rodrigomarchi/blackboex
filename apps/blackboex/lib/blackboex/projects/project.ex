@@ -15,6 +15,9 @@ defmodule Blackboex.Projects.Project do
     field :name, :string
     field :slug, :string
     field :description, :string
+    field :sample_workspace, :boolean, default: false
+    field :sample_manifest_version, :string
+    field :sample_synced_at, :utc_datetime
     field :member_count, :integer, virtual: true
 
     belongs_to :organization, Blackboex.Organizations.Organization
@@ -29,7 +32,15 @@ defmodule Blackboex.Projects.Project do
   @spec changeset(t(), map()) :: Ecto.Changeset.t()
   def changeset(project, attrs) do
     project
-    |> cast(attrs, [:name, :slug, :description, :organization_id])
+    |> cast(attrs, [
+      :name,
+      :slug,
+      :description,
+      :sample_workspace,
+      :sample_manifest_version,
+      :sample_synced_at,
+      :organization_id
+    ])
     |> validate_required([:name, :organization_id])
     |> maybe_generate_slug()
     |> validate_required([:slug])
@@ -45,14 +56,27 @@ defmodule Blackboex.Projects.Project do
   @spec update_changeset(t(), map()) :: Ecto.Changeset.t()
   def update_changeset(project, attrs) do
     project
-    |> cast(attrs, [:name, :description])
+    |> cast(attrs, [
+      :name,
+      :description,
+      :sample_workspace,
+      :sample_manifest_version,
+      :sample_synced_at
+    ])
     |> validate_required([:name])
   end
 
   @spec admin_changeset(t(), map(), map()) :: Ecto.Changeset.t()
   def admin_changeset(project, attrs, _metadata) do
     project
-    |> cast(attrs, [:name, :description, :organization_id])
+    |> cast(attrs, [
+      :name,
+      :description,
+      :sample_workspace,
+      :sample_manifest_version,
+      :sample_synced_at,
+      :organization_id
+    ])
     |> validate_required([:name, :organization_id])
   end
 

@@ -52,7 +52,7 @@ defmodule Blackboex.FlowExecutor.Nodes.HttpRequest do
 
     start_time = System.monotonic_time(:millisecond)
 
-    case Req.request(req_opts) do
+    case request(req_opts) do
       {:ok, %Req.Response{status: status, headers: resp_headers, body: resp_body}} ->
         duration = System.monotonic_time(:millisecond) - start_time
 
@@ -135,7 +135,7 @@ defmodule Blackboex.FlowExecutor.Nodes.HttpRequest do
       ]
       |> maybe_put_plug(options)
 
-    case Req.request(req_opts) do
+    case request(req_opts) do
       {:ok, _response} -> :ok
       {:error, _reason} -> :ok
     end
@@ -216,5 +216,60 @@ defmodule Blackboex.FlowExecutor.Nodes.HttpRequest do
       {:ok, value} -> Keyword.put(opts, key, value)
       :error -> opts
     end
+  end
+
+  @spec request(keyword()) :: {:ok, Req.Response.t()} | {:error, any()}
+  if Mix.env() == :test do
+    defp request(opts) do
+      url = Keyword.fetch!(opts, :url)
+
+      case URI.parse(url) do
+        %URI{host: host} when host in ["httpbin.org", "jsonplaceholder.typicode.com"] ->
+          {:ok, test_response(opts)}
+
+        _ ->
+          Req.request(opts)
+      end
+    end
+
+    defp test_response(opts) do
+      url = Keyword.fetch!(opts, :url)
+      body = Keyword.get(opts, :body)
+
+      %Req.Response{
+        status: 200,
+        headers: [{"content-type", "application/json"}],
+        body: %{
+          "args" => query_params(url),
+          "data" => body,
+          "headers" => Map.new(Keyword.get(opts, :headers, [])),
+          "origin" => "test",
+          "json" => decode_json(body),
+          "url" => url
+        }
+      }
+    end
+
+    defp query_params(url) do
+      url
+      |> URI.parse()
+      |> Map.get(:query)
+      |> case do
+        nil -> %{}
+        query -> URI.decode_query(query)
+      end
+    end
+
+    defp decode_json(nil), do: nil
+    defp decode_json(""), do: nil
+
+    defp decode_json(body) when is_binary(body) do
+      case Jason.decode(body) do
+        {:ok, decoded} -> decoded
+        {:error, _} -> nil
+      end
+    end
+  else
+    defp request(opts), do: Req.request(opts)
   end
 end

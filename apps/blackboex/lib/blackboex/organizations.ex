@@ -17,7 +17,7 @@ defmodule Blackboex.Organizations do
     OrgInvitationNotifier
   }
 
-  alias Blackboex.Projects.{Project, ProjectMembership}
+  alias Blackboex.Projects.Samples
   alias Blackboex.Repo
   alias Ecto.Multi
 
@@ -34,21 +34,14 @@ defmodule Blackboex.Organizations do
         role: :owner
       })
     end)
-    |> Multi.insert(:project, fn %{organization: org} ->
-      Project.changeset(%Project{}, %{
-        name: "Default",
-        organization_id: org.id
-      })
+    |> Multi.run(:sample_workspace, fn _repo, %{organization: org} ->
+      Samples.provision_for_org(org, user)
     end)
-    |> Multi.insert(:project_membership, fn %{project: project} ->
-      ProjectMembership.changeset(
-        %ProjectMembership{},
-        %{
-          project_id: project.id,
-          user_id: user.id,
-          role: :admin
-        }
-      )
+    |> Multi.run(:project, fn _repo, %{sample_workspace: %{project: project}} ->
+      {:ok, project}
+    end)
+    |> Multi.run(:project_membership, fn _repo, %{sample_workspace: %{membership: membership}} ->
+      {:ok, membership}
     end)
     |> Repo.transaction()
   end
@@ -226,16 +219,20 @@ defmodule Blackboex.Organizations do
     Repo.transaction(fn ->
       case fetch_pending_invitation(token_hash) do
         %Invitation{} = invitation ->
-          if Plug.Crypto.secure_compare(invitation.token_hash, token_hash) do
-            finalize_acceptance(invitation, attrs)
-          else
-            Repo.rollback(:invalid_token)
-          end
+          accept_verified_invitation(invitation, token_hash, attrs)
 
         nil ->
           Repo.rollback(:invalid_token)
       end
     end)
+  end
+
+  defp accept_verified_invitation(invitation, token_hash, attrs) do
+    if Plug.Crypto.secure_compare(invitation.token_hash, token_hash) do
+      finalize_acceptance(invitation, attrs)
+    else
+      Repo.rollback(:invalid_token)
+    end
   end
 
   @doc """

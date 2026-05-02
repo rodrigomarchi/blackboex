@@ -22,6 +22,8 @@ defmodule Blackboex.Flows.Flow do
     field :status, :string, default: "draft"
     field :definition, :map, default: %{}
     field :webhook_token, :string
+    field :sample_uuid, Ecto.UUID
+    field :sample_manifest_version, :string
 
     belongs_to :organization, Blackboex.Organizations.Organization
     belongs_to :project, Blackboex.Projects.Project
@@ -39,6 +41,8 @@ defmodule Blackboex.Flows.Flow do
       :description,
       :status,
       :definition,
+      :sample_uuid,
+      :sample_manifest_version,
       :organization_id,
       :project_id,
       :user_id
@@ -65,7 +69,14 @@ defmodule Blackboex.Flows.Flow do
   @spec update_changeset(t(), map()) :: Ecto.Changeset.t()
   def update_changeset(flow, attrs) do
     flow
-    |> cast(attrs, [:name, :description, :status, :definition])
+    |> cast(attrs, [
+      :name,
+      :description,
+      :status,
+      :definition,
+      :sample_uuid,
+      :sample_manifest_version
+    ])
     |> validate_length(:name, min: 1, max: 200)
     |> validate_length(:description, max: 10_000)
     |> validate_inclusion(:status, @valid_statuses)

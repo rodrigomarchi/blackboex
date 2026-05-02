@@ -21,8 +21,7 @@ defmodule Blackboex.OnboardingTest do
       public_url: "http://localhost:4000",
       email: "owner@example.com",
       password: "supersecret123",
-      org_name: "Acme",
-      project_name: "Default"
+      org_name: "Acme"
     })
   end
 
@@ -71,11 +70,12 @@ defmodule Blackboex.OnboardingTest do
       assert membership.role == :owner
     end
 
-    test "project name from attrs is used (not the default)" do
+    test "project is the managed sample workspace" do
       assert {:ok, %{project: project}} =
                Onboarding.complete_first_run(valid_attrs(%{project_name: "MyProj"}))
 
-      assert project.name == "MyProj"
+      assert project.name == "Exemplos"
+      assert project.sample_workspace == true
     end
 
     test "settings record stores app_name and public_url" do
@@ -126,13 +126,6 @@ defmodule Blackboex.OnboardingTest do
                Onboarding.complete_first_run(valid_attrs(%{org_name: ""}))
 
       assert errors_on(cs)[:org_name] != nil
-    end
-
-    test "returns {:error, %Ecto.Changeset{}} on blank project_name" do
-      assert {:error, %Ecto.Changeset{} = cs} =
-               Onboarding.complete_first_run(valid_attrs(%{project_name: ""}))
-
-      assert errors_on(cs)[:project_name] != nil
     end
 
     test "returns {:error, %Ecto.Changeset{}} on invalid public_url" do

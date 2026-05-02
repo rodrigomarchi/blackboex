@@ -745,8 +745,10 @@ defmodule BlackboexWeb.Components.SidebarTreeComponentTest do
       |> element("form[phx-submit='create_resource']")
       |> render_submit(%{type: "evil_type", project_id: project.id, name: "Hacked"})
 
-      # No new api should be created (only the original fixture api exists)
-      assert Apis.list_for_project(project.id) |> length() == 1
+      # No new api should be created.
+      refute project.id
+             |> Apis.list_for_project()
+             |> Enum.any?(&(&1.name == "Hacked"))
     end
 
     @tag :liveview

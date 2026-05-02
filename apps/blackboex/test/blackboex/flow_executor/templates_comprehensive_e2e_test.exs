@@ -12,8 +12,8 @@ defmodule Blackboex.FlowExecutor.TemplatesComprehensiveE2eTest do
   alias Blackboex.FlowExecutor.BlackboexFlow
   alias Blackboex.Flows
   alias Blackboex.Flows.Templates
-  alias Blackboex.Flows.Templates.LeadScoring
-  alias Blackboex.Flows.Templates.WebhookProcessor
+  alias Blackboex.Samples.FlowTemplates.LeadScoring
+  alias Blackboex.Samples.FlowTemplates.WebhookProcessor
 
   # ── LeadScoring Template ────────────────────────────────────
 

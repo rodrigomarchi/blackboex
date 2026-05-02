@@ -5,7 +5,7 @@ defmodule Blackboex.Accounts do
 
   alias Blackboex.Accounts.{User, UserNotifier, UserQueries, UserToken}
   alias Blackboex.Organizations.{Membership, Organization}
-  alias Blackboex.Projects.{Project, ProjectMembership}
+  alias Blackboex.Projects.Samples
   alias Blackboex.Repo
 
   # Whitelisted top-level keys for user preferences. Add new roots here as features require them.
@@ -160,21 +160,15 @@ defmodule Blackboex.Accounts do
         role: :owner
       })
     end)
-    |> Ecto.Multi.insert(:project, fn %{organization: org} ->
-      Project.changeset(%Project{}, %{
-        name: "Default",
-        organization_id: org.id
-      })
+    |> Ecto.Multi.run(:sample_workspace, fn _repo, %{organization: org, user: user} ->
+      Samples.provision_for_org(org, user)
     end)
-    |> Ecto.Multi.insert(:project_membership, fn %{project: project, user: user} ->
-      ProjectMembership.changeset(
-        %ProjectMembership{},
-        %{
-          project_id: project.id,
-          user_id: user.id,
-          role: :admin
-        }
-      )
+    |> Ecto.Multi.run(:project, fn _repo, %{sample_workspace: %{project: project}} ->
+      {:ok, project}
+    end)
+    |> Ecto.Multi.run(:project_membership, fn _repo,
+                                              %{sample_workspace: %{membership: membership}} ->
+      {:ok, membership}
     end)
     |> Repo.transaction()
     |> case do

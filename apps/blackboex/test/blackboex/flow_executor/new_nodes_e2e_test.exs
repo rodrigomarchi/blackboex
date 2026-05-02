@@ -13,7 +13,7 @@ defmodule Blackboex.FlowExecutor.NewNodesE2eTest do
   alias Blackboex.FlowExecutor
   alias Blackboex.FlowExecutor.BlackboexFlow
   alias Blackboex.Flows
-  alias Blackboex.Flows.Templates.AdvancedFeatures
+  alias Blackboex.Samples.FlowTemplates.AdvancedFeatures
 
   setup do
     {user, org} = user_and_org_fixture()

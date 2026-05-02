@@ -91,6 +91,10 @@ upsert_files(Api.t(), [map()], user_id) :: {:ok, [ApiFile.t()]} | {:error, ...}
 create_api_from_template(template_type, org_id, user_id) :: {:ok, Api.t()} | {:error, ...}
 ```
 
+`Apis.Templates` is a compatibility facade over `Blackboex.Samples.Manifest`.
+Add or update API sample payloads in `Blackboex.Samples.ApiTemplates.*` and register them through `Blackboex.Samples.Api`.
+Managed sample workspace APIs store `sample_uuid` and `sample_manifest_version`; manual template-created APIs do not.
+
 **Removed from facade:** `start_agent_generation/3`, `start_agent_edit/3` — now in `Blackboex.Agent`.
 
 ## Key Modules (Non-Sub-Context)

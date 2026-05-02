@@ -14,8 +14,7 @@ defmodule BlackboexWeb.SetupLiveTest do
     "email" => "admin@example.com",
     "password" => "supersecretpw1234",
     "password_confirmation" => "supersecretpw1234",
-    "org_name" => "Acme",
-    "project_name" => "Default"
+    "org_name" => "Acme"
   }
 
   setup do
@@ -115,14 +114,14 @@ defmodule BlackboexWeb.SetupLiveTest do
       assert html =~ "Password"
     end
 
-    test "step 3 (org+project) requires org_name and project_name", %{conn: conn} do
+    test "step 3 requires org_name", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/setup")
       advance_to_admin(view)
       advance_to_org(view)
 
       html =
         view
-        |> form("#setup-org", setup: %{"org_name" => "", "project_name" => ""})
+        |> form("#setup-org", setup: %{"org_name" => ""})
         |> render_submit()
 
       assert html =~ "Organization name"
@@ -242,8 +241,7 @@ defmodule BlackboexWeb.SetupLiveTest do
     view
     |> form("#setup-org",
       setup: %{
-        "org_name" => @valid_attrs["org_name"],
-        "project_name" => @valid_attrs["project_name"]
+        "org_name" => @valid_attrs["org_name"]
       }
     )
     |> render_submit()

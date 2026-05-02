@@ -1,15 +1,21 @@
-# This file is intentionally a no-op for the open-source release.
-#
-# A first-run setup wizard at http://localhost:4000/setup creates the
-# initial platform admin user, organization, and project when the
-# database is empty. Run `make setup` to bring up the database, then
-# open the app in a browser to complete the wizard.
-#
-# Optionally, set BLACKBOEX_DEMO=true to seed example data. Currently
-# the demo seed is unimplemented; add it here if/when needed.
+alias Blackboex.{Accounts, Organizations, Projects}
 
 if System.get_env("BLACKBOEX_DEMO") == "true" do
-  IO.puts("Demo seed requested but not implemented yet — skipping.")
+  user =
+    Accounts.get_user_by_email("demo@example.com") ||
+      raise "User demo@example.com not found. Create the demo user first."
+
+  user
+  |> Organizations.list_user_organizations()
+  |> Enum.each(fn org ->
+    case Projects.sync_all_sample_workspaces(org_id: org.id) do
+      {:ok, results} ->
+        IO.puts("Synced #{length(results)} sample workspace(s) for #{org.name}.")
+
+      {:error, reason} ->
+        raise "Failed to sync sample workspaces for #{org.name}: #{inspect(reason)}"
+    end
+  end)
 end
 
 :ok

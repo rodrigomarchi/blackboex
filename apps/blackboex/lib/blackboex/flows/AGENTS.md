@@ -61,11 +61,15 @@ Facade: `Blackboex.Flows` (`flows.ex`). All web/worker code calls through this f
 
 | Module | ID | Description |
 |--------|----|-------------|
-| `Templates.HelloWorld` | `hello_world` | Contact Router — 3-branch flow (email/phone/error) |
-| `Templates.Notification` | `notification` | Simple sub-flow: start → format → end |
-| `Templates.AllNodesDemo` | `all_nodes_demo` | All 9 node types in a 10-node, 2-branch flow |
+| `Samples.FlowTemplates.HelloWorld` | `hello_world` | Contact Router — 3-branch flow (email/phone/error) |
+| `Samples.FlowTemplates.Notification` | `notification` | Simple sub-flow: start → format → end |
+| `Samples.FlowTemplates.AllNodesDemo` | `all_nodes_demo` | All 9 node types in a 10-node, 2-branch flow |
 
 Registry: `Flows.Templates` — `list/0`, `get/1`, `list_by_category/0`
+
+`Flows.Templates` is a compatibility facade over `Blackboex.Samples.Manifest`.
+Add or update Flow sample payloads in `Blackboex.Samples.FlowTemplates.*` and register them through `Blackboex.Samples.Flow`.
+Managed sample workspace Flows store `sample_uuid` and `sample_manifest_version`; manual template-created Flows do not.
 
 ## Fixtures
 

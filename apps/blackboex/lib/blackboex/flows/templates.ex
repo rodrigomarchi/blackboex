@@ -6,6 +6,8 @@ defmodule Blackboex.Flows.Templates do
   instantiate to create new flows. Mirrors the `Blackboex.Apis.Templates` pattern.
   """
 
+  alias Blackboex.Samples.Manifest
+
   @type template :: %{
           id: String.t(),
           name: String.t(),
@@ -30,52 +32,20 @@ defmodule Blackboex.Flows.Templates do
     "E-commerce"
   ]
 
-  @templates [
-    Blackboex.Flows.Templates.HelloWorld.template(),
-    Blackboex.Flows.Templates.Notification.template(),
-    Blackboex.Flows.Templates.AllNodesDemo.template(),
-    Blackboex.Flows.Templates.DataPipeline.template(),
-    Blackboex.Flows.Templates.OrderProcessor.template(),
-    Blackboex.Flows.Templates.BatchProcessor.template(),
-    Blackboex.Flows.Templates.HttpEnrichment.template(),
-    Blackboex.Flows.Templates.ApprovalWorkflow.template(),
-    Blackboex.Flows.Templates.RestApiCrud.template(),
-    Blackboex.Flows.Templates.ApiStatusChecker.template(),
-    Blackboex.Flows.Templates.AdvancedFeatures.template(),
-    Blackboex.Flows.Templates.LeadScoring.template(),
-    Blackboex.Flows.Templates.WebhookProcessor.template(),
-    Blackboex.Flows.Templates.SupportTicketRouter.template(),
-    Blackboex.Flows.Templates.EscalationApproval.template(),
-    Blackboex.Flows.Templates.DataEnrichmentChain.template(),
-    Blackboex.Flows.Templates.IncidentAlertPipeline.template(),
-    Blackboex.Flows.Templates.CustomerOnboarding.template(),
-    Blackboex.Flows.Templates.WebhookIdempotent.template(),
-    Blackboex.Flows.Templates.AbandonedCartRecovery.template(),
-    # Wave 2 templates
-    Blackboex.Flows.Templates.LlmRouter.template(),
-    Blackboex.Flows.Templates.ApprovalWithTimeout.template(),
-    Blackboex.Flows.Templates.SagaCompensation.template(),
-    Blackboex.Flows.Templates.NotificationFanout.template(),
-    Blackboex.Flows.Templates.SlaMonitor.template(),
-    Blackboex.Flows.Templates.AsyncJobPoller.template(),
-    Blackboex.Flows.Templates.GithubCiResponder.template(),
-    Blackboex.Flows.Templates.SubFlowOrchestrator.template()
-  ]
-
   @doc "Returns all available flow templates."
   @spec list() :: [template()]
-  def list, do: @templates
+  def list, do: Manifest.list_by_kind(:flow)
 
   @doc "Returns a flow template by its id, or nil if not found."
   @spec get(String.t()) :: template() | nil
   def get(id) do
-    Enum.find(@templates, fn t -> t.id == id end)
+    Manifest.get_by_kind_and_id(:flow, id)
   end
 
   @doc "Returns flow templates grouped by category, in canonical order."
   @spec list_by_category() :: [{String.t(), [template()]}]
   def list_by_category do
-    grouped = Enum.group_by(@templates, & &1.category)
+    grouped = Enum.group_by(list(), & &1.category)
 
     @category_order
     |> Enum.filter(&Map.has_key?(grouped, &1))

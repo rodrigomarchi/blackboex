@@ -34,6 +34,8 @@ defmodule Blackboex.Apis.Api do
     field :generation_error, :string
     field :validation_report, :map
     field :template_id, :string
+    field :sample_uuid, Ecto.UUID
+    field :sample_manifest_version, :string
 
     belongs_to :organization, Blackboex.Organizations.Organization
     belongs_to :project, Blackboex.Projects.Project
@@ -65,6 +67,8 @@ defmodule Blackboex.Apis.Api do
       :generation_error,
       :validation_report,
       :template_id,
+      :sample_uuid,
+      :sample_manifest_version,
       :organization_id,
       :project_id,
       :user_id
@@ -110,7 +114,9 @@ defmodule Blackboex.Apis.Api do
       :generation_status,
       :generation_error,
       :validation_report,
-      :template_id
+      :template_id,
+      :sample_uuid,
+      :sample_manifest_version
     ])
     |> validate_required([:name])
     |> validate_length(:name, min: 1, max: 200)

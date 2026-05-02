@@ -3,6 +3,7 @@ defmodule Blackboex.ProjectsTest do
 
   alias Blackboex.Projects
   alias Blackboex.Projects.{Project, ProjectMembership}
+  alias Blackboex.Samples.Manifest
 
   describe "create_project/3" do
     test "cria projeto e membership admin para o criador" do
@@ -238,7 +239,7 @@ defmodule Blackboex.ProjectsTest do
       user = user_fixture()
       org = org_fixture(%{user: user})
 
-      # org_fixture creates a "Default" project automatically; use it as p2 (empty)
+      # org_fixture creates the managed "Exemplos" project automatically.
       p2 = Projects.get_default_project(org.id)
       {:ok, %{project: p1}} = Projects.create_project(org, user, %{name: "Alpha Project"})
 
@@ -262,10 +263,12 @@ defmodule Blackboex.ProjectsTest do
       assert p1_row.flows_count == 1
       assert p1_row.playgrounds_count == 0
 
-      assert p2_row.pages_count == 0
-      assert p2_row.apis_count == 0
-      assert p2_row.flows_count == 0
-      assert p2_row.playgrounds_count == 0
+      assert p2_row.pages_count == length(Manifest.list_by_kind(:page))
+      assert p2_row.apis_count == length(Manifest.list_by_kind(:api))
+      assert p2_row.flows_count == length(Manifest.list_by_kind(:flow))
+
+      assert p2_row.playgrounds_count ==
+               length(Manifest.list_by_kind(:playground))
     end
 
     test "returns results ordered by project name ASC" do

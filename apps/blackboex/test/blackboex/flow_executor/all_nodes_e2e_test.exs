@@ -13,8 +13,8 @@ defmodule Blackboex.FlowExecutor.AllNodesE2eTest do
   alias Blackboex.FlowExecutor
   alias Blackboex.FlowExecutor.BlackboexFlow
   alias Blackboex.Flows
-  alias Blackboex.Flows.Templates.AllNodesDemo
-  alias Blackboex.Flows.Templates.Notification
+  alias Blackboex.Samples.FlowTemplates.AllNodesDemo
+  alias Blackboex.Samples.FlowTemplates.Notification
 
   # ── Setup ────────────────────────────────────────────────────
 

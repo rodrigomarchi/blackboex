@@ -17,6 +17,7 @@ Each context has its own AGENTS.md — **read it before generating code in that 
 | **FlowExecutions** | `Blackboex.FlowExecutions` | FlowExecution, NodeExecution | `FlowExecutionQueries` |
 | **ProjectEnvVars** | `Blackboex.ProjectEnvVars` | ProjectEnvVar | `ProjectEnvVarQueries` |
 | **Projects** | `Blackboex.Projects` | Project, ProjectMembership | `ProjectQueries` |
+| **Samples** | `Blackboex.Samples.Manifest` | — | — |
 | **Conversations** | `Blackboex.Conversations` | Conversation, Run, Event | `ConversationQueries` |
 | **Agent** | `Blackboex.Agent` | — | — |
 | **CodeGen** | `Blackboex.CodeGen` | — | — |
@@ -56,6 +57,7 @@ defdelegate create_version(api, attrs), to: Blackboex.Apis.Versions
 - `list_user_organizations/1`, `get_organization!/1`, `get_organization/1`
 - `add_member/3`, `get_user_membership/2`, `get_user_primary_plan/1`
 - `invite_member/3`, `accept_invitation/2` — invitation-based onboarding for new/existing users
+- New organizations receive one managed sample project named `"Exemplos"` via `Blackboex.Projects.Samples`.
 
 ### Settings
 - `setup_completed?/0` — cached singleton check used by `RequireSetup` plug
@@ -70,6 +72,11 @@ defdelegate create_version(api, attrs), to: Blackboex.Apis.Versions
 - `create_version/2`, `rollback_to_version/3`, `list_versions/1`
 - `list_files/1`, `create_file/2`, `update_file_content/3`, `upsert_files/3`
 - **Removed from Apis:** `start_agent_generation/3`, `start_agent_edit/3` → now in `Agent` facade
+
+### Samples
+- `Blackboex.Samples.Manifest` is the single source of truth for platform samples/templates.
+- API/Flow template facades read from the manifest. Do not add parallel sample lists in seeds, UI, or contexts.
+- Managed sample records carry `sample_uuid`; sync updates by this stable identity.
 
 ### Agent
 - `Agent.start_generation/3` — entry point for AI code generation

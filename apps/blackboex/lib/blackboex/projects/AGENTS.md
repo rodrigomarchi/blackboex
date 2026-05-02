@@ -18,6 +18,9 @@ Ecto schema for a project.
 | `name` | `string` | Human-readable project name |
 | `slug` | `string` | URL-safe identifier, auto-generated from name + 6-char Nanoid suffix. Immutable after creation |
 | `description` | `string` | Optional description |
+| `sample_workspace` | `boolean` | True for the managed initial examples project |
+| `sample_manifest_version` | `string` | Last synced sample manifest version |
+| `sample_synced_at` | `utc_datetime` | Last sample sync timestamp |
 | `member_count` | `integer` | Virtual field, populated by `ProjectQueries.with_member_count/1` |
 | `organization_id` | `binary_id` FK | Owning organization |
 
@@ -66,6 +69,9 @@ Query builders only — no `Repo` calls, no side effects.
 | `get_default_project/1` | `(organization_id)` | `Project.t() \| nil` | Oldest project for an org (used as fallback) |
 | `update_project/2` | `(project, attrs)` | `{:ok, Project.t()}` | Updates `name` and `description` only; slug is immutable |
 | `delete_project/1` | `(project)` | `{:ok, Project.t()}` | Hard deletes the project |
+| `provision_sample_workspace/2` | `(organization, user)` | `{:ok, %{project, membership}}` | Creates the managed `"Exemplos"` project and samples |
+| `sync_sample_workspace/2` | `(project, user \\ nil)` | `{:ok, map()} \| {:error, term()}` | Updates managed samples by `sample_uuid` |
+| `sync_all_sample_workspaces/1` | `(opts \\ [])` | `{:ok, [map()]} \| {:error, term()}` | Syncs all managed sample projects, optionally filtered by `:org_id`/`:project_id` |
 
 ### Membership Management
 
@@ -92,3 +98,6 @@ Query builders only — no `Repo` calls, no side effects.
 - Slug is **immutable** after creation — `update_changeset/2` only accepts `name` and `description`
 - `get_project/2` and `get_project_by_slug/2` are org-scoped — never use `Repo.get/2` directly from web/worker code
 - Every new project gets the creating user as `:admin` — there is always at least one admin member
+- Every new organization starts with exactly one managed sample project named `"Exemplos"`.
+- `Blackboex.Samples.Manifest` is the only source of truth for examples/templates; never duplicate sample catalogues in seeds or UI.
+- Sample sync overwrites records with `sample_uuid` and leaves user-created records without `sample_uuid` untouched.

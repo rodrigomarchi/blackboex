@@ -34,6 +34,7 @@ Free-form Markdown pages within projects for planning, documentation, and notes.
 - **Content validation**: Max 1MB (1,048,576 chars)
 - **LIKE search**: Sanitizes `%`, `_`, `\` wildcards before interpolation
 - **Denormalized `organization_id`**: Follows project-scoped entity convention (same as Api, Flow)
+- Managed sample pages store `sample_uuid` and `sample_manifest_version`; `Blackboex.Samples.Manifest` is the source of truth.
 
 ## Policy Rules
 

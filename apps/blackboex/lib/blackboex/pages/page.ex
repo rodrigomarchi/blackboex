@@ -20,6 +20,8 @@ defmodule Blackboex.Pages.Page do
     field :content, :string, default: ""
     field :status, :string, default: "draft"
     field :position, :integer, default: 0
+    field :sample_uuid, Ecto.UUID
+    field :sample_manifest_version, :string
 
     belongs_to :organization, Blackboex.Organizations.Organization
     belongs_to :project, Blackboex.Projects.Project
@@ -42,7 +44,9 @@ defmodule Blackboex.Pages.Page do
       :project_id,
       :user_id,
       :parent_id,
-      :position
+      :position,
+      :sample_uuid,
+      :sample_manifest_version
     ])
     |> validate_required([:title, :project_id, :organization_id, :user_id])
     |> validate_length(:title, min: 1, max: 255)
@@ -64,7 +68,15 @@ defmodule Blackboex.Pages.Page do
   @spec update_changeset(t(), map()) :: Ecto.Changeset.t()
   def update_changeset(page, attrs) do
     page
-    |> cast(attrs, [:title, :content, :status, :parent_id, :position])
+    |> cast(attrs, [
+      :title,
+      :content,
+      :status,
+      :parent_id,
+      :position,
+      :sample_uuid,
+      :sample_manifest_version
+    ])
     |> validate_length(:title, min: 1, max: 255)
     |> validate_length(:content, max: @max_content_length)
     |> validate_inclusion(:status, @valid_statuses)

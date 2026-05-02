@@ -21,8 +21,7 @@ defmodule Blackboex.Onboarding do
           required(:public_url) => String.t(),
           required(:email) => String.t(),
           required(:password) => String.t(),
-          required(:org_name) => String.t(),
-          required(:project_name) => String.t()
+          required(:org_name) => String.t()
         }
 
   @type complete_result ::
@@ -64,7 +63,7 @@ defmodule Blackboex.Onboarding do
   defp do_setup(attrs) do
     with {:ok, user} <- create_admin(attrs),
          {:ok, org} <- create_org(user, attrs.org_name),
-         {:ok, project} <- create_project(org, user, attrs.project_name),
+         {:ok, project} <- fetch_sample_project(org, user),
          _settings <-
            Settings.mark_setup_completed!(%{
              app_name: attrs.app_name,
@@ -93,22 +92,8 @@ defmodule Blackboex.Onboarding do
     end
   end
 
-  defp create_project(org, _user, project_name) do
-    # `Organizations.create_organization/2` already created a "Default" project
-    # and a project membership for the user; rename it if the operator chose
-    # a different name. Keeping the same membership avoids unique constraint
-    # collisions and keeps the API context-shaped to a single project.
-    project =
-      Repo.get_by!(Project, organization_id: org.id)
-
-    if is_binary(project_name) and String.trim(project_name) != "" and
-         project.name != project_name do
-      project
-      |> Project.changeset(%{name: project_name})
-      |> Repo.update()
-    else
-      {:ok, project}
-    end
+  defp fetch_sample_project(org, _user) do
+    {:ok, Repo.get_by!(Project, organization_id: org.id, sample_workspace: true)}
   end
 
   defp validate_inputs(attrs) do
@@ -117,8 +102,7 @@ defmodule Blackboex.Onboarding do
       public_url: :string,
       email: :string,
       password: :string,
-      org_name: :string,
-      project_name: :string
+      org_name: :string
     }
 
     changeset =
@@ -126,7 +110,6 @@ defmodule Blackboex.Onboarding do
       |> Ecto.Changeset.cast(attrs, Map.keys(types))
       |> Ecto.Changeset.update_change(:app_name, &maybe_trim/1)
       |> Ecto.Changeset.update_change(:org_name, &maybe_trim/1)
-      |> Ecto.Changeset.update_change(:project_name, &maybe_trim/1)
       |> Ecto.Changeset.update_change(:email, &maybe_trim/1)
       |> Ecto.Changeset.update_change(:public_url, &maybe_trim/1)
       |> Ecto.Changeset.validate_required(Map.keys(types))
@@ -149,12 +132,20 @@ defmodule Blackboex.Onboarding do
   defp maybe_trim(value), do: value
 
   defp normalize_keys(attrs) when is_map(attrs) do
+    allowed = [:app_name, :public_url, :email, :password, :org_name]
+
     {:ok,
-     Enum.into(attrs, %{}, fn
-       {k, v} when is_binary(k) -> {String.to_existing_atom(k), v}
-       {k, v} when is_atom(k) -> {k, v}
-     end)}
-  rescue
-    ArgumentError -> {:error, :invalid_attrs}
+     attrs
+     |> Enum.flat_map(fn
+       {k, v} when is_binary(k) ->
+         case Enum.find(allowed, &(Atom.to_string(&1) == k)) do
+           nil -> []
+           key -> [{key, v}]
+         end
+
+       {k, v} when is_atom(k) ->
+         if k in allowed, do: [{k, v}], else: []
+     end)
+     |> Map.new()}
   end
 end

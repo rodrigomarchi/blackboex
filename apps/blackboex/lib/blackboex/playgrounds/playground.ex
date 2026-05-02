@@ -19,6 +19,8 @@ defmodule Blackboex.Playgrounds.Playground do
     field :description, :string
     field :code, :string, default: ""
     field :last_output, :string
+    field :sample_uuid, Ecto.UUID
+    field :sample_manifest_version, :string
 
     belongs_to :organization, Blackboex.Organizations.Organization
     belongs_to :project, Blackboex.Projects.Project
@@ -38,6 +40,8 @@ defmodule Blackboex.Playgrounds.Playground do
       :description,
       :code,
       :last_output,
+      :sample_uuid,
+      :sample_manifest_version,
       :organization_id,
       :project_id,
       :user_id
@@ -62,7 +66,14 @@ defmodule Blackboex.Playgrounds.Playground do
   @spec update_changeset(t(), map()) :: Ecto.Changeset.t()
   def update_changeset(playground, attrs) do
     playground
-    |> cast(attrs, [:name, :description, :code, :last_output])
+    |> cast(attrs, [
+      :name,
+      :description,
+      :code,
+      :last_output,
+      :sample_uuid,
+      :sample_manifest_version
+    ])
     |> validate_length(:name, min: 1, max: 255)
     |> validate_length(:description, max: 500)
     |> validate_length(:code, max: @max_code_length)

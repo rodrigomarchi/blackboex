@@ -10,6 +10,17 @@ defmodule Blackboex.Projects do
   alias Blackboex.Repo
   alias Ecto.Multi
 
+  defdelegate provision_sample_workspace(organization, user),
+    to: Blackboex.Projects.Samples,
+    as: :provision_for_org
+
+  defdelegate sync_sample_workspace(project, user \\ nil), to: Blackboex.Projects.Samples
+  defdelegate sync_all_sample_workspaces(opts \\ []), to: Blackboex.Projects.Samples
+
+  defdelegate dry_run_sample_workspace_sync(opts \\ []),
+    to: Blackboex.Projects.Samples,
+    as: :dry_run
+
   @spec create_project(
           Blackboex.Organizations.Organization.t(),
           Blackboex.Accounts.User.t(),

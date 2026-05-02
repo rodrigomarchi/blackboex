@@ -71,6 +71,8 @@ infra/                — Docker, deployment
 - `apps/blackboex/lib/blackboex/flow_executions/AGENTS.md` — FlowExecution + NodeExecution schemas, status state machine, execution lifecycle API
 - `apps/blackboex/lib/blackboex/project_env_vars/AGENTS.md` — Project-scoped env vars and LLM integration keys (replaces FlowSecrets)
 - `apps/blackboex/lib/blackboex/projects/AGENTS.md` — Project grouping within orgs, ProjectMembership roles, access rules
+- `apps/blackboex/lib/blackboex/samples/AGENTS.md` — Unified samples/templates manifest
+- `Blackboex.Samples.Manifest` — single source of truth for platform samples/templates used by APIs, Flows, initial workspaces, seeds, and sync tasks
 - `apps/blackboex/lib/blackboex/workers/AGENTS.md` — Oban background workers (FlowExecutionWorker), queue names, enqueue patterns
 - `apps/blackboex/lib/blackboex/testing/AGENTS.md` — TestRunner, TestingQueries
 - `apps/blackboex/lib/blackboex/audit/AGENTS.md` — ExAudit, AuditQueries

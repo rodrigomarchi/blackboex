@@ -2,6 +2,10 @@ defmodule Blackboex.FlowAgent.KickoffWorkerTest do
   use Blackboex.DataCase, async: false
   use Oban.Testing, repo: Blackboex.Repo
 
+  # KickoffWorker.perform/1 starts a FlowAgent.Session whose async chain task
+  # may finish after the test exits, logging benign sandbox-owner errors.
+  @moduletag :capture_log
+
   import Mox
 
   alias Blackboex.FlowAgent.KickoffWorker

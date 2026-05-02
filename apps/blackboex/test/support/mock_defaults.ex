@@ -20,8 +20,11 @@ defmodule Blackboex.MockDefaults do
       {:ok, Stream.map(["ok"], &{:token, &1})}
     end)
 
+    # Budget.sync_llm_call expects a `%{content: ...}` map (with optional :usage)
+    # — not a bare string. Returning the wrong shape produces FunctionClauseError
+    # in pipelines that fall back to the sync path.
     stub(Blackboex.LLM.ClientMock, :generate_text, fn _prompt, _opts ->
-      {:ok, "mocked response"}
+      {:ok, %{content: "mocked response", usage: %{}}}
     end)
 
     :ok

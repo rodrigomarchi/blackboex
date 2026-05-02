@@ -123,7 +123,7 @@ defmodule Blackboex.Apis.Registry do
     Logger.info("Registry shutdown initiated, draining in-flight requests...")
     :persistent_term.put(@shutdown_flag, true)
 
-    drain_sandbox_tasks(@drain_timeout_ms)
+    drain_sandbox_tasks(drain_timeout_ms())
 
     # Unload all dynamically compiled modules
     unload_all_modules()
@@ -294,11 +294,25 @@ defmodule Blackboex.Apis.Registry do
 
     if active > 0 do
       Logger.info("Registry drain: #{active} sandbox tasks still running, waiting...")
-      Process.sleep(@drain_poll_ms)
-      drain_sandbox_tasks(remaining - @drain_poll_ms)
+      poll = drain_poll_ms()
+      Process.sleep(poll)
+      drain_sandbox_tasks(remaining - poll)
     else
       Logger.info("Registry drain: all sandbox tasks completed")
     end
+  end
+
+  # Drain timing knobs are configurable so tests don't pay the 30s production
+  # timeout when SandboxTaskSupervisor inevitably has stray async tasks from
+  # other concurrent specs.
+  defp drain_timeout_ms do
+    Application.get_env(:blackboex, __MODULE__, [])
+    |> Keyword.get(:drain_timeout_ms, @drain_timeout_ms)
+  end
+
+  defp drain_poll_ms do
+    Application.get_env(:blackboex, __MODULE__, [])
+    |> Keyword.get(:drain_poll_ms, @drain_poll_ms)
   end
 
   defp unload_all_modules do

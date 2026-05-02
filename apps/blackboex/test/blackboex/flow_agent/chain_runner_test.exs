@@ -1,6 +1,10 @@
 defmodule Blackboex.FlowAgent.ChainRunnerTest do
   use Blackboex.DataCase, async: true
 
+  # Negative-path tests deliberately invoke handle_chain_failure paths that
+  # log warnings/errors. Capture them so they don't pollute test output.
+  @moduletag :capture_log
+
   alias Blackboex.FlowAgent.ChainRunner
   alias Blackboex.FlowAgent.Session
   alias Blackboex.FlowConversations

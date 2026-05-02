@@ -299,8 +299,14 @@ defmodule Blackboex.CodeGen.Compiler do
     :code.purge(module_name)
     :code.delete(module_name)
 
-    # Capture compiler diagnostics for better error messages
-    {result, diagnostics} = capture_diagnostics(fn -> Code.compile_quoted(ast) end)
+    # Capture compiler diagnostics for better error messages.
+    # Inline DTOs (Request/Response/Params) intentionally share short names
+    # across APIs; the compiler would otherwise emit "redefining module" warnings
+    # every time a different API's code is compiled in the same VM (i.e. tests).
+    {result, diagnostics} =
+      capture_diagnostics(fn ->
+        with_ignore_module_conflict(fn -> Code.compile_quoted(ast) end)
+      end)
 
     case result do
       {:ok, compiled_modules} when is_list(compiled_modules) ->
@@ -329,6 +335,17 @@ defmodule Blackboex.CodeGen.Compiler do
         error -> {:error, error}
       end
     end)
+  end
+
+  defp with_ignore_module_conflict(fun) do
+    previous = Code.get_compiler_option(:ignore_module_conflict)
+    Code.put_compiler_option(:ignore_module_conflict, true)
+
+    try do
+      fun.()
+    after
+      Code.put_compiler_option(:ignore_module_conflict, previous || false)
+    end
   end
 
   defp format_compile_errors(diagnostics, error) do

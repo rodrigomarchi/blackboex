@@ -39,6 +39,17 @@ defmodule Blackboex.FlowAgent.ChainRunner do
       history: history,
       project_id: state.project_id
     )
+  rescue
+    error ->
+      {:error, "ChainRunner.run_chain crashed: #{Exception.message(error)}"}
+  catch
+    # Sandbox owner exited (typical in tests) shows up as `(EXIT) shutdown`
+    # from DBConnection.Holder.checkout. Convert to {:error, ...} so the
+    # Session GenServer transitions through handle_chain_failure normally
+    # instead of getting a `{:DOWN, ref, :process, _, reason}` with a noisy
+    # crash report.
+    :exit, reason ->
+      {:error, "ChainRunner.run_chain exited: #{inspect(reason)}"}
   end
 
   # The KickoffWorker already persisted the current user_message event before
@@ -55,102 +66,126 @@ defmodule Blackboex.FlowAgent.ChainRunner do
 
   @spec handle_chain_success(Session.t(), chain_result()) :: :ok
   def handle_chain_success(state, %{kind: :explain} = result) do
-    run = FlowConversations.get_run!(state.run_id)
+    # DB persistence may fail if the database is unreachable (e.g. test sandbox
+    # owner exited before the async chain task finished); we still want the
+    # GenServer to stop normally so the broadcast is best-effort and we never
+    # bubble an exception up to the supervisor.
+    try do
+      run = FlowConversations.get_run!(state.run_id)
 
-    _ =
-      FlowConversations.append_event(run, %{
-        event_type: "completed",
-        content: result.answer,
-        metadata: %{
-          kind: "explain",
+      _ =
+        FlowConversations.append_event(run, %{
+          event_type: "completed",
+          content: result.answer,
+          metadata: %{
+            kind: "explain",
+            input_tokens: result.input_tokens,
+            output_tokens: result.output_tokens
+          }
+        })
+
+      {:ok, completed} =
+        FlowConversations.complete_run(run, %{
+          run_summary: result.answer,
           input_tokens: result.input_tokens,
-          output_tokens: result.output_tokens
-        }
-      })
+          output_tokens: result.output_tokens,
+          cost_cents: 0
+        })
 
-    {:ok, completed} =
-      FlowConversations.complete_run(run, %{
-        run_summary: result.answer,
-        input_tokens: result.input_tokens,
-        output_tokens: result.output_tokens,
-        cost_cents: 0
-      })
+      FlowConversations.increment_conversation_stats(
+        FlowConversations.get_conversation(run.conversation_id),
+        total_runs: 1,
+        total_events: 2,
+        total_input_tokens: result.input_tokens,
+        total_output_tokens: result.output_tokens
+      )
 
-    FlowConversations.increment_conversation_stats(
-      FlowConversations.get_conversation(run.conversation_id),
-      total_runs: 1,
-      total_events: 2,
-      total_input_tokens: result.input_tokens,
-      total_output_tokens: result.output_tokens
-    )
+      # No `definition` key — the LiveView's pattern-match for :run_completed
+      # distinguishes explain vs. edit and skips the canvas reload for explain.
+      payload = %{
+        kind: :explain,
+        answer: result.answer,
+        run_id: state.run_id,
+        run: completed
+      }
 
-    # No `definition` key — the LiveView's pattern-match for :run_completed
-    # distinguishes explain vs. edit and skips the canvas reload for explain.
-    payload = %{
-      kind: :explain,
-      answer: result.answer,
-      run_id: state.run_id,
-      run: completed
-    }
-
-    StreamManager.broadcast_run(state.run_id, {:run_completed, payload})
-    StreamManager.broadcast_flow(state.flow_id, {:run_completed, Map.delete(payload, :run)})
-    :ok
+      StreamManager.broadcast_run(state.run_id, {:run_completed, payload})
+      StreamManager.broadcast_flow(state.flow_id, {:run_completed, Map.delete(payload, :run)})
+      :ok
+    rescue
+      error ->
+        log_persistence_failure(:success, state.run_id, Exception.message(error), error)
+        :ok
+    catch
+      :exit, reason ->
+        log_persistence_failure(:success, state.run_id, inspect(reason), reason)
+        :ok
+    end
   end
 
   def handle_chain_success(state, %{kind: :edit, definition: definition} = result) do
-    run = FlowConversations.get_run!(state.run_id)
-    flow = Flows.get_flow(state.organization_id, state.flow_id)
-    scope = %{organization: %{id: state.organization_id}}
+    try do
+      run = FlowConversations.get_run!(state.run_id)
+      flow = Flows.get_flow(state.organization_id, state.flow_id)
+      scope = %{organization: %{id: state.organization_id}}
 
-    case apply_edit(flow, definition, scope) do
-      {:ok, _applied} ->
-        _ =
-          FlowConversations.append_event(run, %{
-            event_type: "completed",
-            content: result.summary,
-            metadata: %{
-              kind: "edit",
+      case apply_edit(flow, definition, scope) do
+        {:ok, _applied} ->
+          _ =
+            FlowConversations.append_event(run, %{
+              event_type: "completed",
+              content: result.summary,
+              metadata: %{
+                kind: "edit",
+                input_tokens: result.input_tokens,
+                output_tokens: result.output_tokens
+              }
+            })
+
+          {:ok, completed} =
+            FlowConversations.complete_run(run, %{
+              definition_after: definition,
+              run_summary: result.summary,
               input_tokens: result.input_tokens,
-              output_tokens: result.output_tokens
-            }
-          })
+              output_tokens: result.output_tokens,
+              cost_cents: 0
+            })
 
-        {:ok, completed} =
-          FlowConversations.complete_run(run, %{
-            definition_after: definition,
-            run_summary: result.summary,
-            input_tokens: result.input_tokens,
-            output_tokens: result.output_tokens,
-            cost_cents: 0
-          })
+          FlowConversations.increment_conversation_stats(
+            FlowConversations.get_conversation(run.conversation_id),
+            total_runs: 1,
+            total_events: 2,
+            total_input_tokens: result.input_tokens,
+            total_output_tokens: result.output_tokens
+          )
 
-        FlowConversations.increment_conversation_stats(
-          FlowConversations.get_conversation(run.conversation_id),
-          total_runs: 1,
-          total_events: 2,
-          total_input_tokens: result.input_tokens,
-          total_output_tokens: result.output_tokens
-        )
+          payload = %{
+            kind: :edit,
+            definition: definition,
+            summary: result.summary,
+            run_id: state.run_id
+          }
 
-        payload = %{
-          kind: :edit,
-          definition: definition,
-          summary: result.summary,
-          run_id: state.run_id
-        }
+          StreamManager.broadcast_run(
+            state.run_id,
+            {:run_completed, Map.put(payload, :run, completed)}
+          )
 
-        StreamManager.broadcast_run(
-          state.run_id,
-          {:run_completed, Map.put(payload, :run, completed)}
-        )
+          StreamManager.broadcast_flow(state.flow_id, {:run_completed, payload})
+          :ok
 
-        StreamManager.broadcast_flow(state.flow_id, {:run_completed, payload})
+        {:error, reason} ->
+          Logger.warning("record_ai_edit failed: #{inspect(reason)}")
+          handle_chain_failure(state, "falha ao aplicar edição: #{inspect(reason)}")
+      end
+    rescue
+      error ->
+        log_persistence_failure(:success, state.run_id, Exception.message(error), error)
         :ok
-
-      {:error, reason} ->
-        Logger.warning("record_ai_edit failed: #{inspect(reason)}")
-        handle_chain_failure(state, "falha ao aplicar edição: #{inspect(reason)}")
+    catch
+      :exit, reason ->
+        log_persistence_failure(:success, state.run_id, inspect(reason), reason)
+        :ok
     end
   end
 
@@ -166,10 +201,13 @@ defmodule Blackboex.FlowAgent.ChainRunner do
       {:ok, _} = FlowConversations.fail_run(run, reason)
     rescue
       error ->
-        Logger.error(
-          "FlowAgent handle_chain_failure DB persistence failed for run " <>
-            "#{state.run_id}: #{Exception.message(error)}"
-        )
+        log_persistence_failure(:failure, state.run_id, Exception.message(error), error)
+    catch
+      # Sandbox owner gone (e.g. test exited before async chain finished) shows
+      # up as `(EXIT) shutdown` from DBConnection.Holder.checkout — catch it so
+      # the GenServer still terminates :normal.
+      :exit, exit_reason ->
+        log_persistence_failure(:failure, state.run_id, inspect(exit_reason), exit_reason)
     end
 
     StreamManager.broadcast_run(
@@ -197,6 +235,30 @@ defmodule Blackboex.FlowAgent.ChainRunner do
   defp apply_edit(flow, definition, scope) do
     Flows.record_ai_edit(flow, definition, scope)
   end
+
+  # Persistence failures from rescue/catch blocks fall into two buckets:
+  #
+  #   * Real production bugs (e.g. a unique-constraint violation, a Postgres
+  #     outage) — those should be logged at :error so they show up in alerts.
+  #   * Test-only sandbox teardown — when the test process (sandbox owner)
+  #     exits while the GenServer's async chain is still running, every
+  #     subsequent DB op fails with a `DBConnection.ConnectionError "owner …
+  #     exited"` or an `Ecto.NoResultsError` for the rolled-back run. Those
+  #     are benign and should not pollute the suite output.
+  defp log_persistence_failure(phase, run_id, message, raw) do
+    if benign_sandbox_failure?(raw) do
+      Logger.debug("FlowAgent #{phase} skipped after sandbox teardown for run #{run_id}")
+    else
+      Logger.error("FlowAgent handle_chain_#{phase} failed for run #{run_id}: #{message}")
+    end
+  end
+
+  defp benign_sandbox_failure?(%Ecto.NoResultsError{}), do: true
+  defp benign_sandbox_failure?(%DBConnection.ConnectionError{}), do: true
+
+  defp benign_sandbox_failure?({{:shutdown, %DBConnection.ConnectionError{}}, _}), do: true
+  defp benign_sandbox_failure?({:shutdown, %DBConnection.ConnectionError{}}), do: true
+  defp benign_sandbox_failure?(_), do: false
 
   defp format_error({:crashed, reason}), do: "Processo do agente crashou: #{inspect(reason)}"
   defp format_error(:no_json_block), do: "resposta do modelo não continha bloco JSON"

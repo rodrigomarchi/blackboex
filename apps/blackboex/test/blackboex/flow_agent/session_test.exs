@@ -1,6 +1,11 @@
 defmodule Blackboex.FlowAgent.SessionTest do
   use Blackboex.DataCase, async: false
 
+  # The Session GenServer + Task.Supervisor lifecycle can race with sandbox
+  # teardown — and several tests exercise failure paths that log warn/error.
+  # Capture all log output for this module so the suite stays quiet.
+  @moduletag :capture_log
+
   import Mox
 
   alias Blackboex.FlowAgent.Session

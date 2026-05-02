@@ -225,7 +225,9 @@ defmodule Blackboex.Playgrounds.Executor do
         end
       )
 
-    case Task.yield(task, @timeout) || Task.shutdown(task) do
+    timeout = timeout_ms()
+
+    case Task.yield(task, timeout) || Task.shutdown(task) do
       {:ok, result} ->
         result
 
@@ -236,7 +238,15 @@ defmodule Blackboex.Playgrounds.Executor do
         {:error, "Execution failed: #{inspect(reason)}"}
 
       nil ->
-        {:error, "Execution timed out after #{@timeout}ms"}
+        {:error, "Execution timed out after #{timeout}ms"}
     end
+  end
+
+  # Tests trigger the timeout path with `:timer.sleep(:infinity)` and don't
+  # need the full 15-second production budget — they just need to verify the
+  # timeout branch fires.
+  defp timeout_ms do
+    Application.get_env(:blackboex, __MODULE__, [])
+    |> Keyword.get(:timeout_ms, @timeout)
   end
 end

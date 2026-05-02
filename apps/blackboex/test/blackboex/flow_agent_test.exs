@@ -2,6 +2,11 @@ defmodule Blackboex.FlowAgentTest do
   use Blackboex.DataCase, async: true
   use Oban.Testing, repo: Blackboex.Repo
 
+  # Integration tests start FlowAgent.Session GenServers whose async chain
+  # tasks can finish after the test exits — leaving benign sandbox-owner
+  # errors in the log. Capture so the suite output stays clean.
+  @moduletag :capture_log
+
   alias Blackboex.FlowAgent
   alias Blackboex.FlowAgent.KickoffWorker
 

@@ -141,7 +141,7 @@ defmodule Blackboex.Apis.TemplatesTest do
 
     test "all handler code compiles without errors" do
       for t <- Templates.list() do
-        result = with_temp_module(t.files.handler, fn code -> Code.compile_string(code) end)
+        result = with_temp_module(t.files.handler, &silent_compile/1)
         assert match?({:ok, _, _}, result), "handler does not compile for #{t.id}"
       end
     end
@@ -149,7 +149,7 @@ defmodule Blackboex.Apis.TemplatesTest do
     test "all helpers code compiles without errors" do
       for t <- Templates.list() do
         if t.files.helpers != "" do
-          result = Code.compile_string(t.files.helpers)
+          result = silent_compile(t.files.helpers)
           assert is_list(result), "helpers do not compile for #{t.id}"
         end
       end
@@ -157,20 +157,14 @@ defmodule Blackboex.Apis.TemplatesTest do
 
     test "all request_schema code compiles without errors" do
       for t <- Templates.list() do
-        assert match?(
-                 [_ | _],
-                 Code.compile_string(t.files.request_schema)
-               ),
+        assert match?([_ | _], silent_compile(t.files.request_schema)),
                "request_schema does not compile for #{t.id}"
       end
     end
 
     test "all response_schema code compiles without errors" do
       for t <- Templates.list() do
-        assert match?(
-                 [_ | _],
-                 Code.compile_string(t.files.response_schema)
-               ),
+        assert match?([_ | _], silent_compile(t.files.response_schema)),
                "response_schema does not compile for #{t.id}"
       end
     end
@@ -182,5 +176,23 @@ defmodule Blackboex.Apis.TemplatesTest do
     {:ok, :compiled, result}
   rescue
     e -> {:error, :compile_error, e}
+  end
+
+  # Each template fragment (handler, helpers, request, response) is compiled
+  # in isolation, so cross-fragment references are *expected* to be undefined,
+  # and reusing module names like `Handler`/`Request`/`Response`/`Helpers`
+  # across templates causes "redefining module" warnings. Both kinds are
+  # noise here — we only care whether the code parses + compiles. Capture
+  # the diagnostics so they don't pollute the suite output.
+  defp silent_compile(code) do
+    previous = Code.get_compiler_option(:ignore_module_conflict)
+    Code.put_compiler_option(:ignore_module_conflict, true)
+
+    try do
+      {result, _diagnostics} = Code.with_diagnostics(fn -> Code.compile_string(code) end)
+      result
+    after
+      Code.put_compiler_option(:ignore_module_conflict, previous || false)
+    end
   end
 end

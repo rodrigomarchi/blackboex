@@ -50,8 +50,12 @@ config :blackboex, Oban, testing: :manual
 # FunWithFlags: disable ETS cache in tests for determinism
 config :fun_with_flags, :cache, enabled: false
 
-# PromEx: drop Oban metrics in tests to avoid queue polling on closed DB pools
+# PromEx: keep enabled (the /metrics endpoint smoke test needs it), but skip
+# the Oban plugin in tests. Its TelemetryPoller queries the Repo from a process
+# without a sandbox checkout, producing DBConnection.OwnershipError noise on
+# every poll. Metrics aren't scraped in tests so we lose nothing.
 config :blackboex_web, BlackboexWeb.PromEx,
+  skip_oban_plugin: true,
   drop_metrics_groups: [
     :oban_init_event_metrics,
     :oban_job_event_metrics,
@@ -64,3 +68,13 @@ config :opentelemetry, traces_exporter: :none
 # Flow executor: run steps synchronously in tests so Ecto sandbox ownership
 # is respected (async steps run in separate processes without sandbox access).
 config :blackboex, :flow_executor_async, false
+
+# Registry: shorten the shutdown drain so the shutdown lifecycle tests don't
+# burn ~30s each waiting for unrelated sandbox tasks to finish.
+config :blackboex, Blackboex.Apis.Registry,
+  drain_timeout_ms: 200,
+  drain_poll_ms: 25
+
+# Playgrounds.Executor: shorten the sandbox execution timeout so the timeout
+# happy-path test doesn't sit idle for 15 seconds.
+config :blackboex, Blackboex.Playgrounds.Executor, timeout_ms: 500

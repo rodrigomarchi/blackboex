@@ -1,6 +1,10 @@
 defmodule Blackboex.FlowsTest do
   use Blackboex.DataCase, async: true
 
+  # Some tests intentionally feed invalid definitions into record_ai_edit and
+  # similar, which logs warnings about the changeset failure.
+  @moduletag :capture_log
+
   alias Blackboex.Flows
   alias Blackboex.Flows.Flow
 

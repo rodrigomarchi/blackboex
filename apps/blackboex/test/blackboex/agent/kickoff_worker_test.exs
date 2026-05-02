@@ -1,7 +1,16 @@
 defmodule Blackboex.Agent.KickoffWorkerTest do
   use Blackboex.DataCase, async: false
 
+  import Mox, only: [set_mox_global: 1]
+
   @moduletag :unit
+
+  # KickoffWorker.perform/1 starts an Agent.Session, which spawns a Task that
+  # calls the LLM client. Without stubs (and global Mox mode so the spawned
+  # Task can see them) the Task crashes with Mox.UnexpectedCallError, polluting
+  # logs even though the test itself only asserts on DB state.
+  setup :set_mox_global
+  setup :stub_llm_client
 
   alias Blackboex.Agent.KickoffWorker
   alias Blackboex.Apis

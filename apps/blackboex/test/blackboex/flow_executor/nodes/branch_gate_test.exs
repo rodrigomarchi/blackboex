@@ -32,7 +32,7 @@ defmodule Blackboex.FlowExecutor.Nodes.BranchGateTest do
 
   # ── Helpers ─────────────────────────────────────────────────
 
-  defp skipped_args(state \\ %{}),
+  defp skipped_args(state),
     do: %{prev_result: %{output: :__branch_skipped__, state: state}}
 
   defp normal_args(input \\ "hello", state \\ %{}),

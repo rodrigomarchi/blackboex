@@ -5,6 +5,9 @@ defmodule BlackboexWeb.FlowLive.ChatTest do
   alias Blackboex.FlowConversations
 
   @moduletag :liveview
+  # Several tests simulate FlowAgent run lifecycle (success/failure broadcasts)
+  # which causes the LiveView to log warnings; capture them.
+  @moduletag :capture_log
 
   setup :register_and_log_in_user
 

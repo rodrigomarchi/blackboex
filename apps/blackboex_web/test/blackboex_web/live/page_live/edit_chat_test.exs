@@ -4,6 +4,10 @@ defmodule BlackboexWeb.PageLive.EditChatTest do
 
   @moduletag :liveview
 
+  # The LiveView logs warnings on simulated :run_failed broadcasts; capture so
+  # the suite output is clean.
+  @moduletag :capture_log
+
   alias Blackboex.PageAgent.KickoffWorker
   alias Blackboex.PageConversations
   alias Blackboex.Pages

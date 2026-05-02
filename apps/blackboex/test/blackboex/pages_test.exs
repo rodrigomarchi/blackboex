@@ -1,6 +1,10 @@
 defmodule Blackboex.PagesTest do
   use Blackboex.DataCase, async: true
 
+  # Tests for changeset validation errors (huge content, invalid input) and
+  # other negative paths log warnings on rejection — capture them.
+  @moduletag :capture_log
+
   import Ecto.Query, only: [from: 2]
 
   alias Blackboex.Pages

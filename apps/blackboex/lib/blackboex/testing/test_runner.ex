@@ -97,7 +97,10 @@ defmodule Blackboex.Testing.TestRunner do
       |> String.replace("defmodule HandlerTest", "defmodule HandlerTest_#{unique_id}")
       |> deregister_exunit()
 
-    compiled_modules = Code.compile_string(safe_code)
+    # User test code may define helper modules (Helpers, Response, Request)
+    # that collide with names from other compiled tests; suppress the noisy
+    # "redefining module" warnings while we recompile.
+    compiled_modules = with_ignore_module_conflict(fn -> Code.compile_string(safe_code) end)
     module_names = Enum.map(compiled_modules, fn {mod, _binary} -> mod end)
 
     all_test_fns =
@@ -132,12 +135,23 @@ defmodule Blackboex.Testing.TestRunner do
     end
     """
 
-    compiled = Code.compile_string(module_code)
+    compiled = with_ignore_module_conflict(fn -> Code.compile_string(module_code) end)
     Enum.map(compiled, fn {mod, _binary} -> mod end)
   rescue
     e ->
       Logger.warning("Failed to compile Handler module: #{Exception.message(e)}")
       []
+  end
+
+  defp with_ignore_module_conflict(fun) do
+    previous = Code.get_compiler_option(:ignore_module_conflict)
+    Code.put_compiler_option(:ignore_module_conflict, true)
+
+    try do
+      fun.()
+    after
+      Code.put_compiler_option(:ignore_module_conflict, previous || false)
+    end
   end
 
   defp purge_modules(module_names) do

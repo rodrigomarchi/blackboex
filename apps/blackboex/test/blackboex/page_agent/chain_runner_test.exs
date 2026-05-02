@@ -3,6 +3,10 @@ defmodule Blackboex.PageAgent.ChainRunnerTest do
 
   @moduletag :integration
 
+  # Negative-path tests (e.g. content >1MB rejected by changeset) intentionally
+  # log warnings; capture them so the suite output stays clean.
+  @moduletag :capture_log
+
   alias Blackboex.PageAgent.ChainRunner
   alias Blackboex.PageAgent.Session
   alias Blackboex.PageConversations

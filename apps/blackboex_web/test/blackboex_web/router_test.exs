@@ -23,12 +23,6 @@ defmodule BlackboexWeb.RouterTest do
   end
 
   describe "unauthenticated live routes" do
-    test "GET /users/register renders registration page", %{conn: _conn} do
-      conn = build_conn()
-      {:ok, _lv, html} = live(conn, ~p"/users/register")
-      assert html =~ "Register" or html =~ "Sign up" or html =~ "Create"
-    end
-
     test "GET /users/log-in renders login page", %{conn: _conn} do
       conn = build_conn()
       {:ok, _lv, html} = live(conn, ~p"/users/log-in")

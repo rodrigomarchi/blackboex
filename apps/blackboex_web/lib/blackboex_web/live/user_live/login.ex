@@ -16,11 +16,7 @@ defmodule BlackboexWeb.UserLive.Login do
             <%= if @current_scope do %>
               You need to reauthenticate to perform sensitive actions on your account.
             <% else %>
-              Don't have an account? <.link
-                navigate={~p"/users/register"}
-                class="font-semibold text-brand hover:underline"
-                phx-no-format
-              >Sign up</.link> for an account now.
+              Log in to your Blackboex instance.
             <% end %>
           </:subtitle>
         </.header>

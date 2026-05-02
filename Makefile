@@ -45,6 +45,9 @@ observability.down: ## Stop observability stack
 
 # ── Setup ──────────────────────────────────────────────────────────────
 setup: docker.up deps db.setup ## First-time project setup (docker + deps + db + assets)
+	@echo ""
+	@echo "Setup complete. Open http://localhost:4000 to complete first-run setup."
+	@echo ""
 
 deps: ## Install Elixir dependencies
 	mix deps.get

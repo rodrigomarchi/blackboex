@@ -112,6 +112,8 @@ Every schema that needs to be inserted in a test MUST use a fixture function —
 |--------|-----------|---------|
 | `AccountsFixtures` | `user_fixture/1`, `unconfirmed_user_fixture/1`, `user_scope_fixture/0,1` | User |
 | `OrganizationsFixtures` | `org_fixture/1`, `user_and_org_fixture/1`, `org_member_fixture/1`, `create_user_and_org/1`, `create_org/1` | Organization, Membership |
+| `OrgInvitationsFixtures` | `org_invitation_fixture/1`, `expired_org_invitation_fixture/1` | Invitation |
+| `InstanceSettingsFixtures` | `instance_setting_fixture/1` | InstanceSetting |
 | `ProjectsFixtures` | `project_fixture/1`, `project_membership_fixture/1`, `create_project/1` | Project, ProjectMembership |
 | `ApisFixtures` | `api_fixture/1`, `api_key_fixture/2`, `invocation_log_fixture/1`, `metric_rollup_fixture/1`, `create_api/1`, `create_org_and_api/1` | Api, ApiKey, InvocationLog, MetricRollup |
 | `ApiFilesFixtures` | `api_file_fixture/1`, `default_files_fixture/2`, `latest_revision/1` | ApiFile, ApiFileRevision |

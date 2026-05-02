@@ -224,7 +224,7 @@ live_session :editor,
 
 ---
 
-### Public auth routes (`/users/register`, `/users/log-in`) — `:current_user`
+### Public auth routes (`/users/log-in`, `/invitations/:token`) — `:current_user`
 
 ```elixir
 live_session :current_user,

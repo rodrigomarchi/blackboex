@@ -7,6 +7,7 @@ defmodule BlackboexWeb.OrgMemberLive.Index do
   use BlackboexWeb, :live_view
 
   import BlackboexWeb.Components.Badge
+  import BlackboexWeb.Components.Modal
   import BlackboexWeb.Components.UI.InlineSelect
   import BlackboexWeb.OrgSettingsLive, only: [org_settings_tabs: 1]
 
@@ -28,7 +29,9 @@ defmodule BlackboexWeb.OrgMemberLive.Index do
      |> assign(:page_title, "Members")
      |> assign(:org, org)
      |> assign(:members, members)
-     |> assign(:is_owner, is_owner)}
+     |> assign(:is_owner, is_owner)
+     |> assign(:show_invite_modal, false)
+     |> assign(:invite_form, build_invite_form(%{}))}
   end
 
   @impl true
@@ -45,6 +48,60 @@ defmodule BlackboexWeb.OrgMemberLive.Index do
       nil -> {:noreply, socket}
       membership -> do_update_role(socket, membership, role)
     end
+  end
+
+  @impl true
+  def handle_event("open_invite_modal", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:show_invite_modal, true)
+     |> assign(:invite_form, build_invite_form(%{}))}
+  end
+
+  @impl true
+  def handle_event("close_invite_modal", _params, socket) do
+    {:noreply, assign(socket, :show_invite_modal, false)}
+  end
+
+  @impl true
+  def handle_event("send_invite", %{"invitation" => params}, socket) do
+    if socket.assigns.is_owner do
+      do_send_invite(socket, params)
+    else
+      {:noreply, put_flash(socket, :error, "Only owners can invite members.")}
+    end
+  end
+
+  defp do_send_invite(socket, params) do
+    role = parse_role(params["role"])
+    inviter = socket.assigns.current_scope.user
+
+    case Organizations.invite_member(socket.assigns.org, inviter, %{
+           email: params["email"],
+           role: role
+         }) do
+      {:ok, _result} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "Invitation sent")
+         |> assign(:show_invite_modal, false)
+         |> assign(:invite_form, build_invite_form(%{}))}
+
+      {:error, changeset} ->
+        {:noreply, assign(socket, :invite_form, to_form(changeset, as: :invitation))}
+    end
+  end
+
+  defp parse_role("admin"), do: :admin
+  defp parse_role(_), do: :member
+
+  defp build_invite_form(params) do
+    types = %{email: :string, role: :string}
+
+    {%{role: "member"}, types}
+    |> Ecto.Changeset.cast(params, Map.keys(types))
+    |> Map.put(:action, nil)
+    |> to_form(as: :invitation)
   end
 
   defp do_remove_member(socket, membership) do
@@ -79,9 +136,38 @@ defmodule BlackboexWeb.OrgMemberLive.Index do
   @impl true
   def render(assigns) do
     ~H"""
-    <.page_header icon="hero-user-group" icon_class="text-accent-blue" title="Members" />
+    <.page_header icon="hero-user-group" icon_class="text-accent-blue" title="Members">
+      <:actions>
+        <.button :if={@is_owner} variant="primary" phx-click="open_invite_modal">
+          <.icon name="hero-user-plus" class="mr-2 size-4 text-accent-emerald" /> Invite member
+        </.button>
+      </:actions>
+    </.page_header>
     <.page>
       <.org_settings_tabs current_scope={@current_scope} active="members" />
+
+      <.modal
+        :if={@show_invite_modal}
+        show={@show_invite_modal}
+        on_close="close_invite_modal"
+        title="Invite member"
+      >
+        <.form for={@invite_form} id="invite-form" phx-submit="send_invite">
+          <.input field={@invite_form[:email]} type="email" label="Email" required />
+          <.input
+            field={@invite_form[:role]}
+            type="select"
+            label="Role"
+            options={[{"Member", "member"}, {"Admin", "admin"}]}
+          />
+          <div class="flex justify-end gap-2">
+            <.button type="button" variant="outline" phx-click="close_invite_modal">
+              Cancel
+            </.button>
+            <.button type="submit">Send invitation</.button>
+          </div>
+        </.form>
+      </.modal>
 
       <%= if @members == [] do %>
         <.empty_state

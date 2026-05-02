@@ -115,6 +115,10 @@ Apis ──→ CodeGen.Compiler, Audit
 Accounts ──→ Organizations (creates personal org on registration)
 ```
 
+## First-run Onboarding
+
+A first-run setup wizard at `/setup` (`apps/blackboex_web/lib/blackboex_web/live/setup_live.ex`) bootstraps the platform admin user, organization, and project on a fresh database. Until completed, the `BlackboexWeb.Plugs.RequireSetup` plug redirects browser traffic to `/setup`. Public registration (`/users/register`) has been removed; new users join via invitation links (`/invitations/:token`).
+
 ## Key Data Flows
 
 **1. Agent Generation:** User message → `Agent.start_generation/3` → Oban `KickoffWorker` → `Agent.Session` GenServer → `Agent.Pipeline.*` (2-4 LLM calls) → `Conversations` event persistence → PubSub broadcast → LiveView update

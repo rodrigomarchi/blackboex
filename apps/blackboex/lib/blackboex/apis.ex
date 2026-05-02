@@ -20,7 +20,6 @@ defmodule Blackboex.Apis do
   alias Blackboex.Apis.ApiQueries
   alias Blackboex.Apis.Registry
   alias Blackboex.CodeGen.Compiler
-  alias Blackboex.Organizations
   alias Blackboex.Projects
   alias Blackboex.Repo
 

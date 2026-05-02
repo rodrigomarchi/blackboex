@@ -19,6 +19,7 @@ defmodule BlackboexWeb.Application do
       BlackboexWeb.Telemetry,
       {BlackboexWeb.RateLimiterBackend, clean_period: :timer.minutes(10)},
       BlackboexWeb.BeamMonitor,
+      BlackboexWeb.SetupTokens,
       # Start to serve requests, typically the last entry
       BlackboexWeb.Endpoint
     ]

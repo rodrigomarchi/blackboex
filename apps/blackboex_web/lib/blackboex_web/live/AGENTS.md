@@ -462,7 +462,8 @@ end
 | `BillingLive.Plans` | app | Plan cards with current usage. Redirects to Stripe checkout for upgrades. | `choose_plan` |
 | `BillingLive.Manage` | app | Current subscription details. Redirects to Stripe portal for management. | `manage` |
 | `SettingsLive` | app | Tabbed settings (profile, organization, billing, security). Tab state URL-driven via `handle_params`. | navigation only via `<.link patch=...>` |
-| `UserLive.Registration` | auth | Email registration form. `phx-change="validate"` + `phx-submit="save"`. | `validate`, `save` |
+| `SetupLive` | auth | First-run setup wizard (4 steps: Instance → Admin → Organization → Review). Reachable only when `Blackboex.Settings.setup_completed?/0` is `false` — afterwards `RequireSetup` returns 404. On submit, calls `Blackboex.Onboarding.complete_first_run/1` and hops through `/setup/finish` to log the new admin in. | `validate_step`, `next_step`, `prev_step`, `submit` |
+| `InvitationLive.Accept` | auth | Replaces the removed public registration. Accepts `/invitations/:token`: new users set a password, existing users join the inviting org. Calls `Blackboex.Organizations.accept_invitation/2`. | `validate`, `accept` |
 | `UserLive.Login` | auth | Dual-mode login: password form (`phx-trigger-action`) and magic link form. | `submit_password`, `submit_magic` |
 | `OrgMemberLive.Index` | app | Organization member list. Owners can change roles (`owner`/`admin`/`member`) via inline select and remove members. Guards against removing the last owner. Key assigns: `members`, `is_owner`, `org`. | `update_role`, `remove_member` |
 | `ProjectLive.Index` | app | Lists all projects for the current organization. Row-click navigates to the project dashboard. Links to `ProjectLive.New`. Key assigns: `projects`, `org`. | — |

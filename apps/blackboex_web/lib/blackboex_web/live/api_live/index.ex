@@ -335,7 +335,6 @@ defmodule BlackboexWeb.ApiLive.Index do
       </:actions>
     </.page_header>
     <.page>
-
       <.form :let={_f} for={%{}} as={:search} phx-change="search" class="w-full">
         <.input
           type="text"

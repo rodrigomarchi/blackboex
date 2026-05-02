@@ -13,6 +13,14 @@ Each directory has its own AGENTS.md — **read it before generating code in tha
 - `GET /p/:org_slug/:api_slug` → PublicApiController.show (public API docs + Swagger UI)
 - `POST /webhooks/stripe` → WebhookController (signature verified)
 
+### First-run setup
+- `GET /setup` → `SetupLive` (4-step wizard: Instance → Admin → Organization → Review)
+- `GET /setup/finish` → `SetupController.finish` (post-wizard session hop)
+- After setup is complete, all `/setup*` paths return HTTP 404. The `BlackboexWeb.Plugs.RequireSetup` plug (mounted in the `:browser` pipeline) redirects all browser traffic to `/setup` until then.
+
+### Invitations (invite-only registration)
+- `GET /invitations/:token` → `InvitationLive.Accept` — replaces the removed public `/users/register` route. New users set a password during accept; existing users are added to the inviting org.
+
 ### Dynamic API Routing
 - `POST|GET /api/*` → forward to `DynamicApiRouter`
   - Pipeline: ApiAuth → RateLimiter → Billing.Enforcement → Sandbox execution
@@ -35,11 +43,11 @@ Each directory has its own AGENTS.md — **read it before generating code in tha
 - Full CRUD on all system tables
 
 ### Auth Routes (UserLive modules)
-- `GET /users/register` → `UserLive.Registration`
 - `GET /users/log-in` → `UserLive.Login`
 - `GET /users/log-in/:token` → magic link token login
 - `GET /users/settings` → `UserLive.Settings`
 - `GET /users/confirm/:token` → `UserLive.Confirmation`
+- `GET /invitations/:token` → `InvitationLive.Accept` (invite-only registration)
 - `POST /users/log-in`, `DELETE /users/log-out`
 
 ## Auth Flow
@@ -65,6 +73,7 @@ Login → UserSessionController.create
 | `RateLimiter` | 4-layer: per-IP (100/min), per-key (60/min), per-API (1000/min), per-endpoint |
 | `AuditContext` | Injects user_id + IP into ExAudit process tracking |
 | `RequirePlatformAdmin` | Gates `/admin` scope |
+| `RequireSetup` | Mounted in `:browser` pipeline. Redirects to `/setup` until first-run wizard is complete; 404s `/setup*` afterwards. |
 | `CacheBodyReader` | Caches raw body for auth + execution |
 | `HealthCheck` | Health check endpoint (bypass before router) |
 | `ApiDocsPlug` | Serves Swagger/OpenAPI docs for published APIs |

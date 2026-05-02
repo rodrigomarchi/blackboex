@@ -9,7 +9,9 @@ Each context has its own AGENTS.md — **read it before generating code in that 
 | Context | Facade | Key Schemas | Query Module |
 |---------|--------|-------------|--------------|
 | **Accounts** | `Blackboex.Accounts` | User, UserToken, Scope | `UserQueries` |
-| **Organizations** | `Blackboex.Organizations` | Organization, Membership | `OrganizationQueries` |
+| **Organizations** | `Blackboex.Organizations` | Organization, Membership, Invitation | `OrganizationQueries` |
+| **Settings** | `Blackboex.Settings` | InstanceSetting | — |
+| **Onboarding** | `Blackboex.Onboarding` | — | — |
 | **Apis** | `Blackboex.Apis` | Api, ApiKey, ApiVersion, ApiFile | `ApiQueries`, `FileQueries`, `VersionQueries` |
 | **Flows** | `Blackboex.Flows` | Flow | `FlowQueries` |
 | **FlowExecutions** | `Blackboex.FlowExecutions` | FlowExecution, NodeExecution | `FlowExecutionQueries` |
@@ -53,6 +55,14 @@ defdelegate create_version(api, attrs), to: Blackboex.Apis.Versions
 - `create_organization/2` :: `(User.t(), map()) -> {:ok, %{organization, membership}} | {:error, ...}`
 - `list_user_organizations/1`, `get_organization!/1`, `get_organization/1`
 - `add_member/3`, `get_user_membership/2`, `get_user_primary_plan/1`
+- `invite_member/3`, `accept_invitation/2` — invitation-based onboarding for new/existing users
+
+### Settings
+- `setup_completed?/0` — cached singleton check used by `RequireSetup` plug
+- `mark_setup_completed!/1`, `get_settings/0`, `invalidate_cache/0`
+
+### Onboarding
+- `complete_first_run/1` — atomic first-run wizard transaction (admin user + org + project + instance settings)
 
 ### Apis
 - `create_api/1`, `list_apis/1`, `get_api/2`, `update_api/2`, `delete_api/1`

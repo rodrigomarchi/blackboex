@@ -46,12 +46,22 @@ defmodule BlackboexWeb.ConnCase do
       import Blackboex.PageConversationsFixtures
       import Blackboex.LlmFixtures
       import Blackboex.ProjectEnvVarsFixtures
+      import Blackboex.InstanceSettingsFixtures
+      import Blackboex.OrgInvitationsFixtures
       import Blackboex.MockDefaults
     end
   end
 
   setup tags do
     Blackboex.DataCase.setup_sandbox(tags)
+    # Pre-populate the Settings first-run cache so existing LiveView tests
+    # do not redirect to /setup. The require_setup_test overrides this in
+    # its own setup. We deliberately do NOT register an on_exit reset:
+    # `:persistent_term` is global and ExUnit runs many test modules
+    # concurrently, so an on_exit clear races with other modules' setups.
+    # Leaving it as `true` is safe — only require_setup_test cares about
+    # the false branch and it sets it explicitly.
+    :persistent_term.put({Blackboex.Settings, :setup_completed?}, true)
     {:ok, conn: Phoenix.ConnTest.build_conn()}
   end
 

@@ -12,6 +12,7 @@ defmodule BlackboexWeb.Router do
     plug :protect_from_forgery
     plug :put_secure_browser_headers
     plug :fetch_current_scope_for_user
+    plug BlackboexWeb.Plugs.RequireSetup
     plug BlackboexWeb.Plugs.EditorBundle
   end
 
@@ -210,6 +211,7 @@ defmodule BlackboexWeb.Router do
         {BlackboexWeb.Hooks.TrackCurrentPath, :default},
         {BlackboexWeb.Hooks.TrackLastVisited, :default}
       ] do
+      live "/", ProjectSettingsLive, :dashboard
       live "/settings", ProjectSettingsLive, :dashboard
       live "/settings/apis", ProjectSettingsLive, :apis
       live "/settings/flows", ProjectSettingsLive, :flows
@@ -298,12 +300,26 @@ defmodule BlackboexWeb.Router do
     live_session :current_user,
       layout: {BlackboexWeb.Layouts, :auth},
       on_mount: [{BlackboexWeb.UserAuth, :mount_current_scope}] do
-      live "/users/register", UserLive.Registration, :new
       live "/users/log-in", UserLive.Login, :new
       live "/users/log-in/:token", UserLive.Confirmation, :new
+      live "/invitations/:token", InvitationLive.Accept, :show
     end
 
     post "/users/log-in", UserSessionController, :create
     delete "/users/log-out", UserSessionController, :delete
+  end
+
+  ## First-run setup wizard
+
+  scope "/setup", BlackboexWeb do
+    pipe_through :browser
+
+    live_session :setup,
+      layout: {BlackboexWeb.Layouts, :auth},
+      on_mount: [{BlackboexWeb.UserAuth, :mount_current_scope}] do
+      live "/", SetupLive, :wizard
+    end
+
+    get "/finish", SetupController, :finish
   end
 end

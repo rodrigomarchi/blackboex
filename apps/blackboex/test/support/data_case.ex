@@ -41,6 +41,8 @@ defmodule Blackboex.DataCase do
       import Blackboex.PageConversationsFixtures
       import Blackboex.FlowConversationsFixtures
       import Blackboex.LlmFixtures
+      import Blackboex.InstanceSettingsFixtures
+      import Blackboex.OrgInvitationsFixtures
       import Blackboex.MockDefaults
     end
   end

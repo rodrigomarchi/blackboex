@@ -140,6 +140,34 @@ plug Plug.Parsers,
 
 ---
 
+### `BlackboexWeb.Plugs.RequireSetup`
+
+**File:** `require_setup.ex`
+
+**Purpose:** Gates browser traffic on first-run setup. Until `Blackboex.Settings.setup_completed?/0` returns `true`, all browser requests are redirected to `/setup`. Once setup is complete, any `/setup*` path returns HTTP 404 so the wizard cannot be re-entered.
+
+**Position:** Last plug of the `:browser` pipeline in the router (after `:fetch_current_scope_for_user`, before `EditorBundle`).
+
+**`init/1` options:** None.
+
+**`call/2` behavior:**
+
+| Setup state | Path | Result |
+|---|---|---|
+| completed | `/setup`, `/setup/...` | HTTP 404, halted |
+| completed | anything else | pass-through |
+| pending | `/setup`, `/setup/...` | pass-through (wizard reachable) |
+| pending | `/api/...`, `/p/...`, `/webhook/...`, `/assets/...`, `/dev/...` | pass-through (API + assets unaffected) |
+| pending | anything else | redirect to `/setup`, halted |
+
+**Conn assigns added:** none.
+
+**Error responses:** redirect to `/setup` (HTTP 302) or HTTP 404 with empty body.
+
+**Dependency:** `Blackboex.Settings.setup_completed?/0` is cached via `:persistent_term` and is safe to call on every request.
+
+---
+
 ### `BlackboexWeb.Plugs.SetOrganization`
 
 **File:** `set_organization.ex`

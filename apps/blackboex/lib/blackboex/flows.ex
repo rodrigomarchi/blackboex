@@ -7,7 +7,6 @@ defmodule Blackboex.Flows do
 
   alias Blackboex.Flows.Flow
   alias Blackboex.Flows.FlowQueries
-  alias Blackboex.Organizations
   alias Blackboex.Projects
   alias Blackboex.Repo
 

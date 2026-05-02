@@ -5,7 +5,8 @@ defmodule Blackboex.Umbrella.MixProject do
     [
       apps_path: "apps",
       version: "0.1.0",
-      description: "AI-powered API platform — describe an endpoint in natural language and get a live HTTP API",
+      description:
+        "AI-powered API platform — describe an endpoint in natural language and get a live HTTP API",
       licenses: ["MIT"],
       links: %{"GitHub" => "https://github.com/rodrigomarchi/blackboex"},
       start_permanent: Mix.env() == :prod,

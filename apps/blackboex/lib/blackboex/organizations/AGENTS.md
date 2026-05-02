@@ -12,6 +12,7 @@ Multi-tenancy layer. Facade: `Blackboex.Organizations` (`organizations.ex`).
 |--------|-------|-------|
 | `Organization` | `organizations` | `id` uuid, `slug` unique, `plan` default "free" |
 | `Membership` | `memberships` | `user_id` integer FK, `org_id` uuid FK, unique `(user_id, org_id)` |
+| `Invitation` | `org_invitations` | `org_id` uuid FK, email + role, hashed token, `expires_at`, `accepted_at` |
 
 **Mixed FK types:** `user_id` is `type: :id` (integer); `organization_id` is `:binary_id`. Preserve in any new schema referencing both.
 
@@ -25,6 +26,8 @@ get_organization(uuid) :: Organization.t() | nil
 add_member(Organization.t(), User.t(), atom()) :: {:ok, Membership.t()} | {:error, Ecto.Changeset.t()}
 get_user_membership(Organization.t(), User.t()) :: Membership.t() | nil
 get_user_primary_plan(User.t()) :: atom()   # only used by Features.GroupImpl
+invite_member(Organization.t(), email :: String.t(), role :: atom()) :: {:ok, Invitation.t()} | {:error, ...}
+accept_invitation(token :: String.t(), attrs :: map()) :: {:ok, %{user, membership}} | {:error, ...}
 ```
 
 ## Roles

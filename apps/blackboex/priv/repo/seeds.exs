@@ -1,59 +1,15 @@
-# Script for populating the database. You can run it as:
+# This file is intentionally a no-op for the open-source release.
 #
-#     mix run priv/repo/seeds.exs
+# A first-run setup wizard at http://localhost:4000/setup creates the
+# initial platform admin user, organization, and project when the
+# database is empty. Run `make setup` to bring up the database, then
+# open the app in a browser to complete the wizard.
 #
-# Inside the script, you can read and write to any of your
-# repositories directly:
-#
-#     Blackboex.Repo.insert!(%Blackboex.SomeSchema{})
-#
-# We recommend using the bang functions (`insert!`, `update!`
-# and so on) as they will fail if something goes wrong.
+# Optionally, set BLACKBOEX_DEMO=true to seed example data. Currently
+# the demo seed is unimplemented; add it here if/when needed.
 
-alias Blackboex.Accounts
-alias Blackboex.Accounts.User
-alias Blackboex.Organizations
-alias Blackboex.Repo
-
-# Example credentials for local development — change before deploying to production
-admin_email = "admin@admin.com"
-admin_password = "adminadminadmin"
-
-user =
-  case Accounts.get_user_by_email(admin_email) do
-    nil ->
-      {:ok, user} = Accounts.register_user(%{email: admin_email})
-
-      user =
-        user
-        |> User.password_changeset(%{password: admin_password}, hash_password: true)
-        |> User.confirm_changeset()
-        |> Ecto.Changeset.change(is_platform_admin: true)
-        |> Repo.update!()
-
-      IO.puts("Admin user created: #{admin_email} / #{admin_password}")
-      user
-
-    user ->
-      user =
-        user
-        |> User.password_changeset(%{password: admin_password}, hash_password: true)
-        |> Ecto.Changeset.change(is_platform_admin: true)
-        |> Repo.update!()
-
-      IO.puts("Admin user already exists, updated password and ensured is_platform_admin: true")
-      user
-  end
-
-# Ensure admin user has an organization with a default project
-existing_orgs = Organizations.list_user_organizations(user)
-
-if existing_orgs == [] do
-  {:ok, %{organization: org, project: project}} =
-    Organizations.create_organization(user, %{name: "Admin Organization"})
-
-  IO.puts("Created organization '#{org.name}' with default project '#{project.name}'")
-else
-  org = hd(existing_orgs)
-  IO.puts("Admin already has organization: #{org.name}")
+if System.get_env("BLACKBOEX_DEMO") == "true" do
+  IO.puts("Demo seed requested but not implemented yet — skipping.")
 end
+
+:ok

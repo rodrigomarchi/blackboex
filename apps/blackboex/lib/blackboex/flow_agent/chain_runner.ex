@@ -70,123 +70,119 @@ defmodule Blackboex.FlowAgent.ChainRunner do
     # owner exited before the async chain task finished); we still want the
     # GenServer to stop normally so the broadcast is best-effort and we never
     # bubble an exception up to the supervisor.
-    try do
-      run = FlowConversations.get_run!(state.run_id)
+    run = FlowConversations.get_run!(state.run_id)
 
-      _ =
-        FlowConversations.append_event(run, %{
-          event_type: "completed",
-          content: result.answer,
-          metadata: %{
-            kind: "explain",
-            input_tokens: result.input_tokens,
-            output_tokens: result.output_tokens
-          }
-        })
-
-      {:ok, completed} =
-        FlowConversations.complete_run(run, %{
-          run_summary: result.answer,
+    _ =
+      FlowConversations.append_event(run, %{
+        event_type: "completed",
+        content: result.answer,
+        metadata: %{
+          kind: "explain",
           input_tokens: result.input_tokens,
-          output_tokens: result.output_tokens,
-          cost_cents: 0
-        })
+          output_tokens: result.output_tokens
+        }
+      })
 
-      FlowConversations.increment_conversation_stats(
-        FlowConversations.get_conversation(run.conversation_id),
-        total_runs: 1,
-        total_events: 2,
-        total_input_tokens: result.input_tokens,
-        total_output_tokens: result.output_tokens
-      )
+    {:ok, completed} =
+      FlowConversations.complete_run(run, %{
+        run_summary: result.answer,
+        input_tokens: result.input_tokens,
+        output_tokens: result.output_tokens,
+        cost_cents: 0
+      })
 
-      # No `definition` key — the LiveView's pattern-match for :run_completed
-      # distinguishes explain vs. edit and skips the canvas reload for explain.
-      payload = %{
-        kind: :explain,
-        answer: result.answer,
-        run_id: state.run_id,
-        run: completed
-      }
+    FlowConversations.increment_conversation_stats(
+      FlowConversations.get_conversation(run.conversation_id),
+      total_runs: 1,
+      total_events: 2,
+      total_input_tokens: result.input_tokens,
+      total_output_tokens: result.output_tokens
+    )
 
-      StreamManager.broadcast_run(state.run_id, {:run_completed, payload})
-      StreamManager.broadcast_flow(state.flow_id, {:run_completed, Map.delete(payload, :run)})
+    # No `definition` key — the LiveView's pattern-match for :run_completed
+    # distinguishes explain vs. edit and skips the canvas reload for explain.
+    payload = %{
+      kind: :explain,
+      answer: result.answer,
+      run_id: state.run_id,
+      run: completed
+    }
+
+    StreamManager.broadcast_run(state.run_id, {:run_completed, payload})
+    StreamManager.broadcast_flow(state.flow_id, {:run_completed, Map.delete(payload, :run)})
+    :ok
+  rescue
+    error ->
+      log_persistence_failure(:success, state.run_id, Exception.message(error), error)
       :ok
-    rescue
-      error ->
-        log_persistence_failure(:success, state.run_id, Exception.message(error), error)
-        :ok
-    catch
-      :exit, reason ->
-        log_persistence_failure(:success, state.run_id, inspect(reason), reason)
-        :ok
-    end
+  catch
+    :exit, reason ->
+      log_persistence_failure(:success, state.run_id, inspect(reason), reason)
+      :ok
   end
 
   def handle_chain_success(state, %{kind: :edit, definition: definition} = result) do
-    try do
-      run = FlowConversations.get_run!(state.run_id)
-      flow = Flows.get_flow(state.organization_id, state.flow_id)
-      scope = %{organization: %{id: state.organization_id}}
+    run = FlowConversations.get_run!(state.run_id)
+    flow = Flows.get_flow(state.organization_id, state.flow_id)
+    scope = %{organization: %{id: state.organization_id}}
 
-      case apply_edit(flow, definition, scope) do
-        {:ok, _applied} ->
-          _ =
-            FlowConversations.append_event(run, %{
-              event_type: "completed",
-              content: result.summary,
-              metadata: %{
-                kind: "edit",
-                input_tokens: result.input_tokens,
-                output_tokens: result.output_tokens
-              }
-            })
-
-          {:ok, completed} =
-            FlowConversations.complete_run(run, %{
-              definition_after: definition,
-              run_summary: result.summary,
+    case apply_edit(flow, definition, scope) do
+      {:ok, _applied} ->
+        _ =
+          FlowConversations.append_event(run, %{
+            event_type: "completed",
+            content: result.summary,
+            metadata: %{
+              kind: "edit",
               input_tokens: result.input_tokens,
-              output_tokens: result.output_tokens,
-              cost_cents: 0
-            })
+              output_tokens: result.output_tokens
+            }
+          })
 
-          FlowConversations.increment_conversation_stats(
-            FlowConversations.get_conversation(run.conversation_id),
-            total_runs: 1,
-            total_events: 2,
-            total_input_tokens: result.input_tokens,
-            total_output_tokens: result.output_tokens
-          )
+        {:ok, completed} =
+          FlowConversations.complete_run(run, %{
+            definition_after: definition,
+            run_summary: result.summary,
+            input_tokens: result.input_tokens,
+            output_tokens: result.output_tokens,
+            cost_cents: 0
+          })
 
-          payload = %{
-            kind: :edit,
-            definition: definition,
-            summary: result.summary,
-            run_id: state.run_id
-          }
+        FlowConversations.increment_conversation_stats(
+          FlowConversations.get_conversation(run.conversation_id),
+          total_runs: 1,
+          total_events: 2,
+          total_input_tokens: result.input_tokens,
+          total_output_tokens: result.output_tokens
+        )
 
-          StreamManager.broadcast_run(
-            state.run_id,
-            {:run_completed, Map.put(payload, :run, completed)}
-          )
+        payload = %{
+          kind: :edit,
+          definition: definition,
+          summary: result.summary,
+          run_id: state.run_id
+        }
 
-          StreamManager.broadcast_flow(state.flow_id, {:run_completed, payload})
-          :ok
+        StreamManager.broadcast_run(
+          state.run_id,
+          {:run_completed, Map.put(payload, :run, completed)}
+        )
 
-        {:error, reason} ->
-          Logger.warning("record_ai_edit failed: #{inspect(reason)}")
-          handle_chain_failure(state, "falha ao aplicar edição: #{inspect(reason)}")
-      end
-    rescue
-      error ->
-        log_persistence_failure(:success, state.run_id, Exception.message(error), error)
+        StreamManager.broadcast_flow(state.flow_id, {:run_completed, payload})
         :ok
-    catch
-      :exit, reason ->
-        log_persistence_failure(:success, state.run_id, inspect(reason), reason)
-        :ok
+
+      {:error, reason} ->
+        Logger.warning("record_ai_edit failed: #{inspect(reason)}")
+        handle_chain_failure(state, "falha ao aplicar edição: #{inspect(reason)}")
     end
+  rescue
+    error ->
+      log_persistence_failure(:success, state.run_id, Exception.message(error), error)
+      :ok
+  catch
+    :exit, reason ->
+      log_persistence_failure(:success, state.run_id, inspect(reason), reason)
+      :ok
   end
 
   @spec handle_chain_failure(Session.t(), term()) :: :ok

@@ -31,7 +31,7 @@ defmodule BlackboexWeb.Components.Shared.ProjectSettingsTabsTest do
           project_slug: "my-proj"
         )
 
-      assert html =~ ~s(aria-current="page" data-tab="env_vars")
+      assert tab_active?(html, "env_vars")
     end
 
     test "non-active tabs have no aria-current" do
@@ -42,8 +42,8 @@ defmodule BlackboexWeb.Components.Shared.ProjectSettingsTabsTest do
           project_slug: "my-proj"
         )
 
-      refute html =~ ~s(aria-current="page" data-tab="dashboard")
-      refute html =~ ~s(aria-current="page" data-tab="general")
+      refute tab_active?(html, "dashboard")
+      refute tab_active?(html, "general")
     end
 
     test "URLs are built with org_slug and project_slug" do
@@ -90,5 +90,15 @@ defmodule BlackboexWeb.Components.Shared.ProjectSettingsTabsTest do
 
       assert html =~ ~s(data-role="project-settings-tabs")
     end
+  end
+
+  # Phoenix renders attributes in source order, so the rendered HTML can place
+  # `aria-current` before or after `data-tab`. Asserting via regex keeps the
+  # check robust to attribute reordering as the component evolves.
+  defp tab_active?(html, tab) do
+    Regex.match?(
+      ~r/<a[^>]*\bdata-tab="#{Regex.escape(tab)}"[^>]*\baria-current="page"|<a[^>]*\baria-current="page"[^>]*\bdata-tab="#{Regex.escape(tab)}"/,
+      html
+    )
   end
 end

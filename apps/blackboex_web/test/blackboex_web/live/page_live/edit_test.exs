@@ -260,10 +260,10 @@ defmodule BlackboexWeb.PageLive.EditTest do
       assert path =~ "/pages"
     end
 
-    test "sidebar in :editor layout does NOT render SidebarTreeComponent placeholder (collapsed mode)",
+    test "sidebar in :editor layout renders SidebarTreeComponent",
          %{conn: conn, org: org, project: project, page: page} do
       {:ok, _view, html} = live(conn, edit_path(org, project, page))
-      refute html =~ ~s(data-testid="sidebar-tree")
+      assert html =~ ~s(data-testid="sidebar-tree")
     end
   end
 end

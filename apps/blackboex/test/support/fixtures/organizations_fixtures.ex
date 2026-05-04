@@ -15,6 +15,8 @@ defmodule Blackboex.OrganizationsFixtures do
     * `:user` - the user who owns the org (default: new user via user_fixture)
     * `:name` - org name (default: auto-generated unique name)
     * `:slug` - org slug (default: auto-generated unique slug)
+    * `:materialize_samples` - when true, populates the sample workspace
+      with API/Flow/Page/Playground samples from the manifest (default: false)
 
   Returns the organization struct.
   """
@@ -22,12 +24,17 @@ defmodule Blackboex.OrganizationsFixtures do
   def org_fixture(attrs \\ %{}) do
     user = attrs[:user] || Blackboex.AccountsFixtures.user_fixture()
     uid = :crypto.strong_rand_bytes(6) |> Base.encode16(case: :lower)
+    materialize? = Map.get(attrs, :materialize_samples, false)
 
     {:ok, %{organization: org}} =
-      Organizations.create_organization(user, %{
-        name: attrs[:name] || "Test Org #{uid}",
-        slug: attrs[:slug] || "testorg#{uid}"
-      })
+      Organizations.create_organization(
+        user,
+        %{
+          name: attrs[:name] || "Test Org #{uid}",
+          slug: attrs[:slug] || "testorg#{uid}"
+        },
+        materialize: materialize?
+      )
 
     org
   end

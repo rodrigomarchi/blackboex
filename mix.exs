@@ -74,6 +74,12 @@ defmodule Blackboex.Umbrella.MixProject do
     [
       # run `mix setup` in all child apps
       setup: ["cmd mix setup"],
+      test: [
+        "ecto.drop --quiet --force --force-drop",
+        "ecto.create --quiet",
+        "ecto.migrate --quiet",
+        "test"
+      ],
       precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"]
     ]
   end

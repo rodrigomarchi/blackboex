@@ -337,10 +337,12 @@ defmodule Blackboex.Apis.DashboardQueriesTest do
       other_user = user_fixture()
 
       {:ok, %{organization: empty_org}} =
-        Blackboex.Organizations.create_organization(other_user, %{name: "Empty"})
+        Blackboex.Organizations.create_organization(
+          other_user,
+          %{name: "Empty"},
+          materialize: false
+        )
 
-      # The create_organization already creates a Default project + API?
-      # Default project is created but APIs aren't auto-created.
       summary = DashboardQueries.overview_summary({:org, empty_org.id})
 
       assert summary.total_apis == 0

@@ -34,7 +34,7 @@ defmodule Blackboex.Flows do
 
   @spec list_flows(Ecto.UUID.t()) :: [Flow.t()]
   def list_flows(organization_id) do
-    organization_id |> FlowQueries.list_for_org() |> FlowQueries.without_samples() |> Repo.all()
+    organization_id |> FlowQueries.list_for_org() |> Repo.all()
   end
 
   @spec list_flows_for_project(Ecto.UUID.t()) :: [Flow.t()]
@@ -49,7 +49,7 @@ defmodule Blackboex.Flows do
 
   @spec list_flows(Ecto.UUID.t(), keyword()) :: [Flow.t()]
   def list_flows(organization_id, opts) do
-    query = organization_id |> FlowQueries.list_for_org() |> FlowQueries.without_samples()
+    query = FlowQueries.list_for_org(organization_id)
 
     query =
       case Keyword.get(opts, :search) do

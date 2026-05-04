@@ -25,14 +25,12 @@ defmodule Blackboex.Apis.DashboardQueries do
     total_apis =
       Api
       |> where([a], a.organization_id == ^org_id)
-      |> where([a], is_nil(a.sample_uuid))
       |> select([a], count(a.id))
       |> Repo.one()
 
     stats =
       InvocationLog
       |> join(:inner, [l], a in Api, on: l.api_id == a.id and a.organization_id == ^org_id)
-      |> where([l, a], is_nil(a.sample_uuid))
       |> where([l], l.inserted_at >= ^today_start)
       |> select([l], %{
         calls: count(l.id),
@@ -73,7 +71,6 @@ defmodule Blackboex.Apis.DashboardQueries do
     query =
       Api
       |> where([a], a.organization_id == ^org_id)
-      |> where([a], is_nil(a.sample_uuid))
       |> maybe_search(search)
       |> join(:left, [a], l in InvocationLog, on: l.api_id == a.id and l.inserted_at >= ^since)
       |> group_by([a, l], a.id)
@@ -109,7 +106,6 @@ defmodule Blackboex.Apis.DashboardQueries do
     query =
       Api
       |> where([a], a.project_id == ^project_id)
-      |> where([a], is_nil(a.sample_uuid))
       |> maybe_search(search)
       |> join(:left, [a], l in InvocationLog, on: l.api_id == a.id and l.inserted_at >= ^since)
       |> group_by([a, l], a.id)
@@ -133,7 +129,6 @@ defmodule Blackboex.Apis.DashboardQueries do
   def search_apis(org_id, query) do
     Api
     |> where([a], a.organization_id == ^org_id)
-    |> where([a], is_nil(a.sample_uuid))
     |> maybe_search(query)
     |> order_by([a], desc: a.inserted_at)
     |> Repo.all()
@@ -153,7 +148,6 @@ defmodule Blackboex.Apis.DashboardQueries do
       MetricRollup
       |> join(:inner, [r], a in Api, on: r.api_id == a.id)
       |> where([r, a], a.organization_id == ^org_id)
-      |> where([r, a], is_nil(a.sample_uuid))
       |> where([r], r.date >= ^start_date)
       |> select_series(group_by)
       |> Repo.all()
@@ -162,7 +156,6 @@ defmodule Blackboex.Apis.DashboardQueries do
       MetricRollup
       |> join(:inner, [r], a in Api, on: r.api_id == a.id)
       |> where([r, a], a.organization_id == ^org_id)
-      |> where([r, a], is_nil(a.sample_uuid))
       |> where([r], r.date >= ^start_date)
       |> group_by([r, a], [a.id, a.name])
       |> select([r, a], %{
@@ -253,22 +246,6 @@ defmodule Blackboex.Apis.DashboardQueries do
     }
   end
 
-  defp scoped_query({:org, id}, Api) do
-    from(r in Api, where: r.organization_id == ^id and is_nil(r.sample_uuid))
-  end
-
-  defp scoped_query({:project, id}, Api) do
-    from(r in Api, where: r.project_id == ^id and is_nil(r.sample_uuid))
-  end
-
-  defp scoped_query({:org, id}, Flow) do
-    from(r in Flow, where: r.organization_id == ^id and is_nil(r.sample_uuid))
-  end
-
-  defp scoped_query({:project, id}, Flow) do
-    from(r in Flow, where: r.project_id == ^id and is_nil(r.sample_uuid))
-  end
-
   defp scoped_query({:org, id}, schema) do
     from(r in schema, where: r.organization_id == ^id)
   end
@@ -281,14 +258,14 @@ defmodule Blackboex.Apis.DashboardQueries do
   defp scoped_invocations({:org, org_id}) do
     from(l in InvocationLog,
       join: a in Api,
-      on: l.api_id == a.id and a.organization_id == ^org_id and is_nil(a.sample_uuid)
+      on: l.api_id == a.id and a.organization_id == ^org_id
     )
   end
 
   defp scoped_invocations({:project, project_id}) do
     from(l in InvocationLog,
       join: a in Api,
-      on: l.api_id == a.id and is_nil(a.sample_uuid),
+      on: l.api_id == a.id,
       where: l.project_id == ^project_id
     )
   end
@@ -296,7 +273,7 @@ defmodule Blackboex.Apis.DashboardQueries do
   defp recent_activity({:org, org_id}) do
     from(l in InvocationLog,
       join: a in Api,
-      on: l.api_id == a.id and a.organization_id == ^org_id and is_nil(a.sample_uuid),
+      on: l.api_id == a.id and a.organization_id == ^org_id,
       order_by: [desc: l.inserted_at],
       limit: 10,
       select: %{
@@ -315,7 +292,7 @@ defmodule Blackboex.Apis.DashboardQueries do
   defp recent_activity({:project, project_id}) do
     from(l in InvocationLog,
       join: a in Api,
-      on: l.api_id == a.id and is_nil(a.sample_uuid),
+      on: l.api_id == a.id,
       where: l.project_id == ^project_id,
       order_by: [desc: l.inserted_at],
       limit: 10,
@@ -411,7 +388,6 @@ defmodule Blackboex.Apis.DashboardQueries do
     scope
     |> scoped_executions()
     |> join(:inner, [e], f in Flow, on: e.flow_id == f.id)
-    |> where([e, f], is_nil(f.sample_uuid))
     |> where([e], e.inserted_at >= ^start_dt)
     |> group_by([e, f], [f.id, f.name])
     |> select([e, f], %{
@@ -507,7 +483,7 @@ defmodule Blackboex.Apis.DashboardQueries do
   defp top_apis_for_scope({:org, org_id}, since) do
     from(l in InvocationLog,
       join: a in Api,
-      on: l.api_id == a.id and a.organization_id == ^org_id and is_nil(a.sample_uuid),
+      on: l.api_id == a.id and a.organization_id == ^org_id,
       where: l.inserted_at >= ^since,
       group_by: [a.id, a.name],
       order_by: [desc: count(l.id)],
@@ -527,7 +503,7 @@ defmodule Blackboex.Apis.DashboardQueries do
   defp top_apis_for_scope({:project, project_id}, since) do
     from(l in InvocationLog,
       join: a in Api,
-      on: l.api_id == a.id and is_nil(a.sample_uuid),
+      on: l.api_id == a.id,
       where: l.project_id == ^project_id and l.inserted_at >= ^since,
       group_by: [a.id, a.name],
       order_by: [desc: count(l.id)],
@@ -602,7 +578,6 @@ defmodule Blackboex.Apis.DashboardQueries do
     top_flows =
       FlowExecution
       |> join(:inner, [e], f in Flow, on: e.flow_id == f.id)
-      |> where([e, f], is_nil(f.sample_uuid))
       |> where([e], e.organization_id == ^org_id and e.inserted_at >= ^start_dt)
       |> group_by([e, f], [f.id, f.name])
       |> select([e, f], %{
@@ -664,7 +639,6 @@ defmodule Blackboex.Apis.DashboardQueries do
     MetricRollup
     |> join(:inner, [r], a in Api, on: r.api_id == a.id)
     |> where([r, a], a.organization_id == ^org_id and r.date >= ^start_date)
-    |> where([r, a], is_nil(a.sample_uuid))
     |> select([r], sum(r.unique_consumers))
     |> Repo.one() || 0
   end
@@ -672,7 +646,6 @@ defmodule Blackboex.Apis.DashboardQueries do
   defp query_status_distribution(org_id, start_dt) do
     InvocationLog
     |> join(:inner, [l], a in Api, on: l.api_id == a.id and a.organization_id == ^org_id)
-    |> where([l, a], is_nil(a.sample_uuid))
     |> where([l], l.inserted_at >= ^start_dt)
     |> select([l], %{
       s2xx: filter(count(l.id), l.status_code >= 200 and l.status_code < 300),
@@ -686,7 +659,6 @@ defmodule Blackboex.Apis.DashboardQueries do
   defp query_payload_stats(org_id, start_dt) do
     InvocationLog
     |> join(:inner, [l], a in Api, on: l.api_id == a.id and a.organization_id == ^org_id)
-    |> where([l, a], is_nil(a.sample_uuid))
     |> where([l], l.inserted_at >= ^start_dt)
     |> select([l], %{
       avg_request_size: avg(l.request_body_size),
@@ -698,7 +670,6 @@ defmodule Blackboex.Apis.DashboardQueries do
   defp query_api_key_usage(org_id, start_dt) do
     InvocationLog
     |> join(:inner, [l], a in Api, on: l.api_id == a.id and a.organization_id == ^org_id)
-    |> where([l, a], is_nil(a.sample_uuid))
     |> join(:left, [l], k in ApiKey, on: l.api_key_id == k.id)
     |> where([l], l.inserted_at >= ^start_dt)
     |> group_by([l, _a, k], [l.api_key_id, k.label, k.key_prefix])
@@ -743,7 +714,6 @@ defmodule Blackboex.Apis.DashboardQueries do
     longest_executions =
       FlowExecution
       |> join(:inner, [e], f in Flow, on: e.flow_id == f.id)
-      |> where([e, f], is_nil(f.sample_uuid))
       |> where(
         [e],
         e.organization_id == ^org_id and e.inserted_at >= ^start_dt and not is_nil(e.duration_ms)
@@ -761,7 +731,6 @@ defmodule Blackboex.Apis.DashboardQueries do
     recent_failures =
       FlowExecution
       |> join(:inner, [e], f in Flow, on: e.flow_id == f.id)
-      |> where([e, f], is_nil(f.sample_uuid))
       |> where(
         [e],
         e.organization_id == ^org_id and e.status == "failed" and e.inserted_at >= ^start_dt
@@ -863,7 +832,6 @@ defmodule Blackboex.Apis.DashboardQueries do
     LlmUsage
     |> join(:left, [u], a in Api, on: u.api_id == a.id)
     |> where([u], u.organization_id == ^org_id and u.inserted_at >= ^start_dt)
-    |> where([u, a], is_nil(u.api_id) or is_nil(a.sample_uuid))
     |> group_by([u, a], [a.id, a.name])
     |> select([u, a], %{
       api_name: a.name,

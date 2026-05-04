@@ -147,7 +147,9 @@ defmodule Blackboex.Accounts do
       {:error, %Ecto.Changeset{}}
 
   """
-  def register_user(attrs) do
+  def register_user(attrs, opts \\ []) do
+    samples_opts = Keyword.take(opts, [:materialize])
+
     Ecto.Multi.new()
     |> Ecto.Multi.insert(:user, User.email_changeset(%User{}, attrs))
     |> Ecto.Multi.insert(:organization, fn %{user: user} ->
@@ -161,7 +163,7 @@ defmodule Blackboex.Accounts do
       })
     end)
     |> Ecto.Multi.run(:sample_workspace, fn _repo, %{organization: org, user: user} ->
-      Samples.provision_for_org(org, user)
+      Samples.provision_for_org(org, user, samples_opts)
     end)
     |> Ecto.Multi.run(:project, fn _repo, %{sample_workspace: %{project: project}} ->
       {:ok, project}

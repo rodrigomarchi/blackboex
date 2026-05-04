@@ -29,15 +29,18 @@ defmodule Blackboex.Projects.Samples do
 
   @spec provision_for_org(
           Blackboex.Organizations.Organization.t(),
-          Blackboex.Accounts.User.t()
+          Blackboex.Accounts.User.t(),
+          keyword()
         ) ::
           {:ok, %{project: Project.t(), membership: ProjectMembership.t()}}
           | {:error, term()}
-  def provision_for_org(org, user) do
+  def provision_for_org(org, user, opts \\ []) do
+    materialize? = Keyword.get(opts, :materialize, true)
+
     Repo.transaction(fn ->
       project = insert_sample_project!(org)
       membership = insert_project_membership!(project, user)
-      sync_project!(project, user)
+      if materialize?, do: sync_project!(project, user)
       %{project: project, membership: membership}
     end)
   end

@@ -397,14 +397,9 @@ defmodule BlackboexWeb.ApiLive.IndexTest do
       assert api.template_id == "cotacao-frete"
     end
 
-    test "sidebar renders SidebarTreeComponent placeholder in :app layout", %{
-      conn: conn,
-      user: user
-    } do
-      FunWithFlags.enable(:sidebar_tree_v2, for_actor: user)
+    test "sidebar renders SidebarTreeComponent in :app layout", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/apis")
       assert html =~ ~s(data-testid="sidebar-tree")
-      FunWithFlags.clear(:sidebar_tree_v2)
     end
   end
 end

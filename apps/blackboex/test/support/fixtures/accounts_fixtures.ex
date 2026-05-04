@@ -32,7 +32,7 @@ defmodule Blackboex.AccountsFixtures do
     {:ok, user} =
       attrs
       |> valid_user_attributes()
-      |> Accounts.register_user()
+      |> Accounts.register_user(materialize: false)
 
     user
   end

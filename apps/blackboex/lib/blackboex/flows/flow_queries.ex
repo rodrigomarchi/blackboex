@@ -32,11 +32,6 @@ defmodule Blackboex.Flows.FlowQueries do
     where(query, [f], ilike(f.name, ^like) or ilike(f.description, ^like))
   end
 
-  @spec without_samples(Ecto.Query.t()) :: Ecto.Query.t()
-  def without_samples(query) do
-    where(query, [f], is_nil(f.sample_uuid))
-  end
-
   @spec list_for_project(Ecto.UUID.t()) :: Ecto.Query.t()
   def list_for_project(project_id) do
     Flow

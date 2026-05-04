@@ -10,7 +10,6 @@ defmodule BlackboexWeb.Components.AppSidebar do
 
   use BlackboexWeb, :html
 
-  import SaladUI.Tooltip
   import BlackboexWeb.Components.OrgProjectSwitcher
 
   alias BlackboexWeb.Components.SidebarTreeComponent
@@ -31,13 +30,7 @@ defmodule BlackboexWeb.Components.AppSidebar do
   attr :id, :string, default: "app-sidebar"
 
   def sidebar(assigns) do
-    tree_active = tree_v2_enabled?(assigns[:current_scope])
-    effective_collapsed = assigns[:collapsed] and not tree_active
-
-    assigns =
-      assigns
-      |> assign(:tree_active, tree_active)
-      |> assign(:effective_collapsed, effective_collapsed)
+    assigns = assign(assigns, :effective_collapsed, false)
 
     ~H"""
     <aside
@@ -89,10 +82,7 @@ defmodule BlackboexWeb.Components.AppSidebar do
       <%!-- Org/Project switcher --%>
       <div :if={scoped?(@current_scope)} class="border-b">
         <div class="px-3 py-2.5 group-[.sidebar-collapsed]/sidebar:hidden">
-          <.org_project_switcher
-            current_scope={@current_scope}
-            show_project={not @tree_active}
-          />
+          <.org_project_switcher current_scope={@current_scope} />
         </div>
         <div class="hidden group-[.sidebar-collapsed]/sidebar:flex justify-center py-2">
           <div class="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10 text-primary text-[10px] font-bold">
@@ -103,49 +93,13 @@ defmodule BlackboexWeb.Components.AppSidebar do
 
       <%!-- Navigation --%>
       <nav class="flex-1 overflow-y-auto py-2">
-        <%= if @tree_active do %>
-          <.live_component
-            module={SidebarTreeComponent}
-            id={"#{@id}-tree"}
-            current_scope={@current_scope}
-            current_path={@current_path}
-            collapsed={false}
-          />
-        <% else %>
-          <div>
-            <span class="mb-1 block px-5 pt-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground group-[.sidebar-collapsed]/sidebar:hidden">
-              WORK
-            </span>
-            <.sidebar_nav_item
-              icon="hero-bolt"
-              label="APIs"
-              href={project_path(@current_scope, "/apis")}
-              active={active?(@current_path, "/apis")}
-              accent="text-accent-amber"
-            />
-            <.sidebar_nav_item
-              icon="hero-arrow-path"
-              label="Flows"
-              href={project_path(@current_scope, "/flows")}
-              active={active?(@current_path, "/flows")}
-              accent="text-accent-violet"
-            />
-            <.sidebar_nav_item
-              icon="hero-document-text"
-              label="Pages"
-              href={project_path(@current_scope, "/pages")}
-              active={active?(@current_path, "/pages")}
-              accent="text-accent-sky"
-            />
-            <.sidebar_nav_item
-              icon="hero-code-bracket"
-              label="Playgrounds"
-              href={project_path(@current_scope, "/playgrounds")}
-              active={active?(@current_path, "/playgrounds")}
-              accent="text-accent-emerald"
-            />
-          </div>
-        <% end %>
+        <.live_component
+          module={SidebarTreeComponent}
+          id={"#{@id}-tree"}
+          current_scope={@current_scope}
+          current_path={@current_path}
+          collapsed={false}
+        />
       </nav>
 
       <%!-- User section --%>
@@ -175,56 +129,11 @@ defmodule BlackboexWeb.Components.AppSidebar do
     """
   end
 
-  # ── Private components ──────────────────────────────────────
-
-  attr :icon, :string, required: true
-  attr :label, :string, required: true
-  attr :href, :string, required: true
-  attr :active, :boolean, default: false
-  attr :accent, :string, default: "text-muted-foreground"
-
-  defp sidebar_nav_item(assigns) do
-    ~H"""
-    <.tooltip>
-      <.tooltip_trigger>
-        <.link
-          navigate={@href}
-          class={[
-            "flex items-center gap-2 rounded-md mx-2 px-3 py-1.5 text-sm font-medium transition-colors",
-            "group-[.sidebar-collapsed]/sidebar:justify-center group-[.sidebar-collapsed]/sidebar:px-2 group-[.sidebar-collapsed]/sidebar:mx-1",
-            if(@active,
-              do: "bg-accent text-accent-foreground",
-              else: "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-            )
-          ]}
-        >
-          <.icon name={@icon} class={["size-4 shrink-0", @accent]} />
-          <span class="truncate group-[.sidebar-collapsed]/sidebar:hidden">{@label}</span>
-        </.link>
-      </.tooltip_trigger>
-      <.tooltip_content side="right">
-        {@label}
-      </.tooltip_content>
-    </.tooltip>
-    """
-  end
-
   # ── Helpers ─────────────────────────────────────────────────
-
-  defp tree_v2_enabled?(nil), do: false
-  defp tree_v2_enabled?(%{user: nil}), do: false
-  defp tree_v2_enabled?(%{user: user}), do: FunWithFlags.enabled?(:sidebar_tree_v2, for: user)
 
   defp scoped?(nil), do: false
   defp scoped?(%{organization: nil}), do: false
   defp scoped?(%{organization: _org}), do: true
-
-  defp active?(nil, _prefix), do: false
-
-  defp active?(current_path, prefix) when is_binary(current_path) do
-    suffix = String.trim_leading(prefix, "/")
-    String.contains?(current_path, "/#{suffix}")
-  end
 
   # Push toggle for app layout — sidebar shrinks and content expands naturally.
   defp toggle_sidebar(sidebar_id) do

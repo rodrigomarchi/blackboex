@@ -21,10 +21,12 @@ defmodule Blackboex.Organizations do
   alias Blackboex.Repo
   alias Ecto.Multi
 
-  @spec create_organization(User.t(), map()) ::
+  @spec create_organization(User.t(), map(), keyword()) ::
           {:ok, %{organization: Organization.t(), membership: Membership.t()}}
           | {:error, atom(), Ecto.Changeset.t(), map()}
-  def create_organization(%User{} = user, attrs) do
+  def create_organization(%User{} = user, attrs, opts \\ []) do
+    samples_opts = Keyword.take(opts, [:materialize])
+
     Multi.new()
     |> Multi.insert(:organization, Organization.changeset(%Organization{}, attrs))
     |> Multi.insert(:membership, fn %{organization: org} ->
@@ -35,7 +37,7 @@ defmodule Blackboex.Organizations do
       })
     end)
     |> Multi.run(:sample_workspace, fn _repo, %{organization: org} ->
-      Samples.provision_for_org(org, user)
+      Samples.provision_for_org(org, user, samples_opts)
     end)
     |> Multi.run(:project, fn _repo, %{sample_workspace: %{project: project}} ->
       {:ok, project}

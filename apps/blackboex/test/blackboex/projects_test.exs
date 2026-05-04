@@ -237,7 +237,7 @@ defmodule Blackboex.ProjectsTest do
   describe "list_projects_with_counts/1" do
     test "returns counts for each resource type per project" do
       user = user_fixture()
-      org = org_fixture(%{user: user})
+      org = org_fixture(%{user: user, materialize_samples: true})
 
       # org_fixture creates the managed "Exemplos" project automatically.
       p2 = Projects.get_default_project(org.id)

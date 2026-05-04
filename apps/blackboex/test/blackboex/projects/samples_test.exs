@@ -12,7 +12,7 @@ defmodule Blackboex.Projects.SamplesTest do
   describe "provision_for_org/2" do
     test "creates the managed Exemplos project and all manifest samples" do
       user = user_fixture()
-      org = org_fixture(%{user: user})
+      org = org_fixture(%{user: user, materialize_samples: true})
 
       # org_fixture already provisions the sample workspace through Organizations.
       project = Projects.get_default_project(org.id)
@@ -35,7 +35,7 @@ defmodule Blackboex.Projects.SamplesTest do
 
     test "creates compiled APIs and active flows with sample UUIDs" do
       user = user_fixture()
-      org = org_fixture(%{user: user})
+      org = org_fixture(%{user: user, materialize_samples: true})
       project = Projects.get_default_project(org.id)
 
       assert Enum.all?(Apis.list_apis_for_project(project.id), fn api ->
@@ -49,7 +49,7 @@ defmodule Blackboex.Projects.SamplesTest do
 
     test "preserves page hierarchy and renders flow tokens in playgrounds" do
       user = user_fixture()
-      org = org_fixture(%{user: user})
+      org = org_fixture(%{user: user, materialize_samples: true})
       project = Projects.get_default_project(org.id)
 
       pages = Pages.list_pages(project.id)
@@ -69,7 +69,7 @@ defmodule Blackboex.Projects.SamplesTest do
   describe "sync_sample_workspace/1" do
     test "is idempotent and does not duplicate samples" do
       user = user_fixture()
-      org = org_fixture(%{user: user})
+      org = org_fixture(%{user: user, materialize_samples: true})
       project = Projects.get_default_project(org.id)
 
       assert {:ok, _} = Projects.sync_sample_workspace(project)
@@ -88,7 +88,7 @@ defmodule Blackboex.Projects.SamplesTest do
 
     test "overwrites managed samples but leaves non-sample resources untouched" do
       user = user_fixture()
-      org = org_fixture(%{user: user})
+      org = org_fixture(%{user: user, materialize_samples: true})
       project = Projects.get_default_project(org.id)
 
       sample_page =
@@ -107,7 +107,7 @@ defmodule Blackboex.Projects.SamplesTest do
 
     test "returns an error for regular projects" do
       user = user_fixture()
-      org = org_fixture(%{user: user})
+      org = org_fixture(%{user: user, materialize_samples: true})
       {:ok, %{project: project}} = Projects.create_project(org, user, %{name: "Regular"})
 
       assert {:error, {:not_sample_workspace, project_id}} =
@@ -120,7 +120,7 @@ defmodule Blackboex.Projects.SamplesTest do
   describe "sync_all_sample_workspaces/1" do
     test "syncs sample projects and ignores regular projects" do
       user = user_fixture()
-      org = org_fixture(%{user: user})
+      org = org_fixture(%{user: user, materialize_samples: true})
       sample_project = Projects.get_default_project(org.id)
       {:ok, %{project: regular_project}} = Projects.create_project(org, user, %{name: "Regular"})
 
@@ -132,7 +132,7 @@ defmodule Blackboex.Projects.SamplesTest do
 
     test "does not recreate a deleted sample project" do
       user = user_fixture()
-      org = org_fixture(%{user: user})
+      org = org_fixture(%{user: user, materialize_samples: true})
       project = Projects.get_default_project(org.id)
 
       assert {:ok, _} = Projects.delete_project(project)

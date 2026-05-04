@@ -345,12 +345,11 @@ These are **not** LiveComponents — they are stateless function components rend
 | `<.editor_page_header>` | `Editor.PageHeader` | `title`, `back_path` | `back_label`, `class` (slots: `:badge`, `:actions`) |
 | `<.save_indicator>` | `Editor.SaveIndicator` | — | `status` (`:saved` \| `:saving` \| `:unsaved`) |
 
-### Playground/page sidebar components
+### Playground sidebar components
 
 | Function | Module | Required attrs | Optional attrs |
 |----------|--------|----------------|----------------|
 | `<.playground_tree>` | `Editor.PlaygroundTree` | `playgrounds` | `current_playground_id` |
-| `<.page_tree>` | `Editor.PageTree` | `tree` | `current_page_id`, `expanded_ids` |
 | `<.execution_history>` | `Editor.ExecutionHistory` | `executions` | `selected_execution_id` |
 | `<.terminal_output>` | `Editor.TerminalOutput` | — | `output`, `status`, `duration_ms`, `run_number` |
 

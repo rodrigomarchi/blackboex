@@ -157,6 +157,48 @@ defmodule BlackboexWeb.Components.SidebarTreeComponentTest do
       assert html =~ "APIs"
     end
 
+    @tag :liveview
+    test "expanded pages group renders nested pages from the single sidebar tree",
+         %{conn: conn, user: user, org: org, project: project} do
+      root = page_fixture(%{user: user, org: org, project: project, title: "Manifest Root"})
+
+      child =
+        page_fixture(%{
+          user: user,
+          org: org,
+          project: project,
+          title: "Manifest Child",
+          parent_id: root.id
+        })
+
+      _grandchild =
+        page_fixture(%{
+          user: user,
+          org: org,
+          project: project,
+          title: "Manifest Grandchild",
+          parent_id: child.id
+        })
+
+      {:ok, view, _html} =
+        live_isolated(conn, BlackboexWeb.Components.SidebarTreeTestWrapper,
+          session: %{"user_id" => user.id, "org_id" => org.id}
+        )
+
+      view
+      |> element("[phx-value-type='project'][phx-value-id='#{project.id}']")
+      |> render_click()
+
+      view
+      |> element("[phx-click='expand_node'][phx-value-type='pages']")
+      |> render_click()
+
+      html = render(view)
+      assert html =~ "Manifest Root"
+      assert html =~ "Manifest Child"
+      assert html =~ "Manifest Grandchild"
+    end
+
     test "current_scope nil does not crash" do
       html =
         render_component(SidebarTreeComponent,

@@ -3,7 +3,7 @@ defmodule BlackboexWeb.Components.Editor.PlaygroundTree do
   A sidebar component listing playgrounds for the playground editor.
 
   Displays project playgrounds in a flat list with selection state
-  and hover actions, matching the visual pattern of `PageTree`.
+  and hover actions.
   """
 
   use Phoenix.Component

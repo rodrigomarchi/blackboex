@@ -567,16 +567,10 @@ defmodule BlackboexWeb.Components.SidebarTreeComponent do
         <li :if={@children == []} class="px-2 py-0.5 text-xs text-muted-foreground/60 italic">
           No items
         </li>
-        <li
-          :for={item <- @children}
-          role="treeitem"
-          data-tree-item
-          data-node-id={item.id}
-          data-node-type={singular_type(@type)}
-        >
-          <.leaf_node
-            type={@type}
-            item={item}
+        <%= if @type == "pages" do %>
+          <.page_tree_node
+            :for={node <- @children}
+            node={node}
             project={@project}
             current_path={@current_path}
             current_scope={@current_scope}
@@ -585,9 +579,88 @@ defmodule BlackboexWeb.Components.SidebarTreeComponent do
             rename_error={@rename_error}
             myself={@myself}
           />
-        </li>
+        <% else %>
+          <li
+            :for={item <- @children}
+            role="treeitem"
+            data-tree-item
+            data-node-id={item.id}
+            data-node-type={singular_type(@type)}
+          >
+            <.leaf_node
+              type={@type}
+              item={item}
+              project={@project}
+              current_path={@current_path}
+              current_scope={@current_scope}
+              open_menu_id={@open_menu_id}
+              renaming={@renaming}
+              rename_error={@rename_error}
+              myself={@myself}
+            />
+          </li>
+        <% end %>
       </ul>
     </div>
+    """
+  end
+
+  attr :node, :map, required: true
+  attr :project, :map, required: true
+  attr :current_path, :string, required: true
+  attr :current_scope, :map, required: true
+  attr :open_menu_id, :string, default: nil
+  attr :renaming, :map, default: nil
+  attr :rename_error, :string, default: nil
+  attr :myself, :any, required: true
+
+  defp page_tree_node(assigns) do
+    assigns =
+      assign(assigns,
+        page: assigns.node.page,
+        children: assigns.node.children || []
+      )
+
+    ~H"""
+    <li
+      role="treeitem"
+      data-tree-item
+      data-node-id={@page.id}
+      data-node-type="page"
+    >
+      <.leaf_node
+        type="pages"
+        item={@page}
+        project={@project}
+        current_path={@current_path}
+        current_scope={@current_scope}
+        open_menu_id={@open_menu_id}
+        renaming={@renaming}
+        rename_error={@rename_error}
+        myself={@myself}
+      />
+
+      <ul
+        :if={@children != []}
+        class="ml-3 space-y-0.5"
+        role="group"
+        data-tree-list
+        data-parent-type="page"
+        data-parent-id={@page.id}
+      >
+        <.page_tree_node
+          :for={child <- @children}
+          node={child}
+          project={@project}
+          current_path={@current_path}
+          current_scope={@current_scope}
+          open_menu_id={@open_menu_id}
+          renaming={@renaming}
+          rename_error={@rename_error}
+          myself={@myself}
+        />
+      </ul>
+    </li>
     """
   end
 
@@ -1005,7 +1078,7 @@ defmodule BlackboexWeb.Components.SidebarTreeComponent do
 
   defp load_children(cache, "pages", project_id) do
     Map.put_new_lazy(cache, "pages:#{project_id}", fn ->
-      Pages.list_root_pages_for_project(project_id)
+      Pages.list_page_tree(project_id)
     end)
   end
 
@@ -1124,8 +1197,29 @@ defmodule BlackboexWeb.Components.SidebarTreeComponent do
   @spec find_in_group({String.t(), list()}, String.t(), String.t()) :: map() | nil
   defp find_in_group({key, items}, plural, id) do
     if String.starts_with?(key, "#{plural}:") do
-      Enum.find(items, fn item -> item.id == id end)
+      find_item_in_group_items(plural, items, id)
     end
+  end
+
+  @spec find_item_in_group_items(String.t(), list(), String.t()) :: map() | nil
+  defp find_item_in_group_items("pages", items, id), do: find_page_in_tree(items, id)
+
+  defp find_item_in_group_items(_plural, items, id) do
+    Enum.find(items, fn item -> item.id == id end)
+  end
+
+  @spec find_page_in_tree(list(), String.t()) :: map() | nil
+  defp find_page_in_tree(nodes, id) do
+    Enum.find_value(nodes, fn
+      %{page: page, children: children} ->
+        if page.id == id, do: page, else: find_page_in_tree(children || [], id)
+
+      %{id: page_id} = page ->
+        if page_id == id, do: page
+
+      _ ->
+        nil
+    end)
   end
 
   @spec do_confirmed_delete(Phoenix.LiveView.Socket.t(), String.t(), String.t()) ::
@@ -1259,7 +1353,7 @@ defmodule BlackboexWeb.Components.SidebarTreeComponent do
       case type do
         "api" -> Apis.list_for_project(project_id)
         "flow" -> Flows.list_for_project(project_id)
-        "page" -> Pages.list_root_pages_for_project(project_id)
+        "page" -> Pages.list_page_tree(project_id)
         "playground" -> Playgrounds.list_for_project(project_id)
         _ -> Map.get(socket.assigns.tree_children, key, [])
       end
@@ -1419,7 +1513,7 @@ defmodule BlackboexWeb.Components.SidebarTreeComponent do
           Phoenix.LiveView.Socket.t()
   defp refresh_tree_after_move(socket, %{node_type: "page"}, updated_page, _old_project_id) do
     key = "pages:#{updated_page.project_id}"
-    new_list = Pages.list_root_pages_for_project(updated_page.project_id)
+    new_list = Pages.list_page_tree(updated_page.project_id)
     assign(socket, :tree_children, Map.put(socket.assigns.tree_children, key, new_list))
   end
 

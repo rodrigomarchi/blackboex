@@ -16,7 +16,6 @@ defmodule BlackboexWeb.PageLive.Edit do
   alias Blackboex.PageAgent.StreamManager
   alias Blackboex.PageConversations
   alias Blackboex.Pages
-  alias Blackboex.Policy
   alias Blackboex.ProjectEnvVars
 
   @max_chat_messages 200
@@ -35,7 +34,6 @@ defmodule BlackboexWeb.PageLive.Edit do
          |> push_navigate(to: project_path(socket.assigns.current_scope, "/pages"))}
 
       page ->
-        tree = Pages.list_page_tree(project.id)
         chat_messages = load_chat_messages(page.id)
 
         if connected?(socket) do
@@ -50,10 +48,7 @@ defmodule BlackboexWeb.PageLive.Edit do
            page: page,
            form: to_form(Pages.change_page(page)),
            page_title: page.title,
-           page_tree: tree,
-           expanded_ids: expanded_ids_for(tree, page.id),
            save_status: :saved,
-           confirm: nil,
            chat_open: true,
            chat_messages: chat_messages,
            chat_input: "",
@@ -155,83 +150,11 @@ defmodule BlackboexWeb.PageLive.Edit do
           />
         </aside>
       <% end %>
-
-      <.confirm_dialog
-        :if={@confirm}
-        title={@confirm.title}
-        description={@confirm.description}
-        variant={@confirm[:variant] || :warning}
-        confirm_label={@confirm[:confirm_label] || "Confirm"}
-      />
     </div>
     """
   end
 
   # ── Events ─────────────────────────────────────────────────
-
-  @impl true
-  def handle_event("request_confirm", %{"action" => "delete"} = params, socket) do
-    title = params["title"] || "this page"
-
-    confirm = %{
-      title: "Delete page?",
-      description:
-        "\"#{title}\" and all of its sub-pages will be permanently removed. This action cannot be undone.",
-      variant: :danger,
-      confirm_label: "Delete",
-      event: "delete",
-      meta: Map.take(params, ["id", "slug"])
-    }
-
-    {:noreply, assign(socket, confirm: confirm)}
-  end
-
-  @impl true
-  def handle_event("dismiss_confirm", _params, socket) do
-    {:noreply, assign(socket, confirm: nil)}
-  end
-
-  @impl true
-  def handle_event("execute_confirm", _params, socket) do
-    case socket.assigns.confirm do
-      nil -> {:noreply, socket}
-      %{event: event, meta: meta} -> handle_event(event, meta, assign(socket, confirm: nil))
-    end
-  end
-
-  @impl true
-  def handle_event("delete", %{"id" => id} = params, socket) do
-    scope = socket.assigns.current_scope
-    project = scope.project
-    org = scope.organization
-
-    with :ok <- Policy.authorize_and_track(:page_delete, scope, org),
-         page when not is_nil(page) <- Pages.get_page(project.id, id),
-         {:ok, _} <- Pages.delete_page(page) do
-      if page.id == socket.assigns.page.id do
-        {:noreply,
-         socket
-         |> put_flash(:info, "Page deleted.")
-         |> push_navigate(to: project_path(scope, "/pages"))}
-      else
-        tree = Pages.list_page_tree(project.id)
-
-        {:noreply,
-         socket
-         |> assign(page_tree: tree)
-         |> put_flash(:info, "Page \"#{params["slug"] || page.slug}\" deleted.")}
-      end
-    else
-      {:error, :unauthorized} ->
-        {:noreply, put_flash(socket, :error, "Not authorized to delete this page.")}
-
-      nil ->
-        {:noreply, put_flash(socket, :error, "Page not found.")}
-
-      {:error, _changeset} ->
-        {:noreply, put_flash(socket, :error, "Could not delete page.")}
-    end
-  end
 
   @impl true
   def handle_event("update_content", %{"value" => content}, socket) do
@@ -285,74 +208,6 @@ defmodule BlackboexWeb.PageLive.Edit do
 
       {:error, _} ->
         {:noreply, put_flash(socket, :error, "Failed to update status")}
-    end
-  end
-
-  @impl true
-  def handle_event("select_page", %{"slug" => slug}, socket) do
-    scope = socket.assigns.current_scope
-    path = project_path(scope, "/pages/#{slug}/edit")
-    {:noreply, push_navigate(socket, to: path)}
-  end
-
-  @impl true
-  def handle_event("toggle_tree_node", %{"id" => id}, socket) do
-    expanded = socket.assigns.expanded_ids
-
-    expanded =
-      if id in expanded do
-        List.delete(expanded, id)
-      else
-        [id | expanded]
-      end
-
-    {:noreply, assign(socket, expanded_ids: expanded)}
-  end
-
-  @impl true
-  def handle_event("new_page", _params, socket) do
-    scope = socket.assigns.current_scope
-    project = scope.project
-    user = scope.user
-
-    attrs = %{
-      title: "Untitled",
-      organization_id: project.organization_id,
-      project_id: project.id,
-      user_id: user.id
-    }
-
-    case Pages.create_page(attrs) do
-      {:ok, page} ->
-        path = project_path(scope, "/pages/#{page.slug}/edit")
-        {:noreply, push_navigate(socket, to: path)}
-
-      {:error, _changeset} ->
-        {:noreply, put_flash(socket, :error, "Failed to create page")}
-    end
-  end
-
-  @impl true
-  def handle_event("new_child_page", %{"parent-id" => parent_id}, socket) do
-    scope = socket.assigns.current_scope
-    project = scope.project
-    user = scope.user
-
-    attrs = %{
-      title: "Untitled",
-      parent_id: parent_id,
-      organization_id: project.organization_id,
-      project_id: project.id,
-      user_id: user.id
-    }
-
-    case Pages.create_page(attrs) do
-      {:ok, page} ->
-        path = project_path(scope, "/pages/#{page.slug}/edit")
-        {:noreply, push_navigate(socket, to: path)}
-
-      {:error, _changeset} ->
-        {:noreply, put_flash(socket, :error, "Failed to create page")}
     end
   end
 
@@ -565,24 +420,4 @@ defmodule BlackboexWeb.PageLive.Edit do
   # and would re-hydrate on reconnect via load_chat_messages/1.
   defp cap_messages(messages) when length(messages) <= @max_chat_messages, do: messages
   defp cap_messages(messages), do: Enum.take(messages, -@max_chat_messages)
-
-  defp expanded_ids_for(tree, current_page_id) do
-    # Walk the tree and expand all ancestors of the current page
-    find_ancestors(tree, current_page_id, [])
-  end
-
-  defp find_ancestors([], _target_id, _path), do: []
-
-  defp find_ancestors([node | rest], target_id, path) do
-    if node.page.id == target_id do
-      path
-    else
-      new_path = [node.page.id | path]
-
-      case find_ancestors(node.children, target_id, new_path) do
-        [] -> find_ancestors(rest, target_id, path)
-        found -> found
-      end
-    end
-  end
 end

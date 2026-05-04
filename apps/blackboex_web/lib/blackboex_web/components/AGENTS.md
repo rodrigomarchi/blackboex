@@ -75,7 +75,6 @@ Violation of this rule creates inconsistent UI, breaks dark mode, bypasses seman
 | Underline-style tab bar | `<.underline_tabs>` | `shared/underline_tabs.ex` |
 | Code language micro-label | `<.code_label>` | `editor/code_label.ex` |
 | Editor page toolbar | `<.editor_page_header>` | `editor/page_header.ex` |
-| Collapsible page tree | `<.page_tree>` | `editor/page_tree.ex` |
 | Playground list sidebar | `<.playground_tree>` | `editor/playground_tree.ex` |
 | Auto-save state indicator | `<.save_indicator>` | `editor/save_indicator.ex` |
 | Playground AI chat | `<.playground_chat_panel>` | `editor/playground_chat_panel.ex` |
@@ -107,7 +106,7 @@ Violation of this rule creates inconsistent UI, breaks dark mode, bypasses seman
 All from `BlackboexWeb.Components.*`.
 
 **Editor function components** (import `BlackboexWeb.Components.Editor.*`):
-`Toolbar` → `<.editor_toolbar>`, `CommandPalette` → `<.command_palette>`, `ValidationDashboard` → `<.validation_dashboard>`, `StatusBar` → `<.status_bar>`, `RightPanel` → `<.right_panel>`, `BottomPanel` → `<.bottom_panel>`, `CodeViewer` → `<.code_viewer>`, `CodeLabel` → `<.code_label>`, `PageHeader` → `<.editor_page_header>`, `PageTree` → `<.page_tree>`, `PlaygroundTree` → `<.playground_tree>`, `SaveIndicator` → `<.save_indicator>`, `PlaygroundChatPanel` → `<.playground_chat_panel>`
+`Toolbar` → `<.editor_toolbar>`, `CommandPalette` → `<.command_palette>`, `ValidationDashboard` → `<.validation_dashboard>`, `StatusBar` → `<.status_bar>`, `RightPanel` → `<.right_panel>`, `BottomPanel` → `<.bottom_panel>`, `CodeViewer` → `<.code_viewer>`, `CodeLabel` → `<.code_label>`, `PageHeader` → `<.editor_page_header>`, `PlaygroundTree` → `<.playground_tree>`, `SaveIndicator` → `<.save_indicator>`, `PlaygroundChatPanel` → `<.playground_chat_panel>`
 
 **Editor LiveComponents** (use `<.live_component module={...}>`):
 `Editor.ChatPanel`, `Editor.RequestBuilder`, `Editor.ResponseViewer`
@@ -1371,26 +1370,6 @@ Slots: `:badge` (optional, for status badge), `:actions` (optional, right side b
 
 ---
 
-#### `<.page_tree>`
-
-Module: `BlackboexWeb.Components.Editor.PageTree`
-
-Collapsible page tree sidebar for the page editor. Displays project pages in a nested hierarchy with expand/collapse, selection state, and hover actions (add child, delete).
-
-| Attr | Type | Default | Description |
-|------|------|---------|-------------|
-| `tree` | `:list` | required | Nested tree: `[%{page: %Page{}, children: [...]}]` as returned by `Pages.list_page_tree/1` |
-| `current_page_id` | `:string` | `nil` | ID of the currently selected page |
-| `expanded_ids` | `:list` | `[]` | List of page IDs that are expanded |
-
-Events emitted: `"select_page"` (`phx-value-slug`), `"toggle_tree_node"` (`phx-value-id`), `"new_page"`, `"new_child_page"` (`phx-value-parent-id`), `"request_confirm"` (delete).
-
-```heex
-<.page_tree tree={@page_tree} current_page_id={@page.id} expanded_ids={@expanded_ids} />
-```
-
----
-
 #### `<.playground_tree>`
 
 Module: `BlackboexWeb.Components.Editor.PlaygroundTree`
@@ -1617,6 +1596,6 @@ One-time API key display banner with copy-friendly code block and dismiss button
     - Flows: `/orgs/:org_slug/projects/:project_slug/flows/:flow_id/edit`
     - Pages: `/orgs/:org_slug/projects/:project_slug/pages/:page_slug/edit`
     - Playgrounds: `/orgs/:org_slug/projects/:project_slug/playgrounds/:playground_slug/edit`
-  - **Children loading:** uses `Apis.list_for_project/1`, `Flows.list_for_project/1`, `Pages.list_root_pages_for_project/1`, `Playgrounds.list_for_project/1`
+  - **Children loading:** uses `Apis.list_for_project/1`, `Flows.list_for_project/1`, `Pages.list_page_tree/1`, `Playgrounds.list_for_project/1`; Pages render recursively inside this single sidebar tree.
   - **Persistence:** expanded state written asynchronously via `Task.Supervisor.start_child(Blackboex.TaskSupervisor, ...)`
   - **Wired in:** `app_sidebar.ex` — the WORK group renders this component when `collapsed: false`. When `collapsed: true` the original flat icon-strip items are shown unchanged (editor layout). The component `id` is derived as `"#{sidebar_id}-tree"` to avoid duplicate-ID errors.

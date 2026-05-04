@@ -5,7 +5,7 @@ defmodule Blackboex.Samples.Manifest do
 
   alias Blackboex.Samples.{Api, Flow, Page, Playground}
 
-  @version "2026-05-04.1"
+  @version "2026-05-04.2"
 
   @type kind :: :api | :flow | :page | :playground
   @type sample :: map()

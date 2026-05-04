@@ -2,182 +2,139 @@ defmodule Blackboex.Samples.Page do
   @moduledoc """
   Page samples in the platform-wide sample catalogue.
 
-  The list is structured as a documentation tree rooted at "Bem-vindo ao
-  Blackboex". Each topic page covers a single subsystem of the platform so
-  users land in a managed sample workspace already populated with a coherent
-  "manual" they can browse, edit, and copy from.
+  The list is an end-user onboarding guide for the managed sample workspace.
+  It teaches how to build with Blackboex inside the product: create APIs,
+  build Flows, write Pages, and experiment in Playgrounds.
   """
 
   alias Blackboex.Samples.Id
 
   @welcome_uuid Id.uuid(:page, "welcome")
-  @guide_uuid Id.uuid(:page, "formatting_guide")
 
   @spec list() :: [map()]
-  def list, do: [welcome() | topics()] ++ [formatting_guide(), elixir_patterns()]
+  def list do
+    [
+      welcome(),
+      topic(
+        "apis",
+        1,
+        "Create Your First API",
+        "APIs",
+        "Turn a plain-English request into a working HTTP endpoint.",
+        apis_content()
+      ),
+      topic(
+        "api_test_publish",
+        2,
+        "Test, Publish, and Call an API",
+        "APIs",
+        "Validateste an API with sample input, publish it, and send a request.",
+        api_test_publish_content()
+      ),
+      topic(
+        "flows",
+        3,
+        "Build a Visual Flow",
+        "Flows",
+        "Create a visual workflow that receives data, branches, and returns a result.",
+        flows_content()
+      ),
+      topic(
+        "flow_webhooks",
+        4,
+        "Receive Webhooks with Flows",
+        "Flows",
+        "Use a Flow as an automation endpoint for external events.",
+        flow_webhooks_content()
+      ),
+      topic(
+        "playgrounds",
+        5,
+        "Experiment in Playgrounds",
+        "Playgrounds",
+        "Try payloads, transformations, and calls before turning them into product work.",
+        playgrounds_content()
+      ),
+      topic(
+        "pages_doc",
+        6,
+        "Document Your Project with Pages",
+        "Pages",
+        "Write practical project notes, API guides, runbooks, and handoff docs.",
+        pages_content()
+      ),
+      topic(
+        "project_workflow",
+        7,
+        "Combine APIs, Flows, Pages, and Playgrounds",
+        "Workflow",
+        "Use each Blackboex tool for the part of the job it handles best.",
+        project_workflow_content()
+      ),
+      topic(
+        "next_steps",
+        8,
+        "Next Steps",
+        "Getting Started",
+        "Duplicate useful examples and create a real project for your own work.",
+        next_steps_content()
+      )
+    ]
+  end
 
   defp welcome do
     %{
       kind: :page,
       id: "welcome",
       sample_uuid: @welcome_uuid,
-      name: "Bem-vindo ao Blackboex",
-      title: "[Demo] Bem-vindo ao Blackboex",
-      description: "Visão geral da plataforma e como navegar pelos exemplos.",
-      category: "Introdução",
+      name: "Welcome to Blackboex",
+      title: "Welcome to Blackboex",
+      description: "A practical tour of the sample workspace and what to build first.",
+      category: "Getting Started",
       position: 0,
       status: "published",
       content: """
-      # Bem-vindo ao Blackboex
+      # Welcome to Blackboex
 
-      Este projeto **Exemplos** é gerado automaticamente quando sua organização é
-      criada. Ele serve como manual interativo: cada artefato (API, Flow, Page e
-      Playground) é um exemplo real que você pode abrir, executar e adaptar.
+      This sample workspace is here to help you build, test, and document real
+      product workflows. It is not a technical manual. Every Page in this guide
+      points you toward an action you can take inside Blackboex.
 
-      ## O que você encontra aqui
+      ## What you can build here
 
-      - **APIs** — endpoints HTTP gerados a partir de descrições em linguagem natural,
-        compilados num sandbox seguro e versionados.
-      - **Flows** — orquestrações visuais com nodes (start, código Elixir, HTTP,
-        condições, sub-fluxos, aprovação, delay e fim).
-      - **Playgrounds** — células únicas de Elixir para experimentar trechos de
-        código no sandbox da plataforma, com captura de IO e execução por
-        usuário.
-      - **Pages** — exatamente o que você está lendo agora: Markdown com
-        suporte a Mermaid, listas, tabelas e blocos de código.
+      - **APIs**: HTTP endpoints generated from a plain-English description.
+      - **Flows**: visual automations that receive data, branch, call services,
+        and return results.
+      - **Playgrounds**: small experiments for payloads, transformations, and
+        product calls.
+      - **Pages**: project notes, API guides, runbooks, and handoff docs.
 
-      ## Como usar este workspace
+      ## A good first path
 
-      1. **Explore** os exemplos sem medo de quebrá-los — qualquer alteração
-         que você fizer é restaurada na próxima sincronização do manifesto.
-      2. **Duplique** o que precisar para um projeto seu (botão "mover" em
-         cada artefato).
-      3. **Crie** projetos próprios na sua organização para trabalho
-         definitivo — o workspace de Exemplos é só o playground de leitura.
+      1. Open **APIs** and inspect **REST CRUD Resource** or **Product Catalog**.
+      2. Create a new API from a short description of the endpoint you need.
+      3. Open **Run** or the test area for that API and send a sample payload.
+      4. Open **Flows** and inspect **Hello World** or **Webhook Processor**.
+      5. Use **Pages** to document the request shape, response shape, and owner.
+      6. Use a **Playground** when you want to try a JSON payload or data
+         transformation before saving it into an API or Flow.
 
       ```mermaid
       flowchart LR
-        Org[Organização] --> Sample[Projeto Exemplos]
-        Org --> Yours[Seus Projetos]
-        Sample -.copia.-> Yours
-        Yours --> Prod[Produção]
+        Idea[Idea] --> API[Create API]
+        API --> Test[Test request]
+        Test --> Flow[Automate with Flow]
+        Flow --> Docs[Document with Pages]
+        Docs --> Project[Real project]
       ```
 
-      ## Próximas páginas
+      ## How to use this workspace
 
-      As demais pages deste workspace cobrem cada subsistema em detalhes.
-      Comece por **Conceitos Fundamentais** se for sua primeira vez aqui.
+      Open an example, run it, and compare its inputs and outputs with what you
+      want to build. When an example is close to your use case, duplicate it into
+      a project you own and adapt it there.
       """
     }
-  end
-
-  defp topics do
-    [
-      topic(
-        "concepts",
-        1,
-        "Conceitos Fundamentais",
-        "Plataforma",
-        "Organizações, projetos, escopos e como o Blackboex se posiciona.",
-        concepts_content()
-      ),
-      topic(
-        "apis",
-        2,
-        "APIs — Geração com IA",
-        "APIs",
-        "Como descrever, compilar, validar e invocar APIs HTTP.",
-        apis_content()
-      ),
-      topic(
-        "flows",
-        3,
-        "Flows — Orquestração Visual",
-        "Flows",
-        "Editor visual, tipos de node, webhook tokens e execução assíncrona.",
-        flows_content()
-      ),
-      topic(
-        "playgrounds",
-        4,
-        "Playgrounds — Sandbox de Elixir",
-        "Playgrounds",
-        "Single-cell Elixir REPL com captura de IO e helpers HTTP/Api.",
-        playgrounds_content()
-      ),
-      topic(
-        "pages_doc",
-        5,
-        "Pages — Documentação Markdown",
-        "Pages",
-        "Hierarquia, status, Markdown estendido e Mermaid.",
-        pages_content()
-      ),
-      topic(
-        "llms",
-        6,
-        "Integração com LLMs",
-        "AI",
-        "Anthropic, OpenAI, circuit breaker, rate limiter e prompts.",
-        llms_content()
-      ),
-      topic(
-        "conversations",
-        7,
-        "Conversations & Runs",
-        "AI",
-        "Event sourcing das conversas: runs, events e replay.",
-        conversations_content()
-      ),
-      topic(
-        "telemetry",
-        8,
-        "Telemetria & Observabilidade",
-        "Operação",
-        "OpenTelemetry, eventos, métricas e dashboards.",
-        telemetry_content()
-      ),
-      topic(
-        "auth",
-        9,
-        "Autenticação & Multi-tenancy",
-        "Segurança",
-        "Scope, sessions, memberships, isolamento por organização.",
-        auth_content()
-      ),
-      topic(
-        "audit",
-        10,
-        "Auditoria de Mudanças",
-        "Segurança",
-        "ExAudit, AuditLog, escopo admin e trilha imutável.",
-        audit_content()
-      ),
-      topic(
-        "testing",
-        11,
-        "Workflow de Testes",
-        "Engenharia",
-        "TDD obrigatório, fixtures, named setups, separação por tag.",
-        testing_content()
-      ),
-      topic(
-        "make_commands",
-        12,
-        "Comandos Make & Operação",
-        "Engenharia",
-        "Make targets, Docker, migrations, lint, testes seletivos.",
-        make_commands_content()
-      ),
-      topic(
-        "roadmap",
-        13,
-        "Roadmap & Próximos Passos",
-        "Plataforma",
-        "Direção do produto e como contribuir com seu workspace.",
-        roadmap_content()
-      )
-    ]
   end
 
   defp topic(id, position, name, category, description, content) do
@@ -187,7 +144,7 @@ defmodule Blackboex.Samples.Page do
       sample_uuid: Id.uuid(:page, id),
       parent_sample_uuid: @welcome_uuid,
       name: name,
-      title: "[Demo] #{name}",
+      title: name,
       description: description,
       category: category,
       position: position,
@@ -196,737 +153,390 @@ defmodule Blackboex.Samples.Page do
     }
   end
 
-  defp formatting_guide do
-    %{
-      kind: :page,
-      id: "formatting_guide",
-      sample_uuid: @guide_uuid,
-      parent_sample_uuid: @welcome_uuid,
-      name: "Guia de Formatação",
-      title: "[Demo] Guia de Formatação",
-      description: "Markdown editor formatting guide.",
-      category: "Documentation",
-      position: 15,
-      status: "published",
-      content: """
-      # Guia de Formatação do Editor
-
-      Bem-vindo ao guia de exemplos do Blackboex. Esta página demonstra Markdown,
-      listas, tabelas, blocos de código e diagramas Mermaid.
-
-      - **Texto em negrito**
-      - `código inline`
-      - Listas de tarefas
-
-      ```elixir
-      Enum.map([1, 2, 3], &(&1 * 2))
-      ```
-
-      ```mermaid
-      flowchart TD
-        A[Request] --> B[Blackboex]
-        B --> C[Response]
-      ```
-      """
-    }
-  end
-
-  defp elixir_patterns do
-    %{
-      kind: :page,
-      id: "elixir_patterns",
-      sample_uuid: Id.uuid(:page, "elixir_patterns"),
-      parent_sample_uuid: @guide_uuid,
-      name: "Padrões de Código Elixir",
-      title: "[Demo] Padrões de Código Elixir",
-      description: "Small Elixir reference page.",
-      category: "Documentation",
-      position: 16,
-      status: "published",
-      content: """
-      # Padrões de Código Elixir
-
-      ## Pattern Matching
-
-      ```elixir
-      with {:ok, user} <- fetch_user(id),
-           :ok <- authorize(user) do
-        {:ok, user}
-      end
-      ```
-      """
-    }
-  end
-
-  defp concepts_content do
-    """
-    # Conceitos Fundamentais
-
-    O Blackboex é uma plataforma multi-tenant para construir, executar e
-    monitorar APIs e workflows com geração assistida por IA. Antes de tudo,
-    três entidades estruturam o resto:
-
-    | Entidade | Papel |
-    |----------|-------|
-    | **Organização** | Tenant raiz. Tudo é escopado por `organization_id`. |
-    | **Projeto** | Agrupador lógico dentro da org (APIs, Flows, Pages, Playgrounds). |
-    | **Membership** | Usuário ↔ Organização (roles: admin, member). |
-
-    ## Scope: o objeto que viaja com você
-
-    Toda LiveView, plug e contexto recebe um `Blackboex.Accounts.Scope` que
-    contém o `user` autenticado e a `organization` ativa. Use o scope para:
-
-    - Filtrar consultas (`scope.organization.id`)
-    - Verificar permissões (`Blackboex.Policy`)
-    - Auditar mudanças (`scope` é injetado nos audits)
-
-    Nunca consulte diretamente por `id` sem cruzar com a org do scope — isso
-    evita IDOR (Insecure Direct Object Reference).
-
-    ```mermaid
-    flowchart TD
-      User[Usuário] -->|login| Session
-      Session -->|carrega| Scope
-      Scope -->|filtra| Org[(Organização)]
-      Org --> P1[Projeto A]
-      Org --> P2[Projeto B]
-      P1 --> APIs & Flows & Pages & Playgrounds
-    ```
-
-    ## Próximo passo
-
-    Veja **Autenticação & Multi-tenancy** para o fluxo completo de login,
-    invite-only registration e o on_mount hook que popula o scope.
-    """
-  end
-
   defp apis_content do
     """
-    # APIs — Geração com IA
+    # Create Your First API
 
-    Uma **API** no Blackboex é um endpoint HTTP completo gerado a partir de
-    uma descrição em linguagem natural, compilado em sandbox seguro e
-    versionado por arquivos.
+    Use an API when you need a live HTTP endpoint that accepts a request and
+    returns a structured response.
 
-    ## Ciclo de vida
+    ## What to create first
 
-    ```mermaid
-    stateDiagram-v2
-      [*] --> draft
-      draft --> compiling: compile
-      compiling --> compiled: AST + spec OK
-      compiling --> draft: erros
-      compiled --> deployed: deploy
-      deployed --> compiled: nova versão
+    Start with a focused endpoint. Good first APIs answer one request clearly:
+
+    - calculateste a price or fee;
+    - validateste a form submission;
+    - look up an item in a small catalog;
+    - transform a webhook payload into the shape another tool expects.
+
+    ## Try this prompt
+
+    Paste a request like this into the API creation flow:
+
+    ```text
+    Create a POST API that receives a product id, quantity, and customer tier.
+    Return the unit price, discount, subtotal, tax estimate, and final total.
+    If the product id is unknown, return a clear validatestion errorr.
     ```
 
-    ## Arquivos gerados
+    ## What to click
 
-    Cada API mantém arquivos em `/src/` e `/test/`:
+    1. Open **APIs**.
+    2. Select the action to create a new API.
+    3. Describe the endpoint in plain English.
+    4. Review the generated request fields, response fields, and example output.
+    5. Save the API when the behavior matches the job.
 
-    | Caminho | Conteúdo |
-    |---------|----------|
-    | `/src/handler.ex` | Função principal `handle/1` |
-    | `/src/helpers.ex` | Helpers privados |
-    | `/src/request_schema.ex` | Validação do payload de entrada |
-    | `/src/response_schema.ex` | Forma do retorno |
-    | `/test/handler_test.ex` | Suite ExUnit gerada junto |
-    | `/README.md` | Documentação derivada |
+    ## How to know it worked
 
-    ## Invocando uma API
+    You should see a generated API with a request example, a response example,
+    and editable files. The API should be ready for a test request with JSON
+    input.
 
-    ```bash
-    curl -X POST https://localhost:4000/api/<org>/<project>/<api> \\
-      -H "Authorization: Bearer <api_key>" \\
-      -H "Content-Type: application/json" \\
-      -d '{"input": "valor"}'
+    ## Examples to inspect
+
+    - **REST CRUD Resource** for create, read, update, and delete behavior.
+    - **Product Catalog** for search, filters, and pagination.
+    - **Health Check API** for a small endpoint with predictable output.
+    - **Errorr Simulation API** for controlled errorr responses.
+    """
+  end
+
+  defp api_test_publish_content do
+    """
+    # Test, Publish, and Call an API
+
+    Creating an API is only the first step. Before you rely on it, test the
+    request shape, confirm the response, and publish it when it is ready to be
+    called by another tool or customer workflow.
+
+    ## Test with real-looking data
+
+    Use input that looks like the data your product will actually send:
+
+    ```json
+    {
+      "product_id": "sku_123",
+      "quantity": 3,
+      "customer_tier": "business"
+    }
     ```
 
-    ## Exemplos disponíveis
+    Avoid testing only the perfect path. Also try a missing field, an unknown
+    id, and an unexpected value.
 
-    Veja a aba **APIs** deste projeto. Há ~19 templates cobrindo: cálculos
-    financeiros, validação de documentos, scoring de crédito, webhooks
-    (GitHub/Slack), simulação de erros e CRUD de recursos.
+    ## What to click
 
-    ## Segurança
+    1. Open the API.
+    2. Open the area for running or testing requests.
+    3. Paste a JSON payload.
+    4. Send the request.
+    5. Review the status, response body, and any validatestion message.
+    6. Publish the API when the result is stable.
 
-    - AST validator bloqueia módulos perigosos (`File`, `System`, `Code`,
-      `:erlang`, `:os`).
-    - Rate limiting por API key (ExRated).
-    - Logs de invocação ficam em `InvocationLog` — agregados em
-      `MetricRollup`.
+    ## How to know it worked
+
+    A successful test should return JSON that matches the response contract you
+    expect. A failed test should explain what input needs to change.
+
+    ## What to capture in your docs
+
+    After the API works, create or update a Page with:
+
+    - endpoint purpose;
+    - required input fields;
+    - example request;
+    - example response;
+    - known errorr cases;
+    - owner and next review date.
+
+    ## Example to inspect
+
+    Open **Product Catalog** and compare its example request with its example
+    response. Use that pattern for your own API notes.
     """
   end
 
   defp flows_content do
     """
-    # Flows — Orquestração Visual
+    # Build a Visual Flow
 
-    Um **Flow** é uma definição em JSON manipulada por um editor visual.
-    Cada Flow tem um `webhook_token` único; quando ativo, recebe POSTs em
-    `/webhook/:token`.
+    Use a Flow when a process needs more than one step: receive input, branch on
+    a condition, call another service, transform data, wait for approval, or
+    return a final result.
 
-    ## Tipos de node
+    ## Start with the path, not the nodes
 
-    | Type | Função |
-    |------|--------|
-    | `start` | Define o schema de entrada |
-    | `elixir_code` | Bloco de código com `input` e `state` em escopo |
-    | `http_request` | Chamada HTTP externa com timeout |
-    | `condition` | Branching booleano |
-    | `delay` | Espera N segundos antes de continuar |
-    | `sub_flow` | Invoca outro Flow no mesmo projeto |
-    | `approval` | Pausa até aprovação manual ou timeout |
-    | `end` | Encerra a execução, devolvendo `output` |
+    Write the process in one sentence before you build:
 
-    ## Execução
-
-    ```mermaid
-    sequenceDiagram
-      Cliente->>Webhook: POST /webhook/<token>
-      Webhook->>FlowExecutor: dispatch
-      FlowExecutor->>NodeExec1: start
-      NodeExec1->>NodeExec2: elixir_code
-      NodeExec2-->>FlowExecutor: {result, state}
-      FlowExecutor-->>Cliente: 200 {output}
+    ```text
+    When a support ticket arrives, classify its priority, route urgent tickets
+    to the incident path, and return the assigned queue.
     ```
 
-    Cada execução grava `FlowExecution` (status, started_at, finished_at)
-    e um `NodeExecution` por node atravessado. Isso vira a base do replay e
-    da observabilidade.
+    Then turn the sentence into steps:
 
-    ## Idempotência
+    1. Start with the incoming payload.
+    2. Transform or classify the data.
+    3. Add a condition for the important branch.
+    4. Return the final output.
 
-    Flows que recebem webhooks podem usar a chave `idempotency_key` no payload.
-    O `WebhookProcessor` template demonstra o padrão **check → process → mark**
-    para evitar reprocessamento.
+    ## What to click
 
-    ## Templates inclusos
+    1. Open **Flows**.
+    2. Create a new Flow or open an existing sample.
+    3. Add a start step for the incoming data.
+    4. Add a transformation or request step.
+    5. Add a condition if the process branches.
+    6. End with the response you want callers to receive.
 
-    Cerca de 28 templates: HelloWorld, Notification, AllNodesDemo, DataPipeline,
-    OrderProcessor, BatchProcessor, HttpEnrichment, ApprovalWorkflow,
-    RestApiCrud, LeadScoring, WebhookProcessor, SagaCompensation, LlmRouter,
-    SubFlowOrchestrator e outros. Estão na aba **Flows**.
+    ## How to know it worked
+
+    Run the Flow with a sample payload. The execution should show which path was
+    taken and what output was produced.
+
+    ## Examples to inspect
+
+    - **Hello World** for a yesple guided Flow.
+    - **Support Ticket Router** for classification and routing.
+    - **HTTP Enrichment** for calling another service.
+    - **Approval Workflow** for human review before completion.
+    """
+  end
+
+  defp flow_webhooks_content do
+    """
+    # Receive Webhooks with Flows
+
+    A Flow can act as a webhook receiver. Use this when another product sends an
+    event and Blackboex needs to validateste, transform, route, or store the result
+    of that event.
+
+    ## Good webhook use cases
+
+    - route form submissions to the right team;
+    - process payment or order events;
+    - receive issue, ticket, or alert events;
+    - normalize data before calling another API;
+    - return a clear accepted or rejected response.
+
+    ## Try this payload
+
+    ```json
+    {
+      "event_type": "ticket.created",
+      "ticket_id": "T-1007",
+      "priority": "urgent",
+      "customer": "Acme Co",
+      "message": "Production checkout is failing"
+    }
+    ```
+
+    ## What to click
+
+    1. Open **Flows**.
+    2. Open a webhook-oriented sample Flow.
+    3. Copy the Flow webhook URL or token shown by the product.
+    4. Send a sample event from the run panel or from the product that owns the
+       event.
+    5. Review the execution result and any branch taken.
+
+    ## How to know it worked
+
+    The Flow should create an execution for the incoming event. The final output
+    should tell the sender what happened, such as accepted, routed, rejected, or
+    waiting for review.
+
+    ## Examples to inspect
+
+    - **Webhook Processor** for event intake.
+    - **Webhook Idempotent** for duplicate-safe processing.
+    - **Incident Alert Pipeline** for alert routing.
+    - **Lead Scoring** for event enrichment and scoring.
     """
   end
 
   defp playgrounds_content do
     """
-    # Playgrounds — Sandbox de Elixir
+    # Experiment in Playgrounds
 
-    Um **Playground** é uma única célula de código Elixir, executada num
-    sandbox isolado. É a forma mais rápida de:
+    Use a Playground when you want to try a small idea before turning it into an
+    API or Flow. It is best for payload shaping, data transformation, quick JSON
+    checks, and calls to examples in the same project.
 
-    - Experimentar sintaxe e padrões
-    - Chamar uma API ou Flow do projeto
-    - Ler variáveis de ambiente do projeto (`env`)
-    - Prototipar uma transformação antes de promovê-la para uma API
+    ## What to try first
 
-    ## Ambiente de execução
-
-    | Limite | Valor |
-    |--------|-------|
-    | Timeout | 15s |
-    | Heap máximo | 10MB |
-    | Output | 64KB (truncado) |
-    | HTTP por execução | 5 chamadas, timeout 3s |
-    | Rate limit | 10 execuções/min/usuário |
-
-    ## Módulos permitidos (allowlist)
-
-    Apenas: `Enum`, `Map`, `List`, `String`, `Integer`, `Float`, `Tuple`,
-    `Keyword`, `MapSet`, `Date`, `Time`, `DateTime`, `NaiveDateTime`, `Calendar`,
-    `Regex`, `URI`, `Base`, `Jason`, `Access`, `Stream`, `Range`, `Atom`, `IO`,
-    `Inspect`, `Kernel`, `Bitwise`, mais os helpers `Blackboex.Playgrounds.Http`
-    e `Blackboex.Playgrounds.Api`.
-
-    **Bloqueado**: `defmodule`, `Function.capture`, `File`, `System`, `:erlang`,
-    `:os`, `:code`, `:port`.
-
-    ## Helpers de plataforma
+    Start with a small transformation:
 
     ```elixir
-    alias Blackboex.Playgrounds.Http
-    alias Blackboex.Playgrounds.Api
+    payload = %{
+      "items" => [
+        %{"sku" => "starter", "quantity" => 2, "price" => 19},
+        %{"sku" => "pro", "quantity" => 1, "price" => 49}
+      ]
+    }
 
-    {:ok, %{status: 200, body: body}} = Http.get("https://example.com")
+    total =
+      payload["items"]
+      |> Enum.map(fn item -> item["quantity"] * item["price"] end)
+      |> Enum.sum()
 
-    Api.call_flow("token", %{"x" => 1})
-    Api.call_api(org, project, api, params, api_key)
+    IO.inspect(%{"total" => total}, label: "Result")
     ```
 
-    ## Variáveis do projeto
+    ## What to click
 
-    O binding `env` está disponível como mapa de strings:
+    1. Open **Playgrounds**.
+    2. Create a new Playground or open a sample.
+    3. Paste a small payload and transformation.
+    4. Run it.
+    5. Move the working idea into an API or Flow when it is useful.
 
-    ```elixir
-    env["API_URL"]  # ou nil se não setado
-    ```
+    ## How to know it worked
 
-    Configure variáveis em **Project Settings → Env Vars**.
+    The output should show the value you need in a shape you can reuse. If the
+    result is unclear, yesplify the input and run again.
 
-    ## Exemplos disponíveis
+    ## Examples to inspect
 
-    Veja a aba **Playgrounds** — há ~20 exemplos cobrindo Enum, pipe,
-    pattern matching, Stream, Date/Time, Regex, HTTP, chamadas de Flow e mais.
+    Look for samples that transform lists, parse JSON, read project variables,
+    or call a Flow from the same project.
     """
   end
 
   defp pages_content do
     """
-    # Pages — Documentação Markdown
+    # Document Your Project with Pages
 
-    **Pages** são páginas de Markdown organizadas em árvore por projeto.
-    Boas para: documentação interna, runbooks, especificações, planejamento e
-    exemplos (como esta página).
+    Use Pages to keep product knowledge next to the APIs, Flows, and
+    Playgrounds it explains. A useful Page helps another person understand what
+    exists, why it exists, and how to operate it.
 
-    ## Hierarquia
+    ## Good Pages to create
 
-    Cada Page tem um `parent_id` opcional. Pages de primeiro nível agrupam
-    sub-páginas. A navegação à esquerda reflete a árvore.
+    - API contract: purpose, request, response, errorrs, and owner.
+    - Flow runbook: trigger, branches, retry notes, and escalation path.
+    - Launch checklist: what must be true before publishing.
+    - Customer handoff: what the endpoint does and how to call it.
+    - Change notes: what changed and who should be informed.
 
-    ## Status
+    ## Starter structure
 
-    - `draft` — só admins veem
-    - `published` — visível a todos os membros do projeto
+    ```markdown
+    # Payment Status API
 
-    ## Markdown estendido
+    ## Purpose
+    Explain the customer job this API handles.
 
-    Suporte a:
+    ## Request
+    Show the required fields and one JSON example.
 
-    - **Negrito**, *itálico*, `código inline`
-    - Listas, listas de tarefas, tabelas
-    - Blocos com syntax highlighting
-    - **Mermaid** (`flowchart`, `sequenceDiagram`, `stateDiagram-v2`)
-    - Links internos para outras Pages
+    ## Response
+    Show the success shape and common errorr cases.
 
-    ## Exemplo de Mermaid
+    ## Owner
+    Name the person or team responsible for updates.
+    ```
+
+    ## What to click
+
+    1. Open **Pages**.
+    2. Create a new Page.
+    3. Give it a title that names the API, Flow, or decision.
+    4. Add the examples and owner notes someone will need later.
+    5. Publish it when it is ready for the project team.
+
+    ## How to know it worked
+
+    A teammate should be able to open the Page and understand how to use or
+    maintain the related artifact without asking you for missing context.
+    """
+  end
+
+  defp project_workflow_content do
+    """
+    # Combine APIs, Flows, Pages, and Playgrounds
+
+    Blackboex works best when each tool has a clear role. Use APIs for stable
+    endpoints, Flows for multi-step automation, Playgrounds for experiments,
+    and Pages for shared knowledge.
+
+    ## A practical build sequence
 
     ```mermaid
-    sequenceDiagram
-      participant U as Usuário
-      participant L as LiveView
-      participant C as Contexto
-      U->>L: handle_event("save", params)
-      L->>C: Pages.update_page(page, attrs)
-      C-->>L: {:ok, updated}
-      L-->>U: assigns atualizados
+    flowchart TD
+      Need[User need] --> Playground[Try payload in Playground]
+      Playground --> API[Create API]
+      API --> Flow[Use API in a Flow]
+      Flow --> Page[Document behavior]
+      Page --> Review[Review and publish]
     ```
 
-    ## Versão e idempotência
+    ## Example workflow
 
-    Pages com `sample_uuid` são gerenciadas pela manifesto. Suas alterações
-    são preservadas até a próxima sincronização — depois, o conteúdo é
-    restaurado para a versão canônica.
+    Build a lead intake process:
+
+    1. Use a Playground to shape a sample lead payload.
+    2. Create an API that validatestes and scores the lead.
+    3. Create a Flow that receives the lead event and routes high-value leads.
+    4. Write a Page that documents the payload, score meaning, and owner.
+    5. Test the full path with a realistic event.
+
+    ## How to know it worked
+
+    You should be able to explain the full path in one sentence:
+
+    ```text
+    When a lead arrives, Blackboex validatestes it, scores it, routes it, and
+    returns the next action.
+    ```
+
+    ## Examples to inspect
+
+    - **Lead Scoring** for scoring and routing.
+    - **REST CRUD Resource** for API structure.
+    - **Webhook Processor** for event intake.
+    - **Product Catalog** for request and response examples.
     """
   end
 
-  defp llms_content do
+  defp next_steps_content do
     """
-    # Integração com LLMs
+    # Next Steps
 
-    O Blackboex usa LLMs (Anthropic Claude, OpenAI) para:
+    Once you understand the examples, create a real project for your own work.
+    Keep this sample workspace as a reference, and use your project for anything
+    you plan to maintain.
 
-    - Gerar APIs a partir de descrições naturais
-    - Editar código de Playground via chat
-    - Sugerir definições de Flow
-    - Sumarizar logs e auditorias
+    ## Choose a first real project
 
-    ## Camadas
+    Pick one narrow outcome:
 
-    ```mermaid
-    flowchart LR
-      Caller --> Client[Blackboex.LLM.Client]
-      Client --> Breaker[Circuit Breaker]
-      Breaker --> Limiter[Rate Limiter]
-      Limiter --> Provider{Provider}
-      Provider -->|Anthropic| Claude
-      Provider -->|OpenAI| GPT
-    ```
+    - a customer-facing lookup endpoint;
+    - a webhook receiver for a product event;
+    - a workflow that routes requests to the right team;
+    - a mock service for testing another product;
+    - a documented API contract for a partner.
 
-    ## Circuit Breaker
+    ## What to click
 
-    Após N falhas consecutivas em janela X, o circuito abre. Isso protege:
+    1. Create or open the project where the real work belongs.
+    2. Duplicate the closest sample API, Flow, Page, or Playground.
+    3. Rename it for your use case.
+    4. Replace sample inputs with your real fields.
+    5. Test with realistic data.
+    6. Publish only when the result is clear and repeatable.
 
-    - Custo (não queimamos tokens em provider degradado)
-    - Latência (falha rápido em vez de esperar timeout)
-    - Cascata (não derruba dependentes)
+    ## How to know it worked
 
-    Estado: `:closed` → `:open` → `:half_open` → `:closed`.
+    The project should contain the artifact, a working test case, and a Page
+    that explains how another person can use it.
 
-    ## Rate Limiter
+    ## What to do after that
 
-    Per-organização e per-modelo. Configurável em `config/runtime.exs`.
-
-    ## Prompts versionados
-
-    Cada subsistema tem seu próprio módulo de prompts:
-
-    - `Blackboex.Agent.Prompts` — geração de API
-    - `Blackboex.PlaygroundAgent.Prompts` — chat de Playground
-    - `Blackboex.PageAgent.Prompts` — escrita de páginas
-    - `Blackboex.FlowAgent.Prompts` — geração de Flow
-
-    Mudanças nos prompts são mudanças semânticas — preferir versionar
-    explicitamente em vez de "pequenos ajustes".
-
-    ## Configuração
-
-    ```bash
-    export ANTHROPIC_API_KEY=sk-...
-    export OPENAI_API_KEY=sk-...
-    ```
-
-    Ou setar como variável de projeto (`Blackboex.ProjectEnvVars`).
-    """
-  end
-
-  defp conversations_content do
-    """
-    # Conversations & Runs
-
-    Toda interação com IA persiste em **event sourcing**: a conversa é uma
-    sequência imutável de eventos.
-
-    ## Modelo
-
-    | Schema | Papel |
-    |--------|-------|
-    | `Conversation` | Thread (Playground/Page/Flow) |
-    | `Run` | Uma rodada do agente (request → response) |
-    | `Event` | Item atômico: `tool_call`, `tool_result`, `message`, `error` |
-
-    ## Por que event sourcing
-
-    1. **Replay**: reconstruir o estado a partir dos eventos
-    2. **Auditoria**: nada é apagado ou modificado
-    3. **Streaming**: enviar eventos para o LiveView via PubSub à medida que
-       chegam
-    4. **Custo**: cada Event carrega `input_tokens`/`output_tokens` para
-       agregação em `LLM.Usage`
-
-    ## Subsistemas separados
-
-    Há tabelas paralelas por domínio para evitar JOIN heterogêneo:
-
-    - `playground_conversations` / `playground_runs` / `playground_events`
-    - `page_conversations` / `page_runs` / `page_events`
-    - `flow_conversations` / `flow_runs` / `flow_events`
-
-    ## Streaming
-
-    ```mermaid
-    sequenceDiagram
-      LV as LiveView
-      SM as StreamManager
-      LLM as LLM Provider
-      LV->>SM: start_run(input)
-      SM->>LLM: stream_request
-      LLM-->>SM: chunk_1
-      SM->>LV: PubSub broadcast
-      LLM-->>SM: chunk_2
-      SM->>LV: PubSub broadcast
-      LLM-->>SM: end
-      SM->>LV: complete
-    ```
-
-    O LiveView faz `Phoenix.PubSub.subscribe/2` no `mount` e atualiza assigns
-    via `handle_info/2`.
-    """
-  end
-
-  defp telemetry_content do
-    """
-    # Telemetria & Observabilidade
-
-    Blackboex emite eventos `:telemetry` para todos os pontos críticos:
-
-    | Evento | Quando |
-    |--------|--------|
-    | `[:blackboex, :api, :invocation]` | API HTTP invocada |
-    | `[:blackboex, :flow, :execution]` | Flow disparado |
-    | `[:blackboex, :playground, :execute]` | Código executado |
-    | `[:blackboex, :llm, :request]` | Request enviado ao provider |
-    | `[:blackboex, :llm, :response]` | Response (com tokens) |
-    | `[:blackboex, :auth, :login]` | Login bem-sucedido/falho |
-
-    ## OpenTelemetry
-
-    Eventos são roteados para OTLP via `Blackboex.Telemetry.Reporter`. Em
-    produção, alimenta dashboards Grafana/Tempo.
-
-    ## Métricas agregadas
-
-    `Blackboex.Apis.MetricRollup` agrega `InvocationLog` por minuto/hora/dia
-    para evitar full table scan no dashboard.
-
-    ## Health check
-
-    `GET /healthz` retorna 200 quando:
-
-    - DB respondendo (`SELECT 1` com timeout)
-    - Migration count não-zero
-    - Aplicações principais up
-
-    Use em load balancer / Kubernetes liveness probe.
-
-    ## Wrapper seguro
-
-    `Blackboex.Telemetry.safe_execute/2` envolve `:telemetry.execute/2` em
-    try/rescue. Erros de handler de telemetria nunca derrubam o caminho
-    quente.
-    """
-  end
-
-  defp auth_content do
-    """
-    # Autenticação & Multi-tenancy
-
-    O Blackboex usa **invite-only registration**. Cadastro público não existe.
-
-    ## Fluxo de login
-
-    ```mermaid
-    sequenceDiagram
-      U as Usuário
-      W as Web
-      A as Accounts
-      DB as DB
-      U->>W: POST /users/log_in (email, password)
-      W->>A: get_user_by_email_and_password
-      A->>DB: SELECT user
-      A-->>W: %User{}
-      W->>A: generate_user_session_token
-      W-->>U: 302 + cookie
-    ```
-
-    ## Scope
-
-    `Blackboex.Accounts.Scope` agrega:
-
-    - `user` — autenticado
-    - `organization` — ativa (definida em `select_org`)
-    - `live_action`/`current_path` — para LiveView contexts
-
-    O on_mount hook `:fetch_current_scope` injeta o scope em todas as
-    LiveViews. Plugs equivalentes existem para controllers.
-
-    ## Multi-tenancy
-
-    Toda query que filtra dados de usuário **deve** cruzar por
-    `scope.organization.id`. Padrão recomendado:
-
-    ```elixir
-    def list_apis_for_project(project_id) when is_binary(project_id) do
-      from(a in Api, where: a.project_id == ^project_id)
-      |> Repo.all()
-    end
-    ```
-
-    ...mas o `project_id` deve ter sido buscado já filtrado pela org. O
-    `Blackboex.Policy` (LetMe) verifica isso explicitamente.
-
-    ## Sessões
-
-    `UserToken` separa tokens por contexto: `"session"`, `"reset_password"`,
-    `"confirm"`, `"change_email"`. Cada um tem TTL próprio.
-
-    ## Onboarding
-
-    O wizard de primeiro uso (`OnboardingLive`) cria a primeira organização
-    + projeto Exemplos automaticamente. Vê **Conceitos Fundamentais** para a
-    estrutura.
-    """
-  end
-
-  defp audit_content do
-    """
-    # Auditoria de Mudanças
-
-    Mudanças relevantes do domínio passam por `ExAudit`, gerando um
-    `AuditLog` para cada:
-
-    - `insert/update/delete` em schemas auditados
-    - Diff campo-a-campo
-    - Carimbo do `Scope.user_id` que originou a operação
-
-    ## Schemas auditados
-
-    | Schema | Por que auditar |
-    |--------|-----------------|
-    | `Api` | Mudanças disparam recompilação |
-    | `Flow` | Definição é executável |
-    | `Page` | Conteúdo público para o time |
-    | `Organization` | Multi-tenancy crítico |
-    | `Membership` | Quem tem acesso a quê |
-    | `ProjectEnvVar` | Pode conter secrets — diff de chave, valor mascarado |
-
-    ## Como ler
-
-    Aba **Audit Log** no admin (Backpex):
-
-    - Filtra por org / actor / período
-    - Mostra diff JSON
-    - Imutável (sem `update`/`delete` na tabela `audit_logs`)
-
-    ## Programaticamente
-
-    ```elixir
-    Blackboex.Audit.list_for_resource(api.id, limit: 50)
-    ```
-
-    ## Por que importa
-
-    - **Compliance**: exigido para SOC2/ISO em muitos contextos
-    - **Debug**: "quem mudou esse Flow ontem?"
-    - **Segurança**: detecção de comportamento anômalo
-    """
-  end
-
-  defp testing_content do
-    """
-    # Workflow de Testes
-
-    Regra zero: **TDD obrigatório**. Escreva o teste, veja-o falhar, depois
-    implemente. Sem exceções.
-
-    ## Comandos
-
-    | Comando | O que faz |
-    |---------|-----------|
-    | `make test` | Suite completa |
-    | `make test.unit` | Apenas `@moduletag :unit` |
-    | `make test.integration` | Apenas `@moduletag :integration` |
-    | `make test.liveview` | Apenas `@moduletag :liveview` |
-    | `make test.failed` | Re-roda os que falharam |
-    | `make test.cover` | Cobertura |
-    | `make lint` | format + credo + dialyzer |
-    | `make precommit` | compile + format + test |
-
-    ## Fixtures (obrigatórias)
-
-    Todo schema inserido em teste **precisa** ter fixture. Inserção inline
-    com `%Schema{} |> changeset |> Repo.insert` é proibida (exceto em testes
-    do próprio changeset).
-
-    ## Named setups
-
-    Compor em vez de duplicar:
-
-    ```elixir
-    setup [:register_and_log_in_user, :create_org_and_api]
-    ```
-
-    Disponíveis: `:register_and_log_in_user`, `:create_user_and_org`,
-    `:create_org`, `:create_api`, `:create_org_and_api`, `:create_project`,
-    `:create_flow`, `:create_org_and_flow`, `:create_page`, `:create_page_tree`,
-    `:create_playground`, `:stub_llm_client`.
-
-    ## LiveView
-
-    Use `assert_has(view, selector)` e `refute_has(view, selector)` em vez
-    de `has_element?` cru.
-
-    ## Mocks
-
-    `Mox.verify_on_exit!` é automático em DataCase. Só `import Mox` se você
-    usar `expect/3` ou `stub/3` direto.
-
-    ## Zero warnings
-
-    Nunca ignore `[D]` design warnings do Credo. Nunca dispense alertas
-    Dialyzer sem investigar root cause.
-    """
-  end
-
-  defp make_commands_content do
-    """
-    # Comandos Make & Operação
-
-    O `Makefile` na raiz tem alvos para todos os fluxos comuns.
-
-    ## Setup inicial
-
-    ```bash
-    make setup     # docker up + deps + DB criado/migrado
-    make server    # localhost:4000
-    make iex       # console interativo
-    ```
-
-    ## Banco de dados
-
-    | Comando | Efeito |
-    |---------|--------|
-    | `make db.migrate` | Roda migrations pendentes |
-    | `make db.rollback` | Volta uma migration |
-    | `make db.reset` | drop + create + migrate + seed |
-    | `make db.gen.migration NAME=x` | Gera arquivo vazio |
-
-    ## Docker
-
-    ```bash
-    make docker.up      # postgres, etc.
-    make docker.down    # para containers
-    make docker.reset   # limpa volumes
-    ```
-
-    ## Testes seletivos
-
-    ```bash
-    make test.domain    # apenas apps/blackboex
-    make test.web       # apenas apps/blackboex_web
-    mix test path/to/test.exs:42   # uma linha específica
-    ```
-
-    ## Lint
-
-    `make lint` roda em ordem: `mix format --check-formatted`, `mix credo
-    --strict`, `mix dialyzer`. Falha em qualquer = falha total.
-
-    ## Rotas
-
-    `make routes` mostra a tabela de rotas Phoenix completa.
-
-    ## Convenção
-
-    Antes de fazer push: `make precommit`. Antes de abrir PR: `make lint`.
-    Pipeline CI roda os mesmos alvos.
-    """
-  end
-
-  defp roadmap_content do
-    """
-    # Roadmap & Próximos Passos
-
-    Esta página é um marcador vivo. O conteúdo aqui muda conforme o produto
-    evolui. Para histórico, veja `git log` ou os ADRs em `docs/architecture.md`.
-
-    ## Em desenvolvimento
-
-    - Geração assistida de Flows via NL → JSON
-    - Catálogo público de templates compartilhados entre organizações
-    - Métricas avançadas: latência por node, custo de LLM por API
-    - Suporte a WebSockets em APIs geradas
-
-    ## Próximos passos para você
-
-    1. **Explore** todos os exemplos deste workspace
-    2. **Crie** um novo projeto na sua organização
-    3. **Duplique** um template (API ou Flow) e adapte
-    4. **Configure** suas chaves de LLM em Project Env Vars
-    5. **Convide** colaboradores via página de organização
-
-    ## Onde encontrar mais
-
-    - `docs/architecture.md` — diagrama de contextos, supervisão, invariantes
-    - `docs/gotchas.md` — armadilhas conhecidas, lições aprendidas
-    - `AGENTS.md` (root e por-diretório) — contexto para agentes de IA
-
-    ## Contribuindo
-
-    Para mudanças no produto base, abra issue/PR no repositório principal.
-    Para feedback do produto, use o canal interno da sua organização.
+    Create a second example that covers a failure case. Most production issues
+    come from unclear errorrs, missing fields, or unexpected payloads. A good
+    errorr path is part of a good product workflow.
     """
   end
 end

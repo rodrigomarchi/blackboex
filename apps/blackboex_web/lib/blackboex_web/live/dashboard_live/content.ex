@@ -55,7 +55,7 @@ defmodule BlackboexWeb.DashboardLive.Content do
             class="flex items-center gap-3 py-2 text-sm"
           >
             <span class={[
-              "inline-flex h-5 min-w-[2.5rem] items-center justify-center rounded px-1.5 text-[11px] font-mono font-semibold",
+              "inline-flex h-5 min-w-[2.5rem] items-center justify-center rounded px-1.5 text-2xs font-mono font-semibold",
               status_badge_class(entry.status_code)
             ]}>
               {entry.status_code}

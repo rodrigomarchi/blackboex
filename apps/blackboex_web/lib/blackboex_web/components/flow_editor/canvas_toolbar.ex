@@ -24,7 +24,7 @@ defmodule BlackboexWeb.Components.FlowEditor.CanvasToolbar do
           <.icon name="hero-plus" class="size-4" />
         </button>
         <span
-          class="text-[11px] font-semibold font-mono text-muted-foreground min-w-[40px] text-center select-none"
+          class="text-2xs font-semibold font-mono text-muted-foreground min-w-[40px] text-center select-none"
           data-zoom-label
         >
           100%

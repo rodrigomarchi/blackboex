@@ -99,7 +99,7 @@ defmodule BlackboexWeb.Showcase.Sections.ConfirmDialogShowcase do
                   <.icon name="hero-exclamation-circle" class="size-5 text-yellow-600" />
                 </div>
                 <div class="flex-1 min-w-0">
-                  <h3 class="text-base font-semibold text-foreground">Discard changes?</h3>
+                  <h3 class="text-lg font-semibold text-foreground">Discard changes?</h3>
                   <p class="mt-1.5 text-sm text-muted-foreground leading-relaxed">
                     Any unsaved changes will be lost. This action cannot be undone.
                   </p>
@@ -125,7 +125,7 @@ defmodule BlackboexWeb.Showcase.Sections.ConfirmDialogShowcase do
                   <.icon name="hero-exclamation-triangle" class="size-5 text-destructive" />
                 </div>
                 <div class="flex-1 min-w-0">
-                  <h3 class="text-base font-semibold text-foreground">Delete API?</h3>
+                  <h3 class="text-lg font-semibold text-foreground">Delete API?</h3>
                   <p class="mt-1.5 text-sm text-muted-foreground leading-relaxed">
                     This will permanently delete the API and all its versions. This action cannot be undone.
                   </p>
@@ -151,7 +151,7 @@ defmodule BlackboexWeb.Showcase.Sections.ConfirmDialogShowcase do
                   <.icon name="hero-information-circle" class="size-5 text-blue-600" />
                 </div>
                 <div class="flex-1 min-w-0">
-                  <h3 class="text-base font-semibold text-foreground">Publish API?</h3>
+                  <h3 class="text-lg font-semibold text-foreground">Publish API?</h3>
                   <p class="mt-1.5 text-sm text-muted-foreground leading-relaxed">
                     This will make the API publicly accessible. You can unpublish it at any time.
                   </p>
@@ -177,7 +177,7 @@ defmodule BlackboexWeb.Showcase.Sections.ConfirmDialogShowcase do
                   <.icon name="hero-exclamation-triangle" class="size-5 text-destructive" />
                 </div>
                 <div class="flex-1 min-w-0">
-                  <h3 class="text-base font-semibold text-foreground">Delete this item?</h3>
+                  <h3 class="text-lg font-semibold text-foreground">Delete this item?</h3>
                   <p class="mt-1.5 text-sm text-muted-foreground leading-relaxed">
                     This action is irreversible.
                   </p>

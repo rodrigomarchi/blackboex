@@ -339,7 +339,7 @@ All sub-components accept `class`, `rest` (:global), and `:inner_block`.
 |-----------|-------------|
 | `<.card>` | `rounded-xl border bg-card text-card-foreground shadow` |
 | `<.card_header>` | `flex flex-col space-y-1.5 p-6` |
-| `<.card_title>` | `text-2xl font-semibold leading-none tracking-tight` |
+| `<.card_title>` | `text-lg font-semibold leading-none tracking-tight` |
 | `<.card_description>` | `text-sm text-muted-foreground` |
 | `<.card_content>` | `p-6 pt-0` |
 | `<.card_footer>` | `flex items-center justify-between p-6 pt-0` |
@@ -1538,7 +1538,8 @@ One-time API key display banner with copy-friendly code block and dismiss button
 
 ### CSS Tokens
 
-- `text-2xs` (10px) and `text-micro` (11px) — custom font sizes defined in `@theme inline`. Use instead of `text-[10px]` / `text-[11px]`.
+- Approved UI font-size scale: `text-2xs`, `text-xs`, `text-sm`, `text-lg`, `text-2xl`, and `text-4xl` for public heroes only.
+- Do not use responsive font-size variants (`md:text-*`), `text-micro`, `text-base`, `text-xl`, `text-3xl`, or arbitrary pixel sizes such as `text-[10px]`.
 - `bg-editor-bg` — editor dark background color. Use instead of `bg-[#1e1e2e]`.
 
 ### New Components (US-003)

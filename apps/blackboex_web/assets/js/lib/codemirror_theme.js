@@ -10,7 +10,7 @@ const theme = EditorView.theme(
     "&": {
       backgroundColor: "hsl(var(--background))",
       color: "hsl(var(--foreground))",
-      fontSize: "12px",
+      fontSize: "var(--content-font-xs)",
       fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, monospace",
       lineHeight: "1.6",
     },
@@ -31,7 +31,7 @@ const theme = EditorView.theme(
       backgroundColor: "hsl(var(--card))",
       color: "hsl(var(--muted-foreground))",
       borderRight: "1px solid hsl(var(--border))",
-      fontSize: "11px",
+      fontSize: "var(--content-font-2xs)",
     },
     ".cm-activeLineGutter": {
       backgroundColor: "hsl(var(--muted) / 0.15)",

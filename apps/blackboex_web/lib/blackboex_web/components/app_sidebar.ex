@@ -85,7 +85,7 @@ defmodule BlackboexWeb.Components.AppSidebar do
           <.org_project_switcher current_scope={@current_scope} />
         </div>
         <div class="hidden group-[.sidebar-collapsed]/sidebar:flex justify-center py-2">
-          <div class="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10 text-primary text-[10px] font-bold">
+          <div class="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10 text-primary text-2xs font-bold">
             {String.first(@current_scope.organization.name) |> String.upcase()}
           </div>
         </div>

@@ -19,10 +19,9 @@ defmodule BlackboexWeb.Showcase.Sections.Typography do
                 {"text-2xs font-mono", "text-2xs", "The quick brown fox"},
                 {"text-xs", "text-xs", "The quick brown fox jumps over the lazy dog"},
                 {"text-sm", "text-sm", "The quick brown fox jumps over the lazy dog"},
-                {"text-base", "text-base", "The quick brown fox"},
-                {"text-lg", "text-lg", "The quick brown fox"},
-                {"text-xl font-semibold", "text-xl / semibold", "The quick brown fox"},
-                {"text-2xl font-bold", "text-2xl / bold", "The quick brown fox"}
+                {"text-lg font-semibold", "text-lg / headings", "The quick brown fox"},
+                {"text-2xl font-bold", "text-2xl / metrics", "The quick brown fox"},
+                {"text-4xl font-bold", "text-4xl / public hero only", "The quick brown fox"}
               ]
             }
             class="flex items-baseline gap-4 pt-4"
@@ -65,7 +64,7 @@ defmodule BlackboexWeb.Showcase.Sections.Typography do
             }
             class="text-center"
           >
-            <p class={["text-base", class]}>Ag</p>
+            <p class={["text-sm", class]}>Ag</p>
             <p class="text-2xs text-muted-foreground font-mono mt-1">{label}</p>
           </div>
         </div>

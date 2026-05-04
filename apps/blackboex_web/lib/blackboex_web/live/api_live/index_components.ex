@@ -89,7 +89,7 @@ defmodule BlackboexWeb.ApiLive.IndexComponents do
       </:col>
       <:col :let={row} label="Endpoint">
         <%= if row.api.status == "published" do %>
-          <.inline_code class="text-micro text-accent-emerald">
+          <.inline_code class="text-2xs text-accent-emerald">
             POST /{@org_slug}/{row.api.slug}
           </.inline_code>
         <% else %>

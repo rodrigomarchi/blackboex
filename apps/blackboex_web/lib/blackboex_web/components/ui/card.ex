@@ -60,7 +60,7 @@ defmodule BlackboexWeb.Components.Card do
     size_class =
       if assigns.size == "label",
         do: "text-xs font-medium text-muted-foreground uppercase tracking-wider",
-        else: "text-2xl font-semibold leading-none tracking-tight"
+        else: "text-lg font-semibold leading-none tracking-tight"
 
     assigns = assign(assigns, :size_class, size_class)
 

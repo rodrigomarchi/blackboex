@@ -537,7 +537,7 @@ defmodule BlackboexWeb.Components.SidebarTreeComponent do
           <span class="truncate">{@label}</span>
           <span
             :if={@count > 0}
-            class="ml-auto text-[10px] tabular-nums text-muted-foreground/70 group-hover:opacity-0"
+            class="ml-auto text-2xs tabular-nums text-muted-foreground/70 group-hover:opacity-0"
           >
             {@count}
           </span>
@@ -1138,7 +1138,7 @@ defmodule BlackboexWeb.Components.SidebarTreeComponent do
   defp item_label("pages", item), do: item.title
   defp item_label(_type, item), do: item.name
 
-  defp type_icon("pages"), do: "hero-document-text-micro"
+  defp type_icon("pages"), do: "hero-document-text-2xs"
   defp type_icon("apis"), do: "hero-bolt-micro"
   defp type_icon("flows"), do: "hero-arrow-path-micro"
   defp type_icon("playgrounds"), do: "hero-code-bracket-micro"

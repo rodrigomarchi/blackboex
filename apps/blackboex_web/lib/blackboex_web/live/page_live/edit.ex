@@ -110,7 +110,7 @@ defmodule BlackboexWeb.PageLive.Edit do
               name={@form[:title].name}
               value={@form[:title].value}
               placeholder="Untitled"
-              class="w-full text-3xl font-bold bg-transparent border-none shadow-none p-0 focus:ring-0 focus:outline-none text-foreground placeholder:text-muted-foreground"
+              class="w-full text-lg font-bold bg-transparent border-none shadow-none p-0 focus:ring-0 focus:outline-none text-foreground placeholder:text-muted-foreground"
             />
           </.form>
         </div>

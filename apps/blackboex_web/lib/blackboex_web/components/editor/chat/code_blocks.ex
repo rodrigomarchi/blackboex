@@ -38,7 +38,7 @@ defmodule BlackboexWeb.Components.Editor.Chat.CodeBlocks do
       </div>
       <div
         class="max-h-[300px] overflow-y-auto overflow-x-auto font-mono"
-        style="font-size: 12px; line-height: 1.6;"
+        style="font-size: var(--content-font-xs); line-height: 1.6;"
       >
         <%= for {line, num} <- @lines do %>
           <div class="flex hover:bg-white/5">

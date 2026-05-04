@@ -51,6 +51,6 @@ defmodule BlackboexWeb.Components.Shared.StatMini do
   defp padding("sm"), do: "p-3"
   defp padding("lg"), do: "p-4"
 
-  defp value_class("sm"), do: "text-xl font-bold"
+  defp value_class("sm"), do: "text-lg font-bold"
   defp value_class("lg"), do: "text-2xl font-bold"
 end

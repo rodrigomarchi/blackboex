@@ -130,7 +130,7 @@ defmodule BlackboexWeb.Components.Editor.ChatPanel do
               size="pill"
               phx-click="quick_action"
               phx-value-text={action}
-              class="text-micro text-muted-foreground"
+              class="text-2xs text-muted-foreground"
             >
               {action}
             </.button>
@@ -173,7 +173,7 @@ defmodule BlackboexWeb.Components.Editor.ChatPanel do
             <%= for file <- @pending_edit.files_changed do %>
               <div class="rounded border bg-background p-1.5">
                 <div class="text-2xs font-semibold text-muted-foreground mb-1">{file.path}</div>
-                <div class="text-micro font-mono overflow-x-auto max-h-40 overflow-y-auto">
+                <div class="text-2xs font-mono overflow-x-auto max-h-40 overflow-y-auto">
                   <%= for {op, lines} <- file.diff, line <- lines do %>
                     <div class={diff_line_class(op)}>
                       <span class="select-none text-muted-foreground mr-1">{diff_prefix(op)}</span>{line}
@@ -185,7 +185,7 @@ defmodule BlackboexWeb.Components.Editor.ChatPanel do
           </div>
         <% else %>
           <%= if @pending_edit[:diff] do %>
-            <div class="rounded border bg-background p-1.5 text-micro font-mono overflow-x-auto max-h-60 overflow-y-auto">
+            <div class="rounded border bg-background p-1.5 text-2xs font-mono overflow-x-auto max-h-60 overflow-y-auto">
               <%= for {op, lines} <- @pending_edit.diff, line <- lines do %>
                 <div class={diff_line_class(op)}>
                   <span class="select-none text-muted-foreground mr-1">{diff_prefix(op)}</span>{line}

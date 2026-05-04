@@ -152,7 +152,7 @@ export function applyExecutionHighlights(nodes, root = document) {
       `border:1.5px solid ${color}55`,
       "border-radius:999px",
       "padding:2px 8px",
-      "font-size:9px",
+      "font-size:var(--content-font-drawflow-data)",
       "font-weight:700",
       "font-family:ui-sans-serif,system-ui,sans-serif",
       "white-space:nowrap",
@@ -165,7 +165,7 @@ export function applyExecutionHighlights(nodes, root = document) {
       `<span style="width:5px;height:5px;border-radius:50%;background:${color};display:inline-block;flex-shrink:0"></span>` +
       `<span style="color:${color}">${label}</span>` +
       (duration
-        ? `<span style="color:#94a3b8;font-size:8px;font-family:ui-monospace,monospace">${duration}</span>`
+        ? `<span style="color:#94a3b8;font-size:var(--content-font-drawflow-data);font-family:ui-monospace,monospace">${duration}</span>`
         : "");
     el.appendChild(pill);
   });

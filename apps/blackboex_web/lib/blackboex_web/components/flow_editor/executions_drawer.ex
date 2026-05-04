@@ -127,7 +127,7 @@ defmodule BlackboexWeb.Components.FlowEditor.ExecutionsDrawer do
               {exec.status}
             </.badge>
           </div>
-          <div class="text-micro text-muted-foreground mt-0.5">
+          <div class="text-2xs text-muted-foreground mt-0.5">
             {format_time(exec.inserted_at)}
           </div>
         </div>
@@ -158,7 +158,7 @@ defmodule BlackboexWeb.Components.FlowEditor.ExecutionsDrawer do
         <span class="text-xs font-mono text-muted-foreground">
           {format_duration(@execution.duration_ms)}
         </span>
-        <span class="text-micro text-muted-foreground/70">
+        <span class="text-2xs text-muted-foreground/70">
           {format_time(@execution.inserted_at)}
         </span>
       </div>
@@ -167,7 +167,7 @@ defmodule BlackboexWeb.Components.FlowEditor.ExecutionsDrawer do
       <div>
         <div class="flex items-center gap-1 mb-1.5">
           <.icon name="hero-arrow-down-on-square-mini" class="size-3 text-accent-blue" />
-          <span class="text-micro font-medium text-muted-foreground uppercase tracking-wide">
+          <span class="text-2xs font-medium text-muted-foreground uppercase tracking-wide">
             Input
           </span>
         </div>
@@ -183,7 +183,7 @@ defmodule BlackboexWeb.Components.FlowEditor.ExecutionsDrawer do
       <div :if={@execution.output}>
         <div class="flex items-center gap-1 mb-1.5">
           <.icon name="hero-arrow-up-on-square-mini" class="size-3 text-accent-emerald" />
-          <span class="text-micro font-medium text-muted-foreground uppercase tracking-wide">
+          <span class="text-2xs font-medium text-muted-foreground uppercase tracking-wide">
             Output
           </span>
         </div>
@@ -199,7 +199,7 @@ defmodule BlackboexWeb.Components.FlowEditor.ExecutionsDrawer do
       <div>
         <div class="flex items-center gap-1 mb-1.5">
           <.icon name="hero-queue-list-mini" class="size-3 text-accent-violet" />
-          <span class="text-micro font-medium text-muted-foreground uppercase tracking-wide">
+          <span class="text-2xs font-medium text-muted-foreground uppercase tracking-wide">
             Node Timeline
           </span>
         </div>
@@ -222,7 +222,7 @@ defmodule BlackboexWeb.Components.FlowEditor.ExecutionsDrawer do
                 {Map.get(@node_names, ne.node_id, ne.node_id)}
               </span>
               <div class={"size-1.5 rounded-full shrink-0 #{execution_status_dot(ne.status)}"} />
-              <span class="text-micro font-mono text-muted-foreground w-10 text-right shrink-0">
+              <span class="text-2xs font-mono text-muted-foreground w-10 text-right shrink-0">
                 {format_duration(ne.duration_ms)}
               </span>
               <.icon
@@ -237,14 +237,14 @@ defmodule BlackboexWeb.Components.FlowEditor.ExecutionsDrawer do
             <div :if={@expanded_node == ne.node_id} class="px-3 pb-3 pt-1 bg-muted/10 space-y-2">
               <div
                 :if={ne.error}
-                class="text-micro text-destructive-foreground bg-destructive/10 rounded px-2 py-1"
+                class="text-2xs text-destructive-foreground bg-destructive/10 rounded px-2 py-1"
               >
                 {ne.error}
               </div>
               <div :if={ne.input} class="space-y-1">
                 <div class="flex items-center gap-1">
                   <.icon name="hero-arrow-down-on-square-mini" class="size-2.5 text-accent-blue" />
-                  <span class="text-micro text-muted-foreground font-medium">Input</span>
+                  <span class="text-2xs text-muted-foreground font-medium">Input</span>
                 </div>
                 <.code_editor_field
                   id={"exec-node-in-#{@execution.id}-#{ne.node_id}"}
@@ -256,7 +256,7 @@ defmodule BlackboexWeb.Components.FlowEditor.ExecutionsDrawer do
               <div :if={ne.output} class="space-y-1">
                 <div class="flex items-center gap-1">
                   <.icon name="hero-arrow-up-on-square-mini" class="size-2.5 text-accent-emerald" />
-                  <span class="text-micro text-muted-foreground font-medium">Output</span>
+                  <span class="text-2xs text-muted-foreground font-medium">Output</span>
                 </div>
                 <.code_editor_field
                   id={"exec-node-out-#{@execution.id}-#{ne.node_id}"}
@@ -265,7 +265,7 @@ defmodule BlackboexWeb.Components.FlowEditor.ExecutionsDrawer do
                   class="w-full rounded"
                 />
               </div>
-              <div class="flex gap-3 text-micro text-muted-foreground/70">
+              <div class="flex gap-3 text-2xs text-muted-foreground/70">
                 <span :if={ne.started_at}>Started: {format_time(ne.started_at)}</span>
                 <span :if={ne.finished_at}>Finished: {format_time(ne.finished_at)}</span>
               </div>

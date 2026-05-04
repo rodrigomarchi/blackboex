@@ -28,7 +28,7 @@ defmodule BlackboexWeb.Components.OrgProjectSwitcher do
     <div class="space-y-1.5">
       <%!-- Organization row --%>
       <div class="flex items-center gap-2">
-        <div class="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-primary/10 text-primary text-[10px] font-bold">
+        <div class="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-primary/10 text-primary text-2xs font-bold">
           {org_initials(@current_org)}
         </div>
         <div class="flex-1 min-w-0 flex items-center gap-1">
@@ -45,7 +45,7 @@ defmodule BlackboexWeb.Components.OrgProjectSwitcher do
               </button>
             </.dropdown_menu_trigger>
             <.dropdown_menu_content class="w-56 ml-0 left-0 top-full mt-1 rounded-lg border bg-popover p-1 shadow-lg">
-              <div class="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <div class="px-2 py-1.5 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Switch organization
               </div>
               <.link
@@ -56,7 +56,7 @@ defmodule BlackboexWeb.Components.OrgProjectSwitcher do
                   if(org.id == (@current_org && @current_org.id), do: "bg-accent/50", else: "")
                 ]}
               >
-                <div class="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-muted text-[9px] font-medium">
+                <div class="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-muted text-2xs font-medium">
                   {org_initials(org)}
                 </div>
                 <span class="truncate">{org.name}</span>

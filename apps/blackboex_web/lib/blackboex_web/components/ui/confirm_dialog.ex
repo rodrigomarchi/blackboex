@@ -81,7 +81,7 @@ defmodule BlackboexWeb.Components.ConfirmDialog do
               <.icon name={variant_icon(@variant)} class={"size-5 #{variant_icon_color(@variant)}"} />
             </div>
             <div class="flex-1 min-w-0">
-              <h3 class="text-base font-semibold text-foreground">{@title}</h3>
+              <h3 class="text-lg font-semibold text-foreground">{@title}</h3>
               <p class="mt-1.5 text-sm text-muted-foreground leading-relaxed">{@description}</p>
             </div>
           </div>

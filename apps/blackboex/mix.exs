@@ -54,7 +54,6 @@ defmodule Blackboex.MixProject do
       {:plug, "~> 1.16"},
       {:ex_rated, "~> 2.1"},
       {:oban, "~> 2.20"},
-      {:fun_with_flags, "~> 1.13"},
       {:ex_audit, "~> 0.10"},
       {:opentelemetry_api, "~> 1.5"},
       {:opentelemetry_ecto, "~> 1.2"},

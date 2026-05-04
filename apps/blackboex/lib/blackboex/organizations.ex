@@ -147,21 +147,6 @@ defmodule Blackboex.Organizations do
     |> Repo.all()
   end
 
-  @doc """
-  Returns the plan of the user's first organization.
-  Used by FunWithFlags.Group protocol for plan-based feature gating.
-  """
-  @spec get_user_primary_plan(User.t()) :: atom()
-  def get_user_primary_plan(%User{} = user) do
-    user.id
-    |> OrganizationQueries.user_primary_plan()
-    |> Repo.one()
-    |> case do
-      nil -> :free
-      plan -> plan
-    end
-  end
-
   ## Invitations
 
   @doc """

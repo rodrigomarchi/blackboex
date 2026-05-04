@@ -57,7 +57,6 @@ infra/                — Docker, deployment
 - `apps/blackboex/lib/blackboex/code_gen/AGENTS.md` — Compiler, sandbox, DiffEngine
 - `apps/blackboex/lib/blackboex/conversations/AGENTS.md` — Event-sourced runs/events, ConversationQueries
 - `apps/blackboex/lib/blackboex/docs/AGENTS.md` — Docs facade, DocGenerator, OpenAPI
-- `apps/blackboex/lib/blackboex/features/AGENTS.md` — Feature flags
 - `apps/blackboex/lib/blackboex/llm/AGENTS.md` — LLM facade, SecurityConfig, CircuitBreaker
 - `apps/blackboex/lib/blackboex/organizations/AGENTS.md` — Multi-tenancy, OrganizationQueries
 - `apps/blackboex/lib/blackboex/policy/AGENTS.md` — LetMe authorization

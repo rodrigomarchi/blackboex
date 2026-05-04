@@ -199,7 +199,6 @@ AGENTS.md                                          — Root: stack, structure, c
 │   ├── lib/blackboex/code_gen/AGENTS.md           — Compiler, sandbox, validation
 │   ├── lib/blackboex/conversations/AGENTS.md      — Event-sourced runs/events
 │   ├── lib/blackboex/docs/AGENTS.md               — DocGenerator, OpenAPI
-│   ├── lib/blackboex/features/AGENTS.md           — FunWithFlags, feature flags
 │   ├── lib/blackboex/llm/AGENTS.md                — CircuitBreaker, RateLimiter, prompts
 │   ├── lib/blackboex/organizations/AGENTS.md      — Multi-tenancy, memberships
 │   ├── lib/blackboex/policy/AGENTS.md             — LetMe DSL, authorization

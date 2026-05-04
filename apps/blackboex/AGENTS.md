@@ -55,7 +55,7 @@ defdelegate create_version(api, attrs), to: Blackboex.Apis.Versions
 ### Organizations
 - `create_organization/2` :: `(User.t(), map()) -> {:ok, %{organization, membership}} | {:error, ...}`
 - `list_user_organizations/1`, `get_organization!/1`, `get_organization/1`
-- `add_member/3`, `get_user_membership/2`, `get_user_primary_plan/1`
+- `add_member/3`, `get_user_membership/2`
 - `invite_member/3`, `accept_invitation/2` — invitation-based onboarding for new/existing users
 - New organizations receive one managed sample project named `"Exemplos"` via `Blackboex.Projects.Samples`.
 

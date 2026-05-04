@@ -154,16 +154,8 @@ defmodule Blackboex.Samples.Page do
         audit_content()
       ),
       topic(
-        "feature_flags",
-        11,
-        "Feature Flags",
-        "Operação",
-        "FunWithFlags, gates por org/projeto, rollout controlado.",
-        feature_flags_content()
-      ),
-      topic(
         "testing",
-        12,
+        11,
         "Workflow de Testes",
         "Engenharia",
         "TDD obrigatório, fixtures, named setups, separação por tag.",
@@ -171,7 +163,7 @@ defmodule Blackboex.Samples.Page do
       ),
       topic(
         "make_commands",
-        13,
+        12,
         "Comandos Make & Operação",
         "Engenharia",
         "Make targets, Docker, migrations, lint, testes seletivos.",
@@ -179,7 +171,7 @@ defmodule Blackboex.Samples.Page do
       ),
       topic(
         "roadmap",
-        14,
+        13,
         "Roadmap & Próximos Passos",
         "Plataforma",
         "Direção do produto e como contribuir com seu workspace.",
@@ -789,60 +781,6 @@ defmodule Blackboex.Samples.Page do
     - **Compliance**: exigido para SOC2/ISO em muitos contextos
     - **Debug**: "quem mudou esse Flow ontem?"
     - **Segurança**: detecção de comportamento anômalo
-    """
-  end
-
-  defp feature_flags_content do
-    """
-    # Feature Flags
-
-    Usamos `FunWithFlags`. Flags são escopadas por:
-
-    - **Boolean** global
-    - **Per-actor** (organização ou usuário)
-    - **Per-percentage** (rollout gradual)
-    - **Per-group** (e.g., beta_orgs)
-
-    ## API básica
-
-    ```elixir
-    if FunWithFlags.enabled?(:new_flow_editor, for: scope.organization) do
-      # caminho novo
-    else
-      # caminho antigo
-    end
-    ```
-
-    ## Wrapper
-
-    `Blackboex.Features` centraliza chamadas — não use `FunWithFlags`
-    diretamente fora de `lib/blackboex/features/`. Isso facilita:
-
-    - Trocar o backend (Redis/DB) sem reescrever call sites
-    - Logar auditoria de toggle
-    - Stub em testes (`Mox`)
-
-    ## Lifecycle de um flag
-
-    ```mermaid
-    stateDiagram-v2
-      [*] --> created
-      created --> rollout: 1% → 10% → 50%
-      rollout --> default_on: 100%
-      default_on --> removed: código limpa o gate
-      removed --> [*]
-    ```
-
-    Quando atingir 100% e estabilizar, **abra um PR** removendo o gate. Não
-    deixe flags zumbis no código.
-
-    ## Observação
-
-    Para mudanças visíveis ao usuário, sempre considere:
-
-    - Tem rollback rápido?
-    - Tem alerta se taxa de erro > X%?
-    - Tem comunicação aos stakeholders?
     """
   end
 

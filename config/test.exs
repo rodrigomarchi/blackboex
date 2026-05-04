@@ -47,9 +47,6 @@ config :blackboex, :llm_client, Blackboex.LLM.ClientMock
 # Oban: manual testing mode (jobs don't auto-execute)
 config :blackboex, Oban, testing: :manual
 
-# FunWithFlags: disable ETS cache in tests for determinism
-config :fun_with_flags, :cache, enabled: false
-
 # PromEx: keep enabled (the /metrics endpoint smoke test needs it), but skip
 # the Oban plugin in tests. Its TelemetryPoller queries the Repo from a process
 # without a sandbox checkout, producing DBConnection.OwnershipError noise on

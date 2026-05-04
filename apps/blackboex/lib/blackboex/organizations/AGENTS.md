@@ -25,7 +25,6 @@ get_organization!(uuid) :: Organization.t()
 get_organization(uuid) :: Organization.t() | nil
 add_member(Organization.t(), User.t(), atom()) :: {:ok, Membership.t()} | {:error, Ecto.Changeset.t()}
 get_user_membership(Organization.t(), User.t()) :: Membership.t() | nil
-get_user_primary_plan(User.t()) :: atom()   # only used by Features.GroupImpl
 invite_member(Organization.t(), email :: String.t(), role :: atom()) :: {:ok, Invitation.t()} | {:error, ...}
 accept_invitation(token :: String.t(), attrs :: map()) :: {:ok, %{user, membership}} | {:error, ...}
 ```
@@ -50,4 +49,3 @@ accept_invitation(token :: String.t(), attrs :: map()) :: {:ok, %{user, membersh
 1. **Slug collisions at registration** — personal org uses `email_prefix + random_6char_suffix`. Multi fails at `:organization` on collision.
 2. **`add_member/3` returns `{:error, changeset}` for duplicate** — unique index `(user_id, org_id)`.
 3. **`list_user_organizations/1` does not preload memberships** — call `get_user_membership/2` separately.
-4. **`get_user_primary_plan/1` is not an auth check** — use `get_user_membership/2` for authorization.

@@ -94,15 +94,6 @@ config :ex_audit,
 # Playground API self-call base URL (override via PLAYGROUND_BASE_URL in prod)
 config :blackboex, Blackboex.Playgrounds.Api, base_url: "http://localhost:4000"
 
-# FunWithFlags feature flag configuration
-config :fun_with_flags, :persistence,
-  adapter: FunWithFlags.Store.Persistent.Ecto,
-  repo: Blackboex.Repo
-
-config :fun_with_flags, :cache_bust_notifications,
-  adapter: FunWithFlags.Notifications.PhoenixPubSub,
-  client: Blackboex.PubSub
-
 # Oban job processing
 config :blackboex, Oban,
   repo: Blackboex.Repo,

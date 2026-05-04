@@ -1,3 +1,11 @@
+/**
+ * @file Shared JavaScript library helpers for bootstrap behavior.
+ */
+/**
+ * Provides bind live view api.
+ * @param {unknown} source - source value.
+ * @param {unknown} target - Target event source or DOM element.
+ */
 function bindLiveViewApi(source, target) {
   target.el = source.el;
   target.pushEvent = source.pushEvent.bind(source);
@@ -5,6 +13,11 @@ function bindLiveViewApi(source, target) {
   target.handleEvent = source.handleEvent.bind(source);
 }
 
+/**
+ * Provides lazy hook.
+ * @param {unknown} loader - loader value.
+ * @returns {unknown} Function result.
+ */
 export function lazyHook(loader) {
   return {
     mounted() {

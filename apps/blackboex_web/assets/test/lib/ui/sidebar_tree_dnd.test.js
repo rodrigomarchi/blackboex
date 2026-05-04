@@ -1,3 +1,6 @@
+/**
+ * @file Vitest coverage for sidebar tree dnd library helpers.
+ */
 import { buildMoveNodePayload } from "../../../js/lib/ui/sidebar_tree_dnd";
 
 describe("sidebar tree dnd helpers", () => {

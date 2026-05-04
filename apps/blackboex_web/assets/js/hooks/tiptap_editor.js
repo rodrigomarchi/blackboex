@@ -1,3 +1,6 @@
+/**
+ * @file LiveView hook wiring for tiptap editor behavior.
+ */
 import { Editor } from "@tiptap/core";
 import {
   createBubbleMenuEl,
@@ -13,6 +16,11 @@ import { syncMarkdownContent } from "../lib/tiptap/markdown_sync";
 
 // ── Editor Hook ─────────────────────────────────────────────
 
+/**
+ * Provides create tiptap editor hook.
+ * @param {unknown} options - Configuration values for the helper.
+ * @returns {unknown} Function result.
+ */
 export function createTiptapEditorHook({
   EditorClass = Editor,
   buildExtensions = buildTiptapExtensions,
@@ -79,4 +87,7 @@ export function createTiptapEditorHook({
 
 const TiptapEditor = createTiptapEditorHook();
 
+/**
+ * Exports the module default value.
+ */
 export default TiptapEditor;

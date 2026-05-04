@@ -1,3 +1,6 @@
+/**
+ * @file Vitest coverage for auto scroll hooks hook behavior.
+ */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import ChatAutoScroll from "../../../js/hooks/global/chat_auto_scroll_hook";
 import EditorAutoScroll from "../../../js/hooks/global/editor_auto_scroll_hook";

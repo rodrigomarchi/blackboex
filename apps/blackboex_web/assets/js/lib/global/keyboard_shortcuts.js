@@ -1,3 +1,12 @@
+/**
+ * @file Shared JavaScript library helpers for global behavior.
+ */
+/**
+ * Provides editor shortcut for event.
+ * @param {unknown} event - Browser or library event payload.
+ * @param {unknown} opts - Optional configuration values.
+ * @returns {unknown} Function result.
+ */
 export function editorShortcutForEvent(event, opts = {}) {
   const isMeta = event.metaKey || event.ctrlKey;
 
@@ -27,6 +36,11 @@ export function editorShortcutForEvent(event, opts = {}) {
   return null;
 }
 
+/**
+ * Provides is command palette open.
+ * @param {unknown} doc - Document used for DOM lookup.
+ * @returns {unknown} Function result.
+ */
 export function isCommandPaletteOpen(doc = document) {
   return Boolean(doc.querySelector("[data-command-palette]"));
 }

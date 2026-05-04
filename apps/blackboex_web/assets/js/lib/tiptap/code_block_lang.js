@@ -1,4 +1,7 @@
 /**
+ * @file Shared JavaScript library helpers for tiptap behavior.
+ */
+/**
  * Extends CodeBlockLowlight with:
  * 1. Language selector dropdown on every code block
  * 2. Mermaid diagram rendering (dual-mode: code when focused, SVG when blurred)
@@ -14,12 +17,21 @@ let mermaidLoader = async () => {
   return mermaid;
 };
 
+/**
+ * Provides set mermaid loader.
+ * @param {unknown} loader - loader value.
+ * @returns {unknown} Function result.
+ */
 export function setMermaidLoader(loader) {
   mermaidModule = null;
   mermaidLoadPromise = null;
   mermaidLoader = loader;
 }
 
+/**
+ * Provides get mermaid.
+ * @returns {unknown} Function result.
+ */
 export async function getMermaid() {
   if (mermaidModule) return mermaidModule;
   if (mermaidLoadPromise) return mermaidLoadPromise;
@@ -47,6 +59,12 @@ export async function getMermaid() {
 // Serialize mermaid.render() calls — concurrent renders cause silent failures
 let renderQueue = Promise.resolve();
 
+/**
+ * Provides enqueue render.
+ * @param {unknown} id - id value.
+ * @param {unknown} text - text value.
+ * @returns {unknown} Function result.
+ */
 export function enqueueRender(id, text) {
   const task = renderQueue.then(async () => {
     const mermaid = await getMermaid();
@@ -57,6 +75,11 @@ export function enqueueRender(id, text) {
 }
 
 // Make SVG responsive: ensure viewBox exists and remove fixed dimensions
+/**
+ * Provides fit svg.
+ * @param {unknown} svgEl - svgEl value.
+ * @returns {unknown} Function result.
+ */
 export function fitSvg(svgEl) {
   if (!svgEl) return;
   const w = svgEl.getAttribute("width");
@@ -71,6 +94,9 @@ export function fitSvg(svgEl) {
   svgEl.style.maxHeight = "600px";
 }
 
+/**
+ * Provides lang labels.
+ */
 export const LANG_LABELS = {
   plaintext: "Plain Text",
   javascript: "JavaScript",
@@ -105,6 +131,9 @@ export const LANG_LABELS = {
 
 let mermaidIdCounter = 0;
 
+/**
+ * Provides code block with lang.
+ */
 export const CodeBlockWithLang = CodeBlockLowlight.extend({
   addNodeView() {
     return ({ node, editor, getPos }) => {

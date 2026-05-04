@@ -1,3 +1,19 @@
+/**
+ * @file Shared JavaScript library helpers for browser behavior.
+ */
+/**
+ * @typedef {object} DownloadFilePayload
+ * @property {string} content
+ * @property {string} filename
+ *
+ * @typedef {CustomEvent<DownloadFilePayload>} DownloadFileEvent
+ */
+/**
+ * Provides download file from event.
+ * @param {DownloadFileEvent} event - Browser or library event payload.
+ * @param {unknown} opts - Optional configuration values.
+ * @returns {unknown} Function result.
+ */
 export function downloadFileFromEvent(event, opts = {}) {
   const { content, filename } = event.detail || {};
   if (!content || !filename) return false;
@@ -17,6 +33,12 @@ export function downloadFileFromEvent(event, opts = {}) {
   return true;
 }
 
+/**
+ * Provides install download file handler.
+ * @param {unknown} target - Target event source or DOM element.
+ * @param {unknown} opts - Optional configuration values.
+ * @returns {unknown} Function result.
+ */
 export function installDownloadFileHandler(target = window, opts = {}) {
   const handler = (event) => downloadFileFromEvent(event, opts);
   target.addEventListener("phx:download_file", handler);

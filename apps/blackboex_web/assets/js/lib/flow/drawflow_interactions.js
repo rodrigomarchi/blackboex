@@ -1,5 +1,16 @@
+/**
+ * @file Shared JavaScript library helpers for flow behavior.
+ */
 import { blackboexToDrawflow } from "./drawflow_converter";
 
+/**
+ * Provides load drawflow definition.
+ * @param {unknown} editor - Editor instance used by the helper.
+ * @param {unknown} definition - definition value.
+ * @param {unknown} htmlBuilder - htmlBuilder value.
+ * @param {unknown} convert - convert value.
+ * @returns {unknown} Function result.
+ */
 export function loadDrawflowDefinition(
   editor,
   definition,
@@ -25,6 +36,13 @@ export function loadDrawflowDefinition(
   return false;
 }
 
+/**
+ * Provides drawflow drop position.
+ * @param {unknown} root - Root element or document used for lookup.
+ * @param {unknown} editor - Editor instance used by the helper.
+ * @param {unknown} event - Browser or library event payload.
+ * @returns {unknown} Function result.
+ */
 export function drawflowDropPosition(root, editor, event) {
   const rootRect = root.getBoundingClientRect();
   const canvasRect = editor.precanvas.getBoundingClientRect();
@@ -39,6 +57,14 @@ export function drawflowDropPosition(root, editor, event) {
   };
 }
 
+/**
+ * Provides create node from drop.
+ * @param {unknown} root - Root element or document used for lookup.
+ * @param {unknown} editor - Editor instance used by the helper.
+ * @param {unknown} event - Browser or library event payload.
+ * @param {unknown} htmlBuilder - htmlBuilder value.
+ * @returns {unknown} Function result.
+ */
 export function createNodeFromDrop(root, editor, event, htmlBuilder) {
   event.preventDefault();
   const type = event.dataTransfer.getData("node-type");
@@ -64,6 +90,12 @@ export function createNodeFromDrop(root, editor, event, htmlBuilder) {
   return true;
 }
 
+/**
+ * Provides set sidebar drag data.
+ * @param {unknown} element - element value.
+ * @param {unknown} event - Browser or library event payload.
+ * @returns {unknown} Function result.
+ */
 export function setSidebarDragData(element, event) {
   event.dataTransfer.setData("node-type", element.dataset.nodeType);
   event.dataTransfer.setData("node-label", element.dataset.nodeLabel);

@@ -1,3 +1,6 @@
+/**
+ * @file Vitest coverage for keyboard shortcuts hook hook behavior.
+ */
 import { mountHook, cleanupDOM } from "../../helpers/hook_helper";
 import KeyboardShortcuts from "../../../js/hooks/global/keyboard_shortcuts_hook";
 

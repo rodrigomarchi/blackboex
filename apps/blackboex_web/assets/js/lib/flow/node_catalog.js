@@ -1,4 +1,13 @@
+/**
+ * @file Shared JavaScript library helpers for flow behavior.
+ */
 // Node type visual config
+/**
+ * Provides node config.
+ */
+/**
+ * Provides node config.
+ */
 export const nodeConfig = {
   start: {
     color: "#10b981",
@@ -68,11 +77,24 @@ export const nodeConfig = {
   },
 };
 
+/**
+ * Provides count outputs.
+ * @param {unknown} editor - Editor instance used by the helper.
+ * @param {unknown} nodeId - nodeId value.
+ * @returns {unknown} Function result.
+ */
 export function countOutputs(editor, nodeId) {
   const node = editor.getNodeFromId(nodeId);
   return node ? Object.keys(node.outputs).length : 0;
 }
 
+/**
+ * Provides build node html.
+ * @param {unknown} type - type value.
+ * @param {unknown} outputs - outputs value.
+ * @param {unknown} data - data value.
+ * @returns {unknown} Function result.
+ */
 export function buildNodeHTML(type, outputs, data) {
   const cfg = nodeConfig[type];
   if (!cfg) return `<div class="df-node"><strong>${type}</strong></div>`;
@@ -101,6 +123,12 @@ export function buildNodeHTML(type, outputs, data) {
   </div>`;
 }
 
+/**
+ * Provides update output labels.
+ * @param {unknown} editor - Editor instance used by the helper.
+ * @param {unknown} nodeId - nodeId value.
+ * @returns {unknown} Function result.
+ */
 export function updateOutputLabels(editor, nodeId) {
   const node = editor.getNodeFromId(nodeId);
   if (!node || node.class !== "condition") return;
@@ -126,6 +154,11 @@ export function updateOutputLabels(editor, nodeId) {
   });
 }
 
+/**
+ * Provides update all output labels.
+ * @param {unknown} editor - Editor instance used by the helper.
+ * @returns {unknown} Function result.
+ */
 export function updateAllOutputLabels(editor) {
   const data = editor.export();
   const homeModule = data.drawflow?.Home?.data;
@@ -135,6 +168,12 @@ export function updateAllOutputLabels(editor) {
   }
 }
 
+/**
+ * Provides update condition label.
+ * @param {unknown} editor - Editor instance used by the helper.
+ * @param {unknown} nodeId - nodeId value.
+ * @returns {unknown} Function result.
+ */
 export function updateConditionLabel(editor, nodeId) {
   const count = countOutputs(editor, nodeId);
   const el = document.querySelector(`#node-${nodeId}`);

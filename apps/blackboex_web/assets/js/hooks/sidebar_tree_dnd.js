@@ -1,3 +1,6 @@
+/**
+ * @file LiveView hook wiring for sidebar tree dnd behavior.
+ */
 import Sortable from "../../vendor/sortable.js";
 import {
   buildMoveNodePayload,
@@ -21,6 +24,9 @@ import {
 // Server event handled: "sidebar_tree:rollback" — re-initialises Sortable to
 //   snap the UI back to the server-authoritative state on a rejected move.
 
+/**
+ * LiveView hook for sidebar tree dn d behavior.
+ */
 const SidebarTreeDnD = {
   mounted() {
     this.sortables = [];
@@ -56,5 +62,8 @@ const SidebarTreeDnD = {
   },
 };
 
+/**
+ * Exports the module default value.
+ */
 export default SidebarTreeDnD;
 export { buildMoveNodePayload };

@@ -1,3 +1,6 @@
+/**
+ * @file Vitest coverage for code editor hook behavior.
+ */
 import { afterEach, describe, expect, it } from "vitest";
 import CodeEditor from "../../js/hooks/code_editor";
 import { cleanupDOM, mountHook } from "../helpers/hook_helper";

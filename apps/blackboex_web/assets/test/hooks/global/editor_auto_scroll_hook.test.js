@@ -1,3 +1,6 @@
+/**
+ * @file Vitest coverage for editor auto scroll hook hook behavior.
+ */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import EditorAutoScroll from "../../../js/hooks/global/editor_auto_scroll_hook";
 import { cleanupDOM, mountHook } from "../../helpers/hook_helper";

@@ -1,3 +1,6 @@
+/**
+ * @file Vitest coverage for markdown sync library helpers.
+ */
 import {
   markdownPayload,
   syncMarkdownContent,

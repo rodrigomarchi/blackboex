@@ -1,3 +1,6 @@
+/**
+ * @file Vitest coverage for code block lang library helpers.
+ */
 import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import {

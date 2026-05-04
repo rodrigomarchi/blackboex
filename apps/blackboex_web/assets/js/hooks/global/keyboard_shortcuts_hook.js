@@ -1,8 +1,14 @@
+/**
+ * @file Global LiveView hook wiring for keyboard shortcuts hook behavior.
+ */
 import {
   editorShortcutForEvent,
   isCommandPaletteOpen,
 } from "../../lib/global/keyboard_shortcuts";
 
+/**
+ * LiveView hook for keyboard shortcuts behavior.
+ */
 const KeyboardShortcuts = {
   mounted() {
     this.handleKeyDown = (event) => {
@@ -23,4 +29,7 @@ const KeyboardShortcuts = {
   },
 };
 
+/**
+ * Exports the module default value.
+ */
 export default KeyboardShortcuts;

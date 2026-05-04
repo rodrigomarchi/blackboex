@@ -1,7 +1,15 @@
+/**
+ * @file Shared JavaScript library helpers for flow behavior.
+ */
 import dagre from "../../../vendor/dagre.min.js";
 import { updateAllOutputLabels } from "./node_catalog";
 
 // Fit canvas so all nodes are visible with padding
+/**
+ * Provides fit view.
+ * @param {unknown} editor - Editor instance used by the helper.
+ * @returns {unknown} Function result.
+ */
 export function fitView(editor) {
   const data = editor.export();
   const homeData = data.drawflow?.Home?.data;
@@ -47,6 +55,12 @@ export function fitView(editor) {
 }
 
 // Auto-layout using dagre (left-to-right hierarchy)
+/**
+ * Provides auto layout.
+ * @param {unknown} editor - Editor instance used by the helper.
+ * @param {unknown} opts - Optional configuration values.
+ * @returns {unknown} Function result.
+ */
 export function autoLayout(editor, opts = {}) {
   const data = editor.export();
   const homeData = data.drawflow?.Home?.data;
@@ -95,6 +109,12 @@ export function autoLayout(editor, opts = {}) {
   setTimeout(() => updateAllOutputLabels(editor), 100);
 }
 
+/**
+ * Provides update zoom label.
+ * @param {unknown} editor - Editor instance used by the helper.
+ * @param {unknown} toolbar - toolbar value.
+ * @returns {unknown} Function result.
+ */
 export function updateZoomLabel(editor, toolbar) {
   const label = toolbar.querySelector("[data-zoom-label]");
   if (label) label.textContent = `${Math.round(editor.zoom * 100)}%`;

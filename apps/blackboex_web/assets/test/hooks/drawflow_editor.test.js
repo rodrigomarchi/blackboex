@@ -1,3 +1,6 @@
+/**
+ * @file Vitest coverage for drawflow editor hook behavior.
+ */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanupDOM, mountHook, simulateEvent } from "../helpers/hook_helper";
 

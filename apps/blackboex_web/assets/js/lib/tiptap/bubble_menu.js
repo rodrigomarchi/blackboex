@@ -1,3 +1,9 @@
+/**
+ * @file Shared JavaScript library helpers for tiptap behavior.
+ */
+/**
+ * Provides bubble buttons.
+ */
 export const BUBBLE_BUTTONS = [
   {
     label: "B",
@@ -56,6 +62,11 @@ const ALIGN_BUTTONS = [
   { label: "➡", action: "align-right", title: "Align Right" },
 ];
 
+/**
+ * Provides create bubble menu el.
+ * @param {unknown} doc - Document used for DOM lookup.
+ * @returns {unknown} Function result.
+ */
 export function createBubbleMenuEl(doc = document) {
   const menu = doc.createElement("div");
   menu.className = "tiptap-bubble-menu";
@@ -82,6 +93,16 @@ export function createBubbleMenuEl(doc = document) {
   return menu;
 }
 
+/**
+ * Provides create bubble button.
+ * @param {unknown} doc - Document used for DOM lookup.
+ * @param {object} root1 - Secondary options object.
+ * @param {unknown} root1.label - label option.
+ * @param {unknown} root1.action - action option.
+ * @param {unknown} root1.style - style option.
+ * @param {unknown} root1.title - title option.
+ * @returns {unknown} Function result.
+ */
 function createBubbleButton(doc, { label, action, style, title }) {
   const button = doc.createElement("button");
   button.type = "button";
@@ -92,6 +113,13 @@ function createBubbleButton(doc, { label, action, style, title }) {
   return button;
 }
 
+/**
+ * Provides wire bubble menu buttons.
+ * @param {unknown} menu - menu value.
+ * @param {unknown} editor - Editor instance used by the helper.
+ * @param {unknown} prompt - prompt value.
+ * @returns {unknown} Function result.
+ */
 export function wireBubbleMenuButtons(menu, editor, prompt = window.prompt) {
   menu.querySelectorAll("button[data-action]").forEach((button) => {
     const action = button.dataset.action;
@@ -105,6 +133,13 @@ export function wireBubbleMenuButtons(menu, editor, prompt = window.prompt) {
   editor.on("transaction", () => updateBubbleActiveState(menu, editor));
 }
 
+/**
+ * Provides handle bubble action.
+ * @param {unknown} editor - Editor instance used by the helper.
+ * @param {unknown} action - action value.
+ * @param {unknown} prompt - prompt value.
+ * @returns {unknown} Function result.
+ */
 export function handleBubbleAction(editor, action, prompt = window.prompt) {
   switch (action) {
     case "bold":
@@ -136,6 +171,12 @@ export function handleBubbleAction(editor, action, prompt = window.prompt) {
   }
 }
 
+/**
+ * Provides prompt for link.
+ * @param {unknown} editor - Editor instance used by the helper.
+ * @param {unknown} prompt - prompt value.
+ * @returns {unknown} Function result.
+ */
 export function promptForLink(editor, prompt = window.prompt) {
   if (editor.isActive("link")) {
     return editor.chain().focus().unsetLink().run();
@@ -156,6 +197,12 @@ export function promptForLink(editor, prompt = window.prompt) {
   return editor.chain().focus().run();
 }
 
+/**
+ * Provides update bubble active state.
+ * @param {unknown} menu - menu value.
+ * @param {unknown} editor - Editor instance used by the helper.
+ * @returns {unknown} Function result.
+ */
 export function updateBubbleActiveState(menu, editor) {
   menu.querySelectorAll("button[data-action]").forEach((button) => {
     const action = button.dataset.action;

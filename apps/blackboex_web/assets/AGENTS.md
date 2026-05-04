@@ -12,6 +12,9 @@ browser adapters, and JavaScript tests.
   side-effect wrappers.
 - Every new or changed hook must have a matching test in `test/hooks/**`.
 - Every new or changed library module must have a matching test in `test/lib/**`.
+- Every new or changed project-owned JavaScript file must keep a top-level
+  JSDoc `@file` block, and exported functions/classes/helpers must keep JSDoc
+  tags that pass the configured `eslint-plugin-jsdoc` rules.
 - Use Vitest + jsdom. Do not add browser-only code that cannot be exercised with
   dependency injection or a small adapter wrapper.
 - `vendor/**`, `node_modules/**`, compiled assets, and generated files are not

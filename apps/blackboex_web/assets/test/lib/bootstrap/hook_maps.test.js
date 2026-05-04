@@ -1,3 +1,6 @@
+/**
+ * @file Vitest coverage for hook maps library helpers.
+ */
 import { describe, expect, it } from "vitest";
 import { buildAdminHooks } from "../../../js/lib/bootstrap/hook_maps";
 

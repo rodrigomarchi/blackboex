@@ -1,3 +1,6 @@
+/**
+ * @file Vitest coverage for codemirror setup library helpers.
+ */
 import { describe, expect, it } from "vitest";
 import { buildExtensions } from "../../js/lib/codemirror_setup";
 

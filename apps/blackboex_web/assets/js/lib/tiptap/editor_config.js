@@ -1,3 +1,14 @@
+/**
+ * @file Shared JavaScript library helpers for tiptap behavior.
+ */
+/**
+ * @typedef {object} TiptapEditorOptions
+ * @property {HTMLElement} bubbleMenuEl
+ * @property {string} placeholder
+ * @property {string | undefined} eventName
+ * @property {string | undefined} fieldName
+ * @property {Function | undefined} pushEvent
+ */
 import StarterKit from "@tiptap/starter-kit";
 import { Markdown } from "tiptap-markdown";
 import Placeholder from "@tiptap/extension-placeholder";
@@ -27,6 +38,11 @@ import { markdownPayload } from "./markdown_sync";
 
 const lowlight = buildLowlight();
 
+/**
+ * Provides should show bubble menu.
+ * @param {unknown} options - Configuration values for the helper.
+ * @returns {unknown} Function result.
+ */
 export function shouldShowBubbleMenu({ editor, state }) {
   if (editor.isActive("codeBlock") || editor.isActive("image")) {
     return false;
@@ -34,6 +50,11 @@ export function shouldShowBubbleMenu({ editor, state }) {
   return !state.selection.empty;
 }
 
+/**
+ * Provides build tiptap extensions.
+ * @param {unknown} options - Configuration values for the helper.
+ * @returns {unknown} Function result.
+ */
 export function buildTiptapExtensions({ bubbleMenuEl, placeholder }) {
   return [
     StarterKit.configure({ codeBlock: false }),
@@ -85,6 +106,11 @@ export function buildTiptapExtensions({ bubbleMenuEl, placeholder }) {
   ];
 }
 
+/**
+ * Provides build tiptap editor props.
+ * @param {unknown} options - Configuration values for the helper.
+ * @returns {unknown} Function result.
+ */
 export function buildTiptapEditorProps({
   getEditor,
   fieldName,
@@ -119,6 +145,11 @@ export function buildTiptapEditorProps({
   };
 }
 
+/**
+ * Provides build tiptap on update.
+ * @param {unknown} options - Configuration values for the helper.
+ * @returns {unknown} Function result.
+ */
 export function buildTiptapOnUpdate({
   hook,
   eventName,

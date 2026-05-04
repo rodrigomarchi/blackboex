@@ -1,3 +1,6 @@
+/**
+ * @file Vitest coverage for editor options library helpers.
+ */
 import { describe, expect, it } from "vitest";
 import { tiptapDatasetOptions } from "../../../js/lib/tiptap/editor_options";
 

@@ -1,3 +1,6 @@
+/**
+ * @file Vitest coverage for tiptap editor hook behavior.
+ */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createTiptapEditorHook } from "../../js/hooks/tiptap_editor";
 import { cleanupDOM, mountHook } from "../helpers/hook_helper";

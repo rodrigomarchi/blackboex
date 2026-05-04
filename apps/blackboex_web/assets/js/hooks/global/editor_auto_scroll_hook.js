@@ -1,9 +1,15 @@
+/**
+ * @file Global LiveView hook wiring for editor auto scroll hook behavior.
+ */
 import {
   findEditorScroller,
   isAtBottom,
   scrollElementToBottom,
 } from "../../lib/global/auto_scroll";
 
+/**
+ * LiveView hook for editor auto scroll behavior.
+ */
 const EditorAutoScroll = {
   mounted() {
     this._userScrolledUp = false;
@@ -46,4 +52,7 @@ const EditorAutoScroll = {
   },
 };
 
+/**
+ * Exports the module default value.
+ */
 export default EditorAutoScroll;

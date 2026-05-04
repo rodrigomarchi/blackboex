@@ -1,3 +1,6 @@
+/**
+ * @file Vitest coverage for codemirror theme library helpers.
+ */
 import { describe, expect, it } from "vitest";
 import { blackboexEditorTheme } from "../../js/lib/codemirror_theme";
 

@@ -1,4 +1,30 @@
 /**
+ * @file Shared JavaScript library helpers for flow behavior.
+ */
+/**
+ * @typedef {object} FlowPosition
+ * @property {number} x
+ * @property {number} y
+ *
+ * @typedef {object} BlackboexFlowNode
+ * @property {string} id
+ * @property {string} type
+ * @property {FlowPosition} position
+ * @property {object} data
+ *
+ * @typedef {object} BlackboexFlowEdge
+ * @property {string} id
+ * @property {string} source
+ * @property {number} source_port
+ * @property {string} target
+ * @property {number} target_port
+ *
+ * @typedef {object} BlackboexFlowDefinition
+ * @property {string} version
+ * @property {BlackboexFlowNode[]} nodes
+ * @property {BlackboexFlowEdge[]} edges
+ */
+/**
  * Converts between Drawflow's internal JSON format and our canonical BlackboexFlow format.
  *
  * BlackboexFlow is the single source of truth — what gets stored in DB, exported, and imported.
@@ -15,6 +41,11 @@
 /**
  * Convert Drawflow export JSON → BlackboexFlow canonical format.
  * Called on save: drawflowToBlackboex(editor.export())
+ */
+/**
+ * Provides drawflow to blackboex.
+ * @param {unknown} drawflowData - drawflowData value.
+ * @returns {unknown} Function result.
  */
 export function drawflowToBlackboex(drawflowData) {
   const nodes = [];
@@ -68,6 +99,7 @@ export function drawflowToBlackboex(drawflowData) {
  *
  * @param {object} blackboex - BlackboexFlow JSON
  * @param {function} buildHTML - function(type, outputCount) => HTML string for node rendering
+ * @returns {object} Drawflow import payload.
  */
 export function blackboexToDrawflow(blackboex, buildHTML) {
   if (!blackboex || !blackboex.nodes) {

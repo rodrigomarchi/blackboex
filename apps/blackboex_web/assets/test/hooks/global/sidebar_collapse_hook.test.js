@@ -1,3 +1,6 @@
+/**
+ * @file Vitest coverage for sidebar collapse hook hook behavior.
+ */
 import { afterEach, describe, expect, it } from "vitest";
 import SidebarCollapse from "../../../js/hooks/global/sidebar_collapse_hook";
 import {

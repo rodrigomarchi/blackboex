@@ -1,5 +1,11 @@
+/**
+ * @file Global LiveView hook wiring for chat auto scroll hook behavior.
+ */
 import { isAtBottom, scrollChatToBottom } from "../../lib/global/auto_scroll";
 
+/**
+ * LiveView hook for chat auto scroll behavior.
+ */
 const ChatAutoScroll = {
   mounted() {
     this._userScrolledUp = false;
@@ -43,4 +49,7 @@ const ChatAutoScroll = {
   },
 };
 
+/**
+ * Exports the module default value.
+ */
 export default ChatAutoScroll;

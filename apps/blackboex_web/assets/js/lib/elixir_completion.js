@@ -1,4 +1,7 @@
 /**
+ * @file Shared JavaScript library helpers for js lib behavior.
+ */
+/**
  * CodeMirror autocompletion source for Elixir, backed by server-side
  * module introspection via LiveView pushEvent with {:reply, ...}.
  */

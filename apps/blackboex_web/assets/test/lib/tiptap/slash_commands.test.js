@@ -1,3 +1,6 @@
+/**
+ * @file Vitest coverage for slash commands library helpers.
+ */
 import { describe, expect, it } from "vitest";
 import {
   COMMANDS,

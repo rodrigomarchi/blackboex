@@ -1,3 +1,12 @@
+/**
+ * @file LiveView hook wiring for code editor behavior.
+ */
+/**
+ * @typedef {object} LiveViewHook
+ * @property {HTMLElement} el
+ * @property {(event: string, payload: object, callback?: Function) => void} pushEvent
+ * @property {(event: string, callback: Function) => void} handleEvent
+ */
 import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { buildExtensions } from "../lib/codemirror_setup";
@@ -7,6 +16,9 @@ import {
   syncCodeMirrorDocument,
 } from "../lib/editor/code_editor";
 
+/**
+ * LiveView hook for code editor behavior.
+ */
 const CodeEditor = {
   mounted() {
     const options = buildCodeEditorOptions(this.el);
@@ -34,4 +46,7 @@ const CodeEditor = {
   },
 };
 
+/**
+ * Exports the module default value.
+ */
 export default CodeEditor;

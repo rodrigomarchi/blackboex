@@ -1,3 +1,10 @@
+/**
+ * @file Shared JavaScript library helpers for flow behavior.
+ */
+/**
+ * Provides reset zoom.
+ * @param {unknown} editor - Editor instance used by the helper.
+ */
 export function resetZoom(editor) {
   editor.zoom = 1;
   editor.canvas_x = 0;
@@ -6,6 +13,12 @@ export function resetZoom(editor) {
   editor.dispatch("zoom", 1);
 }
 
+/**
+ * Provides toggle lock.
+ * @param {unknown} editor - Editor instance used by the helper.
+ * @param {unknown} btn - btn value.
+ * @returns {unknown} Function result.
+ */
 export function toggleLock(editor, btn) {
   const isEdit = editor.editor_mode === "edit";
   editor.editor_mode = isEdit ? "fixed" : "edit";
@@ -21,6 +34,11 @@ export function toggleLock(editor, btn) {
   }
 }
 
+/**
+ * Provides wire drawflow toolbar.
+ * @param {unknown} options - Configuration values for the helper.
+ * @returns {unknown} Function result.
+ */
 export function wireDrawflowToolbar({
   editor,
   toolbar,

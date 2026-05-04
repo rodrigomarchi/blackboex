@@ -1,3 +1,6 @@
+/**
+ * @file Vitest coverage for drawflow layout library helpers.
+ */
 import { describe, expect, it, vi } from "vitest";
 import { fitView, updateZoomLabel } from "../../../js/lib/flow/drawflow_layout";
 

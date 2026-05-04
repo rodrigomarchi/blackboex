@@ -1,3 +1,6 @@
+/**
+ * @file Vitest coverage for lowlight languages library helpers.
+ */
 import { describe, expect, it } from "vitest";
 import {
   LOWLIGHT_LANGUAGES,

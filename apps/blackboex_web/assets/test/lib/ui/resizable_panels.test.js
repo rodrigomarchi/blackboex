@@ -1,3 +1,6 @@
+/**
+ * @file Vitest coverage for resizable panels library helpers.
+ */
 import {
   applyPanelSize,
   clampPanelSize,

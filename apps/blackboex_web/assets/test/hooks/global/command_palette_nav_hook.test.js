@@ -1,3 +1,6 @@
+/**
+ * @file Vitest coverage for command palette nav hook hook behavior.
+ */
 import { afterEach, describe, expect, it } from "vitest";
 import CommandPaletteNav from "../../../js/hooks/global/command_palette_nav_hook";
 import {

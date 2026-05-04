@@ -1,3 +1,6 @@
+/**
+ * @file Shared JavaScript library helpers for tiptap behavior.
+ */
 import { createLowlight } from "lowlight";
 import javascript from "highlight.js/lib/languages/javascript";
 import typescript from "highlight.js/lib/languages/typescript";
@@ -27,6 +30,12 @@ import diff from "highlight.js/lib/languages/diff";
 import markdown from "highlight.js/lib/languages/markdown";
 import plaintext from "highlight.js/lib/languages/plaintext";
 
+/**
+ * Provides lowlight languages.
+ */
+/**
+ * Provides lowlight languages.
+ */
 export const LOWLIGHT_LANGUAGES = {
   javascript,
   typescript,
@@ -58,6 +67,11 @@ export const LOWLIGHT_LANGUAGES = {
   plaintext,
 };
 
+/**
+ * Provides build lowlight.
+ * @param {unknown} languages - languages value.
+ * @returns {unknown} Function result.
+ */
 export function buildLowlight(languages = LOWLIGHT_LANGUAGES) {
   const lowlight = createLowlight();
   Object.entries(languages).forEach(([name, language]) =>

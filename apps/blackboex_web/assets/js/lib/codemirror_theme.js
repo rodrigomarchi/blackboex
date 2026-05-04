@@ -1,3 +1,6 @@
+/**
+ * @file Shared JavaScript library helpers for js lib behavior.
+ */
 import { EditorView } from "@codemirror/view";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { tags } from "@lezer/highlight";
@@ -81,4 +84,10 @@ const highlightStyle = HighlightStyle.define([
   { tag: tags.punctuation, color: "#abb2bf" },
 ]);
 
+/**
+ * Provides blackboex editor theme.
+ */
+/**
+ * Provides blackboex editor theme.
+ */
 export const blackboexEditorTheme = [theme, syntaxHighlighting(highlightStyle)];

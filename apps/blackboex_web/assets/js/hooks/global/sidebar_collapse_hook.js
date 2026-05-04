@@ -1,8 +1,14 @@
+/**
+ * @file Global LiveView hook wiring for sidebar collapse hook behavior.
+ */
 import {
   applySidebarCollapsedState,
   persistSidebarCollapsedState,
 } from "../../lib/global/sidebar_collapse";
 
+/**
+ * LiveView hook for sidebar collapse behavior.
+ */
 const SidebarCollapse = {
   mounted() {
     applySidebarCollapsedState(this.el, localStorage);
@@ -16,4 +22,7 @@ const SidebarCollapse = {
   },
 };
 
+/**
+ * Exports the module default value.
+ */
 export default SidebarCollapse;

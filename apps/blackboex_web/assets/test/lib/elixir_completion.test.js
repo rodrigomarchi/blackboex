@@ -1,3 +1,6 @@
+/**
+ * @file Vitest coverage for elixir completion library helpers.
+ */
 import { describe, expect, it, vi } from "vitest";
 import { elixirCompletionSource } from "../../js/lib/elixir_completion";
 

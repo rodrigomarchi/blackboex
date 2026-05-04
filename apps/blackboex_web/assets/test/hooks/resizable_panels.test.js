@@ -1,3 +1,6 @@
+/**
+ * @file Vitest coverage for resizable panels hook behavior.
+ */
 import { afterEach, describe, expect, it } from "vitest";
 import ResizablePanels from "../../js/hooks/resizable_panels";
 import {

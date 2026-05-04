@@ -1,3 +1,6 @@
+/**
+ * @file Vitest coverage for node catalog library helpers.
+ */
 import { describe, expect, it } from "vitest";
 import {
   buildNodeHTML,

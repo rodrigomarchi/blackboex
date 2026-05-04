@@ -1,3 +1,6 @@
+/**
+ * @file Vitest coverage for clipboard library helpers.
+ */
 import { copyTextFromEvent } from "../../../js/lib/browser/clipboard";
 
 describe("clipboard adapter", () => {

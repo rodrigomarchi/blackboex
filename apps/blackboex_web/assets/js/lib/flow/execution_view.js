@@ -1,7 +1,16 @@
+/**
+ * @file Shared JavaScript library helpers for flow behavior.
+ */
 import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { buildExtensions } from "../codemirror_setup";
 
+/**
+ * Provides exec status colors.
+ */
+/**
+ * Provides exec status colors.
+ */
 export const EXEC_STATUS_COLORS = {
   completed: "#10b981",
   failed: "#ef4444",
@@ -11,6 +20,12 @@ export const EXEC_STATUS_COLORS = {
   skipped: "#a855f7",
 };
 
+/**
+ * Provides exec status labels.
+ */
+/**
+ * Provides exec status labels.
+ */
 export const EXEC_STATUS_LABELS = {
   completed: "completed",
   failed: "failed",
@@ -20,11 +35,22 @@ export const EXEC_STATUS_LABELS = {
   skipped: "skipped",
 };
 
+/**
+ * Provides format execution duration.
+ * @param {unknown} ms - ms value.
+ * @returns {unknown} Function result.
+ */
 export function formatExecutionDuration(ms) {
   if (ms === null || ms === undefined) return "";
   return ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(1)}s`;
 }
 
+/**
+ * Provides build execution data node html.
+ * @param {unknown} options - Configuration values for the helper.
+ * @param {unknown} nodeKey - nodeKey value.
+ * @returns {unknown} Function result.
+ */
 export function buildExecutionDataNodeHtml({ status, output, error }, nodeKey) {
   const json =
     output !== null && output !== undefined
@@ -38,6 +64,11 @@ export function buildExecutionDataNodeHtml({ status, output, error }, nodeKey) {
   </div>`;
 }
 
+/**
+ * Provides mount execution code mirror views.
+ * @param {unknown} root - Root element or document used for lookup.
+ * @returns {unknown} Function result.
+ */
 export function mountExecutionCodeMirrorViews(root = document) {
   const views = [];
 
@@ -68,10 +99,21 @@ export function mountExecutionCodeMirrorViews(root = document) {
   return views;
 }
 
+/**
+ * Provides destroy execution code mirror views.
+ * @param {unknown} views - views value.
+ * @returns {unknown} Function result.
+ */
 export function destroyExecutionCodeMirrorViews(views) {
   views.forEach((view) => view.destroy());
 }
 
+/**
+ * Provides apply execution highlights.
+ * @param {unknown} nodes - nodes value.
+ * @param {unknown} root - Root element or document used for lookup.
+ * @returns {unknown} Function result.
+ */
 export function applyExecutionHighlights(nodes, root = document) {
   nodes.forEach(({ id, status, duration_ms: durationMs }) => {
     const dfId = id.startsWith("n") ? id.slice(1) : id;

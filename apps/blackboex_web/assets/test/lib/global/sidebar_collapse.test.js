@@ -1,3 +1,6 @@
+/**
+ * @file Vitest coverage for sidebar collapse library helpers.
+ */
 import { describe, expect, it, vi } from "vitest";
 import {
   SIDEBAR_COLLAPSED_KEY,

@@ -12,7 +12,7 @@ Hooks in this project are split by responsibility:
 - `assets/test/hooks/**` — hook tests, mirrored by hook area.
 - `assets/test/lib/**` — library tests, mirrored by library area.
 
-`app.js` is the single LiveSocket owner for the main web layout. It imports every public hook used by that layout and builds a complete `hooks` map before calling `new LiveSocket(...)`, matching the `retro_hex_chat` `v2_app.js` pattern. Do not use `window.__hooks`, lazy hook registration, or conditional feature bundles for hooks in the main layout.
+`app.js` is the single LiveSocket owner for the main web layout. It imports every public hook used by that layout and builds a complete `hooks` map before calling `new LiveSocket(...)`.
 
 **Mandatory:** every new or changed hook needs a test under `assets/test/hooks/**`; every new or changed lib needs a test under `assets/test/lib/**`. Vendor files are not part of the refactoring/test scope.
 

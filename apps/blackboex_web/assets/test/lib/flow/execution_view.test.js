@@ -1,3 +1,6 @@
+/**
+ * @file Vitest coverage for execution view library helpers.
+ */
 import { describe, expect, it } from "vitest";
 import {
   applyExecutionHighlights,

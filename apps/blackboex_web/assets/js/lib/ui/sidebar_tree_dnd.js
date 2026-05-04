@@ -1,3 +1,11 @@
+/**
+ * @file Shared JavaScript library helpers for ui behavior.
+ */
+/**
+ * Provides build move node payload.
+ * @param {unknown} evt - evt value.
+ * @returns {unknown} Function result.
+ */
 export function buildMoveNodePayload(evt) {
   const item = evt.item;
   const newList = evt.to;
@@ -11,6 +19,13 @@ export function buildMoveNodePayload(evt) {
   };
 }
 
+/**
+ * Provides create sortables.
+ * @param {unknown} root - Root element or document used for lookup.
+ * @param {unknown} Sortable - Sortable value.
+ * @param {unknown} onMoveNode - onMoveNode value.
+ * @returns {unknown} Function result.
+ */
 export function createSortables(root, Sortable, onMoveNode) {
   const sortables = [];
   root.querySelectorAll("[data-tree-list]").forEach((list) => {
@@ -27,6 +42,11 @@ export function createSortables(root, Sortable, onMoveNode) {
   return sortables;
 }
 
+/**
+ * Provides destroy sortables.
+ * @param {unknown} sortables - sortables value.
+ * @returns {unknown} Function result.
+ */
 export function destroySortables(sortables) {
   sortables.forEach((sortable) => sortable.destroy());
 }

@@ -1,3 +1,13 @@
+/**
+ * @file Shared JavaScript library helpers for js lib behavior.
+ */
+/**
+ * @typedef {object} CodeMirrorExtensionOptions
+ * @property {string} language
+ * @property {boolean} readOnly
+ * @property {Function | undefined} onBlur
+ * @property {boolean} minimal
+ */
 import { keymap, EditorView } from "@codemirror/view";
 import { defaultKeymap, indentWithTab } from "@codemirror/commands";
 import { closeBrackets } from "@codemirror/autocomplete";
@@ -14,6 +24,11 @@ import {
 } from "@codemirror/view";
 import { blackboexEditorTheme } from "./codemirror_theme";
 
+/**
+ * Provides build extensions.
+ * @param {CodeMirrorExtensionOptions} options - Configuration values for the helper.
+ * @returns {unknown} Function result.
+ */
 export function buildExtensions({ language, readOnly, onBlur, minimal }) {
   const extensions = [
     bracketMatching(),

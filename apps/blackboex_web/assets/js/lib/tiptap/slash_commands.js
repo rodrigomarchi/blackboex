@@ -1,6 +1,15 @@
+/**
+ * @file Shared JavaScript library helpers for tiptap behavior.
+ */
 import { Extension } from "@tiptap/core";
 import Suggestion from "@tiptap/suggestion";
 
+/**
+ * Provides commands.
+ */
+/**
+ * Provides commands.
+ */
 export const COMMANDS = [
   // ── Text ──────────────────────────────────────────────────
   {
@@ -189,6 +198,14 @@ const SlashCommands = Extension.create({
   },
 });
 
+/**
+ * Provides create slash suggestion.
+ * @returns {unknown} Function result.
+ */
+/**
+ * Provides create slash suggestion.
+ * @returns {unknown} Function result.
+ */
 function createSlashSuggestion() {
   let menuEl = null;
   let selectedIndex = 0;

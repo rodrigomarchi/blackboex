@@ -1,3 +1,6 @@
+/**
+ * @file LiveView hook wiring for playground editor behavior.
+ */
 import { EditorState } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
 import { autocompletion } from "@codemirror/autocomplete";
@@ -11,6 +14,9 @@ import {
 } from "../lib/editor/playground_editor";
 import { syncCodeMirrorDocument } from "../lib/editor/code_editor";
 
+/**
+ * LiveView hook for playground editor behavior.
+ */
 const PlaygroundEditor = {
   mounted() {
     const initialValue = this.el.dataset.value || "";
@@ -99,4 +105,7 @@ const PlaygroundEditor = {
   },
 };
 
+/**
+ * Exports the module default value.
+ */
 export default PlaygroundEditor;

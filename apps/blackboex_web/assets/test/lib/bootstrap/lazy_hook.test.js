@@ -1,3 +1,6 @@
+/**
+ * @file Vitest coverage for lazy hook library helpers.
+ */
 import { describe, expect, it, vi } from "vitest";
 import { lazyHook } from "../../../js/lib/bootstrap/lazy_hook";
 import { mountHook } from "../../helpers/hook_helper";

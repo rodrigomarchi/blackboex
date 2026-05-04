@@ -1,3 +1,6 @@
+/**
+ * @file Vitest coverage for editor config library helpers.
+ */
 import { describe, expect, it, vi } from "vitest";
 import {
   buildTiptapEditorProps,

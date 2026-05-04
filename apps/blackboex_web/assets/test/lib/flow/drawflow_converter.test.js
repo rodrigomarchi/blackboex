@@ -1,3 +1,6 @@
+/**
+ * @file Vitest coverage for drawflow converter library helpers.
+ */
 import {
   blackboexToDrawflow,
   drawflowToBlackboex,

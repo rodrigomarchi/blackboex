@@ -1,3 +1,6 @@
+/**
+ * @file Vitest coverage for bubble menu library helpers.
+ */
 import {
   createBubbleMenuEl,
   promptForLink,

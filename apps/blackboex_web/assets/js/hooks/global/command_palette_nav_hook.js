@@ -1,8 +1,14 @@
+/**
+ * @file Global LiveView hook wiring for command palette nav hook behavior.
+ */
 import {
   commandPaletteDirection,
   scrollSelectedCommandIntoView,
 } from "../../lib/global/command_palette";
 
+/**
+ * LiveView hook for command palette nav behavior.
+ */
 const CommandPaletteNav = {
   mounted() {
     this.el.focus();
@@ -28,4 +34,7 @@ const CommandPaletteNav = {
   },
 };
 
+/**
+ * Exports the module default value.
+ */
 export default CommandPaletteNav;

@@ -1,3 +1,6 @@
+/**
+ * @file Shared JavaScript library helpers for js lib behavior.
+ */
 export {
   COMMANDS,
   SlashCommands,

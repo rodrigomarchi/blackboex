@@ -1,3 +1,6 @@
+/**
+ * @file Vitest coverage for playground editor library helpers.
+ */
 import {
   playgroundEventForKey,
   resolveCompletionItems,

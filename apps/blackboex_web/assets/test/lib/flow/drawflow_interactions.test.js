@@ -1,3 +1,6 @@
+/**
+ * @file Vitest coverage for drawflow interactions library helpers.
+ */
 import { describe, expect, it, vi } from "vitest";
 import {
   createNodeFromDrop,

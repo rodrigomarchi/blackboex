@@ -1,4 +1,7 @@
 /**
+ * @file LiveView hook wiring for resizable panels behavior.
+ */
+/**
  * ResizablePanels hook — manages drag-to-resize for playground panels.
  *
  * Looks for elements with [data-resize-handle] inside the hook element.
@@ -25,6 +28,9 @@ import {
   savePanelSizes,
 } from "../lib/ui/resizable_panels";
 
+/**
+ * Exports the module default value.
+ */
 export default {
   mounted() {
     this.handles = [];

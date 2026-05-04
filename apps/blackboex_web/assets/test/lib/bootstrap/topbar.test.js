@@ -1,3 +1,6 @@
+/**
+ * @file Vitest coverage for topbar library helpers.
+ */
 import { describe, expect, it, vi } from "vitest";
 import { installTopbar } from "../../../js/lib/bootstrap/topbar";
 

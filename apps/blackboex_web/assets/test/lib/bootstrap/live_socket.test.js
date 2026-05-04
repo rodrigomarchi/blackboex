@@ -1,3 +1,6 @@
+/**
+ * @file Vitest coverage for live socket library helpers.
+ */
 import { describe, expect, it } from "vitest";
 import {
   buildLiveSocket,

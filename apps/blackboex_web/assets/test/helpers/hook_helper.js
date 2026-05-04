@@ -1,7 +1,22 @@
+/**
+ * @file Vitest helpers for mounting and exercising LiveView hooks.
+ */
+/**
+ * @typedef {object} PushedEvent
+ * @property {string | undefined} target
+ * @property {string} event
+ * @property {object | undefined} payload
+ */
 if (!Element.prototype.scrollIntoView) {
   Element.prototype.scrollIntoView = function () {};
 }
 
+/**
+ * Provides mount hook.
+ * @param {unknown} hookDef - hookDef value.
+ * @param {unknown} options - Configuration values for the helper.
+ * @returns {unknown} Function result.
+ */
 export function mountHook(hookDef, options = {}) {
   let el;
   if (options instanceof Element) {
@@ -43,23 +58,44 @@ export function mountHook(hookDef, options = {}) {
   return hook;
 }
 
+/**
+ * Provides simulate event.
+ * @param {unknown} hook - LiveView hook instance or test double.
+ * @param {unknown} event - Browser or library event payload.
+ * @param {unknown} payload - Payload passed to the helper.
+ * @returns {unknown} Function result.
+ */
 export function simulateEvent(hook, event, payload) {
   const handlers = hook.__eventHandlers[event] || [];
   handlers.forEach((handler) => handler(payload));
 }
 
+/**
+ * Provides get push events.
+ * @param {unknown} hook - LiveView hook instance or test double.
+ * @param {unknown} eventName - eventName value.
+ * @returns {unknown} Function result.
+ */
 export function getPushEvents(hook, eventName) {
   return hook.__pushEvents
     .filter((event) => event.event === eventName)
     .map((event) => event.payload);
 }
 
+/**
+ * Provides cleanup dom.
+ * @returns {unknown} Function result.
+ */
 export function cleanupDOM() {
   document.body.innerHTML = "";
   document.documentElement.removeAttribute("style");
   vi.restoreAllMocks();
 }
 
+/**
+ * Provides mock local storage.
+ * @returns {unknown} Function result.
+ */
 export function mockLocalStorage() {
   const store = {};
   const original = globalThis.localStorage;

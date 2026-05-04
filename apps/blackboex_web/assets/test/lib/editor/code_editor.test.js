@@ -1,3 +1,6 @@
+/**
+ * @file Vitest coverage for code editor library helpers.
+ */
 import {
   buildCodeEditorOptions,
   shouldSyncDocument,

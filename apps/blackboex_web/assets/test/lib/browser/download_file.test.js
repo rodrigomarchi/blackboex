@@ -1,3 +1,6 @@
+/**
+ * @file Vitest coverage for download file library helpers.
+ */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   downloadFileFromEvent,

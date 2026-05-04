@@ -1,3 +1,6 @@
+/**
+ * @file Vitest coverage for auto focus hook hook behavior.
+ */
 import { afterEach, describe, expect, it } from "vitest";
 import AutoFocus from "../../../js/hooks/global/auto_focus_hook";
 import { cleanupDOM, mountHook } from "../../helpers/hook_helper";

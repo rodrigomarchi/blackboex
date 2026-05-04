@@ -1,3 +1,6 @@
+/**
+ * @file Vitest coverage for command palette library helpers.
+ */
 import {
   commandPaletteDirection,
   findSelectedCommand,

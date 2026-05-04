@@ -1,3 +1,6 @@
+/**
+ * @file Vitest coverage for keyboard shortcuts library helpers.
+ */
 import { editorShortcutForEvent } from "../../../js/lib/global/keyboard_shortcuts";
 
 function keyEvent(key, opts = {}) {

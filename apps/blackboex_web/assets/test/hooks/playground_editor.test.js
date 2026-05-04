@@ -1,3 +1,6 @@
+/**
+ * @file Vitest coverage for playground editor hook behavior.
+ */
 import { afterEach, describe, expect, it } from "vitest";
 import PlaygroundEditor from "../../js/hooks/playground_editor";
 import { cleanupDOM, mountHook, simulateEvent } from "../helpers/hook_helper";

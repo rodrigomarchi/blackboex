@@ -1,3 +1,13 @@
+/**
+ * @file Shared JavaScript library helpers for bootstrap behavior.
+ */
+/**
+ * Provides install topbar.
+ * @param {unknown} topbar - topbar value.
+ * @param {unknown} target - Target event source or DOM element.
+ * @param {unknown} config - Configuration passed to the helper.
+ * @returns {unknown} Function result.
+ */
 export function installTopbar(topbar, target = window, config = {}) {
   topbar.config(config);
 

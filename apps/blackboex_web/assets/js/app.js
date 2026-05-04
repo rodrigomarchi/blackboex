@@ -1,3 +1,6 @@
+/**
+ * @file Main Phoenix LiveView browser entrypoint and hook registry.
+ */
 import "phoenix_html";
 import { Socket } from "phoenix";
 import { LiveSocket } from "phoenix_live_view";

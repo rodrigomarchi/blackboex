@@ -1,3 +1,6 @@
+/**
+ * @file LiveView hook wiring for drawflow editor behavior.
+ */
 import Drawflow from "../../vendor/drawflow.min.js";
 import {
   drawflowToBlackboex,
@@ -29,6 +32,9 @@ import {
 } from "../lib/flow/drawflow_interactions";
 import { wireDrawflowToolbar } from "../lib/flow/drawflow_toolbar";
 
+/**
+ * LiveView hook for drawflow editor behavior.
+ */
 const DrawflowEditor = {
   mounted() {
     this._cleanups = [];
@@ -346,4 +352,7 @@ const DrawflowEditor = {
   },
 };
 
+/**
+ * Exports the module default value.
+ */
 export default DrawflowEditor;

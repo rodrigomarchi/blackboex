@@ -1,3 +1,6 @@
+/**
+ * @file Vitest coverage for auto scroll library helpers.
+ */
 import { describe, expect, it } from "vitest";
 import {
   findEditorScroller,

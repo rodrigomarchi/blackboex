@@ -1,3 +1,6 @@
+/**
+ * @file Vitest coverage for sidebar tree dnd hook behavior.
+ */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanupDOM, mountHook } from "../helpers/hook_helper";
 

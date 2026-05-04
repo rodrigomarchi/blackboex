@@ -533,10 +533,14 @@ defmodule Blackboex.Apis.RegistryTest do
       user = Blackboex.AccountsFixtures.user_fixture()
 
       {:ok, %{organization: org}} =
-        Blackboex.Organizations.create_organization(user, %{
-          name: "Reload Nil Src Org #{System.unique_integer([:positive])}",
-          slug: "rld-nil-org-#{System.unique_integer([:positive])}"
-        })
+        Blackboex.Organizations.create_organization(
+          user,
+          %{
+            name: "Reload Nil Src Org #{System.unique_integer([:positive])}",
+            slug: "rld-nil-org-#{System.unique_integer([:positive])}"
+          },
+          materialize: false
+        )
 
       {:ok, api} =
         Blackboex.Apis.create_api(%{
@@ -566,10 +570,14 @@ defmodule Blackboex.Apis.RegistryTest do
       user = Blackboex.AccountsFixtures.user_fixture()
 
       {:ok, %{organization: org}} =
-        Blackboex.Organizations.create_organization(user, %{
-          name: "Reload Src Org #{System.unique_integer([:positive])}",
-          slug: "rld-src-org-#{System.unique_integer([:positive])}"
-        })
+        Blackboex.Organizations.create_organization(
+          user,
+          %{
+            name: "Reload Src Org #{System.unique_integer([:positive])}",
+            slug: "rld-src-org-#{System.unique_integer([:positive])}"
+          },
+          materialize: false
+        )
 
       {:ok, api} =
         Blackboex.Apis.create_api(%{
@@ -624,10 +632,14 @@ defmodule Blackboex.Apis.RegistryTest do
       user = Blackboex.AccountsFixtures.user_fixture()
 
       {:ok, %{organization: org}} =
-        Blackboex.Organizations.create_organization(user, %{
-          name: "Loaded Mod Org #{System.unique_integer([:positive])}",
-          slug: "loaded-org-#{System.unique_integer([:positive])}"
-        })
+        Blackboex.Organizations.create_organization(
+          user,
+          %{
+            name: "Loaded Mod Org #{System.unique_integer([:positive])}",
+            slug: "loaded-org-#{System.unique_integer([:positive])}"
+          },
+          materialize: false
+        )
 
       {:ok, api} =
         Blackboex.Apis.create_api(%{

@@ -101,7 +101,7 @@ test.liveview: ## Run LiveView tests only
 	cd $(WEB_APP) && mix test --only liveview
 
 test.all: ## Run ALL tests (including slow tags)
-	mix test --include integration --include liveview
+	mix test --include integration --include liveview --include slow
 
 test.cover: ## Run tests with coverage report
 	mix test --cover

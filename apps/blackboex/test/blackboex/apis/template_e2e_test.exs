@@ -2,6 +2,7 @@ defmodule Blackboex.Apis.TemplateE2ETest do
   use BlackboexWeb.ConnCase, async: false
 
   @moduletag :integration
+  @moduletag :slow
   @moduletag :capture_log
 
   alias Blackboex.Apis

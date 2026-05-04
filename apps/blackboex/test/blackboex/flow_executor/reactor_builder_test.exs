@@ -437,7 +437,7 @@ defmodule Blackboex.FlowExecutor.ReactorBuilderTest do
             "id" => "n2",
             "type" => "delay",
             "position" => %{"x" => 200, "y" => 0},
-            "data" => %{"duration_ms" => 0}
+            "data" => %{"duration_ms" => 1}
           },
           %{
             "id" => "n3",

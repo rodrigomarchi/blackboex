@@ -50,7 +50,7 @@ defmodule Blackboex.CodeGen.SandboxTest do
     end
 
     test "returns :timeout for infinite loop" do
-      assert {:error, :timeout} = Sandbox.execute(InfiniteLoopHandler, %{}, timeout: 1000)
+      assert {:error, :timeout} = Sandbox.execute(InfiniteLoopHandler, %{}, timeout: 50)
     end
 
     @tag :capture_log
@@ -71,7 +71,7 @@ defmodule Blackboex.CodeGen.SandboxTest do
       me = self()
       assert Process.alive?(me)
 
-      assert {:error, :timeout} = Sandbox.execute(InfiniteLoopHandler, %{}, timeout: 500)
+      assert {:error, :timeout} = Sandbox.execute(InfiniteLoopHandler, %{}, timeout: 50)
 
       # Caller still alive
       assert Process.alive?(me)
@@ -79,7 +79,7 @@ defmodule Blackboex.CodeGen.SandboxTest do
 
     test "respects custom timeout option" do
       # Short timeout should trigger before the loop would naturally end
-      assert {:error, :timeout} = Sandbox.execute(InfiniteLoopHandler, %{}, timeout: 100)
+      assert {:error, :timeout} = Sandbox.execute(InfiniteLoopHandler, %{}, timeout: 20)
     end
 
     test "handles empty params" do
@@ -177,7 +177,7 @@ defmodule Blackboex.CodeGen.SandboxTest do
 
       {pid, ref} =
         spawn_monitor(fn ->
-          result = Sandbox.execute_plug(SlowPlug, conn, timeout: 200)
+          result = Sandbox.execute_plug(SlowPlug, conn, timeout: 50)
           send(test_pid, {:plug_result, result})
         end)
 
@@ -190,7 +190,7 @@ defmodule Blackboex.CodeGen.SandboxTest do
           # Process was killed by watchdog — this IS the timeout behavior
           assert reason == :killed
       after
-        3_000 ->
+        500 ->
           flunk("Timed out waiting for plug execution")
       end
     end

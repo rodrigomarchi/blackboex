@@ -39,7 +39,7 @@ defmodule Blackboex.FlowAgent.SessionTest do
       parent = self()
 
       Mox.stub(Blackboex.LLM.ClientMock, :stream_text, fn _p, _o ->
-        send(parent, :llm_called)
+        send(parent, {:llm_called, self()})
 
         receive do
           :release -> :ok
@@ -51,7 +51,7 @@ defmodule Blackboex.FlowAgent.SessionTest do
       end)
 
       Mox.stub(Blackboex.LLM.ClientMock, :generate_text, fn _p, _o ->
-        send(parent, :llm_called)
+        send(parent, {:llm_called, self()})
 
         receive do
           :release -> :ok
@@ -66,12 +66,13 @@ defmodule Blackboex.FlowAgent.SessionTest do
       Process.monitor(pid)
 
       # Wait for LLM call to start — at that point the GenServer is registered.
-      assert_receive :llm_called, 2_000
+      assert_receive {:llm_called, llm_pid}, 2_000
 
       [{registered_pid, _}] = Registry.lookup(Blackboex.FlowAgent.SessionRegistry, opts.run_id)
       assert registered_pid == pid
 
       # Let it finish naturally.
+      send(llm_pid, :release)
       assert_receive {:DOWN, _, :process, ^pid, :normal}, 3_000
     end
   end

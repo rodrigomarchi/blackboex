@@ -35,7 +35,7 @@ defmodule Blackboex.Projects.Samples do
           {:ok, %{project: Project.t(), membership: ProjectMembership.t()}}
           | {:error, term()}
   def provision_for_org(org, user, opts \\ []) do
-    materialize? = Keyword.get(opts, :materialize, true)
+    materialize? = Keyword.get(opts, :materialize, materialize_by_default?())
 
     Repo.transaction(fn ->
       project = insert_sample_project!(org)
@@ -43,6 +43,11 @@ defmodule Blackboex.Projects.Samples do
       if materialize?, do: sync_project!(project, user)
       %{project: project, membership: membership}
     end)
+  end
+
+  defp materialize_by_default? do
+    Application.get_env(:blackboex, __MODULE__, [])
+    |> Keyword.get(:materialize_by_default, true)
   end
 
   @spec sync_sample_workspace(Project.t(), Blackboex.Accounts.User.t() | nil) ::

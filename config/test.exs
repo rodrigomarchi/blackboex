@@ -77,4 +77,9 @@ config :blackboex, Blackboex.Apis.Registry,
 
 # Playgrounds.Executor: shorten the sandbox execution timeout so the timeout
 # happy-path test doesn't sit idle for 15 seconds.
-config :blackboex, Blackboex.Playgrounds.Executor, timeout_ms: 500
+config :blackboex, Blackboex.Playgrounds.Executor, timeout_ms: 50
+
+# Sample workspaces are expensive to materialize and most tests only need the
+# default project/membership. Tests that exercise sample sync pass
+# `materialize: true` explicitly.
+config :blackboex, Blackboex.Projects.Samples, materialize_by_default: false

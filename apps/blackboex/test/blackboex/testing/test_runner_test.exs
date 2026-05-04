@@ -81,7 +81,7 @@ defmodule Blackboex.Testing.TestRunnerTest do
       end
       """
 
-      assert {:error, :timeout} = TestRunner.run(timeout_code, timeout: 500)
+      assert {:error, :timeout} = TestRunner.run(timeout_code, timeout: 50)
     end
 
     test "results include test names and duration" do

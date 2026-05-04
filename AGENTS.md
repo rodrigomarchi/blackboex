@@ -176,6 +176,7 @@ setup :create_user_and_org
 - **Sandbox:** `Blackboex.DataCase` for Ecto SQL sandbox
 - **Test DB reset:** `mix test` / `make test` drops, recreates, and migrates `blackboex_test` before running tests. Keep this behavior so PostgreSQL bloat from rolled-back sandbox inserts does not accumulate across runs.
 - **Index coverage:** `Blackboex.Repo.IndexCoverageTest` verifies every foreign key has a leading supporting index. Add indexes with new foreign keys.
+- **Slow E2E:** expensive matrix-style E2E tests use `@moduletag :slow` and are excluded from default `mix test`. Run them with `mix test --include slow` or `make test.all`.
 - **Oban:** Manual mode — use `Oban.Testing.assert_enqueued/2`
 - **Tags:** `@moduletag :unit`, `:integration`, `:liveview`, `@tag :capture_log`
 - **New schema = new fixture:** when adding a schema that will be inserted in tests, create the fixture BEFORE writing tests

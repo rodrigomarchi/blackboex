@@ -17,15 +17,15 @@ defmodule Blackboex.PageAgent.ContentParser do
       ```
       ~~~
 
-      Resumo: breve descrição opcional.
+      Summary: brief optional description.
   """
 
   @summary_max 200
-  @default_summary "Conteúdo atualizado pelo agente"
+  @default_summary "Content updated by the agent"
 
   @tilde_fence ~r/~~~(?:markdown|md)?\s*\n(.*?)\n~~~/s
   @backtick_fence ~r/```(?:markdown|md)\s*\n(.*?)\n```/s
-  @summary_line ~r/^\s*Resumo:\s*(.+)$/m
+  @summary_line ~r/^\s*Summary:\s*(.+)$/m
 
   @spec extract_content(String.t()) :: {:ok, String.t()} | {:error, :no_content_block}
   def extract_content(content) when is_binary(content) do
@@ -57,7 +57,7 @@ defmodule Blackboex.PageAgent.ContentParser do
 
   defp truncate(text) do
     if String.length(text) > @summary_max do
-      String.slice(text, 0, @summary_max) <> "…"
+      String.slice(text, 0, @summary_max) <> "..."
     else
       text
     end

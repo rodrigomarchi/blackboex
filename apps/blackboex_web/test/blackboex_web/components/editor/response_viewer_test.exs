@@ -44,7 +44,7 @@ defmodule BlackboexWeb.Components.Editor.ResponseViewerTest do
     test "shows empty state message" do
       html = render_viewer()
 
-      assert html =~ "Envie um request para ver a resposta"
+      assert html =~ "Send a request to see the response"
     end
 
     test "renders response-viewer container" do

@@ -27,24 +27,24 @@ defmodule BlackboexWeb.Components.Editor.PageChatPanelTest do
   test "renders empty panel with header and input" do
     html = render_panel(%{})
     assert html =~ "Page Assistant"
-    assert html =~ "Nova conversa"
+    assert html =~ "New conversation"
     assert html =~ ~s(name="message")
   end
 
   test "renders user + assistant messages via render_message_step" do
     msgs = [
-      %{role: "user", content: "escreva intro"},
-      %{role: "assistant", content: "feito"}
+      %{role: "user", content: "write intro"},
+      %{role: "assistant", content: "done"}
     ]
 
     html = render_panel(%{messages: msgs})
-    assert html =~ "escreva intro"
-    assert html =~ "feito"
+    assert html =~ "write intro"
+    assert html =~ "done"
   end
 
   test "shows thinking indicator when loading and no tokens yet" do
     html = render_panel(%{loading: true})
-    assert html =~ "Agente pensando"
+    assert html =~ "Agent thinking"
   end
 
   test "renders streaming content block when tokens arriving" do

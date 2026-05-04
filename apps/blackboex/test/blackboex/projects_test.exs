@@ -6,20 +6,20 @@ defmodule Blackboex.ProjectsTest do
   alias Blackboex.Samples.Manifest
 
   describe "create_project/3" do
-    test "cria projeto e membership admin para o criador" do
+    test "creates project and admin membership for the creator" do
       user = user_fixture()
       org = org_fixture(%{user: user})
 
       assert {:ok, %{project: project, membership: membership}} =
-               Projects.create_project(org, user, %{name: "Meu Projeto"})
+               Projects.create_project(org, user, %{name: "My Project"})
 
       assert project.organization_id == org.id
-      assert project.name == "Meu Projeto"
+      assert project.name == "My Project"
       assert membership.user_id == user.id
       assert membership.role == :admin
     end
 
-    test "cria projeto com slug gerado automaticamente" do
+    test "creates project with automatically generated slug" do
       user = user_fixture()
       org = org_fixture(%{user: user})
 
@@ -31,7 +31,7 @@ defmodule Blackboex.ProjectsTest do
   end
 
   describe "create_default_project/2" do
-    test "cria projeto com name Default" do
+    test "creates project with Default name" do
       user = user_fixture()
       org = org_fixture(%{user: user})
 
@@ -43,12 +43,12 @@ defmodule Blackboex.ProjectsTest do
   end
 
   describe "list_projects/1" do
-    test "retorna todos os projetos da org" do
+    test "returns all organization projects" do
       user = user_fixture()
       org = org_fixture(%{user: user})
 
-      {:ok, %{project: p1}} = Projects.create_project(org, user, %{name: "Projeto 1"})
-      {:ok, %{project: p2}} = Projects.create_project(org, user, %{name: "Projeto 2"})
+      {:ok, %{project: p1}} = Projects.create_project(org, user, %{name: "Project 1"})
+      {:ok, %{project: p2}} = Projects.create_project(org, user, %{name: "Project 2"})
 
       projects = Projects.list_projects(org.id)
       project_ids = Enum.map(projects, & &1.id)
@@ -59,36 +59,36 @@ defmodule Blackboex.ProjectsTest do
   end
 
   describe "list_user_projects/2" do
-    test "retorna apenas projetos acessiveis para org member sem project membership" do
+    test "returns only accessible projects for org member without project membership" do
       user = user_fixture()
       org = org_fixture(%{user: user})
       other_user = user_fixture()
       Blackboex.Organizations.add_member(org, other_user, :member)
 
-      {:ok, %{project: project}} = Projects.create_project(org, user, %{name: "Projeto Privado"})
+      {:ok, %{project: project}} = Projects.create_project(org, user, %{name: "Private Project"})
 
-      # other_user não tem project membership, não deve ver
+      # other_user has no project membership and must not see it.
       projects = Projects.list_user_projects(org.id, other_user.id)
       refute Enum.any?(projects, &(&1.id == project.id))
     end
 
-    test "retorna todos os projetos para org owner" do
+    test "returns all projects for org owner" do
       user = user_fixture()
       org = org_fixture(%{user: user})
 
-      {:ok, %{project: project}} = Projects.create_project(org, user, %{name: "Projeto"})
+      {:ok, %{project: project}} = Projects.create_project(org, user, %{name: "Project"})
 
       projects = Projects.list_user_projects(org.id, user.id)
       assert Enum.any?(projects, &(&1.id == project.id))
     end
 
-    test "retorna todos os projetos para org admin" do
+    test "returns all projects for org admin" do
       owner = user_fixture()
       org = org_fixture(%{user: owner})
       admin = user_fixture()
       Blackboex.Organizations.add_member(org, admin, :admin)
 
-      {:ok, %{project: project}} = Projects.create_project(org, owner, %{name: "Projeto"})
+      {:ok, %{project: project}} = Projects.create_project(org, owner, %{name: "Project"})
 
       projects = Projects.list_user_projects(org.id, admin.id)
       assert Enum.any?(projects, &(&1.id == project.id))
@@ -96,7 +96,7 @@ defmodule Blackboex.ProjectsTest do
   end
 
   describe "get_project_by_slug/2" do
-    test "retorna projeto correto" do
+    test "returns the correct project" do
       user = user_fixture()
       org = org_fixture(%{user: user})
       {:ok, %{project: project}} = Projects.create_project(org, user, %{name: "Slug Test"})
@@ -105,31 +105,31 @@ defmodule Blackboex.ProjectsTest do
       assert found.id == project.id
     end
 
-    test "retorna nil com slug errado" do
+    test "returns nil with a wrong slug" do
       org = org_fixture()
-      assert nil == Projects.get_project_by_slug(org.id, "nao-existe-abc123")
+      assert nil == Projects.get_project_by_slug(org.id, "does-not-exist-abc123")
     end
   end
 
   describe "update_project/2" do
-    test "atualiza nome mas NAO o slug" do
+    test "updates name but not slug" do
       user = user_fixture()
       org = org_fixture(%{user: user})
       {:ok, %{project: project}} = Projects.create_project(org, user, %{name: "Original"})
       original_slug = project.slug
 
-      {:ok, updated} = Projects.update_project(project, %{name: "Novo Nome", slug: "slug-novo"})
+      {:ok, updated} = Projects.update_project(project, %{name: "New Name", slug: "new-slug"})
 
-      assert updated.name == "Novo Nome"
+      assert updated.name == "New Name"
       assert updated.slug == original_slug
     end
   end
 
   describe "delete_project/1" do
-    test "deleta projeto com cascade" do
+    test "deletes project with cascade" do
       user = user_fixture()
       org = org_fixture(%{user: user})
-      {:ok, %{project: project}} = Projects.create_project(org, user, %{name: "Para Deletar"})
+      {:ok, %{project: project}} = Projects.create_project(org, user, %{name: "To Delete"})
 
       assert {:ok, _} = Projects.delete_project(project)
       assert nil == Blackboex.Repo.get(Project, project.id)
@@ -137,10 +137,10 @@ defmodule Blackboex.ProjectsTest do
   end
 
   describe "member management" do
-    test "add_project_member adiciona membro com role" do
+    test "add_project_member adds member with role" do
       user = user_fixture()
       org = org_fixture(%{user: user})
-      {:ok, %{project: project}} = Projects.create_project(org, user, %{name: "Projeto"})
+      {:ok, %{project: project}} = Projects.create_project(org, user, %{name: "Project"})
       new_member = user_fixture()
 
       assert {:ok, membership} = Projects.add_project_member(project, new_member, :editor)
@@ -148,12 +148,12 @@ defmodule Blackboex.ProjectsTest do
       assert membership.role == :editor
     end
 
-    test "add_project_member duplicado retorna erro" do
+    test "duplicate add_project_member returns error" do
       user = user_fixture()
       org = org_fixture(%{user: user})
-      {:ok, %{project: project}} = Projects.create_project(org, user, %{name: "Projeto"})
+      {:ok, %{project: project}} = Projects.create_project(org, user, %{name: "Project"})
 
-      # user já é admin via create_project
+      # user is already admin through create_project.
       assert {:error, _} = Projects.add_project_member(project, user, :viewer)
     end
 
@@ -162,27 +162,27 @@ defmodule Blackboex.ProjectsTest do
       org = org_fixture(%{user: user})
 
       {:ok, %{project: _project, membership: membership}} =
-        Projects.create_project(org, user, %{name: "Projeto"})
+        Projects.create_project(org, user, %{name: "Project"})
 
       assert {:ok, _} = Projects.remove_project_member(membership)
       assert nil == Blackboex.Repo.get(ProjectMembership, membership.id)
     end
 
-    test "update_project_member_role muda role" do
+    test "update_project_member_role changes role" do
       user = user_fixture()
       org = org_fixture(%{user: user})
 
       {:ok, %{project: _project, membership: membership}} =
-        Projects.create_project(org, user, %{name: "Projeto"})
+        Projects.create_project(org, user, %{name: "Project"})
 
       assert {:ok, updated} = Projects.update_project_member_role(membership, :viewer)
       assert updated.role == :viewer
     end
 
-    test "list_project_members retorna membros com user preloaded" do
+    test "list_project_members returns members with preloaded user" do
       user = user_fixture()
       org = org_fixture(%{user: user})
-      {:ok, %{project: project}} = Projects.create_project(org, user, %{name: "Projeto"})
+      {:ok, %{project: project}} = Projects.create_project(org, user, %{name: "Project"})
 
       members = Projects.list_project_members(project.id)
       assert members != []
@@ -191,10 +191,10 @@ defmodule Blackboex.ProjectsTest do
   end
 
   describe "user_has_project_access?/3" do
-    test "retorna true para membro direto do projeto" do
+    test "returns true for direct project member" do
       user = user_fixture()
       org = org_fixture(%{user: user})
-      {:ok, %{project: project}} = Projects.create_project(org, user, %{name: "Projeto"})
+      {:ok, %{project: project}} = Projects.create_project(org, user, %{name: "Project"})
       member = user_fixture()
       Projects.add_project_member(project, member, :viewer)
       membership = Blackboex.Organizations.get_user_membership(org, member)
@@ -202,32 +202,32 @@ defmodule Blackboex.ProjectsTest do
       assert Projects.user_has_project_access?(org, membership, project, member)
     end
 
-    test "retorna true para org owner sem project membership" do
+    test "returns true for org owner without project membership" do
       user = user_fixture()
       org = org_fixture(%{user: user})
-      {:ok, %{project: project}} = Projects.create_project(org, user, %{name: "Projeto"})
+      {:ok, %{project: project}} = Projects.create_project(org, user, %{name: "Project"})
       membership = Blackboex.Organizations.get_user_membership(org, user)
 
       assert Projects.user_has_project_access?(org, membership, project, user)
     end
 
-    test "retorna true para org admin sem project membership" do
+    test "returns true for org admin without project membership" do
       owner = user_fixture()
       org = org_fixture(%{user: owner})
       admin = user_fixture()
       Blackboex.Organizations.add_member(org, admin, :admin)
-      {:ok, %{project: project}} = Projects.create_project(org, owner, %{name: "Projeto"})
+      {:ok, %{project: project}} = Projects.create_project(org, owner, %{name: "Project"})
       membership = Blackboex.Organizations.get_user_membership(org, admin)
 
       assert Projects.user_has_project_access?(org, membership, project, admin)
     end
 
-    test "retorna false para org member sem project membership" do
+    test "returns false for org member without project membership" do
       owner = user_fixture()
       org = org_fixture(%{user: owner})
       member = user_fixture()
       Blackboex.Organizations.add_member(org, member, :member)
-      {:ok, %{project: project}} = Projects.create_project(org, owner, %{name: "Projeto"})
+      {:ok, %{project: project}} = Projects.create_project(org, owner, %{name: "Project"})
       membership = Blackboex.Organizations.get_user_membership(org, member)
 
       refute Projects.user_has_project_access?(org, membership, project, member)
@@ -239,7 +239,7 @@ defmodule Blackboex.ProjectsTest do
       user = user_fixture()
       org = org_fixture(%{user: user, materialize_samples: true})
 
-      # org_fixture creates the managed "Exemplos" project automatically.
+      # org_fixture creates the managed "Examples" project automatically.
       p2 = Projects.get_default_project(org.id)
       {:ok, %{project: p1}} = Projects.create_project(org, user, %{name: "Alpha Project"})
 
@@ -297,7 +297,7 @@ defmodule Blackboex.ProjectsTest do
   end
 
   describe "list_eligible_members/2" do
-    test "retorna membros da org sem project membership" do
+    test "returns org members without project membership" do
       owner = user_fixture()
       org = org_fixture(%{user: owner})
       member1 = user_fixture()
@@ -318,7 +318,7 @@ defmodule Blackboex.ProjectsTest do
       refute owner.id in user_ids
     end
 
-    test "retorna lista vazia quando todos membros da org ja estao no projeto" do
+    test "returns empty list when every org member is already in the project" do
       owner = user_fixture()
       org = org_fixture(%{user: owner})
       member = user_fixture()

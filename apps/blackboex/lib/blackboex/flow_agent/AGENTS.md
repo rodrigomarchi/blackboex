@@ -15,10 +15,10 @@ auto-layouted, validated, and atomically applied to `flow.definition`.
 | `FlowAgent.Session` | GenServer — CircuitBreaker check → `Task.Supervisor.async_nolink` on `Blackboex.SandboxTaskSupervisor` → 3-minute timeout. Monitored via `FlowAgent.SessionRegistry`. |
 | `FlowAgent.ChainRunner` | Runs the pipeline in the task; on success calls `Flows.record_ai_edit` and broadcasts `:run_completed`; on failure marks run failed and broadcasts `:run_failed`. |
 | `FlowAgent.DefinitionPipeline` | Single LLM call via `Blackboex.LLM.Config.client()`. Streams tokens through `StreamManager`, parses via `DefinitionParser`, fills missing positions via `AutoLayout`, validates via `BlackboexFlow.validate`. |
-| `FlowAgent.DefinitionParser` | Extracts `~~~json … ~~~` (or `~~~` / ```` ```json ```` fallbacks) from the model response; also picks the optional `Resumo:` line. |
+| `FlowAgent.DefinitionParser` | Extracts `~~~json ... ~~~` (or `~~~` / ```` ```json ```` fallbacks) from the model response; also picks the optional `Summary:` line. |
 | `FlowAgent.AutoLayout` | BFS from start node, assigns `x = 50 + depth * 200`, spreads siblings vertically `y += 150`. Preserves existing positions; disconnected components stack below. |
 | `FlowAgent.StreamManager` | Buffers LLM tokens in the process dictionary; flushes on 20+ chars or `\n` as `{:definition_delta, %{delta, run_id}}` broadcasts. |
-| `FlowAgent.Prompts` | System prompts (`:generate` / `:edit`) in Portuguese teaching the canonical schema + the 11 node types. Injects three real templates as few-shot examples via `Prompts.Examples`. |
+| `FlowAgent.Prompts` | System prompts (`:generate` / `:edit`) in English teaching the canonical schema + the 11 node types. Injects three real templates as few-shot examples via `Prompts.Examples`. |
 | `FlowAgent.Prompts.Examples` | Serializes `HelloWorld`, `RestApiCrud`, and `AllNodesDemo` at compile time for inclusion in the system prompt. Compile-time dependency ensures examples always match live templates. |
 
 ## Public API
@@ -57,7 +57,7 @@ Tasks run under the shared `Blackboex.SandboxTaskSupervisor`.
 
 The LLM must respond with exactly one `~~~json { ... } ~~~` block (tildes
 avoid colliding with JSON strings that contain backticks). Everything outside
-is ignored for extraction but a `Resumo:` line (if present) becomes the run's
+is ignored for extraction but a `Summary:` line (if present) becomes the run's
 `run_summary`. Failing to emit valid JSON yields:
 
 - `:no_json_block` — no fence found

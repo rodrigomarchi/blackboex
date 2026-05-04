@@ -46,11 +46,11 @@ defmodule BlackboexWeb.PageLive.EditChatTest do
       {:ok, _} =
         PageConversations.append_event(run, %{
           event_type: "user_message",
-          content: "pedido antigo"
+          content: "old request"
         })
 
       {:ok, _view, html} = live(ctx.conn, edit_path(ctx.org, ctx.project, ctx.page))
-      assert html =~ "pedido antigo"
+      assert html =~ "old request"
     end
   end
 
@@ -82,15 +82,15 @@ defmodule BlackboexWeb.PageLive.EditChatTest do
 
       html =
         view
-        |> form(~s(form[phx-submit="send_chat"]), %{message: "escreva intro"})
+        |> form(~s(form[phx-submit="send_chat"]), %{message: "write intro"})
         |> render_submit()
 
-      assert html =~ "escreva intro"
-      assert html =~ "Agente pensando"
+      assert html =~ "write intro"
+      assert html =~ "Agent thinking"
 
       assert_enqueued(
         worker: KickoffWorker,
-        args: %{"page_id" => ctx.page.id, "trigger_message" => "escreva intro"}
+        args: %{"page_id" => ctx.page.id, "trigger_message" => "write intro"}
       )
     end
 
@@ -113,7 +113,7 @@ defmodule BlackboexWeb.PageLive.EditChatTest do
 
       send(view.pid, {:run_started, %{run_id: run_id, run_type: "edit", page_id: ctx.page.id}})
 
-      assert render(view) =~ "Agente pensando"
+      assert render(view) =~ "Agent thinking"
     end
 
     test ":content_delta accumulates into the streaming block", ctx do
@@ -121,10 +121,10 @@ defmodule BlackboexWeb.PageLive.EditChatTest do
       run_id = Ecto.UUID.generate()
 
       send(view.pid, {:run_started, %{run_id: run_id, run_type: "edit", page_id: ctx.page.id}})
-      send(view.pid, {:content_delta, %{delta: "# Título AI", run_id: run_id}})
+      send(view.pid, {:content_delta, %{delta: "# AI Title", run_id: run_id}})
 
       html = render(view)
-      assert html =~ "Título AI"
+      assert html =~ "AI Title"
     end
 
     test ":run_completed reloads page, appends assistant message, updates content", ctx do
@@ -152,7 +152,7 @@ defmodule BlackboexWeb.PageLive.EditChatTest do
 
       html = render(view)
       assert html =~ "wrote body"
-      refute html =~ "Agente pensando"
+      refute html =~ "Agent thinking"
 
       reloaded = Pages.get_page(ctx.project.id, ctx.page.id)
       assert reloaded.content == "# AI-generated body"
@@ -163,12 +163,12 @@ defmodule BlackboexWeb.PageLive.EditChatTest do
       run_id = Ecto.UUID.generate()
 
       send(view.pid, {:run_started, %{run_id: run_id, run_type: "edit", page_id: ctx.page.id}})
-      send(view.pid, {:run_failed, %{reason: "LLM falhou", run_id: run_id}})
+      send(view.pid, {:run_failed, %{reason: "LLM failed", run_id: run_id}})
 
       html = render(view)
-      assert html =~ "Agente falhou"
+      assert html =~ "Agent failed"
       # Generic message — never echo internal reason to the user.
-      refute html =~ "LLM falhou"
+      refute html =~ "LLM failed"
     end
 
     test ":chat_slow_warning adds a warning message when still loading", ctx do
@@ -178,7 +178,7 @@ defmodule BlackboexWeb.PageLive.EditChatTest do
 
       send(view.pid, :chat_slow_warning)
 
-      assert render(view) =~ "demorando"
+      assert render(view) =~ "taking longer than expected"
     end
 
     test "deltas from a different run_id are ignored", ctx do
@@ -198,18 +198,18 @@ defmodule BlackboexWeb.PageLive.EditChatTest do
       {:ok, _} =
         PageConversations.append_event(run, %{
           event_type: "user_message",
-          content: "velho pedido"
+          content: "old request"
         })
 
       {:ok, view, html} = live(ctx.conn, edit_path(ctx.org, ctx.project, ctx.page))
-      assert html =~ "velho pedido"
+      assert html =~ "old request"
 
       html =
         view
         |> element(~s(button[phx-click="new_chat"]))
         |> render_click()
 
-      refute html =~ "velho pedido"
+      refute html =~ "old request"
 
       old = PageConversations.get_conversation(conv.id)
       assert old.status == "archived"
@@ -239,7 +239,7 @@ defmodule BlackboexWeb.PageLive.EditChatTest do
       send(view.pid, {:run_failed, %{reason: "boom %Internal{...}", run_id: run_id}})
 
       html = render(view)
-      assert html =~ "Agente falhou"
+      assert html =~ "Agent failed"
       # Flash uses the generic message, not the raw reason.
       refute html =~ "%Internal{"
     end

@@ -35,7 +35,7 @@ defmodule Blackboex.FlowAgent.DefinitionPipelineTest do
     ]
   }
 
-  defp fenced(flow), do: "~~~json\n#{Jason.encode!(flow)}\n~~~\n\nResumo: pronto."
+  defp fenced(flow), do: "~~~json\n#{Jason.encode!(flow)}\n~~~\n\nSummary: ready."
 
   defp stub_llm_generate(content, usage \\ %{input_tokens: 10, output_tokens: 20}) do
     stub(Blackboex.LLM.ClientMock, :stream_text, fn _prompt, _opts ->
@@ -60,7 +60,7 @@ defmodule Blackboex.FlowAgent.DefinitionPipelineTest do
       assert {:ok, result} =
                DefinitionPipeline.run(
                  :generate,
-                 "crie um fluxo hello world",
+                 "create a hello world flow",
                  nil,
                  token_callback: token_cb,
                  client: Blackboex.LLM.ClientMock
@@ -68,7 +68,7 @@ defmodule Blackboex.FlowAgent.DefinitionPipelineTest do
 
       assert result.kind == :edit
       assert result.definition == @minimal_flow
-      assert result.summary == "pronto."
+      assert result.summary == "ready."
       assert result.input_tokens >= 0
       assert result.output_tokens >= 0
     end
@@ -76,32 +76,32 @@ defmodule Blackboex.FlowAgent.DefinitionPipelineTest do
 
   describe "run/4 happy path — explain mode" do
     test "returns {:ok, %{kind: :explain, answer}} when LLM answers a question" do
-      stub_llm_generate("Resposta: Esse fluxo recebe um evento e valida.")
+      stub_llm_generate("Answer: This flow receives an event and validates it.")
 
       assert {:ok, result} =
                DefinitionPipeline.run(
                  :edit,
-                 "me explica como funciona esse fluxo",
+                 "explain how this flow works",
                  %{"version" => "1.0", "nodes" => [], "edges" => []},
                  client: Blackboex.LLM.ClientMock
                )
 
       assert result.kind == :explain
-      assert result.answer == "Esse fluxo recebe um evento e valida."
+      assert result.answer == "This flow receives an event and validates it."
     end
 
-    test "accepts prose without Resposta: prefix as a fallback" do
-      stub_llm_generate("O fluxo valida o evento recebido e retorna o status.")
+    test "accepts prose without Answer: prefix as a fallback" do
+      stub_llm_generate("The flow validates the received event and returns the status.")
 
       assert {:ok, %{kind: :explain, answer: answer}} =
                DefinitionPipeline.run(
                  :edit,
-                 "me explica o fluxo",
+                 "explain the flow",
                  %{"version" => "1.0", "nodes" => [], "edges" => []},
                  client: Blackboex.LLM.ClientMock
                )
 
-      assert answer =~ "valida o evento"
+      assert answer =~ "validates the received event"
     end
   end
 
@@ -110,14 +110,14 @@ defmodule Blackboex.FlowAgent.DefinitionPipelineTest do
       stub_llm_generate("   \n   ")
 
       assert {:error, :no_content} =
-               DefinitionPipeline.run(:generate, "oi", nil, client: Blackboex.LLM.ClientMock)
+               DefinitionPipeline.run(:generate, "hi", nil, client: Blackboex.LLM.ClientMock)
     end
 
     test "LLM returns invalid JSON → {:error, {:invalid_json, _}}" do
       stub_llm_generate("~~~json\n{not valid\n~~~")
 
       assert {:error, {:invalid_json, _}} =
-               DefinitionPipeline.run(:generate, "oi", nil, client: Blackboex.LLM.ClientMock)
+               DefinitionPipeline.run(:generate, "hi", nil, client: Blackboex.LLM.ClientMock)
     end
 
     test "LLM returns JSON that fails BlackboexFlow.validate → {:error, {:invalid_flow, _}}" do

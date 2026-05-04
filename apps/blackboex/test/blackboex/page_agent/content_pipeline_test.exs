@@ -16,13 +16,13 @@ defmodule Blackboex.PageAgent.ContentPipelineTest do
     @behaviour Blackboex.LLM.ClientBehaviour
 
     @canned """
-    Aqui vai:
+    Here it is:
     ~~~markdown
-    # Título
+    # Title
 
-    Parágrafo de teste.
+    Test paragraph.
     ~~~
-    Resumo: escrevi intro.
+    Summary: wrote intro.
     """
 
     @impl true
@@ -46,7 +46,7 @@ defmodule Blackboex.PageAgent.ContentPipelineTest do
     @impl true
     def generate_text(prompt, opts) do
       Agent.update(__MODULE__, fn _ -> %{prompt: prompt, opts: opts} end)
-      {:ok, %{content: "~~~markdown\nx\n~~~\nResumo: r", usage: %{}}}
+      {:ok, %{content: "~~~markdown\nx\n~~~\nSummary: r", usage: %{}}}
     end
 
     @impl true
@@ -59,9 +59,9 @@ defmodule Blackboex.PageAgent.ContentPipelineTest do
   defmodule EmptyBlockClient do
     @behaviour Blackboex.LLM.ClientBehaviour
     @impl true
-    def generate_text(_p, _o), do: {:ok, %{content: "só prosa, sem bloco", usage: %{}}}
+    def generate_text(_p, _o), do: {:ok, %{content: "only prose, no block", usage: %{}}}
     @impl true
-    def stream_text(_p, _o), do: {:ok, ["só prosa, sem bloco"]}
+    def stream_text(_p, _o), do: {:ok, ["only prose, no block"]}
   end
 
   defmodule FailingClient do
@@ -75,10 +75,10 @@ defmodule Blackboex.PageAgent.ContentPipelineTest do
   describe "run/4 without streaming" do
     test ":generate returns content + summary + token usage" do
       assert {:ok, result} =
-               ContentPipeline.run(:generate, "escreve intro", nil, client: StubClient)
+               ContentPipeline.run(:generate, "write intro", nil, client: StubClient)
 
-      assert result.content =~ "# Título"
-      assert result.summary == "escrevi intro."
+      assert result.content =~ "# Title"
+      assert result.summary == "wrote intro."
       assert result.input_tokens == 42
       assert result.output_tokens == 17
     end
@@ -87,18 +87,18 @@ defmodule Blackboex.PageAgent.ContentPipelineTest do
       start_recording_client()
 
       assert {:ok, _} =
-               ContentPipeline.run(:edit, "muda", "conteúdo antigo", client: RecordingClient)
+               ContentPipeline.run(:edit, "change", "old content", client: RecordingClient)
 
       %{prompt: prompt} = RecordingClient.last_prompt()
-      assert prompt =~ "conteúdo antigo"
-      assert prompt =~ "muda"
+      assert prompt =~ "old content"
+      assert prompt =~ "change"
     end
 
     test "returns error when response has no content block" do
       assert {:error, msg} =
                ContentPipeline.run(:generate, "x", nil, client: EmptyBlockClient)
 
-      assert msg =~ "bloco"
+      assert msg =~ "block"
     end
 
     test "returns error when client fails" do
@@ -136,24 +136,24 @@ defmodule Blackboex.PageAgent.ContentPipelineTest do
                  token_callback: callback
                )
 
-      assert result.content =~ "Título"
+      assert result.content =~ "Title"
     end
   end
 
   describe "history" do
     test "forwards history option to the prompt" do
       start_recording_client()
-      history = [%{role: "user", content: "pergunta antiga"}]
+      history = [%{role: "user", content: "old question"}]
 
       assert {:ok, _} =
-               ContentPipeline.run(:generate, "novo", nil,
+               ContentPipeline.run(:generate, "new", nil,
                  client: RecordingClient,
                  history: history
                )
 
       %{prompt: prompt} = RecordingClient.last_prompt()
-      assert prompt =~ "pergunta antiga"
-      assert prompt =~ "novo"
+      assert prompt =~ "old question"
+      assert prompt =~ "new"
     end
   end
 end

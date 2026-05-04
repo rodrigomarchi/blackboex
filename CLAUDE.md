@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-NUNCA fazer commit sem o usuario pedir explicitamente. Sempre esperar a instrucao 'fazer o commit' ou similar antes de executar git commit.
+NEVER commit unless the user explicitly asks for it. Always wait for an instruction like "make the commit" or similar before running git commit.
 
 ## Active Technologies
 

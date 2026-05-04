@@ -23,7 +23,7 @@ defmodule Blackboex.FlowAgent.StreamManager do
   #   :inside_fence — opening fence found; emitting tokens until close fence
   #                   as :definition_delta (edit mode).
   #   :in_explain   — decided this is conversational prose; emitting tokens
-  #                   as :explain_delta. Skips a leading "Resposta:" prefix.
+  #                   as :explain_delta. Skips a leading "Answer:" prefix.
   #   :after_fence  — close fence seen; further tokens discarded.
 
   @spec build_token_callback(String.t()) :: (String.t() -> :ok)
@@ -92,7 +92,7 @@ defmodule Blackboex.FlowAgent.StreamManager do
   end
 
   # Once we have enough accumulated bytes without a fence in sight, commit
-  # to explain mode: strip a leading `Resposta:` prefix (and surrounding
+  # to explain mode: strip a leading `Answer:` prefix (and surrounding
   # whitespace) and mark everything past that point as emittable prose.
   defp maybe_switch_to_explain(run_id, accum) do
     if byte_size(accum) >= @explain_threshold_bytes do
@@ -106,7 +106,7 @@ defmodule Blackboex.FlowAgent.StreamManager do
   end
 
   defp explain_content_offset(accum) do
-    case Regex.run(~r/^\s*Resposta:\s*/s, accum, return: :index) do
+    case Regex.run(~r/^\s*Answer:\s*/s, accum, return: :index) do
       [{_, len}] -> len
       nil -> 0
     end

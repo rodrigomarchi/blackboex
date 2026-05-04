@@ -11,7 +11,7 @@ defmodule Blackboex.Samples.ApiTemplates.FormSubmission do
     %{
       id: "form-submission",
       name: "Form Submission Backend",
-      description: "Recebe dados de formulário de contato/lead com validação completa",
+      description: "Receives contact form and lead data with complete validation",
       category: "Webhooks",
       template_type: "computation",
       icon: "file-text",
@@ -31,15 +31,15 @@ defmodule Blackboex.Samples.ApiTemplates.FormSubmission do
         "message" => "string"
       },
       example_request: %{
-        "name" => "Maria Silva",
-        "email" => "maria@example.com",
+        "name" => "Mary Smith",
+        "email" => "mary@example.com",
         "phone" => "+5511999999999",
-        "message" => "Gostaria de mais informações sobre o produto."
+        "message" => "I would like more information about the product."
       },
       example_response: %{
         "success" => true,
         "submission_id" => "sub_a1b2c3d4",
-        "message" => "Obrigado pelo contato! Responderemos em até 24 horas."
+        "message" => "Thanks for reaching out. We will reply within 24 hours."
       },
       validation_report: %{
         "compilation" => "pass",
@@ -78,7 +78,7 @@ defmodule Blackboex.Samples.ApiTemplates.FormSubmission do
           %{
             success: true,
             submission_id: submission_id,
-            message: "Obrigado pelo contato! Responderemos em até 24 horas."
+            message: "Thanks for reaching out. We will reply within 24 hours."
           }
         else
           errors = Ecto.Changeset.traverse_errors(changeset, fn {msg, _opts} -> msg end)
@@ -179,10 +179,10 @@ defmodule Blackboex.Samples.ApiTemplates.FormSubmission do
       use ExUnit.Case
 
       @valid_params %{
-        "name" => "Maria Silva",
-        "email" => "maria@example.com",
+        "name" => "Mary Smith",
+        "email" => "mary@example.com",
         "phone" => "+5511999999999",
-        "message" => "Gostaria de mais informações sobre o produto."
+        "message" => "I would like more information about the product."
       }
 
       test "valid form submission returns confirmation" do
@@ -245,53 +245,53 @@ defmodule Blackboex.Samples.ApiTemplates.FormSubmission do
     """
     # Form Submission Backend
 
-    Recebe dados de formulários de contato e captura de leads, valida todos os campos
-    e retorna uma confirmação com ID único de submissão.
+    Receives contact form and lead capture data, validates all fields and
+    returns a confirmation with a unique submission ID.
 
-    ## Parâmetros
+    ## Parameters
 
-    | Campo | Tipo | Obrigatório | Descrição |
+    | Field | Type | Required | Description |
     |-------|------|-------------|-----------|
-    | `name` | string | sim | Nome completo (2-200 caracteres) |
-    | `email` | string | sim | Endereço de email válido |
-    | `message` | string | sim | Mensagem (mínimo 10 caracteres) |
-    | `phone` | string | não | Telefone (formato livre, max 30 chars) |
+    | `name` | string | yes | Full name (2-200 characters) |
+    | `email` | string | yes | Valid email address |
+    | `message` | string | yes | Message (minimum 10 characters) |
+    | `phone` | string | no | Phone number (free-form, max 30 characters) |
 
-    ## Exemplo de Requisição
+    ## Example Request
 
     ```bash
-    curl -X POST https://api.blackboex.com/api/minha-org/form-submission \\
+    curl -X POST https://api.blackboex.com/api/my-org/form-submission \\
       -H "Content-Type: application/json" \\
       -d '{
-        "name": "Maria Silva",
-        "email": "maria@example.com",
+        "name": "Mary Smith",
+        "email": "mary@example.com",
         "phone": "+5511999999999",
-        "message": "Gostaria de mais informações sobre o produto."
+        "message": "I would like more information about the product."
       }'
     ```
 
-    ## Exemplo de Resposta
+    ## Example Response
 
     ```json
     {
       "success": true,
       "submission_id": "sub_a1b2c3d4",
-      "message": "Obrigado pelo contato! Responderemos em até 24 horas."
+      "message": "Thanks for reaching out. We will reply within 24 hours."
     }
     ```
 
-    ## Validações
+    ## Validations
 
-    - `name`: obrigatório, 2-200 caracteres
-    - `email`: obrigatório, formato válido (`user@domain.tld`)
-    - `message`: obrigatório, mínimo 10 caracteres, máximo 5000
-    - `phone`: opcional, máximo 30 caracteres
+    - `name`: required, 2-200 characters
+    - `email`: required, valid format (`user@domain.tld`)
+    - `message`: required, minimum 10 characters, maximum 5000
+    - `phone`: optional, maximum 30 characters
 
-    ## Casos de Uso
+    ## Use Cases
 
-    - Formulário de contato de landing page
-    - Captura de leads com validação server-side
-    - Integração com ferramentas de CRM via webhook
+    - Landing page contact form
+    - Lead capture with server-side validation
+    - Integration with CRM tools through webhook
     """
   end
 end

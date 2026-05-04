@@ -85,7 +85,7 @@ defmodule Blackboex.ProjectEnvVars.ProjectEnvVarTest do
 
   describe "at-rest encryption (Cloak.Vault)" do
     test "plaintext round-trips through insert+reload", %{org: org, project: project} do
-      for text <- ["hello", "olá 👋 maçã", "sk-ant-" <> String.duplicate("x", 40)] do
+      for text <- ["hello", "hello 👋 apple", "sk-ant-" <> String.duplicate("x", 40)] do
         {:ok, inserted} =
           Repo.insert(
             ProjectEnvVar.changeset(%ProjectEnvVar{}, %{

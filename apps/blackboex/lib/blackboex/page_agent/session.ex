@@ -147,7 +147,7 @@ defmodule Blackboex.PageAgent.Session do
   def handle_info(:task_timeout, state) do
     Logger.warning("PageAgent task timeout for run #{state.run_id}")
     kill_task(state)
-    ChainRunner.handle_chain_failure(state, "Agente excedeu o timeout de 3 minutos")
+    ChainRunner.handle_chain_failure(state, "Agent exceeded the 3-minute timeout")
     {:stop, :normal, state}
   end
 

@@ -63,7 +63,7 @@ defmodule Blackboex.PageConversations do
 
   @doc """
   Archives the currently active conversation (if any) and creates a fresh
-  active one. Used by the "Nova conversa" button so users can start a new
+  active one. Used by the "New conversation" button so users can start a new
   thread without losing history.
   """
   @spec start_new_conversation(String.t(), String.t(), String.t()) ::

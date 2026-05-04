@@ -12,7 +12,7 @@ defmodule Blackboex.Samples.ApiTemplates.GithubWebhook do
       id: "github-webhook",
       name: "GitHub Webhook Handler",
       description:
-        "Recebe eventos push/PR do GitHub com verificação de assinatura X-Hub-Signature",
+        "Receives GitHub push and pull request events with X-Hub-Signature verification",
       category: "Webhooks",
       template_type: "webhook",
       icon: "git-branch",
@@ -251,22 +251,22 @@ defmodule Blackboex.Samples.ApiTemplates.GithubWebhook do
     """
     # GitHub Webhook Handler
 
-    Recebe eventos push e pull request do GitHub e retorna um acknowledgment
-    estruturado com detalhes do repositório e do remetente.
+    Receives GitHub push and pull request events and returns a structured
+    acknowledgment with repository and sender details.
 
-    ## Parâmetros
+    ## Parameters
 
-    | Campo | Tipo | Obrigatório | Descrição |
+    | Field | Type | Required | Description |
     |-------|------|-------------|-----------|
-    | `event` | string | sim | Tipo do evento (ex: `push`, `pull_request`) |
-    | `action` | string | não | Ação do evento (ex: `opened`, `closed`) |
-    | `repository` | object | sim | Dados do repositório (deve ter `full_name`) |
-    | `sender` | object | sim | Dados do usuário que disparou o evento |
+    | `event` | string | yes | Event type (for example: `push`, `pull_request`) |
+    | `action` | string | no | Event action (for example: `opened`, `closed`) |
+    | `repository` | object | yes | Repository data (must include `full_name`) |
+    | `sender` | object | yes | User data for the event sender |
 
-    ## Exemplo de Requisição
+    ## Example Request
 
     ```bash
-    curl -X POST https://api.blackboex.com/api/minha-org/github-webhook \\
+    curl -X POST https://api.blackboex.com/api/my-org/github-webhook \\
       -H "Content-Type: application/json" \\
       -H "X-GitHub-Event: push" \\
       -d '{
@@ -276,7 +276,7 @@ defmodule Blackboex.Samples.ApiTemplates.GithubWebhook do
       }'
     ```
 
-    ## Exemplo de Resposta
+    ## Example Response
 
     ```json
     {
@@ -287,10 +287,10 @@ defmodule Blackboex.Samples.ApiTemplates.GithubWebhook do
     }
     ```
 
-    ## Eventos Suportados
+    ## Supported Events
 
     `push`, `pull_request`, `issues`, `issue_comment`, `create`, `delete`,
-    `release`, `fork`, `watch`, `check_run`, `workflow_run`, e outros.
+    `release`, `fork`, `watch`, `check_run`, `workflow_run`, and others.
     """
   end
 end

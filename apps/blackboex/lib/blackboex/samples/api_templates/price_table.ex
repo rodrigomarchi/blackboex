@@ -1,6 +1,6 @@
-defmodule Blackboex.Samples.ApiTemplates.TabelaPrecos do
+defmodule Blackboex.Samples.ApiTemplates.PriceTable do
   @moduledoc """
-  Template: Tabela de Preços
+  Template: Price Table
 
   Price lookup with quantity-based discount rules.
   """
@@ -8,9 +8,9 @@ defmodule Blackboex.Samples.ApiTemplates.TabelaPrecos do
   @spec template() :: Blackboex.Samples.ApiTemplates.template()
   def template do
     %{
-      id: "tabela-precos",
-      name: "Tabela de Preços",
-      description: "Lookup de preços com regras de desconto por quantidade",
+      id: "price-table",
+      name: "Price Table",
+      description: "Looks up prices with quantity-based discount rules",
       category: "AI Agent Tools",
       template_type: "computation",
       icon: "tag",
@@ -24,17 +24,17 @@ defmodule Blackboex.Samples.ApiTemplates.TabelaPrecos do
         readme: readme_content()
       },
       param_schema: %{
-        "produto_id" => "string",
-        "quantidade" => "integer"
+        "product_id" => "string",
+        "quantity" => "integer"
       },
       example_request: %{
-        "produto_id" => "PROD-001",
-        "quantidade" => 10
+        "product_id" => "PROD-001",
+        "quantity" => 10
       },
       example_response: %{
-        "preco_unitario" => 44.91,
-        "desconto_pct" => 10.0,
-        "preco_total" => 449.1
+        "unit_price" => 44.91,
+        "discount_pct" => 10.0,
+        "total_price" => 449.1
       },
       validation_report: %{
         "compilation" => "pass",
@@ -70,15 +70,15 @@ defmodule Blackboex.Samples.ApiTemplates.TabelaPrecos do
         if changeset.valid? do
           data = Ecto.Changeset.apply_changes(changeset)
 
-          case Helpers.lookup_price(data.produto_id) do
+          case Helpers.lookup_price(data.product_id) do
             nil ->
-              %{error: "Validation failed", details: %{produto_id: ["product not found"]}}
+              %{error: "Validation failed", details: %{product_id: ["product not found"]}}
 
             base_price ->
-              discount = Helpers.discount_pct(data.quantidade)
+              discount = Helpers.discount_pct(data.quantity)
               unit_price = Float.round(base_price * (1 - discount / 100), 2)
-              total = Float.round(unit_price * data.quantidade, 2)
-              %{preco_unitario: unit_price, desconto_pct: discount, preco_total: total}
+              total = Float.round(unit_price * data.quantity, 2)
+              %{unit_price: unit_price, discount_pct: discount, total_price: total}
           end
         else
           errors = Ecto.Changeset.traverse_errors(changeset, fn {msg, _opts} -> msg end)
@@ -118,7 +118,7 @@ defmodule Blackboex.Samples.ApiTemplates.TabelaPrecos do
 
       @doc "Returns the base price for a product ID, or nil if not found."
       @spec lookup_price(String.t()) :: float() | nil
-      def lookup_price(produto_id), do: Map.get(@catalog, produto_id)
+      def lookup_price(product_id), do: Map.get(@catalog, product_id)
 
       @doc "Returns the discount percentage for a given quantity."
       @spec discount_pct(integer()) :: float()
@@ -141,18 +141,18 @@ defmodule Blackboex.Samples.ApiTemplates.TabelaPrecos do
       use Blackboex.Schema
 
       embedded_schema do
-        field :produto_id, :string
-        field :quantidade, :integer
+        field :product_id, :string
+        field :quantity, :integer
       end
 
       @doc "Validates and casts incoming parameters."
       @spec changeset(map()) :: Ecto.Changeset.t()
       def changeset(params) do
         %__MODULE__{}
-        |> cast(params, [:produto_id, :quantidade])
-        |> validate_required([:produto_id, :quantidade])
-        |> validate_length(:produto_id, min: 1, max: 50)
-        |> validate_number(:quantidade, greater_than: 0)
+        |> cast(params, [:product_id, :quantity])
+        |> validate_required([:product_id, :quantity])
+        |> validate_length(:product_id, min: 1, max: 50)
+        |> validate_number(:quantity, greater_than: 0)
       end
     end
     """
@@ -165,9 +165,9 @@ defmodule Blackboex.Samples.ApiTemplates.TabelaPrecos do
       use Blackboex.Schema
 
       embedded_schema do
-        field :preco_unitario, :float
-        field :desconto_pct, :float
-        field :preco_total, :float
+        field :unit_price, :float
+        field :discount_pct, :float
+        field :total_price, :float
       end
     end
     """
@@ -181,7 +181,7 @@ defmodule Blackboex.Samples.ApiTemplates.TabelaPrecos do
 
       describe "Request changeset validation" do
         test "accepts valid input" do
-          changeset = Request.changeset(%{"produto_id" => "PROD-001", "quantidade" => 1})
+          changeset = Request.changeset(%{"product_id" => "PROD-001", "quantity" => 1})
           assert changeset.valid?
         end
 
@@ -191,37 +191,37 @@ defmodule Blackboex.Samples.ApiTemplates.TabelaPrecos do
         end
 
         test "rejects zero quantity" do
-          changeset = Request.changeset(%{"produto_id" => "PROD-001", "quantidade" => 0})
+          changeset = Request.changeset(%{"product_id" => "PROD-001", "quantity" => 0})
           refute changeset.valid?
         end
       end
 
       describe "successful computation" do
         test "known product qty 1 returns full price with no discount" do
-          result = Handler.handle(%{"produto_id" => "PROD-001", "quantidade" => 1})
-          assert result.preco_unitario == 49.90
-          assert result.desconto_pct == 0.0
-          assert result.preco_total == 49.90
+          result = Handler.handle(%{"product_id" => "PROD-001", "quantity" => 1})
+          assert result.unit_price == 49.90
+          assert result.discount_pct == 0.0
+          assert result.total_price == 49.90
         end
 
         test "qty 10 returns 10% discount" do
-          result = Handler.handle(%{"produto_id" => "PROD-001", "quantidade" => 10})
-          assert result.desconto_pct == 10.0
-          assert result.preco_unitario < 49.90
-          assert result.preco_total == Float.round(result.preco_unitario * 10, 2)
+          result = Handler.handle(%{"product_id" => "PROD-001", "quantity" => 10})
+          assert result.discount_pct == 10.0
+          assert result.unit_price < 49.90
+          assert result.total_price == Float.round(result.unit_price * 10, 2)
         end
 
         test "qty 50 returns 20% discount" do
-          result = Handler.handle(%{"produto_id" => "PROD-001", "quantidade" => 50})
-          assert result.desconto_pct == 20.0
+          result = Handler.handle(%{"product_id" => "PROD-001", "quantity" => 50})
+          assert result.discount_pct == 20.0
         end
       end
 
       describe "error handling" do
         test "unknown product returns error" do
-          result = Handler.handle(%{"produto_id" => "UNKNOWN", "quantidade" => 1})
+          result = Handler.handle(%{"product_id" => "UNKNOWN", "quantity" => 1})
           assert %{error: "Validation failed", details: details} = result
-          assert Map.has_key?(details, :produto_id)
+          assert Map.has_key?(details, :product_id)
         end
 
         test "returns error for invalid input" do
@@ -236,36 +236,36 @@ defmodule Blackboex.Samples.ApiTemplates.TabelaPrecos do
 
   defp readme_content do
     """
-    # Tabela de Preços
+    # Price Table
 
-    Consulta preços de produtos com aplicação automática de descontos progressivos
-    por quantidade. Ideal como tool de agente para cotações em tempo real.
+    Looks up product prices and applies progressive quantity discounts.
+    Ideal as an agent tool for real-time quotes.
 
-    ## Parâmetros
+    ## Parameters
 
-    | Campo | Tipo | Obrigatório | Descrição |
+    | Field | Type | Required | Description |
     |-------|------|-------------|-----------|
-    | `produto_id` | string | sim | ID do produto no catálogo (ex: PROD-001) |
-    | `quantidade` | integer | sim | Quantidade desejada (deve ser > 0) |
+    | `product_id` | string | yes | Product ID in the catalog (for example: PROD-001) |
+    | `quantity` | integer | yes | Desired quantity (must be > 0) |
 
-    ## Produtos Disponíveis
+    ## Available Products
 
-    | ID | Preço Base |
+    | ID | Base Price |
     |----|-----------|
-    | PROD-001 | R$ 49,90 |
-    | PROD-002 | R$ 99,90 |
-    | PROD-003 | R$ 199,90 |
-    | PROD-004 | R$ 29,90 |
-    | PROD-005 | R$ 149,90 |
-    | SVC-001 | R$ 250,00 |
-    | SVC-002 | R$ 500,00 |
-    | PKG-BASIC | R$ 79,90 |
-    | PKG-PRO | R$ 159,90 |
-    | PKG-ENT | R$ 399,90 |
+    | PROD-001 | BRL 49.90 |
+    | PROD-002 | BRL 99.90 |
+    | PROD-003 | BRL 199.90 |
+    | PROD-004 | BRL 29.90 |
+    | PROD-005 | BRL 149.90 |
+    | SVC-001 | BRL 250.00 |
+    | SVC-002 | BRL 500.00 |
+    | PKG-BASIC | BRL 79.90 |
+    | PKG-PRO | BRL 159.90 |
+    | PKG-ENT | BRL 399.90 |
 
-    ## Tabela de Descontos
+    ## Discount Table
 
-    | Quantidade | Desconto |
+    | Quantity | Discount |
     |-----------|---------|
     | 1–4 | 0% |
     | 5–9 | 5% |
@@ -274,21 +274,21 @@ defmodule Blackboex.Samples.ApiTemplates.TabelaPrecos do
     | 50–99 | 20% |
     | 100+ | 25% |
 
-    ## Exemplo de Requisição
+    ## Example Request
 
     ```bash
-    curl -X POST https://api.blackboex.com/api/minha-org/tabela-precos \\
+    curl -X POST https://api.blackboex.com/api/my-org/price-table \\
       -H "Content-Type: application/json" \\
-      -d '{"produto_id": "PROD-001", "quantidade": 10}'
+      -d '{"product_id": "PROD-001", "quantity": 10}'
     ```
 
-    ## Exemplo de Resposta
+    ## Example Response
 
     ```json
     {
-      "preco_unitario": 44.91,
-      "desconto_pct": 10.0,
-      "preco_total": 449.10
+      "unit_price": 44.91,
+      "discount_pct": 10.0,
+      "total_price": 449.10
     }
     ```
     """

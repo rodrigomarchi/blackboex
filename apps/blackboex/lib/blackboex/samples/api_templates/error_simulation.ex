@@ -11,7 +11,7 @@ defmodule Blackboex.Samples.ApiTemplates.ErrorSimulation do
     %{
       id: "error-simulation",
       name: "Error Simulation API",
-      description: "Retorna erros configuráveis (400, 401, 403, 404, 429, 500) para testes",
+      description: "Returns configurable errors (400, 401, 403, 404, 429, 500) for tests",
       category: "Mocks",
       template_type: "computation",
       icon: "exclamation-triangle",
@@ -296,30 +296,30 @@ defmodule Blackboex.Samples.ApiTemplates.ErrorSimulation do
     """
     # Error Simulation API
 
-    Retorna respostas de erro HTTP configuráveis com corpo JSON padronizado.
-    Perfeito para testar como seu cliente lida com diferentes cenários de erro
-    sem precisar forçar erros reais no servidor.
+    Returns configurable HTTP error responses with a standardized JSON body.
+    Useful for testing how a client handles different error scenarios without
+    forcing real server failures.
 
-    ## Parâmetros
+    ## Parameters
 
-    | Campo | Tipo | Obrigatório | Descrição |
+    | Field | Type | Required | Description |
     |-------|------|-------------|-----------|
-    | `status_code` | integer | sim | Código HTTP de erro a simular |
-    | `delay_ms` | integer | não | Atraso artificial em ms (0–5000, padrão: 0) |
+    | `status_code` | integer | yes | HTTP error code to simulate |
+    | `delay_ms` | integer | no | Artificial delay in ms (0-5000, default: 0) |
 
-    ## Códigos Suportados
+    ## Supported Codes
 
     400, 401, 403, 404, 422, 429, 500, 502, 503
 
-    ## Exemplo de Requisição
+    ## Example Request
 
     ```bash
-    curl -X POST https://api.blackboex.com/api/minha-org/error-simulation \\
+    curl -X POST https://api.blackboex.com/api/my-org/error-simulation \\
       -H "Content-Type: application/json" \\
       -d '{"status_code": 429, "delay_ms": 0}'
     ```
 
-    ## Exemplo de Resposta
+    ## Example Response
 
     ```json
     {
@@ -332,12 +332,12 @@ defmodule Blackboex.Samples.ApiTemplates.ErrorSimulation do
     }
     ```
 
-    ## Casos de Uso
+    ## Use Cases
 
-    - Testar retry logic e exponential backoff no cliente
-    - Simular rate limiting durante desenvolvimento
-    - Validar tratamento de erros em pipelines de integração
-    - Mock de APIs externas instáveis
+    - Test retry logic and exponential backoff in clients
+    - Simulate rate limiting during development
+    - Validate error handling in integration pipelines
+    - Mock unstable external APIs
     """
   end
 end

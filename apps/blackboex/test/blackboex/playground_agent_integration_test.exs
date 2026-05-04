@@ -59,13 +59,13 @@ defmodule Blackboex.PlaygroundAgentIntegrationTest do
       Phoenix.PubSub.subscribe(Blackboex.PubSub, "playground_agent:run:#{run.id}")
 
       canned = """
-      Claro, vamos adicionar:
+      Sure, let's add:
       ```elixir
       x = 1
       y = 2
       IO.puts(x + y)
       ```
-      Resumo: soma x e y
+      Summary: sums x and y
       """
 
       expect(Blackboex.LLM.ClientMock, :stream_text, fn _prompt, _opts ->
@@ -77,7 +77,7 @@ defmodule Blackboex.PlaygroundAgentIntegrationTest do
 
       assert {:ok, result} = ChainRunner.run_chain(state)
       assert result.code =~ "IO.puts(x + y)"
-      assert result.summary == "soma x e y"
+      assert result.summary == "sums x and y"
 
       :ok = ChainRunner.handle_chain_success(state, result)
 
@@ -91,13 +91,13 @@ defmodule Blackboex.PlaygroundAgentIntegrationTest do
       completed = PlaygroundConversations.get_run!(run.id)
       assert completed.status == "completed"
       assert completed.code_after =~ "IO.puts(x + y)"
-      assert completed.run_summary == "soma x e y"
+      assert completed.run_summary == "sums x and y"
 
       events = PlaygroundConversations.list_events(run.id)
       assert Enum.any?(events, &(&1.event_type == "user_message"))
       assert Enum.any?(events, &(&1.event_type == "completed"))
 
-      assert_receive {:run_completed, %{code: code, summary: "soma x e y"}}, 500
+      assert_receive {:run_completed, %{code: code, summary: "sums x and y"}}, 500
       assert code =~ "IO.puts(x + y)"
     end
 
@@ -115,7 +115,7 @@ defmodule Blackboex.PlaygroundAgentIntegrationTest do
           organization_id: org.id,
           user_id: user.id,
           run_type: "generate",
-          trigger_message: "faz algo",
+          trigger_message: "do something",
           code_before: ""
         })
 
@@ -125,22 +125,22 @@ defmodule Blackboex.PlaygroundAgentIntegrationTest do
       Phoenix.PubSub.subscribe(Blackboex.PubSub, "playground_agent:run:#{run.id}")
 
       expect(Blackboex.LLM.ClientMock, :stream_text, fn _prompt, _opts ->
-        {:ok, Stream.map(["só prosa sem fence"], & &1)}
+        {:ok, Stream.map(["only prose without fence"], & &1)}
       end)
 
       state = build_session_state(pg, user, conversation, run, run_type: :generate)
 
       assert {:error, reason} = ChainRunner.run_chain(state)
-      assert reason =~ "bloco de código"
+      assert reason =~ "code block"
 
       :ok = ChainRunner.handle_chain_failure(state, reason)
 
       failed = PlaygroundConversations.get_run!(run.id)
       assert failed.status == "failed"
-      assert failed.error_message =~ "bloco de código"
+      assert failed.error_message =~ "code block"
 
       assert_receive {:run_failed, %{reason: r}}, 500
-      assert r =~ "bloco de código"
+      assert r =~ "code block"
     end
   end
 
@@ -168,7 +168,7 @@ defmodule Blackboex.PlaygroundAgentIntegrationTest do
       scope = %{user: user}
 
       assert {:ok, %Oban.Job{args: args}} =
-               Blackboex.PlaygroundAgent.start(pg, scope, "escreva algo")
+               Blackboex.PlaygroundAgent.start(pg, scope, "write something")
 
       assert args["run_type"] == "generate"
     end

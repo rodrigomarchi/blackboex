@@ -67,7 +67,7 @@ defmodule BlackboexWeb.Components.Editor.PlaygroundChatPanel do
         </div>
         <%= if @messages == [] and @current_stream in [nil, ""] and not @loading do %>
           <p class="text-muted-description text-center py-12 px-4">
-            Peça ao agente para gerar ou editar o código deste playground.
+            Ask the agent to generate or edit this playground code.
           </p>
         <% else %>
           <%!-- Timeline with vertical line --%>
@@ -98,7 +98,7 @@ defmodule BlackboexWeb.Components.Editor.PlaygroundChatPanel do
             <%= if @loading and (is_nil(@current_stream) or @current_stream == "") do %>
               <div class="relative py-2">
                 <div class="absolute -left-[7px] top-[11px] size-[9px] rounded-full bg-info animate-pulse" />
-                <span class="text-muted-caption animate-pulse ml-2">Agente pensando...</span>
+                <span class="text-muted-caption animate-pulse ml-2">Agent thinking...</span>
               </div>
             <% end %>
           </div>
@@ -120,7 +120,7 @@ defmodule BlackboexWeb.Components.Editor.PlaygroundChatPanel do
           <.inline_input
             name="message"
             value={@input}
-            placeholder="Peça: gere um script, adicione IO.puts, refatore com pipe..."
+            placeholder="Ask: generate a script, add IO.puts, refactor with pipe..."
             class="flex-1 rounded-md"
             autocomplete="off"
             disabled={@loading}
@@ -131,7 +131,7 @@ defmodule BlackboexWeb.Components.Editor.PlaygroundChatPanel do
             disabled={@loading}
             class="rounded-md"
           >
-            Enviar
+            Send
           </.button>
         </.form>
       </div>

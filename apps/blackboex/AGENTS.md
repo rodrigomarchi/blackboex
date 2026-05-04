@@ -57,7 +57,7 @@ defdelegate create_version(api, attrs), to: Blackboex.Apis.Versions
 - `list_user_organizations/1`, `get_organization!/1`, `get_organization/1`
 - `add_member/3`, `get_user_membership/2`
 - `invite_member/3`, `accept_invitation/2` — invitation-based onboarding for new/existing users
-- New organizations receive one managed sample project named `"Exemplos"` via `Blackboex.Projects.Samples`.
+- New organizations receive one managed sample project named `"Examples"` via `Blackboex.Projects.Samples`.
 
 ### Settings
 - `setup_completed?/0` — cached singleton check used by `RequireSetup` plug

@@ -2,9 +2,10 @@ defmodule Blackboex.Samples.Playground do
   @moduledoc """
   Playground samples in the platform-wide sample catalogue.
 
-  Cada exemplo é um snippet Elixir single-cell que respeita o sandbox do
-  `Blackboex.Playgrounds.Executor`: usa apenas módulos do allowlist, captura
-  saída via `IO.puts`/`IO.inspect`, e respeita os limites de tempo/heap/HTTP.
+  Each example is a single-cell Elixir snippet that respects the
+  `Blackboex.Playgrounds.Executor` sandbox: it uses only allowlisted modules,
+  captures output through `IO.puts`/`IO.inspect`, and respects time, heap and
+  HTTP limits.
   """
 
   alias Blackboex.Samples.Flow
@@ -45,19 +46,19 @@ defmodule Blackboex.Samples.Playground do
       kind: :playground,
       id: "enum_basics",
       sample_uuid: Id.uuid(:playground, "enum_basics"),
-      name: "[Demo] Enum - Transformacoes Basicas",
+      name: "[Demo] Enum - Basic Transformations",
       description: "Map, filter and reduce examples with Enum.",
       category: "Elixir",
       code: """
-      lista = [1, 2, 3, 4, 5]
+      numbers = [1, 2, 3, 4, 5]
 
-      dobrados = Enum.map(lista, fn x -> x * 2 end)
-      pares = Enum.filter(lista, fn x -> rem(x, 2) == 0 end)
-      soma = Enum.reduce(lista, 0, fn x, acc -> x + acc end)
+      doubled = Enum.map(numbers, fn x -> x * 2 end)
+      even = Enum.filter(numbers, fn x -> rem(x, 2) == 0 end)
+      sum = Enum.reduce(numbers, 0, fn x, acc -> x + acc end)
 
-      IO.puts("Dobrados: \#{inspect(dobrados)}")
-      IO.puts("Pares: \#{inspect(pares)}")
-      IO.puts("Soma: \#{soma}")
+      IO.puts("Doubled: \#{inspect(doubled)}")
+      IO.puts("Even: \#{inspect(even)}")
+      IO.puts("Sum: \#{sum}")
       """
     }
   end
@@ -68,7 +69,7 @@ defmodule Blackboex.Samples.Playground do
       id: "call_echo_flow",
       sample_uuid: Id.uuid(:playground, "call_echo_flow"),
       flow_sample_uuid: echo_flow_uuid,
-      name: "[Demo] API - Chamando Fluxo do Projeto",
+      name: "[Demo] API - Calling a Project Flow",
       description: "Calls the managed Echo Transform flow from playground code.",
       category: "Blackboex",
       code: """
@@ -76,9 +77,9 @@ defmodule Blackboex.Samples.Playground do
 
       token = "{{flow:#{echo_flow_uuid}:webhook_token}}"
 
-      case Api.call_flow(token, %{"message" => "Ola do Playground!"}) do
-        {:ok, response} -> IO.inspect(response, label: "Resposta")
-        {:error, reason} -> IO.puts("Erro: \#{reason}")
+      case Api.call_flow(token, %{"message" => "Hello from Playground!"}) do
+        {:ok, response} -> IO.inspect(response, label: "Response")
+        {:error, reason} -> IO.puts("Error: \#{reason}")
       end
       """
     }
@@ -90,23 +91,23 @@ defmodule Blackboex.Samples.Playground do
       id: "pipe_operator",
       sample_uuid: Id.uuid(:playground, "pipe_operator"),
       name: "[Demo] Pipe Operator |>",
-      description: "Encadeando transformações com o operador pipe.",
+      description: "Chaining transformations with the pipe operator.",
       category: "Elixir",
       code: """
-      # Sem pipe — leitura de dentro pra fora, difícil de seguir
-      sem_pipe = Enum.sum(Enum.map(Enum.filter([1, 2, 3, 4, 5], &(&1 > 2)), &(&1 * 10)))
-      IO.puts("Sem pipe: \#{sem_pipe}")
+      # Without pipe: reads from inside out, harder to follow.
+      without_pipe = Enum.sum(Enum.map(Enum.filter([1, 2, 3, 4, 5], &(&1 > 2)), &(&1 * 10)))
+      IO.puts("Without pipe: \#{without_pipe}")
 
-      # Com pipe — leitura linear, do dado bruto até o resultado
-      com_pipe =
+      # With pipe: linear reading, from raw data to result.
+      with_pipe =
         [1, 2, 3, 4, 5]
         |> Enum.filter(&(&1 > 2))
         |> Enum.map(&(&1 * 10))
         |> Enum.sum()
 
-      IO.puts("Com pipe: \#{com_pipe}")
+      IO.puts("With pipe: \#{with_pipe}")
 
-      # Idiomatico: cada etapa é uma transformação clara
+      # Idiomatic: each step is a clear transformation.
       """
     }
   end
@@ -116,33 +117,33 @@ defmodule Blackboex.Samples.Playground do
       kind: :playground,
       id: "pattern_matching",
       sample_uuid: Id.uuid(:playground, "pattern_matching"),
-      name: "[Demo] Pattern Matching com case",
-      description: "Casamento de padrões em tuplas, mapas e listas.",
+      name: "[Demo] Pattern Matching with case",
+      description: "Pattern matching in tuples, maps and lists.",
       category: "Elixir",
       code: """
-      # Tuple match comum em Elixir: {:ok, valor} | {:error, motivo}
-      resultado = {:ok, %{user_id: 42, role: :admin}}
+      # Common Elixir tuple match: {:ok, value} | {:error, reason}
+      result = {:ok, %{user_id: 42, role: :admin}}
 
-      case resultado do
+      case result do
         {:ok, %{role: :admin} = user} ->
           IO.puts("Admin id=\#{user.user_id}")
 
         {:ok, %{role: role}} ->
-          IO.puts("Usuario com role \#{role}")
+          IO.puts("User with role \#{role}")
 
-        {:error, motivo} ->
-          IO.puts("Falhou: \#{motivo}")
+        {:error, reason} ->
+          IO.puts("Failed: \#{reason}")
       end
 
-      # Pattern em listas: head | tail
-      [primeiro | resto] = [10, 20, 30]
-      IO.puts("Primeiro=\#{primeiro}, resto=\#{inspect(resto)}")
+      # List pattern: head | tail
+      [first | rest] = [10, 20, 30]
+      IO.puts("First=\#{first}, rest=\#{inspect(rest)}")
 
-      # Pin operator (^) para casar com valor de variavel
-      esperado = 5
+      # Pin operator (^) matches against an existing variable value.
+      expected = 5
       case 5 do
-        ^esperado -> IO.puts("igual ao esperado")
-        outro -> IO.puts("diferente: \#{outro}")
+        ^expected -> IO.puts("matches expected")
+        other -> IO.puts("different: \#{other}")
       end
       """
     }
@@ -153,37 +154,37 @@ defmodule Blackboex.Samples.Playground do
       kind: :playground,
       id: "with_clauses",
       sample_uuid: Id.uuid(:playground, "with_clauses"),
-      name: "[Demo] with - Encadeando ok/error",
-      description: "Compor operações que retornam {:ok, _} | {:error, _}.",
+      name: "[Demo] with - Chaining ok/error",
+      description: "Composing operations that return {:ok, _} | {:error, _}.",
       category: "Elixir",
       code: """
-      # Funcoes auxiliares simulando steps que podem falhar
+      # Helper functions simulating steps that can fail.
       parse_int = fn str ->
         case Integer.parse(str) do
           {n, ""} -> {:ok, n}
-          _ -> {:error, "nao eh inteiro"}
+          _ -> {:error, "not an integer"}
         end
       end
 
-      validar_positivo = fn n ->
-        if n > 0, do: {:ok, n}, else: {:error, "precisa ser > 0"}
+      validate_positive = fn n ->
+        if n > 0, do: {:ok, n}, else: {:error, "must be > 0"}
       end
 
-      dobrar = fn n -> {:ok, n * 2} end
+      double = fn n -> {:ok, n * 2} end
 
-      # `with` para no primeiro {:error, _} e devolve esse erro.
-      # Sem `with`, isso seria 3 cases aninhados.
-      processar = fn entrada ->
-        with {:ok, n} <- parse_int.(entrada),
-             {:ok, n} <- validar_positivo.(n),
-             {:ok, dobrado} <- dobrar.(n) do
-          {:ok, dobrado}
+      # `with` stops at the first {:error, _} and returns that error.
+      # Without `with`, this would be three nested cases.
+      process = fn input ->
+        with {:ok, n} <- parse_int.(input),
+             {:ok, n} <- validate_positive.(n),
+             {:ok, doubled} <- double.(n) do
+          {:ok, doubled}
         end
       end
 
-      IO.inspect(processar.("10"), label: "10")
-      IO.inspect(processar.("-5"), label: "-5")
-      IO.inspect(processar.("abc"), label: "abc")
+      IO.inspect(process.("10"), label: "10")
+      IO.inspect(process.("-5"), label: "-5")
+      IO.inspect(process.("abc"), label: "abc")
       """
     }
   end
@@ -193,27 +194,27 @@ defmodule Blackboex.Samples.Playground do
       kind: :playground,
       id: "comprehensions",
       sample_uuid: Id.uuid(:playground, "comprehensions"),
-      name: "[Demo] Comprehensions com for",
-      description: "Geradores, filtros e produto cartesiano com for.",
+      name: "[Demo] Comprehensions with for",
+      description: "Generators, filters and Cartesian products with for.",
       category: "Elixir",
       code: """
-      # Comprehension simples: gerar quadrados de pares
-      quadrados_de_pares =
+      # Simple comprehension: generate squares of even numbers.
+      even_squares =
         for x <- 1..10, rem(x, 2) == 0, do: x * x
 
-      IO.inspect(quadrados_de_pares, label: "quadrados de pares")
+      IO.inspect(even_squares, label: "even squares")
 
-      # Multiplos geradores = produto cartesiano
-      tabuada =
+      # Multiple generators = Cartesian product.
+      multiplication_table =
         for a <- 1..3, b <- 1..3, do: {a, b, a * b}
 
-      IO.inspect(tabuada, label: "tabuada 1..3")
+      IO.inspect(multiplication_table, label: "multiplication table 1..3")
 
-      # `:into` para construir mapa
-      por_indice =
+      # `:into` builds a map.
+      by_index =
         for {item, idx} <- Enum.with_index(["a", "b", "c"]), into: %{}, do: {idx, item}
 
-      IO.inspect(por_indice, label: "por indice")
+      IO.inspect(by_index, label: "by index")
       """
     }
   end
@@ -224,24 +225,24 @@ defmodule Blackboex.Samples.Playground do
       id: "map_keyword",
       sample_uuid: Id.uuid(:playground, "map_keyword"),
       name: "[Demo] Map vs Keyword List",
-      description: "Quando usar map e quando usar keyword list.",
+      description: "When to use maps and when to use keyword lists.",
       category: "Elixir",
       code: """
-      # Map: chaves UNICAS, ordem nao garantida, acesso O(log n)
-      usuario = %{nome: "Ana", idade: 30, role: :admin}
-      IO.puts("Nome: \#{usuario.nome}")
-      atualizado = %{usuario | idade: 31}
-      IO.inspect(atualizado, label: "map atualizado")
+      # Map: unique keys, order not guaranteed, O(log n) access.
+      user = %{name: "Ana", age: 30, role: :admin}
+      IO.puts("Name: \#{user.name}")
+      updated = %{user | age: 31}
+      IO.inspect(updated, label: "updated map")
 
-      # Keyword: lista de tuplas {atom, valor}, mantem ordem,
-      # permite duplicatas, ideal para opcoes de funcao
+      # Keyword: list of {atom, value} tuples, preserves order,
+      # allows duplicates, ideal for function options.
       opts = [timeout: 5_000, retries: 3, label: "primary"]
       IO.puts("Timeout: \#{Keyword.get(opts, :timeout)}")
       IO.puts("Retries: \#{Keyword.fetch!(opts, :retries)}")
 
-      # Estilo Elixir: opts como ultimo argumento de funcao
-      get_opt = fn lista, chave, padrao -> Keyword.get(lista, chave, padrao) end
-      IO.puts("Default ausente: \#{get_opt.(opts, :missing, "padrao")}")
+      # Elixir style: options as the last function argument.
+      get_opt = fn list, key, default -> Keyword.get(list, key, default) end
+      IO.puts("Missing default: \#{get_opt.(opts, :missing, "default")}")
       """
     }
   end
@@ -251,27 +252,27 @@ defmodule Blackboex.Samples.Playground do
       kind: :playground,
       id: "streams_lazy",
       sample_uuid: Id.uuid(:playground, "streams_lazy"),
-      name: "[Demo] Stream - Avaliacao Preguicosa",
-      description: "Pipelines lazy com Stream — terminam só ao consumir.",
+      name: "[Demo] Stream - Lazy Evaluation",
+      description: "Lazy pipelines with Stream only finish when consumed.",
       category: "Elixir",
       code: """
-      # Stream nao executa nada ate alguem consumir.
-      # Aqui montamos um pipeline gigante mas paramos no primeiro `take`.
+      # Stream executes nothing until something consumes it.
+      # Here we build a huge pipeline but stop at the first `take`.
       pipeline =
         1..1_000_000
         |> Stream.map(fn x ->
-          # se isto rodasse pra todos, gastaria muita CPU.
+          # If this ran for every item, it would spend a lot of CPU.
           x * x
         end)
         |> Stream.filter(fn x -> rem(x, 7) == 0 end)
         |> Stream.take(5)
 
-      # Consumir converte stream em lista
-      resultado = Enum.to_list(pipeline)
-      IO.inspect(resultado, label: "5 quadrados divisíveis por 7")
+      # Consuming converts the stream into a list.
+      result = Enum.to_list(pipeline)
+      IO.inspect(result, label: "5 squares divisible by 7")
 
-      # Comparativo: o mesmo com Enum geraria a lista intermediaria inteira.
-      # Stream eh ideal para fontes potencialmente infinitas ou grandes.
+      # Comparison: the same work with Enum would create the whole intermediate list.
+      # Stream is ideal for potentially infinite or large sources.
       """
     }
   end
@@ -282,31 +283,31 @@ defmodule Blackboex.Samples.Playground do
       id: "string_manipulation",
       sample_uuid: Id.uuid(:playground, "string_manipulation"),
       name: "[Demo] String - Split, Replace, Capitalize",
-      description: "Operações comuns de manipulação de strings UTF-8.",
+      description: "Common UTF-8 string manipulation operations.",
       category: "Elixir",
       code: """
-      frase = "  Blackboex roda Elixir no Playground  "
+      phrase = "  Blackboex runs Elixir in the Playground  "
 
-      normalizada =
-        frase
+      normalized =
+        phrase
         |> String.trim()
         |> String.downcase()
         |> String.replace(" ", "-")
 
-      IO.puts("Slug: \#{normalizada}")
+      IO.puts("Slug: \#{normalized}")
 
-      # Split + capitalize palavra a palavra (titlecase)
-      titulo =
-        "ola mundo da programacao"
+      # Split + capitalize each word (title case).
+      title =
+        "hello world from programming"
         |> String.split(" ")
         |> Enum.map(&String.capitalize/1)
         |> Enum.join(" ")
 
-      IO.puts("Titulo: \#{titulo}")
+      IO.puts("Title: \#{title}")
 
-      # Strings em Elixir sao binarios UTF-8
-      IO.puts("Bytes: \#{byte_size("café")}")
-      IO.puts("Graphemes: \#{String.length("café")}")
+      # Elixir strings are UTF-8 binaries.
+      IO.puts("Bytes: \#{byte_size("resume")}")
+      IO.puts("Graphemes: \#{String.length("resume")}")
       """
     }
   end
@@ -316,26 +317,26 @@ defmodule Blackboex.Samples.Playground do
       kind: :playground,
       id: "date_time_math",
       sample_uuid: Id.uuid(:playground, "date_time_math"),
-      name: "[Demo] DateTime - Diferencas e Comparacoes",
-      description: "Aritmética de datas e formatação ISO 8601.",
+      name: "[Demo] DateTime - Differences and Comparisons",
+      description: "Date arithmetic and ISO 8601 formatting.",
       category: "Elixir",
       code: """
-      agora = DateTime.utc_now()
-      IO.puts("Agora UTC: \#{DateTime.to_iso8601(agora)}")
+      now = DateTime.utc_now()
+      IO.puts("UTC now: \#{DateTime.to_iso8601(now)}")
 
-      uma_hora_atras = DateTime.add(agora, -3600, :second)
-      IO.puts("Uma hora atras: \#{DateTime.to_iso8601(uma_hora_atras)}")
+      one_hour_ago = DateTime.add(now, -3600, :second)
+      IO.puts("One hour ago: \#{DateTime.to_iso8601(one_hour_ago)}")
 
-      diff_segundos = DateTime.diff(agora, uma_hora_atras, :second)
-      IO.puts("Diferenca: \#{diff_segundos}s")
+      diff_seconds = DateTime.diff(now, one_hour_ago, :second)
+      IO.puts("Difference: \#{diff_seconds}s")
 
-      # Date para o dia atual + 30
-      hoje = Date.utc_today()
-      em_30_dias = Date.add(hoje, 30)
-      IO.puts("Hoje: \#{hoje}, em 30 dias: \#{em_30_dias}")
+      # Date for current day + 30.
+      today = Date.utc_today()
+      in_30_days = Date.add(today, 30)
+      IO.puts("Today: \#{today}, in 30 days: \#{in_30_days}")
 
-      # Comparacoes retornam :lt | :eq | :gt
-      IO.puts("Comparando: \#{Date.compare(hoje, em_30_dias)}")
+      # Comparisons return :lt | :eq | :gt.
+      IO.puts("Comparing: \#{Date.compare(today, in_30_days)}")
       """
     }
   end
@@ -345,33 +346,33 @@ defmodule Blackboex.Samples.Playground do
       kind: :playground,
       id: "regex_validation",
       sample_uuid: Id.uuid(:playground, "regex_validation"),
-      name: "[Demo] Regex - Validar e Extrair",
-      description: "Match, capturas nomeadas e replace com Regex.",
+      name: "[Demo] Regex - Validate and Extract",
+      description: "Match, named captures and replace with Regex.",
       category: "Elixir",
       code: """
-      # Validacao simples de email
+      # Simple email validation.
       email_regex = ~r/^[\\w.+-]+@[\\w-]+\\.[\\w.-]+$/
 
-      Enum.each(["ok@example.com", "sem-arroba", "a@b.co"], fn entrada ->
-        if Regex.match?(email_regex, entrada) do
-          IO.puts("OK: \#{entrada}")
+      Enum.each(["ok@example.com", "missing-at", "a@b.co"], fn input ->
+        if Regex.match?(email_regex, input) do
+          IO.puts("OK: \#{input}")
         else
-          IO.puts("FAIL: \#{entrada}")
+          IO.puts("FAIL: \#{input}")
         end
       end)
 
-      # Capturas nomeadas
+      # Named captures.
       log = "2026-05-04 12:30:45 [error] timeout"
-      padrao = ~r/^(?<data>[\\d-]+) (?<hora>[\\d:]+) \\[(?<nivel>\\w+)\\] (?<msg>.+)$/
+      pattern = ~r/^(?<date>[\\d-]+) (?<time>[\\d:]+) \\[(?<level>\\w+)\\] (?<msg>.+)$/
 
-      case Regex.named_captures(padrao, log) do
-        nil -> IO.puts("nao casou")
-        capturas -> IO.inspect(capturas, label: "log estruturado")
+      case Regex.named_captures(pattern, log) do
+        nil -> IO.puts("no match")
+        captures -> IO.inspect(captures, label: "structured log")
       end
 
-      # Replace com captura
-      texto_anonimizado = Regex.replace(~r/(\\d{3})\\d{3}(\\d{3})/, "12345-678901", "\\\\1***\\\\2")
-      IO.puts("anonimizado: \#{texto_anonimizado}")
+      # Replace with capture.
+      anonymized_text = Regex.replace(~r/(\\d{3})\\d{3}(\\d{3})/, "12345-678901", "\\\\1***\\\\2")
+      IO.puts("anonymized: \#{anonymized_text}")
       """
     }
   end
@@ -381,30 +382,30 @@ defmodule Blackboex.Samples.Playground do
       kind: :playground,
       id: "range_basics",
       sample_uuid: Id.uuid(:playground, "range_basics"),
-      name: "[Demo] Range - Sequencias Eficientes",
-      description: "Range é um Enumerable barato — nada de listar tudo.",
+      name: "[Demo] Range - Efficient Sequences",
+      description: "Range is a cheap Enumerable; no need to list everything.",
       category: "Elixir",
       code: """
-      # Range nao materializa a lista — fica como {:range, first, last, step}
+      # Range does not materialize the list; it stays as {:range, first, last, step}.
       r = 1..1_000_000
-      IO.puts("Tipo: \#{inspect(r.__struct__)}")
-      IO.puts("Primeiro: \#{r.first}, ultimo: \#{r.last}")
+      IO.puts("Type: \#{inspect(r.__struct__)}")
+      IO.puts("First: \#{r.first}, last: \#{r.last}")
 
-      # Operacoes Enum funcionam, mas alocam quando precisa
-      soma = Enum.sum(1..100)
-      IO.puts("Soma 1..100 = \#{soma}")
+      # Enum operations work, but allocate when needed.
+      sum = Enum.sum(1..100)
+      IO.puts("Sum 1..100 = \#{sum}")
 
-      # Range com passo (step) negativo
-      decrescente = 10..1//-2
-      IO.inspect(Enum.to_list(decrescente), label: "10..1 com passo -2")
+      # Range with a negative step.
+      descending = 10..1//-2
+      IO.inspect(Enum.to_list(descending), label: "10..1 with step -2")
 
-      # Junto com Stream para ficar lazy
-      primeiros_pares =
+      # Combine with Stream to stay lazy.
+      first_even =
         1..1_000
         |> Stream.filter(&(rem(&1, 2) == 0))
         |> Enum.take(5)
 
-      IO.inspect(primeiros_pares, label: "5 primeiros pares")
+      IO.inspect(first_even, label: "first 5 even numbers")
       """
     }
   end
@@ -414,30 +415,30 @@ defmodule Blackboex.Samples.Playground do
       kind: :playground,
       id: "tuple_basics",
       sample_uuid: Id.uuid(:playground, "tuple_basics"),
-      name: "[Demo] Tuples - Quando usar",
-      description: "Tuples para retornos fixos; mapas para dados nomeados.",
+      name: "[Demo] Tuples - When to Use",
+      description: "Tuples for fixed returns; maps for named data.",
       category: "Elixir",
       code: """
-      # Tuple eh ideal para retornos com aridade fixa: {:ok, valor} | {:error, _}
-      dividir = fn
-        _, 0 -> {:error, :divisao_por_zero}
+      # Tuple is ideal for fixed-arity returns: {:ok, value} | {:error, _}
+      divide = fn
+        _, 0 -> {:error, :division_by_zero}
         a, b -> {:ok, a / b}
       end
 
-      IO.inspect(dividir.(10, 2), label: "10/2")
-      IO.inspect(dividir.(10, 0), label: "10/0")
+      IO.inspect(divide.(10, 2), label: "10/2")
+      IO.inspect(divide.(10, 0), label: "10/0")
 
-      # Acesso por indice (raro): elem/2
+      # Index access (rare): elem/2.
       coord = {3.5, 7.2}
       IO.puts("x=\#{elem(coord, 0)}, y=\#{elem(coord, 1)}")
 
-      # Atualizar tuple cria nova
-      atualizada = put_elem(coord, 0, 99.9)
-      IO.inspect(atualizada, label: "coord atualizada")
+      # Updating a tuple creates a new tuple.
+      updated = put_elem(coord, 0, 99.9)
+      IO.inspect(updated, label: "updated coord")
 
-      # Para dados crescentes/nomeados, prefira maps
-      ponto_map = %{x: 3.5, y: 7.2, z: 0.0}
-      IO.inspect(%{ponto_map | x: 99.9}, label: "ponto como map")
+      # For growing/named data, prefer maps.
+      point_map = %{x: 3.5, y: 7.2, z: 0.0}
+      IO.inspect(%{point_map | x: 99.9}, label: "point as map")
       """
     }
   end
@@ -448,30 +449,30 @@ defmodule Blackboex.Samples.Playground do
       id: "read_env_vars",
       sample_uuid: Id.uuid(:playground, "read_env_vars"),
       name: "[Demo] Project Env Vars",
-      description: "Lendo variáveis configuradas em Project Settings.",
+      description: "Reading variables configured in Project Settings.",
       category: "Blackboex",
       code: """
-      # `env` eh um binding automatico no Playground.
-      # Configure variaveis em Project Settings -> Env Vars.
+      # `env` is an automatic binding in the Playground.
+      # Configure variables in Project Settings -> Env Vars.
 
       api_url = env["API_URL"]
       api_key = env["API_KEY"]
 
       cond do
         is_nil(api_url) ->
-          IO.puts("API_URL nao configurada — defina em Project Settings")
+          IO.puts("API_URL is not configured; define it in Project Settings")
 
         is_nil(api_key) ->
-          IO.puts("API_KEY nao configurada — defina em Project Settings")
+          IO.puts("API_KEY is not configured; define it in Project Settings")
 
         true ->
-          # Mascara a key no log para nao vazar
-          mascarada = String.slice(api_key, 0, 4) <> "****"
-          IO.puts("Pronto para chamar \#{api_url} com key \#{mascarada}")
+          # Mask the key in logs to avoid leaking it.
+          masked = String.slice(api_key, 0, 4) <> "****"
+          IO.puts("Ready to call \#{api_url} with key \#{masked}")
       end
 
-      # Tamanho do mapa (zero quando nada configurado)
-      IO.puts("Total de variaveis: \#{map_size(env)}")
+      # Map size is zero when nothing is configured.
+      IO.puts("Total variables: \#{map_size(env)}")
       """
     }
   end
@@ -481,26 +482,26 @@ defmodule Blackboex.Samples.Playground do
       kind: :playground,
       id: "http_get",
       sample_uuid: Id.uuid(:playground, "http_get"),
-      name: "[Demo] HTTP GET com Playgrounds.Http",
-      description: "GET externo com SSRF protection e timeout de 3s.",
+      name: "[Demo] HTTP GET with Playgrounds.Http",
+      description: "External GET with SSRF protection and a 3s timeout.",
       category: "Blackboex",
       code: """
       alias Blackboex.Playgrounds.Http
 
-      # Limites: max 5 chamadas/execucao, timeout 3s, IPs privados bloqueados.
+      # Limits: max 5 calls per execution, 3s timeout, private IPs blocked.
       url = "https://httpbin.org/get?demo=blackboex"
 
       case Http.get(url, headers: [{"accept", "application/json"}]) do
         {:ok, %{status: 200, body: body}} ->
-          # body vem truncado em 64KB
+          # body is truncated at 64KB.
           IO.puts("OK 200, \#{byte_size(body)} bytes")
           IO.puts(String.slice(body, 0, 200) <> "...")
 
         {:ok, %{status: status}} ->
-          IO.puts("HTTP \#{status} — nao 2xx")
+          IO.puts("HTTP \#{status}; not 2xx")
 
         {:error, reason} ->
-          IO.puts("Erro: \#{inspect(reason)}")
+          IO.puts("Error: \#{inspect(reason)}")
       end
       """
     }
@@ -512,12 +513,12 @@ defmodule Blackboex.Samples.Playground do
       id: "http_post_json",
       sample_uuid: Id.uuid(:playground, "http_post_json"),
       name: "[Demo] HTTP POST JSON",
-      description: "POST com body JSON e parsing da resposta.",
+      description: "POST with JSON body and response parsing.",
       category: "Blackboex",
       code: """
       alias Blackboex.Playgrounds.Http
 
-      payload = Jason.encode!(%{nome: "Ana", idade: 30, ativo: true})
+      payload = Jason.encode!(%{name: "Ana", age: 30, active: true})
 
       headers = [
         {"content-type", "application/json"},
@@ -526,18 +527,18 @@ defmodule Blackboex.Samples.Playground do
 
       case Http.post("https://httpbin.org/post", payload, headers: headers) do
         {:ok, %{status: 200, body: body}} ->
-          # httpbin.org devolve o que enviamos em "json"
+          # httpbin.org returns what we sent under "json".
           case Jason.decode(body) do
-            {:ok, %{"json" => echo}} -> IO.inspect(echo, label: "echo do servidor")
-            {:ok, decoded} -> IO.inspect(decoded, label: "resposta")
-            {:error, _} -> IO.puts("body nao era JSON valido")
+            {:ok, %{"json" => echo}} -> IO.inspect(echo, label: "server echo")
+            {:ok, decoded} -> IO.inspect(decoded, label: "response")
+            {:error, _} -> IO.puts("body was not valid JSON")
           end
 
         {:ok, %{status: status}} ->
-          IO.puts("Status inesperado: \#{status}")
+          IO.puts("Unexpected status: \#{status}")
 
         {:error, reason} ->
-          IO.puts("Falha: \#{inspect(reason)}")
+          IO.puts("Failure: \#{inspect(reason)}")
       end
       """
     }
@@ -548,33 +549,33 @@ defmodule Blackboex.Samples.Playground do
       kind: :playground,
       id: "jason_parsing",
       sample_uuid: Id.uuid(:playground, "jason_parsing"),
-      name: "[Demo] Jason - Encode e Decode",
-      description: "Serializar/desserializar JSON com Jason.",
-      category: "Dados",
+      name: "[Demo] Jason - Encode and Decode",
+      description: "Serialize and deserialize JSON with Jason.",
+      category: "Data",
       code: """
       # Encode: map -> string JSON
-      pedido = %{
+      order = %{
         id: "ord_123",
-        cliente: %{nome: "Maria", email: "maria@example.com"},
-        itens: [
-          %{sku: "SKU-1", qty: 2, preco: 19.90},
-          %{sku: "SKU-2", qty: 1, preco: 49.00}
+        customer: %{name: "Mary", email: "mary@example.com"},
+        items: [
+          %{sku: "SKU-1", qty: 2, price: 19.90},
+          %{sku: "SKU-2", qty: 1, price: 49.00}
         ]
       }
 
-      json = Jason.encode!(pedido, pretty: true)
+      json = Jason.encode!(order, pretty: true)
       IO.puts(json)
 
-      # Decode: string JSON -> map (chaves string por padrao)
-      texto = ~s({"name":"Joao","tags":["a","b"],"active":true})
+      # Decode: JSON string -> map (string keys by default).
+      text = ~s({"name":"John","tags":["a","b"],"active":true})
 
-      case Jason.decode(texto) do
+      case Jason.decode(text) do
         {:ok, parsed} ->
-          IO.inspect(parsed, label: "parsed (chaves string)")
+          IO.inspect(parsed, label: "parsed (string keys)")
           IO.puts("Tags: \#{Enum.join(parsed["tags"], ", ")}")
 
         {:error, %Jason.DecodeError{} = err} ->
-          IO.puts("JSON invalido: \#{Exception.message(err)}")
+          IO.puts("Invalid JSON: \#{Exception.message(err)}")
       end
       """
     }
@@ -585,39 +586,39 @@ defmodule Blackboex.Samples.Playground do
       kind: :playground,
       id: "error_handling",
       sample_uuid: Id.uuid(:playground, "error_handling"),
-      name: "[Demo] Tratamento de Erros",
-      description: "try/rescue, pattern em {:error, _} e raise.",
+      name: "[Demo] Error Handling",
+      description: "try/rescue, {:error, _} patterns and raise.",
       category: "Elixir",
       code: """
-      # Estilo idiomatico: retornar {:ok, _} | {:error, motivo}
-      seguro = fn ->
-        case Integer.parse("nao-eh-numero") do
+      # Idiomatic style: return {:ok, _} | {:error, reason}
+      safe = fn ->
+        case Integer.parse("not-a-number") do
           {n, ""} -> {:ok, n}
-          :error -> {:error, :nao_eh_inteiro}
-          _ -> {:error, :tem_lixo}
+          :error -> {:error, :not_an_integer}
+          _ -> {:error, :has_trailing_garbage}
         end
       end
 
-      IO.inspect(seguro.(), label: "resultado seguro")
+      IO.inspect(safe.(), label: "safe result")
 
-      # Quando algo MUITO excepcional acontece, raise pode ser apropriado
-      arriscado = fn entrada ->
-        if entrada == nil do
-          raise ArgumentError, "entrada nao pode ser nil"
+      # When something truly exceptional happens, raise can be appropriate.
+      risky = fn input ->
+        if input == nil do
+          raise ArgumentError, "input cannot be nil"
         else
-          String.upcase(entrada)
+          String.upcase(input)
         end
       end
 
       try do
-        arriscado.(nil)
+        risky.(nil)
       rescue
         e in ArgumentError ->
-          IO.puts("Capturei: \#{Exception.message(e)}")
+          IO.puts("Caught: \#{Exception.message(e)}")
       end
 
-      # Estilo pipeline: with + retornos taggeados eh quase sempre melhor
-      # que try/rescue para fluxo de negocio normal.
+      # Pipeline style: with + tagged returns is almost always better
+      # than try/rescue for normal business flow.
       """
     }
   end
@@ -627,28 +628,28 @@ defmodule Blackboex.Samples.Playground do
       kind: :playground,
       id: "base64_encoding",
       sample_uuid: Id.uuid(:playground, "base64_encoding"),
-      name: "[Demo] Base64 e URI Encoding",
-      description: "Codificações comuns para tokens, query strings e mais.",
-      category: "Dados",
+      name: "[Demo] Base64 and URI Encoding",
+      description: "Common encodings for tokens, query strings and more.",
+      category: "Data",
       code: """
-      # Base64 padrao
-      texto = "blackboex secret"
-      codificado = Base.encode64(texto)
-      IO.puts("encoded: \#{codificado}")
+      # Standard Base64.
+      text = "blackboex secret"
+      encoded = Base.encode64(text)
+      IO.puts("encoded: \#{encoded}")
 
-      decodificado = Base.decode64!(codificado)
-      IO.puts("decoded: \#{decodificado}")
+      decoded = Base.decode64!(encoded)
+      IO.puts("decoded: \#{decoded}")
 
-      # URL-safe (sem + / =) — ideal para query string e cookies
+      # URL-safe (without + / =), ideal for query strings and cookies.
       urlsafe = Base.url_encode64("hello world?", padding: false)
       IO.puts("url-safe: \#{urlsafe}")
 
-      # URI.encode_query para query strings
-      params = %{q: "ola mundo", page: 2, lang: "pt-BR"}
+      # URI.encode_query for query strings.
+      params = %{q: "hello world", page: 2, lang: "en-US"}
       query = URI.encode_query(params)
       IO.puts("query: \#{query}")
 
-      # Decode pra map
+      # Decode into a map.
       decoded = URI.decode_query(query)
       IO.inspect(decoded, label: "query decoded")
       """
@@ -660,41 +661,41 @@ defmodule Blackboex.Samples.Playground do
       kind: :playground,
       id: "atom_safety",
       sample_uuid: Id.uuid(:playground, "atom_safety"),
-      name: "[Demo] Atoms - Seguranca e Boas Praticas",
-      description: "Por que NUNCA usar String.to_atom com input externo.",
+      name: "[Demo] Atoms - Safety and Best Practices",
+      description: "Why you should NEVER use String.to_atom with external input.",
       category: "Elixir",
       code: """
-      # Atoms NAO sao garbage-collected. Cada novo atom consome memoria
-      # permanente. Limite global eh ~1M (pode derrubar a VM se atingido).
+      # Atoms are NOT garbage-collected. Each new atom consumes permanent memory.
+      # The global limit is around 1M and can bring the VM down if reached.
 
-      # SEGURO: atom literal no codigo
+      # SAFE: literal atom in code.
       status = :active
       IO.puts("status: \#{status}")
 
-      # SEGURO: to_existing_atom — falha se nao existe, evita criar novo
+      # SAFE: to_existing_atom fails if the atom does not exist and avoids creating a new one.
       try do
-        existente = String.to_existing_atom("active")
-        IO.puts("encontrado: \#{existente}")
+        existing = String.to_existing_atom("active")
+        IO.puts("found: \#{existing}")
       rescue
-        ArgumentError -> IO.puts("atom nao existe — recusado")
+        ArgumentError -> IO.puts("atom does not exist; rejected")
       end
 
-      # PADRAO RECOMENDADO: lookup em map estatico
-      mapeamento = %{
+      # RECOMMENDED PATTERN: lookup in a static map.
+      mapping = %{
         "active" => :active,
         "paused" => :paused,
         "stopped" => :stopped
       }
 
-      converter = fn entrada ->
-        case Map.fetch(mapeamento, entrada) do
+      convert = fn input ->
+        case Map.fetch(mapping, input) do
           {:ok, atom} -> {:ok, atom}
-          :error -> {:error, :status_invalido}
+          :error -> {:error, :invalid_status}
         end
       end
 
-      IO.inspect(converter.("active"), label: "active")
-      IO.inspect(converter.("malicious-string-to-blow-atom-table"), label: "lixo")
+      IO.inspect(convert.("active"), label: "active")
+      IO.inspect(convert.("malicious-string-to-blow-atom-table"), label: "junk")
       """
     }
   end

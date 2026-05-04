@@ -201,12 +201,12 @@ defmodule Blackboex.Apis.TemplateE2ETest do
   end
 
   # ---------------------------------------------------------------------------
-  # Detailed e2e for cotacao-frete (reference template)
+  # Detailed e2e for shipping-quote (reference template)
   # ---------------------------------------------------------------------------
 
-  describe "cotacao-frete: detailed HTTP e2e" do
-    test "returns 200 with opcoes list", %{conn: conn, user: user, org: org} do
-      {api, template} = create_and_publish_template(org, user, "cotacao-frete")
+  describe "shipping-quote: detailed HTTP e2e" do
+    test "returns 200 with options list", %{conn: conn, user: user, org: org} do
+      {api, template} = create_and_publish_template(org, user, "shipping-quote")
 
       conn =
         conn
@@ -217,7 +217,7 @@ defmodule Blackboex.Apis.TemplateE2ETest do
         )
 
       response = json_response(conn, 200)
-      assert Map.has_key?(response, "opcoes") or Map.has_key?(response, "result")
+      assert Map.has_key?(response, "options") or Map.has_key?(response, "result")
     end
 
     test "returns 200 with all 6 files created", %{user: user, org: org} do
@@ -228,7 +228,7 @@ defmodule Blackboex.Apis.TemplateE2ETest do
         user_id: user.id
       }
 
-      {:ok, api} = Apis.create_api_from_template(attrs, "cotacao-frete")
+      {:ok, api} = Apis.create_api_from_template(attrs, "shipping-quote")
 
       files = Apis.list_files(api.id)
       paths = Enum.map(files, & &1.path) |> MapSet.new()
@@ -250,7 +250,7 @@ defmodule Blackboex.Apis.TemplateE2ETest do
         user_id: user.id
       }
 
-      {:ok, api} = Apis.create_api_from_template(attrs, "cotacao-frete")
+      {:ok, api} = Apis.create_api_from_template(attrs, "shipping-quote")
 
       # API with status "compiled" is compilable on-demand via compile_from_db
       # Sending empty params triggers validation error (not 404)
@@ -316,7 +316,7 @@ defmodule Blackboex.Apis.TemplateE2ETest do
         user_id: user.id
       }
 
-      {:ok, api} = Apis.create_api_from_template(attrs, "cotacao-frete")
+      {:ok, api} = Apis.create_api_from_template(attrs, "shipping-quote")
 
       all_files = Apis.list_files_with_virtual(api)
       paths = Enum.map(all_files, & &1.path) |> MapSet.new()

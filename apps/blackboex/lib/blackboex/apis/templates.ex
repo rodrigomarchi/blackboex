@@ -37,7 +37,7 @@ defmodule Blackboex.Apis.Templates do
     "AI Agent Tools",
     "Webhooks",
     "Mocks",
-    "Protótipos"
+    "Prototypes"
   ]
 
   @doc "Returns all available templates."

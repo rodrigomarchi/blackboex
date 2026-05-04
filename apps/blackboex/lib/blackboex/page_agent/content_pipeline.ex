@@ -56,13 +56,13 @@ defmodule Blackboex.PageAgent.ContentPipeline do
         {:error, :not_configured}
 
       {:error, :no_content_block} ->
-        {:error, "resposta do modelo não continha bloco markdown"}
+        {:error, "model response did not contain a markdown block"}
 
       {:error, reason} when is_binary(reason) ->
         {:error, reason}
 
       {:error, reason} ->
-        {:error, "falha do LLM: #{inspect(reason)}"}
+        {:error, "LLM failure: #{inspect(reason)}"}
     end
   end
 

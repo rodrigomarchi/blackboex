@@ -11,7 +11,7 @@ defmodule Blackboex.Samples.ApiTemplates.NotificationMock do
     %{
       id: "notification-mock",
       name: "SMS/Email Notification Mock",
-      description: "Simula envio de notificação multi-canal (SMS, email, push) para testes",
+      description: "Simulates multi-channel notification delivery for tests",
       category: "Mocks",
       template_type: "computation",
       icon: "bell",
@@ -223,22 +223,22 @@ defmodule Blackboex.Samples.ApiTemplates.NotificationMock do
     """
     # SMS/Email Notification Mock
 
-    Simula envio de notificações por múltiplos canais sem conectar a serviços reais.
-    Ideal para testar fluxos de notificação em desenvolvimento e CI/CD.
+    Simulates notification delivery through multiple channels without connecting
+    to real services. Ideal for testing notification flows in development and CI/CD.
 
-    ## Parâmetros
+    ## Parameters
 
-    | Campo | Tipo | Obrigatório | Descrição |
+    | Field | Type | Required | Description |
     |-------|------|-------------|-----------|
-    | `channel` | string | sim | Canal: `email`, `sms`, `push`, `whatsapp` |
-    | `recipient` | string | sim | Destinatário (email, telefone ou device token) |
-    | `message` | string | sim | Conteúdo da mensagem |
-    | `subject` | string | não | Assunto (apenas para email) |
+    | `channel` | string | yes | Channel: `email`, `sms`, `push`, `whatsapp` |
+    | `recipient` | string | yes | Recipient (email, phone number or device token) |
+    | `message` | string | yes | Message content |
+    | `subject` | string | no | Subject (email only) |
 
-    ## Exemplo de Requisição
+    ## Example Request
 
     ```bash
-    curl -X POST https://api.blackboex.com/api/minha-org/notification-mock \\
+    curl -X POST https://api.blackboex.com/api/my-org/notification-mock \\
       -H "Content-Type: application/json" \\
       -d '{
         "channel": "email",
@@ -247,7 +247,7 @@ defmodule Blackboex.Samples.ApiTemplates.NotificationMock do
       }'
     ```
 
-    ## Exemplo de Resposta
+    ## Example Response
 
     ```json
     {
@@ -257,14 +257,14 @@ defmodule Blackboex.Samples.ApiTemplates.NotificationMock do
     }
     ```
 
-    ## Canais Suportados
+    ## Supported Channels
 
-    | Canal | Formato do `recipient` |
+    | Channel | `recipient` Format |
     |-------|----------------------|
-    | `email` | Endereço de email |
-    | `sms` | Número de telefone |
+    | `email` | Email address |
+    | `sms` | Phone number |
     | `push` | Device token |
-    | `whatsapp` | Número de telefone |
+    | `whatsapp` | Phone number |
     """
   end
 end

@@ -798,7 +798,7 @@ defmodule Blackboex.FlowExecutor.SchemaValidatorTest do
         string_field("name", %{"required" => true, "constraints" => %{"min_length" => 2}})
       ]
 
-      payload = %{"name" => "João"}
+      payload = %{"name" => "John"}
       assert {:ok, ^payload} = SchemaValidator.validate_payload(payload, schema)
     end
 

@@ -83,7 +83,7 @@ defmodule Blackboex.OrganizationsTest do
   end
 
   describe "remove_member/2" do
-    test "remove membro da org" do
+    test "removes member from organization" do
       owner = user_fixture()
       member = user_fixture()
       {:ok, %{organization: org}} = Organizations.create_organization(owner, %{name: "Team"})
@@ -93,7 +93,7 @@ defmodule Blackboex.OrganizationsTest do
       assert Organizations.get_user_membership(org, member) == nil
     end
 
-    test "retorna {:error, :last_owner} ao remover unico owner" do
+    test "returns {:error, :last_owner} when removing the only owner" do
       owner = user_fixture()
 
       {:ok, %{organization: org, membership: membership}} =
@@ -102,7 +102,7 @@ defmodule Blackboex.OrganizationsTest do
       assert {:error, :last_owner} = Organizations.remove_member(org, membership)
     end
 
-    test "permite remover owner quando ha outros owners" do
+    test "allows removing owner when there are other owners" do
       owner1 = user_fixture()
       owner2 = user_fixture()
 
@@ -116,7 +116,7 @@ defmodule Blackboex.OrganizationsTest do
   end
 
   describe "update_member_role/2" do
-    test "atualiza role do membro" do
+    test "updates member role" do
       owner = user_fixture()
       member = user_fixture()
       {:ok, %{organization: org}} = Organizations.create_organization(owner, %{name: "Team"})

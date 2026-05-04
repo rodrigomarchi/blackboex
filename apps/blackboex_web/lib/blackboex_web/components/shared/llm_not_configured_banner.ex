@@ -16,10 +16,10 @@ defmodule BlackboexWeb.Components.Shared.LlmNotConfiguredBanner do
   """
   attr :project_url, :string,
     default: nil,
-    doc: "Target URL for the 'Configurar' button (LLM Integrations tab)."
+    doc: "Target URL for the 'Configure' button (LLM Integrations tab)."
 
   attr :message, :string,
-    default: "Anthropic API Key não configurada para este projeto.",
+    default: "Anthropic API key is not configured for this project.",
     doc: "Main message shown above the CTA."
 
   @spec llm_not_configured_banner(map()) :: Phoenix.LiveView.Rendered.t()
@@ -34,8 +34,8 @@ defmodule BlackboexWeb.Components.Shared.LlmNotConfiguredBanner do
         <div class="space-y-1">
           <p class="font-semibold">{@message}</p>
           <p class="text-sm">
-            AI-assist (chat, geração e edição de código) está desativado até que você
-            configure a chave na aba <strong>LLM Integrations</strong> do projeto.
+            AI assist (chat, generation, and code editing) is disabled until you
+            configure the key in the project <strong>LLM Integrations</strong> tab.
           </p>
         </div>
       </div>
@@ -44,7 +44,7 @@ defmodule BlackboexWeb.Components.Shared.LlmNotConfiguredBanner do
           navigate={@project_url}
           class="inline-flex items-center gap-1 text-sm font-medium text-amber-900 underline hover:text-amber-950"
         >
-          Configurar <.icon name="hero-arrow-right" class="h-4 w-4" />
+          Configure <.icon name="hero-arrow-right" class="h-4 w-4" />
         </.link>
       </div>
     </div>

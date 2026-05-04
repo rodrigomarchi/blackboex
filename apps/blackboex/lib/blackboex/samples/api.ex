@@ -6,14 +6,14 @@ defmodule Blackboex.Samples.Api do
   alias Blackboex.Samples.Id
 
   @template_modules [
-    Blackboex.Samples.ApiTemplates.CotacaoFrete,
-    Blackboex.Samples.ApiTemplates.CalculadoraImpostos,
-    Blackboex.Samples.ApiTemplates.ValidadorDocumentos,
-    Blackboex.Samples.ApiTemplates.ScoringCredito,
-    Blackboex.Samples.ApiTemplates.TabelaPrecos,
-    Blackboex.Samples.ApiTemplates.ConversorMoedas,
-    Blackboex.Samples.ApiTemplates.JurosCompostos,
-    Blackboex.Samples.ApiTemplates.VerificadorElegibilidade,
+    Blackboex.Samples.ApiTemplates.ShippingQuote,
+    Blackboex.Samples.ApiTemplates.BrazilianTaxCalculator,
+    Blackboex.Samples.ApiTemplates.DocumentValidator,
+    Blackboex.Samples.ApiTemplates.CreditScoring,
+    Blackboex.Samples.ApiTemplates.PriceTable,
+    Blackboex.Samples.ApiTemplates.CurrencyConverter,
+    Blackboex.Samples.ApiTemplates.CompoundInterest,
+    Blackboex.Samples.ApiTemplates.EligibilityChecker,
     Blackboex.Samples.ApiTemplates.GithubWebhook,
     Blackboex.Samples.ApiTemplates.SlackEventHandler,
     Blackboex.Samples.ApiTemplates.OauthCallback,

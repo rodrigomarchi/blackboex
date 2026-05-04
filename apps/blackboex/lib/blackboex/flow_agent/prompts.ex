@@ -10,7 +10,7 @@ defmodule Blackboex.FlowAgent.Prompts do
       {"version":"1.0","nodes":[...],"edges":[...]}
       ~~~
 
-  Optionally followed by a single `Resumo:` line.
+  Optionally followed by a single `Summary:` line.
   """
 
   alias Blackboex.FlowAgent.Prompts.Examples
@@ -22,45 +22,45 @@ defmodule Blackboex.FlowAgent.Prompts do
   @zwsp "\u200B"
 
   @structural_contract """
-  CONTRATO ESTRUTURAL (validado antes de salvar):
+  STRUCTURAL CONTRACT (validated before saving):
   - version = "1.0"
-  - nodes: lista de objetos com campos id, type, position:{x,y}, data
-  - ids de nó no formato "n1", "n2", "n3"…  (regex: ^n\\d+$)
-  - edges: lista de objetos com id, source, source_port (int), target, target_port (int)
-  - Exatamente UM nó do tipo "start"; pelo menos um nó "end"
-  - Sem ciclos; sem fan-in (cada porta de destino recebe no máximo 1 aresta)
-  - Sem self-loops; sem arestas duplicadas (mesmo par source_port → target_port)
-  - source_port respeita os outputs fixos do tipo (condition é dinâmico; demais fixos em 1)
+  - nodes: list of objects with id, type, position:{x,y}, data fields
+  - node ids in "n1", "n2", "n3"... format (regex: ^n\\d+$)
+  - edges: list of objects with id, source, source_port (int), target, target_port (int)
+  - Exactly ONE "start" node; at least one "end" node
+  - No cycles; no fan-in (each target port receives at most 1 edge)
+  - No self-loops; no duplicate edges (same source_port to target_port pair)
+  - source_port must respect fixed outputs for the type (condition is dynamic; others are fixed at 1)
   """
 
   @node_catalog """
-  TIPOS DE NÓ (campos de data):
+  NODE TYPES (data fields):
 
   - start: execution_mode ("sync"|"async"), timeout (ms), payload_schema [],
-    state_schema []. Schemas são listas de {name, type, required, constraints,
+    state_schema []. Schemas are lists of {name, type, required, constraints,
     initial_value}. Type ∈ {string, integer, float, boolean, array, object}.
 
-  - elixir_code: code (string Elixir que retorna tupla {output, new_state}).
-    Timeout opcional via timeout_ms.
+  - elixir_code: code (Elixir string that returns tuple {output, new_state}).
+    Optional timeout via timeout_ms.
 
-  - condition: expression (Elixir que retorna int 0..N — porta de saída),
-    branch_labels (mapa {"0": "Sim", "1": "Não"} para legendas no canvas).
+  - condition: expression (Elixir that returns int 0..N output port),
+    branch_labels (map {"0": "Yes", "1": "No"} for canvas labels).
 
   - end: response_schema [], response_mapping [{response_field, state_variable}].
 
   - http_request: method ("GET"|"POST"|"PUT"|"PATCH"|"DELETE"),
-    url (aceita {{state.X}} e {{input.X}}), headers (map), body_template (string),
+    url (accepts {{state.X}} and {{input.X}}), headers (map), body_template (string),
     timeout_ms, max_retries, expected_status [], auth_type, auth_config.
 
   - delay: duration_ms, max_duration_ms.
 
-  - for_each: source_expression (Elixir que retorna lista), body_code (Elixir),
-    item_variable ("item"), accumulator (nome do campo em state).
+  - for_each: source_expression (Elixir that returns a list), body_code (Elixir),
+    item_variable ("item"), accumulator (state field name).
 
-  - webhook_wait: event_type (string), timeout_ms, resume_path (opcional).
+  - webhook_wait: event_type (string), timeout_ms, resume_path (optional).
 
-  - sub_flow: flow_id (UUID de outro flow ativo), input_mapping {...},
-    timeout_ms (opcional).
+  - sub_flow: flow_id (UUID of another active flow), input_mapping {...},
+    timeout_ms (optional).
 
   - fail: message (string), include_state (boolean).
 
@@ -68,45 +68,45 @@ defmodule Blackboex.FlowAgent.Prompts do
   """
 
   @output_format """
-  DOIS MODOS DE OPERAÇÃO (você escolhe com base no pedido):
+  TWO OPERATION MODES (choose based on the request):
 
-  1. MODO EDIÇÃO — quando o pedido é para CRIAR, MODIFICAR, ADICIONAR,
-     REMOVER, CONECTAR ou REFATORAR o fluxo. Produza a definição COMPLETA:
+  1. EDIT MODE - when the request asks to CREATE, MODIFY, ADD, REMOVE,
+     CONNECT, or REFACTOR the flow. Produce the COMPLETE definition:
 
      ~~~json
      {"version":"1.0","nodes":[...],"edges":[...]}
      ~~~
 
-     Opcionalmente, uma linha "Resumo: ..." APÓS o bloco descrevendo em uma
-     frase o que você fez.
+     Optionally, add one "Summary: ..." line AFTER the block describing what
+     you did in one sentence.
 
-  2. MODO EXPLICAÇÃO — quando o pedido é para EXPLICAR, DESCREVER,
-     RESUMIR, ANALISAR ou TIRAR DÚVIDA sobre o fluxo atual (ex.: "me explica
-     como funciona", "pra que serve esse nó", "como esse condicional
-     decide"). NÃO emita bloco JSON. Responda em markdown simples começando
-     obrigatoriamente com `Resposta:`:
+  2. EXPLAIN MODE - when the request asks to EXPLAIN, DESCRIBE, SUMMARIZE,
+     ANALYZE, or answer a question about the current flow (for example:
+     "explain how this works", "what is this node for", "how does this
+     condition decide"). DO NOT emit a JSON block. Respond in simple markdown
+     and start exactly with `Answer:`:
 
      ```
-     Resposta: <sua explicação em português, pode usar listas e headings>
+     Answer: <your explanation in English, lists and headings are allowed>
      ```
 
-     Nesse modo o fluxo NÃO é modificado — você só conversa sobre ele.
+     In this mode the flow is NOT modified; you only discuss it.
 
-  REGRA DE OURO: em caso de dúvida, se o usuário não usou verbos de ação
-  (criar, adicionar, remover, editar…), prefira o modo explicação. Jamais
-  altere o fluxo sem intenção clara do usuário.
+  GOLDEN RULE: when unsure, if the user did not use action verbs
+  (create, add, remove, edit...), prefer explain mode. Never alter the flow
+  without clear user intent.
 
-  POSICIONAMENTO (modo edição apenas):
-  - Distribua os nodes em colunas (x += 200) por profundidade topológica
-  - E em linhas (y += 150) por ramo (útil em condition com múltiplas saídas)
-  - Se omitir `position`, um auto-layout será aplicado
+  POSITIONING (edit mode only):
+  - Distribute nodes in columns (x += 200) by topological depth
+  - Use rows (y += 150) per branch, useful for conditions with multiple outputs
+  - If `position` is omitted, auto-layout will be applied
   """
 
   @few_shot Examples.few_shot_json()
 
   @system_generate """
-  Você é um assistente que PROJETA fluxos executáveis no Blackboex. Dado um
-  pedido do usuário, produza a definição canônica completa do fluxo em JSON.
+  You are an assistant that DESIGNS executable Blackboex flows. Given a user
+  request, produce the full canonical flow definition in JSON.
 
   #{@structural_contract}
 
@@ -114,21 +114,21 @@ defmodule Blackboex.FlowAgent.Prompts do
 
   #{@output_format}
 
-  EXEMPLOS REAIS (use como referência de estilo e estrutura):
+  REAL EXAMPLES (use as style and structure references):
 
   #{@few_shot}
   """
 
   @system_edit """
-  Você é um assistente que EDITA fluxos executáveis do Blackboex. Dado o
-  fluxo atual e um pedido de mudança, aplique APENAS a alteração solicitada
-  preservando todos os outros nodes, edges e posições que não precisam mudar.
+  You are an assistant that EDITS executable Blackboex flows. Given the
+  current flow and a change request, apply ONLY the requested change while
+  preserving every other node, edge, and position that does not need to change.
 
-  IMPORTANTE:
-  - Preserve nodes, edges, posições e configs que não se relacionam ao pedido
-  - NÃO reescreva o fluxo inteiro por pura estética
-  - Retorne a definição COMPLETA editada (nunca diffs/patches)
-  - Mantenha os IDs existentes; adicione novos apenas para nodes inéditos
+  IMPORTANT:
+  - Preserve nodes, edges, positions, and configs unrelated to the request
+  - DO NOT rewrite the whole flow for aesthetics
+  - Return the COMPLETE edited definition (never diffs/patches)
+  - Keep existing IDs; add new ones only for new nodes
 
   #{@structural_contract}
 
@@ -136,7 +136,7 @@ defmodule Blackboex.FlowAgent.Prompts do
 
   #{@output_format}
 
-  EXEMPLOS REAIS (use como referência de estilo e estrutura):
+  REAL EXAMPLES (use as style and structure references):
 
   #{@few_shot}
   """
@@ -153,7 +153,7 @@ defmodule Blackboex.FlowAgent.Prompts do
   Options:
 
     * `:history` — list of `%{role, content}` maps from previous turns of the
-      current thread, oldest-first. Rendered as "Histórico da conversa:" so
+      current thread, oldest-first. Rendered as "Conversation history:" so
       the LLM behaves like a real thread instead of a one-shot.
   """
   @spec user_message(run_type(), String.t(), map() | nil,
@@ -173,7 +173,7 @@ defmodule Blackboex.FlowAgent.Prompts do
 
   defp build_user_message(:generate, message, _definition_before, history) do
     """
-    #{render_history(history)}Pedido do usuário:
+    #{render_history(history)}User request:
     #{sanitize(message)}
     """
   end
@@ -182,12 +182,12 @@ defmodule Blackboex.FlowAgent.Prompts do
     current_json = serialize_definition(definition_before)
 
     """
-    #{render_history(history)}Definição atual do fluxo:
+    #{render_history(history)}Current flow definition:
     ~~~json
     #{current_json}
     ~~~
 
-    Pedido do usuário:
+    User request:
     #{sanitize(message)}
     """
   end
@@ -198,15 +198,15 @@ defmodule Blackboex.FlowAgent.Prompts do
     lines =
       history
       |> Enum.map(fn
-        %{role: "user", content: c} -> "- Usuário: #{truncate(c)}"
-        %{role: "assistant", content: c} -> "- Assistente: #{truncate(c)}"
+        %{role: "user", content: c} -> "- User: #{truncate(c)}"
+        %{role: "assistant", content: c} -> "- Assistant: #{truncate(c)}"
         _ -> nil
       end)
       |> Enum.reject(&is_nil/1)
 
     case lines do
       [] -> ""
-      _ -> "Histórico da conversa (mensagens anteriores):\n" <> Enum.join(lines, "\n") <> "\n\n"
+      _ -> "Conversation history (previous messages):\n" <> Enum.join(lines, "\n") <> "\n\n"
     end
   end
 

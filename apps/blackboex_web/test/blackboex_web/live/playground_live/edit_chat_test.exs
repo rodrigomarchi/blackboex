@@ -44,7 +44,7 @@ defmodule BlackboexWeb.PlaygroundLive.EditChatTest do
         |> render_click()
 
       assert html =~ ~s(name="message")
-      assert html =~ "Peça ao agente"
+      assert html =~ "Ask the agent"
     end
   end
 
@@ -73,15 +73,15 @@ defmodule BlackboexWeb.PlaygroundLive.EditChatTest do
 
       html =
         view
-        |> form("form[phx-submit='send_chat']", %{message: "escreva um hello"})
+        |> form("form[phx-submit='send_chat']", %{message: "write hello"})
         |> render_submit()
 
-      assert html =~ "escreva um hello"
-      assert html =~ "Agente pensando"
+      assert html =~ "write hello"
+      assert html =~ "Agent thinking"
 
       assert_enqueued(
         worker: KickoffWorker,
-        args: %{"playground_id" => playground.id, "trigger_message" => "escreva um hello"}
+        args: %{"playground_id" => playground.id, "trigger_message" => "write hello"}
       )
     end
   end
@@ -99,7 +99,7 @@ defmodule BlackboexWeb.PlaygroundLive.EditChatTest do
 
       send(view.pid, {:run_started, %{run_id: run_id, run_type: "edit"}})
 
-      assert render(view) =~ "Agente pensando"
+      assert render(view) =~ "Agent thinking"
     end
 
     test "code_delta updates the streaming code block",
@@ -138,7 +138,7 @@ defmodule BlackboexWeb.PlaygroundLive.EditChatTest do
 
       html = render(view)
       assert html =~ "escreve hello"
-      refute html =~ "Agente pensando"
+      refute html =~ "Agent thinking"
 
       reloaded = Playgrounds.get_playground(project.id, pg.id)
       assert reloaded.code == new_code
@@ -160,7 +160,7 @@ defmodule BlackboexWeb.PlaygroundLive.EditChatTest do
       {:ok, _} =
         Blackboex.PlaygroundConversations.append_event(run, %{
           event_type: "user_message",
-          content: "velho pedido"
+          content: "old request"
         })
 
       {:ok, view, _} = live(conn, edit_path(org, project, playground))
@@ -170,15 +170,15 @@ defmodule BlackboexWeb.PlaygroundLive.EditChatTest do
         |> element(~s(button[phx-click="switch_bottom_tab"][phx-value-tab="chat"]))
         |> render_click()
 
-      assert html =~ "velho pedido"
+      assert html =~ "old request"
 
       html =
         view
         |> element(~s(button[phx-click="new_chat"]))
         |> render_click()
 
-      refute html =~ "velho pedido"
-      assert html =~ "Peça ao agente"
+      refute html =~ "old request"
+      assert html =~ "Ask the agent"
 
       # Previously active conversation is now archived; a new active exists.
       old = Blackboex.PlaygroundConversations.get_conversation(conv.id)
@@ -212,10 +212,10 @@ defmodule BlackboexWeb.PlaygroundLive.EditChatTest do
 
       run_id = Ecto.UUID.generate()
       send(view.pid, {:run_started, %{run_id: run_id, run_type: "edit"}})
-      send(view.pid, {:run_failed, %{reason: "LLM falhou", run_id: run_id}})
+      send(view.pid, {:run_failed, %{reason: "LLM failed", run_id: run_id}})
 
       html = render(view)
-      assert html =~ "Agente falhou: LLM falhou"
+      assert html =~ "Agent failed: LLM failed"
     end
   end
 end

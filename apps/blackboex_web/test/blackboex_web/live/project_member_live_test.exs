@@ -24,8 +24,8 @@ defmodule BlackboexWeb.ProjectMemberLiveTest do
     }
   end
 
-  describe "lista membros do projeto" do
-    test "mostra membros explícitos com role", %{
+  describe "lists project members" do
+    test "shows explicit members with role", %{
       conn: conn,
       org: org,
       project: project,
@@ -38,8 +38,8 @@ defmodule BlackboexWeb.ProjectMemberLiveTest do
     end
   end
 
-  describe "mostra membros implicitos (org owner/admin) com badge" do
-    test "org admin aparece com badge de acesso implícito", %{
+  describe "shows implicit members (org owner/admin) with badge" do
+    test "org admin appears with implicit access badge", %{
       conn: conn,
       org: org,
       project: project,
@@ -52,8 +52,8 @@ defmodule BlackboexWeb.ProjectMemberLiveTest do
     end
   end
 
-  describe "project admin pode adicionar membro da org" do
-    test "adiciona membro elegível via form", %{
+  describe "project admin can add org member" do
+    test "adds eligible member through form", %{
       conn: conn,
       org: org,
       project: project
@@ -73,8 +73,8 @@ defmodule BlackboexWeb.ProjectMemberLiveTest do
     end
   end
 
-  describe "project admin pode editar role" do
-    test "atualiza role de membro explícito", %{
+  describe "project admin can edit role" do
+    test "updates explicit member role", %{
       conn: conn,
       org: org,
       project: project,
@@ -91,8 +91,8 @@ defmodule BlackboexWeb.ProjectMemberLiveTest do
     end
   end
 
-  describe "project admin pode remover membro" do
-    test "remove membro ao clicar em Remove", %{
+  describe "project admin can remove member" do
+    test "removes member when clicking Remove", %{
       conn: conn,
       org: org,
       project: project,
@@ -109,8 +109,8 @@ defmodule BlackboexWeb.ProjectMemberLiveTest do
     end
   end
 
-  describe "project editor NAO pode gerenciar membros" do
-    test "editor nao ve acoes de gestao", %{
+  describe "project editor cannot manage members" do
+    test "editor does not see management actions", %{
       conn: conn,
       org: org,
       project: project,

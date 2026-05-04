@@ -51,7 +51,7 @@ defmodule BlackboexWeb.Components.Editor.PageChatPanel do
           disabled={@loading || @messages == []}
           class="px-0"
         >
-          Nova conversa
+          New conversation
         </.button>
       </div>
 
@@ -66,7 +66,7 @@ defmodule BlackboexWeb.Components.Editor.PageChatPanel do
         </div>
         <%= if @messages == [] and @current_stream in [nil, ""] and not @loading do %>
           <p class="text-muted-description text-center py-12 px-4">
-            Peça ao agente para escrever ou editar o conteúdo desta página.
+            Ask the agent to write or edit this page content.
           </p>
         <% else %>
           <div class="relative ml-7 mr-4 my-3 pl-4 border-l border-border">
@@ -94,7 +94,7 @@ defmodule BlackboexWeb.Components.Editor.PageChatPanel do
             <%= if @loading and (is_nil(@current_stream) or @current_stream == "") do %>
               <div class="relative py-2">
                 <div class="absolute -left-[7px] top-[11px] size-[9px] rounded-full bg-info animate-pulse" />
-                <span class="text-muted-caption animate-pulse ml-2">Agente pensando...</span>
+                <span class="text-muted-caption animate-pulse ml-2">Agent thinking...</span>
               </div>
             <% end %>
           </div>
@@ -115,13 +115,13 @@ defmodule BlackboexWeb.Components.Editor.PageChatPanel do
           <.inline_input
             name="message"
             value={@input}
-            placeholder="Peça: reescreva intro, adicione seção de instalação, traduza para inglês..."
+            placeholder="Ask: rewrite the intro, add an installation section, translate to English..."
             class="flex-1 rounded-md"
             autocomplete="off"
             disabled={@loading}
           />
           <.button type="submit" variant="primary" disabled={@loading} class="rounded-md">
-            Enviar
+            Send
           </.button>
         </.form>
       </div>

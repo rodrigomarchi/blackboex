@@ -158,7 +158,7 @@ defmodule BlackboexWeb.SetupLive do
                 </div>
                 <div>
                   <dt class="font-semibold inline">Organization:</dt>
-                  <dd class="inline">{@data[:org_name]} / Exemplos</dd>
+                  <dd class="inline">{@data[:org_name]} / Examples</dd>
                 </div>
               </dl>
               <.separator class="my-4" />

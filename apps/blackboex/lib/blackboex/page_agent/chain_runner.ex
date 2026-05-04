@@ -106,7 +106,7 @@ defmodule Blackboex.PageAgent.ChainRunner do
 
       {:error, reason} ->
         Logger.warning("Pages.record_ai_edit failed: #{inspect(reason)}")
-        handle_chain_failure(state, "falha ao aplicar edição: #{inspect(reason)}")
+        handle_chain_failure(state, "failed to apply edit: #{inspect(reason)}")
     end
   end
 
@@ -155,7 +155,7 @@ defmodule Blackboex.PageAgent.ChainRunner do
   # operators; the user sees a stable phrase regardless of the actual reason.
   defp format_error({:crashed, reason}) do
     Logger.warning("PageAgent task crashed: #{inspect(reason)}")
-    "Erro interno do agente. Tente novamente."
+    "Internal agent error. Try again."
   end
 
   defp format_error(err) when is_binary(err), do: err

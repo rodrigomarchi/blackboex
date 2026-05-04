@@ -121,8 +121,8 @@ defmodule BlackboexWeb.ProjectLive.LlmIntegrations do
               Status: <span class="font-medium text-amber-800">Not configured</span>
             </p>
             <p class="text-xs text-amber-900">
-              AI-assist (chat, code-gen, explain) está desativado até que você cadastre a
-              chave. A chave é armazenada por projeto.
+              AI assist (chat, code generation, and explain) is disabled until you add the
+              key. The key is stored per project.
             </p>
           </div>
 

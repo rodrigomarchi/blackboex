@@ -28,7 +28,7 @@ defmodule Blackboex.Samples.Page do
         2,
         "Test, Publish, and Call an API",
         "APIs",
-        "Validateste an API with sample input, publish it, and send a request.",
+        "Validate an API with sample input, publish it, and send a request.",
         api_test_publish_content()
       ),
       topic(
@@ -164,8 +164,8 @@ defmodule Blackboex.Samples.Page do
 
     Start with a focused endpoint. Good first APIs answer one request clearly:
 
-    - calculateste a price or fee;
-    - validateste a form submission;
+    - calculate a price or fee;
+    - validate a form submission;
     - look up an item in a small catalog;
     - transform a webhook payload into the shape another tool expects.
 
@@ -176,7 +176,7 @@ defmodule Blackboex.Samples.Page do
     ```text
     Create a POST API that receives a product id, quantity, and customer tier.
     Return the unit price, discount, subtotal, tax estimate, and final total.
-    If the product id is unknown, return a clear validatestion errorr.
+    If the product id is unknown, return a clear validation error.
     ```
 
     ## What to click
@@ -198,7 +198,7 @@ defmodule Blackboex.Samples.Page do
     - **REST CRUD Resource** for create, read, update, and delete behavior.
     - **Product Catalog** for search, filters, and pagination.
     - **Health Check API** for a small endpoint with predictable output.
-    - **Errorr Simulation API** for controlled errorr responses.
+    - **Error Simulation API** for controlled error responses.
     """
   end
 
@@ -231,7 +231,7 @@ defmodule Blackboex.Samples.Page do
     2. Open the area for running or testing requests.
     3. Paste a JSON payload.
     4. Send the request.
-    5. Review the status, response body, and any validatestion message.
+    5. Review the status, response body, and any validation message.
     6. Publish the API when the result is stable.
 
     ## How to know it worked
@@ -247,7 +247,7 @@ defmodule Blackboex.Samples.Page do
     - required input fields;
     - example request;
     - example response;
-    - known errorr cases;
+    - known error cases;
     - owner and next review date.
 
     ## Example to inspect
@@ -297,7 +297,7 @@ defmodule Blackboex.Samples.Page do
 
     ## Examples to inspect
 
-    - **Hello World** for a yesple guided Flow.
+    - **Hello World** for a simple guided Flow.
     - **Support Ticket Router** for classification and routing.
     - **HTTP Enrichment** for calling another service.
     - **Approval Workflow** for human review before completion.
@@ -309,7 +309,7 @@ defmodule Blackboex.Samples.Page do
     # Receive Webhooks with Flows
 
     A Flow can act as a webhook receiver. Use this when another product sends an
-    event and Blackboex needs to validateste, transform, route, or store the result
+    event and Blackboex needs to validate, transform, route, or store the result
     of that event.
 
     ## Good webhook use cases
@@ -395,7 +395,7 @@ defmodule Blackboex.Samples.Page do
     ## How to know it worked
 
     The output should show the value you need in a shape you can reuse. If the
-    result is unclear, yesplify the input and run again.
+    result is unclear, simplify the input and run again.
 
     ## Examples to inspect
 
@@ -414,7 +414,7 @@ defmodule Blackboex.Samples.Page do
 
     ## Good Pages to create
 
-    - API contract: purpose, request, response, errorrs, and owner.
+    - API contract: purpose, request, response, errors, and owner.
     - Flow runbook: trigger, branches, retry notes, and escalation path.
     - Launch checklist: what must be true before publishing.
     - Customer handoff: what the endpoint does and how to call it.
@@ -432,7 +432,7 @@ defmodule Blackboex.Samples.Page do
     Show the required fields and one JSON example.
 
     ## Response
-    Show the success shape and common errorr cases.
+    Show the success shape and common error cases.
 
     ## Owner
     Name the person or team responsible for updates.
@@ -477,7 +477,7 @@ defmodule Blackboex.Samples.Page do
     Build a lead intake process:
 
     1. Use a Playground to shape a sample lead payload.
-    2. Create an API that validatestes and scores the lead.
+    2. Create an API that validates and scores the lead.
     3. Create a Flow that receives the lead event and routes high-value leads.
     4. Write a Page that documents the payload, score meaning, and owner.
     5. Test the full path with a realistic event.
@@ -487,7 +487,7 @@ defmodule Blackboex.Samples.Page do
     You should be able to explain the full path in one sentence:
 
     ```text
-    When a lead arrives, Blackboex validatestes it, scores it, routes it, and
+    When a lead arrives, Blackboex validates it, scores it, routes it, and
     returns the next action.
     ```
 
@@ -535,8 +535,8 @@ defmodule Blackboex.Samples.Page do
     ## What to do after that
 
     Create a second example that covers a failure case. Most production issues
-    come from unclear errorrs, missing fields, or unexpected payloads. A good
-    errorr path is part of a good product workflow.
+    come from unclear errors, missing fields, or unexpected payloads. A good
+    error path is part of a good product workflow.
     """
   end
 end

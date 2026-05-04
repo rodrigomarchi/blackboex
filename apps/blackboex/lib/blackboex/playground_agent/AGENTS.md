@@ -15,7 +15,7 @@ and dedicated prompts teaching the model about that sandbox.
 | `PlaygroundAgent.Session` | GenServer — CircuitBreaker check → `Task.Supervisor.async_nolink` on `Blackboex.SandboxTaskSupervisor` → 3-minute timeout. Monitored via Registry `PlaygroundAgent.SessionRegistry`. |
 | `PlaygroundAgent.ChainRunner` | Runs the pipeline in the task; on success calls `Playgrounds.record_ai_edit` to apply the edit atomically and broadcasts `:run_completed`; on failure marks run failed and broadcasts `:run_failed`. |
 | `PlaygroundAgent.CodePipeline` | Single LLM call via `Blackboex.LLM.Config.client()`. No validation/fix loops. Streams when a `token_callback` is provided. Extracts code via `CodeParser`. |
-| `PlaygroundAgent.CodeParser` | Extracts the first ```` ```elixir/```ex/``` ```` fence; picks up an optional `Resumo:` line for `summary`. |
+| `PlaygroundAgent.CodeParser` | Extracts the first ```` ```elixir/```ex/``` ```` fence; picks up an optional `Summary:` line for `summary`. |
 | `PlaygroundAgent.StreamManager` | Buffers LLM tokens in the process dictionary; flushes on 20+ chars or `\n` as `{:code_delta, %{delta, run_id}}` broadcasts. Also exposes `broadcast_run/2`, `broadcast_playground/2`. |
 | `PlaygroundAgent.Prompts` | Dedicated system prompts (`:generate` and `:edit`) teaching the model about the Playground sandbox: allowlist (Enum/Map/List/…/Jason), helpers (`Blackboex.Playgrounds.Http`, `…Api`), style (PT comments, `IO.puts`, pipe operator, `{:ok, _} \| {:error, _}` handling), forbidden constructs (`defmodule`, `Function.capture`, `File`, `System`, `:erlang`). |
 
@@ -51,9 +51,9 @@ Tasks run under the shared `Blackboex.SandboxTaskSupervisor`.
 ## Prompt response contract
 
 The LLM must respond with exactly one fenced Elixir block; everything outside the
-fence is ignored for code extraction, but a `Resumo: ...` line (if present) becomes
+fence is ignored for code extraction, but a `Summary: ...` line (if present) becomes
 the run's `run_summary`. Failing to emit a code fence yields an error
-`"resposta do modelo não continha bloco de código Elixir"` and marks the run failed.
+`"model response did not contain an Elixir code block"` and marks the run failed.
 
 ## Budgeting and safety
 

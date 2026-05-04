@@ -11,7 +11,7 @@ defmodule Blackboex.Samples.ApiTemplates.SlackEventHandler do
     %{
       id: "slack-event-handler",
       name: "Slack Event Handler",
-      description: "Recebe slash commands e eventos do Slack com suporte a URL verification",
+      description: "Receives Slack slash commands and events with URL verification support",
       category: "Webhooks",
       template_type: "webhook",
       icon: "message-square",
@@ -218,24 +218,24 @@ defmodule Blackboex.Samples.ApiTemplates.SlackEventHandler do
     """
     # Slack Event Handler
 
-    Recebe slash commands e eventos do Slack. Suporta URL verification challenge
-    para configuração do endpoint no Slack App Dashboard.
+    Receives Slack slash commands and events. Supports URL verification
+    challenge setup in the Slack App Dashboard.
 
-    ## Parâmetros
+    ## Parameters
 
-    | Campo | Tipo | Obrigatório | Descrição |
+    | Field | Type | Required | Description |
     |-------|------|-------------|-----------|
-    | `type` | string | sim | Tipo: `url_verification`, `slash_command`, `event_callback` |
-    | `challenge` | string | não | Token de verificação (apenas para `url_verification`) |
-    | `text` | string | não | Texto do slash command |
-    | `user_id` | string | não | ID do usuário Slack |
-    | `channel_id` | string | não | ID do canal |
-    | `command` | string | não | Comando slash (ex: `/mycommand`) |
+    | `type` | string | yes | Type: `url_verification`, `slash_command`, `event_callback` |
+    | `challenge` | string | no | Verification token (only for `url_verification`) |
+    | `text` | string | no | Slash command text |
+    | `user_id` | string | no | Slack user ID |
+    | `channel_id` | string | no | Channel ID |
+    | `command` | string | no | Slash command (for example: `/mycommand`) |
 
-    ## Exemplo de Requisição
+    ## Example Request
 
     ```bash
-    curl -X POST https://api.blackboex.com/api/minha-org/slack-event-handler \\
+    curl -X POST https://api.blackboex.com/api/my-org/slack-event-handler \\
       -H "Content-Type: application/json" \\
       -d '{
         "type": "slash_command",
@@ -245,7 +245,7 @@ defmodule Blackboex.Samples.ApiTemplates.SlackEventHandler do
       }'
     ```
 
-    ## Exemplo de Resposta
+    ## Example Response
 
     ```json
     {
@@ -256,13 +256,13 @@ defmodule Blackboex.Samples.ApiTemplates.SlackEventHandler do
 
     ## URL Verification
 
-    Ao configurar o endpoint no Slack, responda ao challenge:
+    When configuring the endpoint in Slack, respond to the challenge:
 
     ```json
     {"type": "url_verification", "challenge": "abc123xyz"}
     ```
 
-    Resposta: `{"challenge": "abc123xyz"}`
+    Response: `{"challenge": "abc123xyz"}`
     """
   end
 end

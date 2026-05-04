@@ -11,8 +11,8 @@ defmodule BlackboexWeb.OrgMemberLiveTest do
     %{member: member, membership: membership}
   end
 
-  describe "lista membros da org com roles" do
-    test "mostra membros com email e role", %{conn: conn, org: org, member: member} do
+  describe "lists organization members with roles" do
+    test "shows members with email and role", %{conn: conn, org: org, member: member} do
       {:ok, _lv, html} = live(conn, ~p"/orgs/#{org.slug}/members")
 
       assert html =~ member.email
@@ -20,8 +20,8 @@ defmodule BlackboexWeb.OrgMemberLiveTest do
     end
   end
 
-  describe "owner pode editar role de membro" do
-    test "atualiza role via inline select", %{conn: conn, org: org, membership: membership} do
+  describe "owner can edit member role" do
+    test "updates role through inline select", %{conn: conn, org: org, membership: membership} do
       {:ok, lv, _html} = live(conn, ~p"/orgs/#{org.slug}/members")
 
       lv
@@ -33,8 +33,8 @@ defmodule BlackboexWeb.OrgMemberLiveTest do
     end
   end
 
-  describe "owner pode remover membro" do
-    test "remove membro ao clicar em Remove", %{
+  describe "owner can remove member" do
+    test "removes member when clicking Remove", %{
       conn: conn,
       org: org,
       membership: membership,
@@ -51,8 +51,8 @@ defmodule BlackboexWeb.OrgMemberLiveTest do
     end
   end
 
-  describe "NAO pode remover ultimo owner" do
-    test "exibe erro ao tentar remover unico owner", %{conn: conn, org: org, user: owner} do
+  describe "cannot remove last owner" do
+    test "shows error when trying to remove only owner", %{conn: conn, org: org, user: owner} do
       owner_membership = Blackboex.Organizations.get_user_membership(org, owner)
       {:ok, lv, _html} = live(conn, ~p"/orgs/#{org.slug}/members")
 
@@ -64,8 +64,8 @@ defmodule BlackboexWeb.OrgMemberLiveTest do
     end
   end
 
-  describe "member NAO pode editar roles" do
-    test "membro sem privilegio nao ve botoes de edicao", %{
+  describe "member cannot edit roles" do
+    test "member without privilege does not see edit buttons", %{
       conn: conn,
       org: org,
       member: member

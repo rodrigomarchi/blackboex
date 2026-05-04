@@ -680,49 +680,49 @@ defmodule Blackboex.ApisTest do
   describe "create_api_from_template/2" do
     test "creates API with status compiled", %{user: user, org: org} do
       attrs = %{
-        name: "Frete API",
+        name: "Shipping API",
         organization_id: org.id,
         project_id: Blackboex.Projects.get_default_project(org.id).id,
         user_id: user.id
       }
 
-      assert {:ok, api} = Apis.create_api_from_template(attrs, "cotacao-frete")
+      assert {:ok, api} = Apis.create_api_from_template(attrs, "shipping-quote")
       assert api.status == "compiled"
     end
 
     test "saves template_id on the API", %{user: user, org: org} do
       attrs = %{
-        name: "Frete API",
+        name: "Shipping API",
         organization_id: org.id,
         project_id: Blackboex.Projects.get_default_project(org.id).id,
         user_id: user.id
       }
 
-      assert {:ok, api} = Apis.create_api_from_template(attrs, "cotacao-frete")
-      assert api.template_id == "cotacao-frete"
+      assert {:ok, api} = Apis.create_api_from_template(attrs, "shipping-quote")
+      assert api.template_id == "shipping-quote"
     end
 
     test "generation_status is nil (no LLM pipeline triggered)", %{user: user, org: org} do
       attrs = %{
-        name: "Frete API",
+        name: "Shipping API",
         organization_id: org.id,
         project_id: Blackboex.Projects.get_default_project(org.id).id,
         user_id: user.id
       }
 
-      assert {:ok, api} = Apis.create_api_from_template(attrs, "cotacao-frete")
+      assert {:ok, api} = Apis.create_api_from_template(attrs, "shipping-quote")
       assert api.generation_status == nil
     end
 
     test "creates 6 files with template content", %{user: user, org: org} do
       attrs = %{
-        name: "Frete API",
+        name: "Shipping API",
         organization_id: org.id,
         project_id: Blackboex.Projects.get_default_project(org.id).id,
         user_id: user.id
       }
 
-      assert {:ok, api} = Apis.create_api_from_template(attrs, "cotacao-frete")
+      assert {:ok, api} = Apis.create_api_from_template(attrs, "shipping-quote")
 
       files = Apis.list_files(api.id)
       paths = Enum.map(files, & &1.path) |> MapSet.new()
@@ -741,13 +741,13 @@ defmodule Blackboex.ApisTest do
       org: org
     } do
       attrs = %{
-        name: "Frete API",
+        name: "Shipping API",
         organization_id: org.id,
         project_id: Blackboex.Projects.get_default_project(org.id).id,
         user_id: user.id
       }
 
-      assert {:ok, api} = Apis.create_api_from_template(attrs, "cotacao-frete")
+      assert {:ok, api} = Apis.create_api_from_template(attrs, "shipping-quote")
 
       assert is_map(api.param_schema) and map_size(api.param_schema) > 0
       assert is_map(api.example_request) and map_size(api.example_request) > 0
@@ -757,13 +757,13 @@ defmodule Blackboex.ApisTest do
 
     test "sets method from template", %{user: user, org: org} do
       attrs = %{
-        name: "Frete API",
+        name: "Shipping API",
         organization_id: org.id,
         project_id: Blackboex.Projects.get_default_project(org.id).id,
         user_id: user.id
       }
 
-      assert {:ok, api} = Apis.create_api_from_template(attrs, "cotacao-frete")
+      assert {:ok, api} = Apis.create_api_from_template(attrs, "shipping-quote")
       assert api.method == "POST"
     end
 
@@ -780,7 +780,7 @@ defmodule Blackboex.ApisTest do
     end
 
     test "returns changeset error for invalid attrs" do
-      assert {:error, %Ecto.Changeset{}} = Apis.create_api_from_template(%{}, "cotacao-frete")
+      assert {:error, %Ecto.Changeset{}} = Apis.create_api_from_template(%{}, "shipping-quote")
     end
   end
 

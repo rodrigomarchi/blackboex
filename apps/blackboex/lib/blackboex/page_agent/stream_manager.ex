@@ -9,7 +9,7 @@ defmodule Blackboex.PageAgent.StreamManager do
 
   The state machine only emits tokens that are INSIDE the outer
   `~~~markdown`/`~~~md`/`~~~` fence — prose before and after (including
-  trailing `Resumo:` lines) is discarded.
+  trailing `Summary:` lines) is discarded.
   """
 
   @accum_key :pg_page_stream_accum

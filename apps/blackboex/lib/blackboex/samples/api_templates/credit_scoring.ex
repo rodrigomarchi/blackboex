@@ -1,6 +1,6 @@
-defmodule Blackboex.Samples.ApiTemplates.ScoringCredito do
+defmodule Blackboex.Samples.ApiTemplates.CreditScoring do
   @moduledoc """
-  Template: Scoring de Crédito
+  Template: Credit Scoring
 
   Returns a simulated credit score based on income, age, employment
   history and restrictions.
@@ -9,9 +9,9 @@ defmodule Blackboex.Samples.ApiTemplates.ScoringCredito do
   @spec template() :: Blackboex.Samples.ApiTemplates.template()
   def template do
     %{
-      id: "scoring-credito",
-      name: "Scoring de Crédito",
-      description: "Retorna score de crédito simulado baseado em renda, idade e histórico",
+      id: "credit-scoring",
+      name: "Credit Scoring",
+      description: "Returns a simulated credit score from income, age and employment history",
       category: "AI Agent Tools",
       template_type: "computation",
       icon: "chart-bar",
@@ -25,22 +25,22 @@ defmodule Blackboex.Samples.ApiTemplates.ScoringCredito do
         readme: readme_content()
       },
       param_schema: %{
-        "renda_mensal" => "number",
-        "idade" => "integer",
-        "tempo_emprego_meses" => "integer",
-        "tem_restricao" => "boolean"
+        "monthly_income" => "number",
+        "age" => "integer",
+        "employment_months" => "integer",
+        "has_restriction" => "boolean"
       },
       example_request: %{
-        "renda_mensal" => 5000.0,
-        "idade" => 35,
-        "tempo_emprego_meses" => 24,
-        "tem_restricao" => false
+        "monthly_income" => 5000.0,
+        "age" => 35,
+        "employment_months" => 24,
+        "has_restriction" => false
       },
       example_response: %{
         "score" => 720,
-        "faixa" => "bom",
-        "limite_sugerido" => 15_000.0,
-        "aprovado" => true
+        "band" => "good",
+        "suggested_limit" => 15_000.0,
+        "approved" => true
       },
       validation_report: %{
         "compilation" => "pass",
@@ -76,10 +76,10 @@ defmodule Blackboex.Samples.ApiTemplates.ScoringCredito do
         if changeset.valid? do
           data = Ecto.Changeset.apply_changes(changeset)
           score = Helpers.calculate_score(data)
-          faixa = Helpers.score_faixa(score)
-          limite = Helpers.limite_sugerido(score, data.renda_mensal)
-          aprovado = score >= 500 and not data.tem_restricao
-          %{score: score, faixa: faixa, limite_sugerido: limite, aprovado: aprovado}
+          band = Helpers.score_band(score)
+          limit = Helpers.suggested_limit(score, data.monthly_income)
+          approved = score >= 500 and not data.has_restriction
+          %{score: score, band: band, suggested_limit: limit, approved: approved}
         else
           errors = Ecto.Changeset.traverse_errors(changeset, fn {msg, _opts} -> msg end)
           %{error: "Validation failed", details: errors}
@@ -101,51 +101,51 @@ defmodule Blackboex.Samples.ApiTemplates.ScoringCredito do
 
         income_pts =
           cond do
-            data.renda_mensal >= 10_000 -> 200
-            data.renda_mensal >= 5_000 -> 150
-            data.renda_mensal >= 2_000 -> 100
-            data.renda_mensal >= 1_000 -> 50
+            data.monthly_income >= 10_000 -> 200
+            data.monthly_income >= 5_000 -> 150
+            data.monthly_income >= 2_000 -> 100
+            data.monthly_income >= 1_000 -> 50
             true -> 0
           end
 
         age_pts =
           cond do
-            data.idade >= 40 -> 100
-            data.idade >= 30 -> 80
-            data.idade >= 25 -> 60
-            data.idade >= 18 -> 30
+            data.age >= 40 -> 100
+            data.age >= 30 -> 80
+            data.age >= 25 -> 60
+            data.age >= 18 -> 30
             true -> 0
           end
 
         employment_pts =
           cond do
-            data.tempo_emprego_meses >= 60 -> 150
-            data.tempo_emprego_meses >= 24 -> 100
-            data.tempo_emprego_meses >= 12 -> 60
-            data.tempo_emprego_meses >= 6 -> 30
+            data.employment_months >= 60 -> 150
+            data.employment_months >= 24 -> 100
+            data.employment_months >= 12 -> 60
+            data.employment_months >= 6 -> 30
             true -> 0
           end
 
-        restriction_penalty = if data.tem_restricao, do: -200, else: 0
+        restriction_penalty = if data.has_restriction, do: -200, else: 0
         score = base + income_pts + age_pts + employment_pts + restriction_penalty
         min(max(score, 0), 1000)
       end
 
       @doc "Returns the score band label for a given score."
-      @spec score_faixa(integer()) :: String.t()
-      def score_faixa(score) do
+      @spec score_band(integer()) :: String.t()
+      def score_band(score) do
         cond do
-          score >= 800 -> "excelente"
-          score >= 700 -> "bom"
-          score >= 500 -> "regular"
-          score >= 300 -> "ruim"
-          true -> "muito_ruim"
+          score >= 800 -> "excellent"
+          score >= 700 -> "good"
+          score >= 500 -> "fair"
+          score >= 300 -> "poor"
+          true -> "very_poor"
         end
       end
 
       @doc "Returns suggested credit limit based on score and monthly income."
-      @spec limite_sugerido(integer(), float()) :: float()
-      def limite_sugerido(score, renda_mensal) do
+      @spec suggested_limit(integer(), float()) :: float()
+      def suggested_limit(score, monthly_income) do
         multiplier =
           cond do
             score >= 800 -> 5.0
@@ -154,7 +154,7 @@ defmodule Blackboex.Samples.ApiTemplates.ScoringCredito do
             true -> 0.0
           end
 
-        Float.round(renda_mensal * multiplier, 2)
+        Float.round(monthly_income * multiplier, 2)
       end
     end
     """
@@ -167,21 +167,21 @@ defmodule Blackboex.Samples.ApiTemplates.ScoringCredito do
       use Blackboex.Schema
 
       embedded_schema do
-        field :renda_mensal, :float
-        field :idade, :integer
-        field :tempo_emprego_meses, :integer
-        field :tem_restricao, :boolean
+        field :monthly_income, :float
+        field :age, :integer
+        field :employment_months, :integer
+        field :has_restriction, :boolean
       end
 
       @doc "Validates and casts incoming parameters."
       @spec changeset(map()) :: Ecto.Changeset.t()
       def changeset(params) do
         %__MODULE__{}
-        |> cast(params, [:renda_mensal, :idade, :tempo_emprego_meses, :tem_restricao])
-        |> validate_required([:renda_mensal, :idade, :tempo_emprego_meses, :tem_restricao])
-        |> validate_number(:renda_mensal, greater_than: 0)
-        |> validate_number(:idade, greater_than_or_equal_to: 18)
-        |> validate_number(:tempo_emprego_meses, greater_than_or_equal_to: 0)
+        |> cast(params, [:monthly_income, :age, :employment_months, :has_restriction])
+        |> validate_required([:monthly_income, :age, :employment_months, :has_restriction])
+        |> validate_number(:monthly_income, greater_than: 0)
+        |> validate_number(:age, greater_than_or_equal_to: 18)
+        |> validate_number(:employment_months, greater_than_or_equal_to: 0)
       end
     end
     """
@@ -195,9 +195,9 @@ defmodule Blackboex.Samples.ApiTemplates.ScoringCredito do
 
       embedded_schema do
         field :score, :integer
-        field :faixa, :string
-        field :limite_sugerido, :float
-        field :aprovado, :boolean
+        field :band, :string
+        field :suggested_limit, :float
+        field :approved, :boolean
       end
     end
     """
@@ -210,10 +210,10 @@ defmodule Blackboex.Samples.ApiTemplates.ScoringCredito do
       use ExUnit.Case
 
       @good_profile %{
-        "renda_mensal" => 5000.0,
-        "idade" => 35,
-        "tempo_emprego_meses" => 24,
-        "tem_restricao" => false
+        "monthly_income" => 5000.0,
+        "age" => 35,
+        "employment_months" => 24,
+        "has_restriction" => false
       }
 
       describe "Request changeset validation" do
@@ -228,12 +228,12 @@ defmodule Blackboex.Samples.ApiTemplates.ScoringCredito do
         end
 
         test "rejects underage" do
-          changeset = Request.changeset(Map.put(@good_profile, "idade", 17))
+          changeset = Request.changeset(Map.put(@good_profile, "age", 17))
           refute changeset.valid?
         end
 
         test "rejects negative income" do
-          changeset = Request.changeset(Map.put(@good_profile, "renda_mensal", -100.0))
+          changeset = Request.changeset(Map.put(@good_profile, "monthly_income", -100.0))
           refute changeset.valid?
         end
       end
@@ -242,25 +242,25 @@ defmodule Blackboex.Samples.ApiTemplates.ScoringCredito do
         test "good profile returns score >= 500 and approved" do
           result = Handler.handle(@good_profile)
           assert result.score >= 500
-          assert result.aprovado == true
-          assert result.limite_sugerido > 0
-          assert result.faixa in ["bom", "excelente", "regular"]
+          assert result.approved == true
+          assert result.suggested_limit > 0
+          assert result.band in ["good", "excellent", "fair"]
         end
 
         test "restriction returns not approved" do
-          result = Handler.handle(Map.put(@good_profile, "tem_restricao", true))
-          assert result.aprovado == false
+          result = Handler.handle(Map.put(@good_profile, "has_restriction", true))
+          assert result.approved == false
         end
 
         test "high income and long employment raises score" do
           params = Map.merge(@good_profile, %{
-            "renda_mensal" => 15_000.0,
-            "idade" => 45,
-            "tempo_emprego_meses" => 72
+            "monthly_income" => 15_000.0,
+            "age" => 45,
+            "employment_months" => 72
           })
           result = Handler.handle(params)
           assert result.score >= 700
-          assert result.faixa in ["bom", "excelente"]
+          assert result.band in ["good", "excellent"]
         end
       end
 
@@ -277,59 +277,59 @@ defmodule Blackboex.Samples.ApiTemplates.ScoringCredito do
 
   defp readme_content do
     """
-    # Scoring de Crédito
+    # Credit Scoring
 
-    Retorna um score de crédito simulado (0–1000) baseado em renda mensal, idade,
-    tempo de emprego e presença de restrições, junto com um limite de crédito sugerido.
+    Returns a simulated credit score (0-1000) based on monthly income, age,
+    employment history and restriction status, plus a suggested credit limit.
 
-    ## Parâmetros
+    ## Parameters
 
-    | Campo | Tipo | Obrigatório | Descrição |
+    | Field | Type | Required | Description |
     |-------|------|-------------|-----------|
-    | `renda_mensal` | number | sim | Renda mensal bruta em R$ (deve ser > 0) |
-    | `idade` | integer | sim | Idade em anos (mínimo 18) |
-    | `tempo_emprego_meses` | integer | sim | Meses no emprego atual (>= 0) |
-    | `tem_restricao` | boolean | sim | Se há restrições no CPF/crédito |
+    | `monthly_income` | number | yes | Gross monthly income in BRL (must be > 0) |
+    | `age` | integer | yes | Age in years (minimum 18) |
+    | `employment_months` | integer | yes | Months in current employment (>= 0) |
+    | `has_restriction` | boolean | yes | Whether the person has credit restrictions |
 
-    ## Exemplo de Requisição
+    ## Example Request
 
     ```bash
-    curl -X POST https://api.blackboex.com/api/minha-org/scoring-credito \\
+    curl -X POST https://api.blackboex.com/api/my-org/credit-scoring \\
       -H "Content-Type: application/json" \\
       -d '{
-        "renda_mensal": 5000.00,
-        "idade": 35,
-        "tempo_emprego_meses": 24,
-        "tem_restricao": false
+        "monthly_income": 5000.00,
+        "age": 35,
+        "employment_months": 24,
+        "has_restriction": false
       }'
     ```
 
-    ## Exemplo de Resposta
+    ## Example Response
 
     ```json
     {
       "score": 720,
-      "faixa": "bom",
-      "limite_sugerido": 15000.00,
-      "aprovado": true
+      "band": "good",
+      "suggested_limit": 15000.00,
+      "approved": true
     }
     ```
 
-    ## Faixas de Score
+    ## Score Bands
 
-    | Faixa | Score | Descrição |
+    | Band | Score | Description |
     |-------|-------|-----------|
-    | excelente | 800–1000 | Aprovação imediata, limite máximo |
-    | bom | 700–799 | Aprovado, bom limite |
-    | regular | 500–699 | Aprovado com limite reduzido |
-    | ruim | 300–499 | Negado |
-    | muito_ruim | 0–299 | Negado, restrições graves |
+    | excellent | 800-1000 | Immediate approval, maximum limit |
+    | good | 700-799 | Approved, good limit |
+    | fair | 500-699 | Approved with reduced limit |
+    | poor | 300-499 | Rejected |
+    | very_poor | 0-299 | Rejected, severe restrictions |
 
-    ## Casos de Uso
+    ## Use Cases
 
-    - Tool de agente de IA para pré-qualificação de crédito
-    - Simulador de financiamento
-    - Triagem inicial em processos de concessão de crédito
+    - AI agent tool for credit prequalification
+    - Financing simulator
+    - Initial screening for credit-granting processes
     """
   end
 end

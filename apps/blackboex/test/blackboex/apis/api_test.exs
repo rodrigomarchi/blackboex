@@ -71,7 +71,7 @@ defmodule Blackboex.Apis.ApiTest do
 
     test "slug handles unicode by stripping non-ascii" do
       changeset =
-        Api.changeset(%Api{}, %{@valid_attrs | name: "Conversão de Temperatura", slug: nil})
+        Api.changeset(%Api{}, %{@valid_attrs | name: "Temperature Conversion", slug: nil})
 
       assert changeset.valid?
       slug = get_change(changeset, :slug)

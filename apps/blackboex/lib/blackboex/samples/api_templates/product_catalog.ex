@@ -10,8 +10,8 @@ defmodule Blackboex.Samples.ApiTemplates.ProductCatalog do
     %{
       id: "product-catalog",
       name: "Product Catalog",
-      description: "Catálogo de produtos com busca, filtro por categoria e paginação",
-      category: "Protótipos",
+      description: "Product catalog with search, category filters and pagination",
+      category: "Prototypes",
       template_type: "computation",
       icon: "shopping-bag",
       method: "POST",
@@ -293,28 +293,28 @@ defmodule Blackboex.Samples.ApiTemplates.ProductCatalog do
     """
     # Product Catalog
 
-    Catálogo de produtos com 12 itens em 3 categorias (electronics, office, sports).
-    Suporta busca por texto, filtro por categoria, ordenação e paginação.
+    Product catalog with 12 items across 3 categories (electronics, office, sports).
+    Supports text search, category filtering, sorting and pagination.
 
-    ## Parâmetros
+    ## Parameters
 
-    | Campo | Tipo | Obrigatório | Padrão | Descrição |
+    | Field | Type | Required | Default | Description |
     |-------|------|-------------|--------|-----------|
-    | `query` | string | não | — | Busca por nome do produto |
-    | `category` | string | não | — | Filtrar por categoria |
-    | `sort` | string | não | relevance | Ordenação: `price_asc`, `price_desc`, `name_asc`, `name_desc` |
-    | `page` | integer | não | 1 | Página (> 0) |
-    | `limit` | integer | não | 10 | Itens por página (1–100) |
+    | `query` | string | no | none | Search by product name |
+    | `category` | string | no | none | Filter by category |
+    | `sort` | string | no | relevance | Sort order: `price_asc`, `price_desc`, `name_asc`, `name_desc` |
+    | `page` | integer | no | 1 | Page (> 0) |
+    | `limit` | integer | no | 10 | Items per page (1-100) |
 
-    ## Exemplo de Requisição
+    ## Example Request
 
     ```bash
-    curl -X POST https://api.blackboex.com/api/minha-org/product-catalog \\
+    curl -X POST https://api.blackboex.com/api/my-org/product-catalog \\
       -H "Content-Type: application/json" \\
       -d '{"category": "electronics", "sort": "price_asc", "page": 1, "limit": 5}'
     ```
 
-    ## Exemplo de Resposta
+    ## Example Response
 
     ```json
     {
@@ -325,10 +325,10 @@ defmodule Blackboex.Samples.ApiTemplates.ProductCatalog do
     }
     ```
 
-    ## Personalização
+    ## Customization
 
-    Substitua `@catalog` em `Helpers` por uma query ao banco de dados real.
-    A estrutura de request/response permanece compatível.
+    Replace `@catalog` in `Helpers` with a real database query.
+    The request/response structure remains compatible.
     """
   end
 end

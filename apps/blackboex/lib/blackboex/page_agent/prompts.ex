@@ -10,52 +10,52 @@ defmodule Blackboex.PageAgent.Prompts do
   @max_content_before 30_000
 
   @editor_rules """
-  CONTEXTO:
-  Você está editando uma página de documentação/conteúdo dentro do Blackboex.
-  O conteúdo é escrito em MARKDOWN puro (CommonMark + GFM), renderizado num
-  editor WYSIWYG (Tiptap). Headings, listas, citações, blocos de código,
-  tabelas, links e imagens são todos suportados.
+  CONTEXT:
+  You are editing a documentation/content page inside Blackboex.
+  The content is written in plain MARKDOWN (CommonMark + GFM), rendered in a
+  WYSIWYG editor (Tiptap). Headings, lists, quotes, code blocks, tables, links,
+  and images are all supported.
 
-  REGRAS DE ESTILO:
-  - Mantenha o tom e a voz do conteúdo original sempre que possível
-  - Prefira frases claras e diretas; evite jargão desnecessário
-  - Use headings (#, ##, ###) para estruturar seções longas
-  - Use listas com marcadores quando enumerar itens
-  - Quando incluir código, use ```` ```linguagem ```` (ex.: ```` ```elixir ````)
-  - Não inclua front-matter, HTML cru, ou metadados — apenas markdown limpo
+  STYLE RULES:
+  - Preserve the original content tone and voice whenever possible
+  - Prefer clear, direct sentences; avoid unnecessary jargon
+  - Use headings (#, ##, ###) to structure long sections
+  - Use bullet lists when enumerating items
+  - When including code, use ```` ```language ```` (for example ```` ```elixir ````)
+  - Do not include front matter, raw HTML, or metadata; return clean markdown only
 
-  FORMATO DE RESPOSTA OBRIGATÓRIO:
-  Retorne EXATAMENTE um único bloco delimitado por TIL DUPLAS (`~~~markdown`
-  e `~~~`), contendo o conteúdo COMPLETO da página (não diffs/patches). Essa
-  delimitação permite blocos ```` ``` ```` de código aninhados sem ambiguidade.
-  Não escreva prosa antes do bloco.
+  REQUIRED RESPONSE FORMAT:
+  Return EXACTLY one block delimited by double tildes (`~~~markdown` and `~~~`),
+  containing the COMPLETE page content (not diffs/patches). This delimiter
+  allows nested ```` ``` ```` code blocks without ambiguity.
+  Do not write prose before the block.
 
   ~~~markdown
-  conteúdo completo aqui
+  full content here
   ~~~
 
-  Após o bloco, opcionalmente uma única linha em português começando com
-  "Resumo:" descrevendo em uma frase o que você fez.
+  After the block, you may add one English line starting with "Summary:" that
+  describes what you did in one sentence.
   """
 
   @system_generate """
-  Você é um assistente que ESCREVE páginas de documentação em markdown para o
-  editor de Pages do Blackboex. Dado um pedido do usuário, produza uma página
-  completa, bem estruturada e idiomática.
+  You are an assistant that WRITES markdown documentation pages for the
+  Blackboex Pages editor. Given a user request, produce a complete,
+  well-structured, idiomatic page.
 
   #{@editor_rules}
   """
 
   @system_edit """
-  Você é um assistente que EDITA páginas de documentação em markdown no editor
-  de Pages do Blackboex. Dado o conteúdo atual e um pedido de mudança, aplique
-  APENAS a alteração solicitada preservando o estilo, tom e estrutura
-  existentes.
+  You are an assistant that EDITS markdown documentation pages in the
+  Blackboex Pages editor. Given the current content and a change request, apply
+  ONLY the requested change while preserving the existing style, tone, and
+  structure.
 
-  IMPORTANTE:
-  - Preserve seções e estilo do original sempre que possível
-  - NÃO reescreva partes não relacionadas ao pedido
-  - Retorne o conteúdo COMPLETO editado (nunca diffs/patches)
+  IMPORTANT:
+  - Preserve original sections and style whenever possible
+  - DO NOT rewrite parts unrelated to the request
+  - Return the COMPLETE edited content (never diffs/patches)
 
   #{@editor_rules}
   """
@@ -66,7 +66,7 @@ defmodule Blackboex.PageAgent.Prompts do
 
   @doc """
   Builds the user message. Optional `history` is a list of `%{role, content}`
-  maps from previous turns, oldest-first; rendered as "Histórico da conversa:".
+  maps from previous turns, oldest-first; rendered as "Conversation history:".
 
   For `:generate`, only the request (plus optional history) is passed. For
   `:edit`, the current content is included above the request, truncated to
@@ -82,7 +82,7 @@ defmodule Blackboex.PageAgent.Prompts do
     case run_type do
       :generate ->
         """
-        #{history_block}Pedido do usuário:
+        #{history_block}User request:
         #{message}
         """
 
@@ -90,12 +90,12 @@ defmodule Blackboex.PageAgent.Prompts do
         current = content_before |> Kernel.||("") |> truncate_content() |> sanitize_fences()
 
         """
-        #{history_block}Conteúdo atual:
+        #{history_block}Current content:
         ~~~markdown
         #{current}
         ~~~
 
-        Pedido do usuário:
+        User request:
         #{message}
         """
     end
@@ -118,15 +118,15 @@ defmodule Blackboex.PageAgent.Prompts do
     lines =
       history
       |> Enum.map(fn
-        %{role: "user", content: c} -> "- Usuário: #{truncate_msg(c)}"
-        %{role: "assistant", content: c} -> "- Assistente: #{truncate_msg(c)}"
+        %{role: "user", content: c} -> "- User: #{truncate_msg(c)}"
+        %{role: "assistant", content: c} -> "- Assistant: #{truncate_msg(c)}"
         _ -> nil
       end)
       |> Enum.reject(&is_nil/1)
 
     case lines do
       [] -> ""
-      _ -> "Histórico da conversa (mensagens anteriores):\n" <> Enum.join(lines, "\n") <> "\n\n"
+      _ -> "Conversation history (previous messages):\n" <> Enum.join(lines, "\n") <> "\n\n"
     end
   end
 
@@ -138,7 +138,7 @@ defmodule Blackboex.PageAgent.Prompts do
 
   defp truncate_content(content) when is_binary(content) do
     if String.length(content) > @max_content_before do
-      String.slice(content, 0, @max_content_before) <> "\n\n[truncado por tamanho]"
+      String.slice(content, 0, @max_content_before) <> "\n\n[truncated by size]"
     else
       content
     end

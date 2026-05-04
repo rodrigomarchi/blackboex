@@ -4,9 +4,16 @@ defmodule BlackboexWeb.Plugs.HealthCheckTest do
   @moduletag :unit
   @moduletag :capture_log
 
+  alias Blackboex.LLM.CircuitBreaker
   alias BlackboexWeb.Plugs.HealthCheck
 
   @opts HealthCheck.init([])
+
+  setup do
+    CircuitBreaker.reset(:anthropic)
+    _ = CircuitBreaker.get_state(:anthropic)
+    :ok
+  end
 
   describe "GET /health/live" do
     test "returns 200 always" do

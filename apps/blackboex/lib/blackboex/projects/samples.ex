@@ -17,7 +17,7 @@ defmodule Blackboex.Projects.Samples do
   alias Blackboex.Repo
   alias Blackboex.Samples.Manifest
 
-  @sample_project_name "Exemplos"
+  @sample_project_name "Examples"
 
   @type sync_result :: %{
           project: Project.t(),
@@ -110,7 +110,7 @@ defmodule Blackboex.Projects.Samples do
     %Project{}
     |> Project.changeset(%{
       name: @sample_project_name,
-      description: "Projeto inicial com exemplos oficiais do Blackboex.",
+      description: "Initial project with official Blackboex examples.",
       organization_id: org.id,
       sample_workspace: true,
       sample_manifest_version: Manifest.version(),

@@ -6,19 +6,19 @@ defmodule Blackboex.PlaygroundAgent.PromptsTest do
   describe "system_prompt/1" do
     test ":generate includes allowlist modules and helper aliases" do
       prompt = Prompts.system_prompt(:generate)
-      assert prompt =~ "Playground do Blackboex"
+      assert prompt =~ "Blackboex Playground"
       assert prompt =~ "Blackboex.Playgrounds.Http"
       assert prompt =~ "Blackboex.Playgrounds.Api"
       assert prompt =~ "Enum"
       assert prompt =~ "Jason"
-      assert prompt =~ "PROIBIDO"
+      assert prompt =~ "FORBIDDEN"
       assert prompt =~ "defmodule"
-      assert prompt =~ "Resumo:"
+      assert prompt =~ "Summary:"
     end
 
     test ":edit includes preservation rules" do
       prompt = Prompts.system_prompt(:edit)
-      assert prompt =~ "EDITA"
+      assert prompt =~ "EDITS"
       assert prompt =~ "Preserve"
       assert prompt =~ "diffs"
     end
@@ -27,49 +27,49 @@ defmodule Blackboex.PlaygroundAgent.PromptsTest do
   describe "user_message/3" do
     test ":generate contains only the user request" do
       msg = Prompts.user_message(:generate, "soma 1+1", nil)
-      assert msg =~ "Pedido do usuário"
+      assert msg =~ "User request"
       assert msg =~ "soma 1+1"
-      refute msg =~ "Código atual"
+      refute msg =~ "Current code"
     end
 
     test ":edit includes current code and user request" do
-      msg = Prompts.user_message(:edit, "adicione um IO.puts", "x = 1\nx + 1")
-      assert msg =~ "Código atual"
+      msg = Prompts.user_message(:edit, "add an IO.puts", "x = 1\nx + 1")
+      assert msg =~ "Current code"
       assert msg =~ "x = 1"
-      assert msg =~ "adicione um IO.puts"
+      assert msg =~ "add an IO.puts"
     end
 
     test ":edit handles nil code_before safely" do
-      msg = Prompts.user_message(:edit, "faça algo", nil)
-      assert msg =~ "Código atual"
-      assert msg =~ "faça algo"
+      msg = Prompts.user_message(:edit, "do something", nil)
+      assert msg =~ "Current code"
+      assert msg =~ "do something"
     end
 
     test "renders thread history when provided" do
       history = [
-        %{role: "user", content: "como imprimir algo?"},
+        %{role: "user", content: "how do I print something?"},
         %{role: "assistant", content: "use IO.puts/1"}
       ]
 
-      msg = Prompts.user_message(:edit, "exemplo", "x = 1", history: history)
-      assert msg =~ "Histórico da conversa"
-      assert msg =~ "Usuário: como imprimir algo?"
-      assert msg =~ "Assistente: use IO.puts/1"
-      assert msg =~ "Pedido do usuário:\nexemplo"
+      msg = Prompts.user_message(:edit, "example", "x = 1", history: history)
+      assert msg =~ "Conversation history"
+      assert msg =~ "User: how do I print something?"
+      assert msg =~ "Assistant: use IO.puts/1"
+      assert msg =~ "User request:\nexample"
     end
 
     test "truncates long history messages to keep prompt bounded" do
       long = String.duplicate("a", 1000)
       history = [%{role: "user", content: long}]
       msg = Prompts.user_message(:generate, "go", nil, history: history)
-      assert msg =~ "Histórico da conversa"
+      assert msg =~ "Conversation history"
       assert msg =~ "..."
       refute msg =~ String.duplicate("a", 600)
     end
 
     test "no history block when history is empty" do
       msg = Prompts.user_message(:generate, "go", nil, history: [])
-      refute msg =~ "Histórico"
+      refute msg =~ "Conversation history"
     end
   end
 end

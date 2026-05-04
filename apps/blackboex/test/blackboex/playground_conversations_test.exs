@@ -329,14 +329,14 @@ defmodule Blackboex.PlaygroundConversationsTest do
       run = playground_run_fixture(%{conversation: conv, user: user})
 
       {:ok, _} =
-        PlaygroundConversations.append_event(run, %{event_type: "user_message", content: "oi"})
+        PlaygroundConversations.append_event(run, %{event_type: "user_message", content: "hi"})
 
       {:ok, _} =
-        PlaygroundConversations.append_event(run, %{event_type: "completed", content: "olá"})
+        PlaygroundConversations.append_event(run, %{event_type: "completed", content: "hello"})
 
       assert [
-               %{role: "user", content: "oi"},
-               %{role: "assistant", content: "olá"}
+               %{role: "user", content: "hi"},
+               %{role: "assistant", content: "hello"}
              ] = PlaygroundConversations.thread_history(pg.id)
     end
   end

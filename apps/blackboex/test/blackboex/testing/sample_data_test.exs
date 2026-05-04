@@ -92,8 +92,7 @@ defmodule Blackboex.Testing.SampleDataTest do
         |> Enum.flat_map(fn m -> Map.values(m) end)
         |> Enum.filter(&is_binary/1)
 
-      has_unicode =
-        Enum.any?(all_values, fn v -> String.contains?(v, "é") or String.contains?(v, "🎉") end)
+      has_unicode = Enum.any?(all_values, fn v -> String.contains?(v, "🎉") end)
 
       assert has_unicode
     end

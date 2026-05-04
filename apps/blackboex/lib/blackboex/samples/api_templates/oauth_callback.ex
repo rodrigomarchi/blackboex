@@ -11,7 +11,7 @@ defmodule Blackboex.Samples.ApiTemplates.OauthCallback do
     %{
       id: "oauth-callback",
       name: "OAuth Callback Handler",
-      description: "Recebe callback OAuth2 com código de autorização e retorna token mock",
+      description: "Receives an OAuth2 authorization code callback and returns a mock token",
       category: "Webhooks",
       template_type: "webhook",
       icon: "key",
@@ -222,21 +222,21 @@ defmodule Blackboex.Samples.ApiTemplates.OauthCallback do
     """
     # OAuth Callback Handler
 
-    Recebe o callback OAuth2 com o código de autorização e retorna um token
-    de acesso mock seguindo o padrão OAuth2/OpenID Connect.
+    Receives an OAuth2 callback with the authorization code and returns a mock
+    access token following the OAuth2/OpenID Connect standard.
 
-    ## Parâmetros
+    ## Parameters
 
-    | Campo | Tipo | Obrigatório | Descrição |
+    | Field | Type | Required | Description |
     |-------|------|-------------|-----------|
-    | `code` | string | sim | Código de autorização OAuth2 |
-    | `redirect_uri` | string | sim | URI de redirecionamento registrada |
-    | `state` | string | não | Parâmetro de segurança anti-CSRF |
+    | `code` | string | yes | OAuth2 authorization code |
+    | `redirect_uri` | string | yes | Registered redirect URI |
+    | `state` | string | no | Anti-CSRF security parameter |
 
-    ## Exemplo de Requisição
+    ## Example Request
 
     ```bash
-    curl -X POST https://api.blackboex.com/api/minha-org/oauth-callback \\
+    curl -X POST https://api.blackboex.com/api/my-org/oauth-callback \\
       -H "Content-Type: application/json" \\
       -d '{
         "code": "4/P7q7W91a-oMsCeLvIaQm6bTrgtp7",
@@ -245,7 +245,7 @@ defmodule Blackboex.Samples.ApiTemplates.OauthCallback do
       }'
     ```
 
-    ## Exemplo de Resposta
+    ## Example Response
 
     ```json
     {
@@ -257,11 +257,11 @@ defmodule Blackboex.Samples.ApiTemplates.OauthCallback do
     }
     ```
 
-    ## Notas
+    ## Notes
 
-    - O token retornado é um **mock determinístico** derivado do código de autorização
-    - Use para desenvolvimento/testes de fluxos OAuth2 sem servidor de autorização real
-    - Em produção, substitua `Helpers.generate_mock_token/1` pela chamada real ao provider
+    - The returned token is a **deterministic mock** derived from the authorization code
+    - Use it for OAuth2 flow development and tests without a real authorization server
+    - In production, replace `Helpers.generate_mock_token/1` with a real provider call
     """
   end
 end

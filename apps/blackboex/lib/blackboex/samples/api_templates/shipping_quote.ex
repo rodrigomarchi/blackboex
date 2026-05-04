@@ -1,18 +1,18 @@
-defmodule Blackboex.Samples.ApiTemplates.CotacaoFrete do
+defmodule Blackboex.Samples.ApiTemplates.ShippingQuote do
   @moduledoc """
-  Template: Cotação de Frete
+  Template: Shipping Quote
 
-  Calculates shipping costs for PAC, SEDEX and transportadora based on
-  origin/destination CEP, weight and package dimensions.
+  Calculates shipping costs for PAC, SEDEX and a private carrier based on
+  origin and destination Brazilian postal codes, weight and package dimensions.
   """
 
   @spec template() :: Blackboex.Samples.ApiTemplates.template()
   def template do
     %{
-      id: "cotacao-frete",
-      name: "Cotação de Frete",
+      id: "shipping-quote",
+      name: "Shipping Quote",
       description:
-        "Calcula frete por CEP, peso e dimensões para PAC, SEDEX e transportadora privada",
+        "Calculates Brazilian shipping quotes from postal codes, weight and dimensions",
       category: "AI Agent Tools",
       template_type: "computation",
       icon: "truck",
@@ -26,26 +26,26 @@ defmodule Blackboex.Samples.ApiTemplates.CotacaoFrete do
         readme: readme_content()
       },
       param_schema: %{
-        "cep_origem" => "string",
-        "cep_destino" => "string",
-        "peso_kg" => "number",
-        "dimensoes" => "object"
+        "origin_postal_code" => "string",
+        "destination_postal_code" => "string",
+        "weight_kg" => "number",
+        "dimensions" => "object"
       },
       example_request: %{
-        "cep_origem" => "01310100",
-        "cep_destino" => "20040020",
-        "peso_kg" => 2.5,
-        "dimensoes" => %{
-          "altura" => 15,
-          "largura" => 30,
-          "comprimento" => 40
+        "origin_postal_code" => "01310100",
+        "destination_postal_code" => "20040020",
+        "weight_kg" => 2.5,
+        "dimensions" => %{
+          "height" => 15,
+          "width" => 30,
+          "length" => 40
         }
       },
       example_response: %{
-        "opcoes" => [
-          %{"servico" => "PAC", "preco" => 28.5, "prazo_dias" => 8},
-          %{"servico" => "SEDEX", "preco" => 45.5, "prazo_dias" => 3},
-          %{"servico" => "Transportadora", "preco" => 31.5, "prazo_dias" => 5}
+        "options" => [
+          %{"service" => "PAC", "price" => 28.5, "delivery_days" => 8},
+          %{"service" => "SEDEX", "price" => 45.5, "delivery_days" => 3},
+          %{"service" => "Private Carrier", "price" => 31.5, "delivery_days" => 5}
         ]
       },
       validation_report: %{
@@ -59,10 +59,10 @@ defmodule Blackboex.Samples.ApiTemplates.CotacaoFrete do
         "test_results" => [
           %{"name" => "valid request returns shipping options", "status" => "pass"},
           %{"name" => "missing required fields returns error", "status" => "pass"},
-          %{"name" => "invalid CEP format returns error", "status" => "pass"},
+          %{"name" => "invalid postal code format returns error", "status" => "pass"},
           %{"name" => "zero weight returns error", "status" => "pass"},
           %{"name" => "negative weight returns error", "status" => "pass"},
-          %{"name" => "missing dimensoes keys returns error", "status" => "pass"}
+          %{"name" => "missing dimensions keys returns error", "status" => "pass"}
         ],
         "overall" => "pass"
       }
@@ -72,7 +72,7 @@ defmodule Blackboex.Samples.ApiTemplates.CotacaoFrete do
   defp handler_code do
     ~S"""
     defmodule Handler do
-      @moduledoc "Calculates shipping options based on CEP, weight and dimensions."
+      @moduledoc "Calculates shipping options based on postal code, weight and dimensions."
 
       @doc "Processes request and returns shipping options or validation error."
       @spec handle(map()) :: map()
@@ -81,11 +81,11 @@ defmodule Blackboex.Samples.ApiTemplates.CotacaoFrete do
 
         if changeset.valid? do
           data = Ecto.Changeset.apply_changes(changeset)
-          weight = Helpers.effective_weight(data.peso_kg, data.dimensoes)
-          origin_region = Helpers.cep_region(data.cep_origem)
-          dest_region = Helpers.cep_region(data.cep_destino)
-          opcoes = Helpers.calculate_options(origin_region, dest_region, weight)
-          %{opcoes: opcoes}
+          weight = Helpers.effective_weight(data.weight_kg, data.dimensions)
+          origin_region = Helpers.postal_code_region(data.origin_postal_code)
+          destination_region = Helpers.postal_code_region(data.destination_postal_code)
+          options = Helpers.calculate_options(origin_region, destination_region, weight)
+          %{options: options}
         else
           errors = Ecto.Changeset.traverse_errors(changeset, fn {msg, _opts} -> msg end)
           %{error: "Validation failed", details: errors}
@@ -100,7 +100,7 @@ defmodule Blackboex.Samples.ApiTemplates.CotacaoFrete do
     defmodule Helpers do
       @moduledoc "Helper functions for shipping cost calculation."
 
-      @cep_regions %{
+      @postal_code_regions %{
         "01" => "SP", "02" => "SP", "03" => "SP", "04" => "SP", "05" => "SP",
         "06" => "SP", "07" => "SP", "08" => "SP", "09" => "SP",
         "20" => "RJ", "21" => "RJ", "22" => "RJ", "23" => "RJ", "24" => "RJ",
@@ -148,37 +148,37 @@ defmodule Blackboex.Samples.ApiTemplates.CotacaoFrete do
       }
 
       @base_prices %{
-        1 => %{"PAC" => 15.00, "SEDEX" => 25.00, "Transportadora" => 20.00},
-        2 => %{"PAC" => 22.00, "SEDEX" => 40.00, "Transportadora" => 28.00},
-        3 => %{"PAC" => 30.00, "SEDEX" => 58.00, "Transportadora" => 38.00}
+        1 => %{"PAC" => 15.00, "SEDEX" => 25.00, "Private Carrier" => 20.00},
+        2 => %{"PAC" => 22.00, "SEDEX" => 40.00, "Private Carrier" => 28.00},
+        3 => %{"PAC" => 30.00, "SEDEX" => 58.00, "Private Carrier" => 38.00}
       }
 
       @delivery_days %{
-        1 => %{"PAC" => 5, "SEDEX" => 1, "Transportadora" => 3},
-        2 => %{"PAC" => 8, "SEDEX" => 3, "Transportadora" => 5},
-        3 => %{"PAC" => 12, "SEDEX" => 5, "Transportadora" => 8}
+        1 => %{"PAC" => 5, "SEDEX" => 1, "Private Carrier" => 3},
+        2 => %{"PAC" => 8, "SEDEX" => 3, "Private Carrier" => 5},
+        3 => %{"PAC" => 12, "SEDEX" => 5, "Private Carrier" => 8}
       }
 
       @weight_surcharge %{
         "PAC" => 2.50,
         "SEDEX" => 4.50,
-        "Transportadora" => 3.00
+        "Private Carrier" => 3.00
       }
 
-      @doc "Returns the Brazilian state abbreviation for a given CEP prefix."
-      @spec cep_region(String.t()) :: String.t()
-      def cep_region(cep) do
-        prefix = String.slice(cep, 0, 2)
-        Map.get(@cep_regions, prefix, "OTHER")
+      @doc "Returns the Brazilian state abbreviation for a given postal code prefix."
+      @spec postal_code_region(String.t()) :: String.t()
+      def postal_code_region(postal_code) do
+        prefix = String.slice(postal_code, 0, 2)
+        Map.get(@postal_code_regions, prefix, "OTHER")
       end
 
       @doc "Returns the greater of actual weight and dimensional weight."
       @spec effective_weight(float(), map()) :: float()
-      def effective_weight(actual_weight, dimensoes) do
-        altura = Map.get(dimensoes, "altura", 0)
-        largura = Map.get(dimensoes, "largura", 0)
-        comprimento = Map.get(dimensoes, "comprimento", 0)
-        dimensional_weight = altura * largura * comprimento / 6000.0
+      def effective_weight(actual_weight, dimensions) do
+        height = Map.get(dimensions, "height", 0)
+        width = Map.get(dimensions, "width", 0)
+        length = Map.get(dimensions, "length", 0)
+        dimensional_weight = height * width * length / 6000.0
         max(actual_weight, dimensional_weight)
       end
 
@@ -189,12 +189,12 @@ defmodule Blackboex.Samples.ApiTemplates.CotacaoFrete do
         base = Map.fetch!(@base_prices, zone)
         days = Map.fetch!(@delivery_days, zone)
 
-        Enum.map(["PAC", "SEDEX", "Transportadora"], fn service ->
+        Enum.map(["PAC", "SEDEX", "Private Carrier"], fn service ->
           base_price = Map.fetch!(base, service)
           surcharge = Map.fetch!(@weight_surcharge, service)
           extra_weight = max(0, weight - 1.0)
           price = Float.round(base_price + extra_weight * surcharge, 2)
-          %{servico: service, preco: price, prazo_dias: Map.fetch!(days, service)}
+          %{service: service, price: price, delivery_days: Map.fetch!(days, service)}
         end)
       end
 
@@ -222,38 +222,38 @@ defmodule Blackboex.Samples.ApiTemplates.CotacaoFrete do
       use Blackboex.Schema
 
       embedded_schema do
-        field :cep_origem, :string
-        field :cep_destino, :string
-        field :peso_kg, :float
-        field :dimensoes, :map
+        field :origin_postal_code, :string
+        field :destination_postal_code, :string
+        field :weight_kg, :float
+        field :dimensions, :map
       end
 
       @doc "Validates and casts incoming parameters."
       @spec changeset(map()) :: Ecto.Changeset.t()
       def changeset(params) do
         %__MODULE__{}
-        |> cast(params, [:cep_origem, :cep_destino, :peso_kg, :dimensoes])
-        |> validate_required([:cep_origem, :cep_destino, :peso_kg, :dimensoes])
-        |> validate_format(:cep_origem, ~r/^\d{8}$/, message: "must be exactly 8 digits")
-        |> validate_format(:cep_destino, ~r/^\d{8}$/, message: "must be exactly 8 digits")
-        |> validate_number(:peso_kg, greater_than: 0)
-        |> validate_dimensoes()
+        |> cast(params, [:origin_postal_code, :destination_postal_code, :weight_kg, :dimensions])
+        |> validate_required([:origin_postal_code, :destination_postal_code, :weight_kg, :dimensions])
+        |> validate_format(:origin_postal_code, ~r/^\d{8}$/, message: "must be exactly 8 digits")
+        |> validate_format(:destination_postal_code, ~r/^\d{8}$/, message: "must be exactly 8 digits")
+        |> validate_number(:weight_kg, greater_than: 0)
+        |> validate_dimensions()
       end
 
-      @spec validate_dimensoes(Ecto.Changeset.t()) :: Ecto.Changeset.t()
-      defp validate_dimensoes(changeset) do
-        case get_change(changeset, :dimensoes) do
+      @spec validate_dimensions(Ecto.Changeset.t()) :: Ecto.Changeset.t()
+      defp validate_dimensions(changeset) do
+        case get_change(changeset, :dimensions) do
           nil ->
             changeset
 
-          dimensoes ->
-            required_keys = ["altura", "largura", "comprimento"]
-            missing = Enum.reject(required_keys, &Map.has_key?(dimensoes, &1))
+          dimensions ->
+            required_keys = ["height", "width", "length"]
+            missing = Enum.reject(required_keys, &Map.has_key?(dimensions, &1))
 
             if missing == [] do
               changeset
             else
-              add_error(changeset, :dimensoes, "missing required keys: #{Enum.join(missing, ", ")}")
+              add_error(changeset, :dimensions, "missing required keys: #{Enum.join(missing, ", ")}")
             end
         end
       end
@@ -268,7 +268,7 @@ defmodule Blackboex.Samples.ApiTemplates.CotacaoFrete do
       use Blackboex.Schema
 
       embedded_schema do
-        field :opcoes, {:array, :map}
+        field :options, {:array, :map}
       end
     end
     """
@@ -281,10 +281,10 @@ defmodule Blackboex.Samples.ApiTemplates.CotacaoFrete do
       use ExUnit.Case
 
       @valid_params %{
-        "cep_origem" => "01310100",
-        "cep_destino" => "20040020",
-        "peso_kg" => 2.5,
-        "dimensoes" => %{"altura" => 15, "largura" => 30, "comprimento" => 40}
+        "origin_postal_code" => "01310100",
+        "destination_postal_code" => "20040020",
+        "weight_kg" => 2.5,
+        "dimensions" => %{"height" => 15, "width" => 30, "length" => 40}
       }
 
       describe "Request changeset validation" do
@@ -298,13 +298,13 @@ defmodule Blackboex.Samples.ApiTemplates.CotacaoFrete do
           refute changeset.valid?
         end
 
-        test "rejects invalid CEP format" do
-          changeset = Request.changeset(Map.put(@valid_params, "cep_origem", "0131010"))
+        test "rejects invalid postal code format" do
+          changeset = Request.changeset(Map.put(@valid_params, "origin_postal_code", "0131010"))
           refute changeset.valid?
         end
 
         test "rejects zero weight" do
-          changeset = Request.changeset(Map.put(@valid_params, "peso_kg", 0.0))
+          changeset = Request.changeset(Map.put(@valid_params, "weight_kg", 0.0))
           refute changeset.valid?
         end
       end
@@ -312,19 +312,19 @@ defmodule Blackboex.Samples.ApiTemplates.CotacaoFrete do
       describe "successful computation" do
         test "returns all three shipping options" do
           result = Handler.handle(@valid_params)
-          assert %{opcoes: opcoes} = result
-          assert length(opcoes) == 3
-          services = Enum.map(opcoes, & &1.servico)
+          assert %{options: options} = result
+          assert length(options) == 3
+          services = Enum.map(options, & &1.service)
           assert "PAC" in services
           assert "SEDEX" in services
-          assert "Transportadora" in services
+          assert "Private Carrier" in services
         end
 
         test "each option has positive price and delivery days" do
           result = Handler.handle(@valid_params)
-          Enum.each(result.opcoes, fn opt ->
-            assert is_float(opt.preco) and opt.preco > 0
-            assert is_integer(opt.prazo_dias) and opt.prazo_dias > 0
+          Enum.each(result.options, fn opt ->
+            assert is_float(opt.price) and opt.price > 0
+            assert is_integer(opt.delivery_days) and opt.delivery_days > 0
           end)
         end
       end
@@ -336,11 +336,11 @@ defmodule Blackboex.Samples.ApiTemplates.CotacaoFrete do
           assert is_map(details)
         end
 
-        test "returns error for missing dimensoes keys" do
-          params = Map.put(@valid_params, "dimensoes", %{"altura" => 15})
+        test "returns error for missing dimensions keys" do
+          params = Map.put(@valid_params, "dimensions", %{"height" => 15})
           result = Handler.handle(params)
           assert %{error: "Validation failed", details: details} = result
-          assert Map.has_key?(details, :dimensoes)
+          assert Map.has_key?(details, :dimensions)
         end
       end
     end
@@ -349,64 +349,64 @@ defmodule Blackboex.Samples.ApiTemplates.CotacaoFrete do
 
   defp readme_content do
     """
-    # Cotação de Frete
+    # Shipping Quote
 
-    Calcula o custo de frete para envio de pacotes entre quaisquer CEPs brasileiros,
-    retornando opções para PAC, SEDEX e Transportadora privada com preços e prazos.
+    Calculates package shipping costs between Brazilian postal codes and returns
+    PAC, SEDEX and private carrier options with prices and delivery times.
 
-    ## Parâmetros
+    ## Parameters
 
-    | Campo | Tipo | Obrigatório | Descrição |
+    | Field | Type | Required | Description |
     |-------|------|-------------|-----------|
-    | `cep_origem` | string | sim | CEP de origem (8 dígitos, sem hífen) |
-    | `cep_destino` | string | sim | CEP de destino (8 dígitos, sem hífen) |
-    | `peso_kg` | number | sim | Peso do pacote em kg (deve ser > 0) |
-    | `dimensoes` | object | sim | Dimensões do pacote em cm |
-    | `dimensoes.altura` | number | sim | Altura em centímetros |
-    | `dimensoes.largura` | number | sim | Largura em centímetros |
-    | `dimensoes.comprimento` | number | sim | Comprimento em centímetros |
+    | `origin_postal_code` | string | yes | Origin Brazilian postal code (8 digits, no hyphen) |
+    | `destination_postal_code` | string | yes | Destination Brazilian postal code (8 digits, no hyphen) |
+    | `weight_kg` | number | yes | Package weight in kg (must be > 0) |
+    | `dimensions` | object | yes | Package dimensions in cm |
+    | `dimensions.height` | number | yes | Height in centimeters |
+    | `dimensions.width` | number | yes | Width in centimeters |
+    | `dimensions.length` | number | yes | Length in centimeters |
 
-    ## Exemplo de Requisição
+    ## Example Request
 
     ```bash
-    curl -X POST https://api.blackboex.com/api/minha-org/cotacao-frete \\
+    curl -X POST https://api.blackboex.com/api/my-org/shipping-quote \\
       -H "Content-Type: application/json" \\
       -d '{
-        "cep_origem": "01310100",
-        "cep_destino": "20040020",
-        "peso_kg": 2.5,
-        "dimensoes": {
-          "altura": 15,
-          "largura": 30,
-          "comprimento": 40
+        "origin_postal_code": "01310100",
+        "destination_postal_code": "20040020",
+        "weight_kg": 2.5,
+        "dimensions": {
+          "height": 15,
+          "width": 30,
+          "length": 40
         }
       }'
     ```
 
-    ## Exemplo de Resposta
+    ## Example Response
 
     ```json
     {
-      "opcoes": [
-        {"servico": "PAC", "preco": 28.5, "prazo_dias": 8},
-        {"servico": "SEDEX", "preco": 45.5, "prazo_dias": 3},
-        {"servico": "Transportadora", "preco": 31.5, "prazo_dias": 5}
+      "options": [
+        {"service": "PAC", "price": 28.5, "delivery_days": 8},
+        {"service": "SEDEX", "price": 45.5, "delivery_days": 3},
+        {"service": "Private Carrier", "price": 31.5, "delivery_days": 5}
       ]
     }
     ```
 
-    ## Lógica de Cálculo
+    ## Calculation Logic
 
-    - **Região por CEP**: Os 2 primeiros dígitos do CEP determinam o estado de origem/destino.
-    - **Zona de entrega**: Pares de regiões são classificados em zonas (1=mesmo estado, 2=Sul/Sudeste, 3=demais).
-    - **Peso efetivo**: `max(peso_real, peso_dimensional)` onde `peso_dimensional = (A × L × C) / 6000`.
-    - **Preço final**: `preço_base + max(0, peso_efetivo - 1) × adicional_por_kg`.
+    - **Region by postal code**: The first 2 digits determine the origin or destination state.
+    - **Delivery zone**: Region pairs are classified into zones (1=same state, 2=South/Southeast, 3=other).
+    - **Effective weight**: `max(actual_weight, dimensional_weight)` where `dimensional_weight = (H x W x L) / 6000`.
+    - **Final price**: `base_price + max(0, effective_weight - 1) * surcharge_per_kg`.
 
-    ## Casos de Uso
+    ## Use Cases
 
-    - Checkout de e-commerce com cotação em tempo real
-    - Tool de agente de IA para calcular custo de envio
-    - Sistema de logística para comparar transportadoras
+    - E-commerce checkout with real-time shipping quotes
+    - AI agent tool for shipping cost calculation
+    - Logistics system for comparing carrier options
     """
   end
 end

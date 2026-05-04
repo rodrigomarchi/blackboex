@@ -227,13 +227,13 @@ defmodule Blackboex.FlowConversationsTest do
       assert {:ok, %FlowEvent{sequence: 0}} =
                FlowConversations.append_event(run, %{
                  event_type: "user_message",
-                 content: "primeiro"
+                 content: "first"
                })
 
       assert {:ok, %FlowEvent{sequence: 1}} =
                FlowConversations.append_event(run, %{
                  event_type: "assistant_message",
-                 content: "resposta"
+                 content: "response"
                })
     end
 
@@ -404,14 +404,14 @@ defmodule Blackboex.FlowConversationsTest do
       run = flow_run_fixture(%{conversation: conv, user: user})
 
       {:ok, _} =
-        FlowConversations.append_event(run, %{event_type: "user_message", content: "oi"})
+        FlowConversations.append_event(run, %{event_type: "user_message", content: "hi"})
 
       {:ok, _} =
-        FlowConversations.append_event(run, %{event_type: "completed", content: "olá"})
+        FlowConversations.append_event(run, %{event_type: "completed", content: "hello"})
 
       assert [
-               %{role: "user", content: "oi"},
-               %{role: "assistant", content: "olá"}
+               %{role: "user", content: "hi"},
+               %{role: "assistant", content: "hello"}
              ] = FlowConversations.thread_history(flow.id)
     end
 

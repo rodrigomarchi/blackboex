@@ -94,7 +94,7 @@ defmodule BlackboexWeb.Components.FlowEditor.FlowHeader do
           size="sm"
           phx-click="toggle_chat"
         >
-          <.icon name="hero-sparkles" class="mr-1.5 size-4 text-accent-violet" /> Agente
+          <.icon name="hero-sparkles" class="mr-1.5 size-4 text-accent-violet" /> Agent
         </.button>
         <.button variant="outline" size="sm" phx-click="open_executions_drawer">
           <.icon name="hero-clock" class="mr-1.5 size-4 text-accent-sky" /> History

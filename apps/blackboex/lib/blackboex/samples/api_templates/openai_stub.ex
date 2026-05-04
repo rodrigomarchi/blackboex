@@ -11,7 +11,7 @@ defmodule Blackboex.Samples.ApiTemplates.OpenaiStub do
     %{
       id: "openai-stub",
       name: "OpenAI-Compatible Stub",
-      description: "Endpoint /v1/chat/completions compatível com SDK OpenAI para testes",
+      description: "OpenAI SDK-compatible /v1/chat/completions endpoint for tests",
       category: "Mocks",
       template_type: "computation",
       icon: "cpu",
@@ -253,24 +253,24 @@ defmodule Blackboex.Samples.ApiTemplates.OpenaiStub do
     """
     # OpenAI-Compatible Stub
 
-    Implementa o endpoint `/v1/chat/completions` compatível com o SDK OpenAI.
-    Retorna respostas hardcoded para testar integrações de IA sem custo de API.
+    Implements the OpenAI SDK-compatible `/v1/chat/completions` endpoint.
+    Returns hardcoded responses for testing AI integrations without API cost.
 
-    ## Parâmetros
+    ## Parameters
 
-    | Campo | Tipo | Obrigatório | Descrição |
+    | Field | Type | Required | Description |
     |-------|------|-------------|-----------|
-    | `model` | string | sim | Nome do modelo (ex: `gpt-4`, `gpt-3.5-turbo`) |
-    | `messages` | array | sim | Lista de mensagens `{role, content}` |
-    | `temperature` | number | não | Temperatura (0.0-2.0) |
-    | `max_tokens` | number | não | Máximo de tokens na resposta |
+    | `model` | string | yes | Model name (for example: `gpt-4`, `gpt-3.5-turbo`) |
+    | `messages` | array | yes | Message list with `{role, content}` |
+    | `temperature` | number | no | Temperature (0.0-2.0) |
+    | `max_tokens` | number | no | Maximum response tokens |
 
-    ## Exemplo de Requisição
+    ## Example Request
 
     ```bash
-    curl -X POST https://api.blackboex.com/api/minha-org/openai-stub \\
+    curl -X POST https://api.blackboex.com/api/my-org/openai-stub \\
       -H "Content-Type: application/json" \\
-      -H "Authorization: Bearer qualquer-token" \\
+      -H "Authorization: Bearer any-token" \\
       -d '{
         "model": "gpt-4",
         "messages": [
@@ -280,7 +280,7 @@ defmodule Blackboex.Samples.ApiTemplates.OpenaiStub do
       }'
     ```
 
-    ## Exemplo de Resposta
+    ## Example Response
 
     ```json
     {
@@ -297,11 +297,11 @@ defmodule Blackboex.Samples.ApiTemplates.OpenaiStub do
     }
     ```
 
-    ## Casos de Uso
+    ## Use Cases
 
-    - Testar pipelines de agentes de IA sem custo
-    - CI/CD sem dependência de API externa
-    - Desenvolvimento offline de integrações LLM
+    - Test AI agent pipelines without cost
+    - CI/CD without external API dependency
+    - Offline development of LLM integrations
     """
   end
 end

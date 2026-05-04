@@ -145,7 +145,7 @@ defmodule Blackboex.FlowAgent.Session do
   @impl true
   def handle_info(:task_timeout, state) do
     Logger.warning("FlowAgent task timeout for run #{state.run_id}")
-    ChainRunner.handle_chain_failure(state, "Agente excedeu o timeout de 3 minutos")
+    ChainRunner.handle_chain_failure(state, "Agent exceeded the 3-minute timeout")
     {:stop, :normal, state}
   end
 

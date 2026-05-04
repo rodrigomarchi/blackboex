@@ -1,6 +1,6 @@
-defmodule Blackboex.Samples.ApiTemplates.ConversorMoedas do
+defmodule Blackboex.Samples.ApiTemplates.CurrencyConverter do
   @moduledoc """
-  Template: Conversor de Moedas
+  Template: Currency Converter
 
   Converts between currencies using hardcoded reference rates.
   """
@@ -8,9 +8,9 @@ defmodule Blackboex.Samples.ApiTemplates.ConversorMoedas do
   @spec template() :: Blackboex.Samples.ApiTemplates.template()
   def template do
     %{
-      id: "conversor-moedas",
-      name: "Conversor de Moedas",
-      description: "Converte entre moedas com taxas de referência hardcoded",
+      id: "currency-converter",
+      name: "Currency Converter",
+      description: "Converts between currencies with hardcoded reference rates",
       category: "AI Agent Tools",
       template_type: "computation",
       icon: "currency-dollar",
@@ -24,19 +24,19 @@ defmodule Blackboex.Samples.ApiTemplates.ConversorMoedas do
         readme: readme_content()
       },
       param_schema: %{
-        "valor" => "number",
-        "moeda_origem" => "string",
-        "moeda_destino" => "string"
+        "amount" => "number",
+        "source_currency" => "string",
+        "target_currency" => "string"
       },
       example_request: %{
-        "valor" => 100.0,
-        "moeda_origem" => "USD",
-        "moeda_destino" => "BRL"
+        "amount" => 100.0,
+        "source_currency" => "USD",
+        "target_currency" => "BRL"
       },
       example_response: %{
-        "valor_convertido" => 497.01,
-        "taxa" => 4.970_149,
-        "data_referencia" => "2024-01-15"
+        "converted_amount" => 497.01,
+        "rate" => 4.970_149,
+        "reference_date" => "2024-01-15"
       },
       validation_report: %{
         "compilation" => "pass",
@@ -72,12 +72,12 @@ defmodule Blackboex.Samples.ApiTemplates.ConversorMoedas do
         if changeset.valid? do
           data = Ecto.Changeset.apply_changes(changeset)
 
-          case Helpers.convert(data.valor, data.moeda_origem, data.moeda_destino) do
-            {:ok, resultado} ->
-              resultado
+          case Helpers.convert(data.amount, data.source_currency, data.target_currency) do
+            {:ok, result} ->
+              result
 
             {:error, reason} ->
-              %{error: "Validation failed", details: %{moeda: [reason]}}
+              %{error: "Validation failed", details: %{currency: [reason]}}
           end
         else
           errors = Ecto.Changeset.traverse_errors(changeset, fn {msg, _opts} -> msg end)
@@ -115,18 +115,18 @@ defmodule Blackboex.Samples.ApiTemplates.ConversorMoedas do
 
       @doc "Converts a value from one currency to another via BRL pivot."
       @spec convert(float(), String.t(), String.t()) :: {:ok, map()} | {:error, String.t()}
-      def convert(valor, moeda_origem, moeda_destino) do
-        with {:ok, rate_origem} <- get_rate(moeda_origem),
-             {:ok, rate_destino} <- get_rate(moeda_destino) do
-          in_brl = valor / rate_origem
-          converted = in_brl * rate_destino
-          taxa = Float.round(rate_destino / rate_origem, 6)
+      def convert(amount, source_currency, target_currency) do
+        with {:ok, source_rate} <- get_rate(source_currency),
+             {:ok, target_rate} <- get_rate(target_currency) do
+          in_brl = amount / source_rate
+          converted = in_brl * target_rate
+          rate = Float.round(target_rate / source_rate, 6)
 
           {:ok,
            %{
-             valor_convertido: Float.round(converted, 2),
-             taxa: taxa,
-             data_referencia: @reference_date
+             converted_amount: Float.round(converted, 2),
+             rate: rate,
+             reference_date: @reference_date
            }}
         end
       end
@@ -136,9 +136,9 @@ defmodule Blackboex.Samples.ApiTemplates.ConversorMoedas do
       def supported_currencies, do: Map.keys(@rates_from_brl)
 
       @spec get_rate(String.t()) :: {:ok, float()} | {:error, String.t()}
-      defp get_rate(moeda) do
-        case Map.get(@rates_from_brl, moeda) do
-          nil -> {:error, "unsupported currency: #{moeda}"}
+      defp get_rate(currency) do
+        case Map.get(@rates_from_brl, currency) do
+          nil -> {:error, "unsupported currency: #{currency}"}
           rate -> {:ok, rate}
         end
       end
@@ -155,20 +155,20 @@ defmodule Blackboex.Samples.ApiTemplates.ConversorMoedas do
       @supported ~w(BRL USD EUR GBP ARS CLP COP MXN PYG UYU CAD AUD JPY CNY CHF)
 
       embedded_schema do
-        field :valor, :float
-        field :moeda_origem, :string
-        field :moeda_destino, :string
+        field :amount, :float
+        field :source_currency, :string
+        field :target_currency, :string
       end
 
       @doc "Validates and casts incoming parameters."
       @spec changeset(map()) :: Ecto.Changeset.t()
       def changeset(params) do
         %__MODULE__{}
-        |> cast(params, [:valor, :moeda_origem, :moeda_destino])
-        |> validate_required([:valor, :moeda_origem, :moeda_destino])
-        |> validate_number(:valor, greater_than: 0)
-        |> validate_inclusion(:moeda_origem, @supported)
-        |> validate_inclusion(:moeda_destino, @supported)
+        |> cast(params, [:amount, :source_currency, :target_currency])
+        |> validate_required([:amount, :source_currency, :target_currency])
+        |> validate_number(:amount, greater_than: 0)
+        |> validate_inclusion(:source_currency, @supported)
+        |> validate_inclusion(:target_currency, @supported)
       end
     end
     """
@@ -181,9 +181,9 @@ defmodule Blackboex.Samples.ApiTemplates.ConversorMoedas do
       use Blackboex.Schema
 
       embedded_schema do
-        field :valor_convertido, :float
-        field :taxa, :float
-        field :data_referencia, :string
+        field :converted_amount, :float
+        field :rate, :float
+        field :reference_date, :string
       end
     end
     """
@@ -198,9 +198,9 @@ defmodule Blackboex.Samples.ApiTemplates.ConversorMoedas do
       describe "Request changeset validation" do
         test "accepts valid input" do
           changeset = Request.changeset(%{
-            "valor" => 100.0,
-            "moeda_origem" => "USD",
-            "moeda_destino" => "BRL"
+            "amount" => 100.0,
+            "source_currency" => "USD",
+            "target_currency" => "BRL"
           })
           assert changeset.valid?
         end
@@ -212,9 +212,9 @@ defmodule Blackboex.Samples.ApiTemplates.ConversorMoedas do
 
         test "rejects unknown currency" do
           changeset = Request.changeset(%{
-            "valor" => 100.0,
-            "moeda_origem" => "XYZ",
-            "moeda_destino" => "BRL"
+            "amount" => 100.0,
+            "source_currency" => "XYZ",
+            "target_currency" => "BRL"
           })
           refute changeset.valid?
         end
@@ -222,22 +222,22 @@ defmodule Blackboex.Samples.ApiTemplates.ConversorMoedas do
 
       describe "successful computation" do
         test "USD to BRL returns value greater than original" do
-          result = Handler.handle(%{"valor" => 100.0, "moeda_origem" => "USD", "moeda_destino" => "BRL"})
-          assert result.valor_convertido > 100.0
-          assert result.taxa > 1.0
-          assert is_binary(result.data_referencia)
+          result = Handler.handle(%{"amount" => 100.0, "source_currency" => "USD", "target_currency" => "BRL"})
+          assert result.converted_amount > 100.0
+          assert result.rate > 1.0
+          assert is_binary(result.reference_date)
         end
 
         test "BRL to USD returns fraction" do
-          result = Handler.handle(%{"valor" => 500.0, "moeda_origem" => "BRL", "moeda_destino" => "USD"})
-          assert result.valor_convertido < 500.0
-          assert result.taxa < 1.0
+          result = Handler.handle(%{"amount" => 500.0, "source_currency" => "BRL", "target_currency" => "USD"})
+          assert result.converted_amount < 500.0
+          assert result.rate < 1.0
         end
 
         test "same currency returns same value with rate 1.0" do
-          result = Handler.handle(%{"valor" => 100.0, "moeda_origem" => "BRL", "moeda_destino" => "BRL"})
-          assert result.valor_convertido == 100.0
-          assert result.taxa == 1.0
+          result = Handler.handle(%{"amount" => 100.0, "source_currency" => "BRL", "target_currency" => "BRL"})
+          assert result.converted_amount == 100.0
+          assert result.rate == 1.0
         end
       end
 
@@ -249,9 +249,9 @@ defmodule Blackboex.Samples.ApiTemplates.ConversorMoedas do
         end
 
         test "returns error for zero value" do
-          result = Handler.handle(%{"valor" => 0.0, "moeda_origem" => "USD", "moeda_destino" => "BRL"})
+          result = Handler.handle(%{"amount" => 0.0, "source_currency" => "USD", "target_currency" => "BRL"})
           assert %{error: "Validation failed", details: details} = result
-          assert Map.has_key?(details, :valor)
+          assert Map.has_key?(details, :amount)
         end
       end
     end
@@ -260,46 +260,46 @@ defmodule Blackboex.Samples.ApiTemplates.ConversorMoedas do
 
   defp readme_content do
     """
-    # Conversor de Moedas
+    # Currency Converter
 
-    Converte valores entre 15 moedas usando taxas de referência hardcoded.
-    Ideal como tool de agente de IA para cálculos financeiros e comparações de preço.
+    Converts values between 15 currencies using hardcoded reference rates.
+    Ideal as an AI agent tool for financial calculations and price comparisons.
 
-    ## Parâmetros
+    ## Parameters
 
-    | Campo | Tipo | Obrigatório | Descrição |
+    | Field | Type | Required | Description |
     |-------|------|-------------|-----------|
-    | `valor` | number | sim | Valor a converter (deve ser > 0) |
-    | `moeda_origem` | string | sim | Código ISO da moeda de origem |
-    | `moeda_destino` | string | sim | Código ISO da moeda de destino |
+    | `amount` | number | yes | Amount to convert (must be > 0) |
+    | `source_currency` | string | yes | Source currency ISO code |
+    | `target_currency` | string | yes | Target currency ISO code |
 
-    ## Moedas Suportadas
+    ## Supported Currencies
 
     BRL, USD, EUR, GBP, ARS, CLP, COP, MXN, PYG, UYU, CAD, AUD, JPY, CNY, CHF
 
-    ## Exemplo de Requisição
+    ## Example Request
 
     ```bash
-    curl -X POST https://api.blackboex.com/api/minha-org/conversor-moedas \\
+    curl -X POST https://api.blackboex.com/api/my-org/currency-converter \\
       -H "Content-Type: application/json" \\
-      -d '{"valor": 100.0, "moeda_origem": "USD", "moeda_destino": "BRL"}'
+      -d '{"amount": 100.0, "source_currency": "USD", "target_currency": "BRL"}'
     ```
 
-    ## Exemplo de Resposta
+    ## Example Response
 
     ```json
     {
-      "valor_convertido": 497.01,
-      "taxa": 4.970149,
-      "data_referencia": "2024-01-15"
+      "converted_amount": 497.01,
+      "rate": 4.970149,
+      "reference_date": "2024-01-15"
     }
     ```
 
-    ## Casos de Uso
+    ## Use Cases
 
-    - Tool de agente de IA para comparação de preços internacionais
-    - Calculadora de custo de importação
-    - Dashboard financeiro com conversão de valores
+    - AI agent tool for international price comparison
+    - Import cost calculator
+    - Financial dashboard with value conversion
     """
   end
 end

@@ -23,8 +23,8 @@ defmodule BlackboexWeb.FlowWebhookTemplateE2eTest do
         build_conn()
         |> put_req_header("content-type", "application/json")
         |> post("/webhook/#{flow.webhook_token}", %{
-          "name" => "João",
-          "email" => "joao@test.com"
+          "name" => "John",
+          "email" => "john@test.com"
         })
 
       resp = json_response(conn, 200)
@@ -32,11 +32,11 @@ defmodule BlackboexWeb.FlowWebhookTemplateE2eTest do
       assert resp["duration_ms"] >= 0
 
       # Output is the mapped response from End (Email) node
-      # response_mapping: delivered_via→channel, email→to, greeting→message
+      # response_mapping: delivered_via -> channel, email -> to, greeting -> message
       output = resp["output"]
       assert output["channel"] == "email"
-      assert output["to"] == "joao@test.com"
-      assert output["message"] == "Hello, João!"
+      assert output["to"] == "john@test.com"
+      assert output["message"] == "Hello, John!"
     end
 
     test "phone route returns 200 with mapped response", %{flow: flow} do

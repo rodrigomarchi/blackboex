@@ -10,8 +10,8 @@ defmodule Blackboex.Samples.ApiTemplates.HealthCheck do
     %{
       id: "health-check",
       name: "Health Check API",
-      description: "Status endpoint com versão, uptime e verificação de dependências",
-      category: "Protótipos",
+      description: "Status endpoint with version, uptime and dependency checks",
+      category: "Prototypes",
       template_type: "computation",
       icon: "heart",
       method: "POST",
@@ -233,30 +233,30 @@ defmodule Blackboex.Samples.ApiTemplates.HealthCheck do
     """
     # Health Check API
 
-    Endpoint de status para monitoramento de saúde da aplicação. Retorna
-    versão, uptime e verificações de dependências (banco, cache, APIs externas).
+    Status endpoint for application health monitoring. Returns version, uptime
+    and dependency checks for database, cache and external APIs.
 
-    ## Parâmetros
+    ## Parameters
 
-    | Campo | Tipo | Obrigatório | Padrão | Descrição |
+    | Field | Type | Required | Default | Description |
     |-------|------|-------------|--------|-----------|
-    | `include_details` | boolean | não | false | Se deve incluir checks de dependências |
+    | `include_details` | boolean | no | false | Whether to include dependency checks |
 
-    ## Exemplo de Requisição
+    ## Example Request
 
     ```bash
-    # Status básico
-    curl -X POST https://api.blackboex.com/api/minha-org/health-check \\
+    # Basic status
+    curl -X POST https://api.blackboex.com/api/my-org/health-check \\
       -H "Content-Type: application/json" \\
       -d '{}'
 
-    # Com detalhes das dependências
-    curl -X POST https://api.blackboex.com/api/minha-org/health-check \\
+    # With dependency details
+    curl -X POST https://api.blackboex.com/api/my-org/health-check \\
       -H "Content-Type: application/json" \\
       -d '{"include_details": true}'
     ```
 
-    ## Exemplo de Resposta (com detalhes)
+    ## Example Response With Details
 
     ```json
     {
@@ -271,16 +271,16 @@ defmodule Blackboex.Samples.ApiTemplates.HealthCheck do
     }
     ```
 
-    ## Personalização
+    ## Customization
 
-    Substitua os métodos `check_database/0`, `check_cache/0` e `check_external_api/0`
-    no módulo `Helpers` por verificações reais de conectividade.
+    Replace `check_database/0`, `check_cache/0` and `check_external_api/0`
+    in the `Helpers` module with real connectivity checks.
 
-    ## Casos de Uso
+    ## Use Cases
 
-    - Endpoint de readiness/liveness para Kubernetes
-    - Monitoramento com Datadog, New Relic ou Grafana
-    - Status page pública da aplicação
+    - Readiness and liveness endpoint for Kubernetes
+    - Monitoring with Datadog, New Relic or Grafana
+    - Public application status page
     """
   end
 end

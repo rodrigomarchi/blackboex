@@ -173,7 +173,7 @@ defmodule Blackboex.FlowAgent.ChainRunner do
 
       {:error, reason} ->
         Logger.warning("record_ai_edit failed: #{inspect(reason)}")
-        handle_chain_failure(state, "falha ao aplicar edição: #{inspect(reason)}")
+        handle_chain_failure(state, "failed to apply edit: #{inspect(reason)}")
     end
   rescue
     error ->
@@ -221,7 +221,7 @@ defmodule Blackboex.FlowAgent.ChainRunner do
 
   @spec handle_circuit_open(Session.t()) :: :ok
   def handle_circuit_open(state) do
-    handle_chain_failure(state, "Circuit breaker do LLM aberto — tente novamente em instantes")
+    handle_chain_failure(state, "LLM circuit breaker is open; try again shortly")
   end
 
   # ── helpers ──────────────────────────────────────────────
@@ -256,18 +256,18 @@ defmodule Blackboex.FlowAgent.ChainRunner do
   defp benign_sandbox_failure?({:shutdown, %DBConnection.ConnectionError{}}), do: true
   defp benign_sandbox_failure?(_), do: false
 
-  defp format_error({:crashed, reason}), do: "Processo do agente crashou: #{inspect(reason)}"
-  defp format_error(:no_json_block), do: "resposta do modelo não continha bloco JSON"
+  defp format_error({:crashed, reason}), do: "Agent process crashed: #{inspect(reason)}"
+  defp format_error(:no_json_block), do: "model response did not contain a JSON block"
 
   defp format_error({:invalid_json, reason}) when is_binary(reason),
-    do: "JSON inválido: #{reason}"
+    do: "Invalid JSON: #{reason}"
 
-  defp format_error({:invalid_json, reason}), do: "JSON inválido: #{inspect(reason)}"
+  defp format_error({:invalid_json, reason}), do: "Invalid JSON: #{inspect(reason)}"
 
   defp format_error({:invalid_flow, reason}) when is_binary(reason),
-    do: "Fluxo inválido: #{reason}"
+    do: "Invalid flow: #{reason}"
 
-  defp format_error({:invalid_flow, reason}), do: "Fluxo inválido: #{inspect(reason)}"
+  defp format_error({:invalid_flow, reason}), do: "Invalid flow: #{inspect(reason)}"
   defp format_error(err) when is_binary(err), do: err
   defp format_error(%{message: msg}) when is_binary(msg), do: msg
   defp format_error(err), do: inspect(err)

@@ -883,7 +883,7 @@ defmodule BlackboexWeb.FlowLive.Edit do
          chat_timeout_ref: nil,
          chat_messages: cap_messages(socket.assigns.chat_messages ++ [system_msg])
        )
-       |> put_flash(:error, "Agente falhou: #{reason}")}
+       |> put_flash(:error, "Agent failed: #{reason}")}
     else
       {:noreply, socket}
     end
@@ -897,7 +897,7 @@ defmodule BlackboexWeb.FlowLive.Edit do
        |> assign(chat_loading: false, current_stream: nil, chat_timeout_ref: nil)
        |> put_flash(
          :error,
-         "O agente não respondeu a tempo. Tente novamente."
+         "The agent did not respond in time. Try again."
        )}
     else
       {:noreply, socket}
@@ -958,26 +958,26 @@ defmodule BlackboexWeb.FlowLive.Edit do
         {:noreply, socket}
 
       {:error, :message_too_long} ->
-        {:noreply, put_flash(socket, :error, "Mensagem muito longa (máx 10.000 caracteres).")}
+        {:noreply, put_flash(socket, :error, "Message is too long (max 10,000 characters).")}
 
       {:error, :definition_too_large} ->
         {:noreply,
          put_flash(
            socket,
            :error,
-           "O fluxo atual é muito grande para edição pelo agente. Simplifique e tente novamente."
+           "The current flow is too large for agent editing. Simplify it and try again."
          )}
 
       {:error, :limit_exceeded} ->
-        {:noreply, put_flash(socket, :error, "Limite do plano atingido para gerações de IA.")}
+        {:noreply, put_flash(socket, :error, "Plan limit reached for AI generations.")}
 
       {:error, :forbidden} ->
-        {:noreply, put_flash(socket, :error, "Não autorizado.")}
+        {:noreply, put_flash(socket, :error, "Not authorized.")}
 
       {:error, reason} ->
         require Logger
         Logger.warning("FlowAgent.start failed: #{inspect(reason)}")
-        {:noreply, put_flash(socket, :error, "Falha ao iniciar o agente. Tente novamente.")}
+        {:noreply, put_flash(socket, :error, "Failed to start the agent. Try again.")}
     end
   end
 

@@ -17,9 +17,9 @@ defmodule Blackboex.FlowAgent.Prompts.Examples do
   alias Blackboex.Samples.FlowTemplates.{AllNodesDemo, HelloWorld, RestApiCrud}
 
   @examples [
-    {"Exemplo 1 — hello_world (roteamento condicional 3-way)", HelloWorld.template().definition},
-    {"Exemplo 2 — rest_api_crud (HTTP chaining: POST + GET)", RestApiCrud.template().definition},
-    {"Exemplo 3 — all_nodes_demo (showcase de tipos avançados)",
+    {"Example 1 - hello_world (3-way conditional routing)", HelloWorld.template().definition},
+    {"Example 2 - rest_api_crud (HTTP chaining: POST + GET)", RestApiCrud.template().definition},
+    {"Example 3 - all_nodes_demo (advanced node type showcase)",
      AllNodesDemo.template().definition}
   ]
 

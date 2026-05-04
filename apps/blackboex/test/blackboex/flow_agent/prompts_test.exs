@@ -34,53 +34,53 @@ defmodule Blackboex.FlowAgent.PromptsTest do
 
     test "forbids diffs/patches (enforces full definition output)" do
       prompt = Prompts.system_prompt(:edit)
-      assert prompt =~ ~r/COMPLET[OA]/i or prompt =~ "completo"
+      assert prompt =~ "COMPLETE"
     end
   end
 
   describe "user_message/4" do
     test ":generate with no history contains only the request" do
-      msg = Prompts.user_message(:generate, "crie um fluxo hello world", nil, [])
-      assert msg =~ "Pedido do usuário"
+      msg = Prompts.user_message(:generate, "create a hello world flow", nil, [])
+      assert msg =~ "User request"
       assert msg =~ "hello world"
-      refute msg =~ "Definição atual"
-      refute msg =~ "Histórico da conversa"
+      refute msg =~ "Current flow definition"
+      refute msg =~ "Conversation history"
     end
 
     test ":edit wraps the current definition inside ~~~json fence" do
       definition = %{"version" => "1.0", "nodes" => [], "edges" => []}
-      msg = Prompts.user_message(:edit, "adicione um delay", definition, [])
+      msg = Prompts.user_message(:edit, "add a delay", definition, [])
 
-      assert msg =~ "Definição atual"
+      assert msg =~ "Current flow definition"
       assert msg =~ "~~~json"
       assert msg =~ "\"version\":\"1.0\""
-      assert msg =~ "Pedido do usuário"
-      assert msg =~ "adicione um delay"
+      assert msg =~ "User request"
+      assert msg =~ "add a delay"
     end
 
     test "renders history block when history list is non-empty" do
       history = [
-        %{role: "user", content: "gere um fluxo simples"},
-        %{role: "assistant", content: "fluxo gerado"}
+        %{role: "user", content: "generate a simple flow"},
+        %{role: "assistant", content: "flow generated"}
       ]
 
-      msg = Prompts.user_message(:generate, "agora adicione um end", nil, history: history)
+      msg = Prompts.user_message(:generate, "now add an end node", nil, history: history)
 
-      assert msg =~ "Histórico da conversa"
-      assert msg =~ "gere um fluxo simples"
-      assert msg =~ "fluxo gerado"
+      assert msg =~ "Conversation history"
+      assert msg =~ "generate a simple flow"
+      assert msg =~ "flow generated"
     end
 
     test "skips history block when empty list" do
-      msg = Prompts.user_message(:generate, "oi", nil, history: [])
-      refute msg =~ "Histórico da conversa"
+      msg = Prompts.user_message(:generate, "hi", nil, history: [])
+      refute msg =~ "Conversation history"
     end
 
     test "truncates history messages longer than 500 chars" do
       huge = String.duplicate("x", 1_000)
       history = [%{role: "user", content: huge}]
 
-      msg = Prompts.user_message(:generate, "oi", nil, history: history)
+      msg = Prompts.user_message(:generate, "hi", nil, history: history)
       assert msg =~ "..."
       refute String.contains?(msg, huge)
     end
@@ -92,9 +92,9 @@ defmodule Blackboex.FlowAgent.PromptsTest do
       # The raw `\n~~~` sequence must not appear as a valid fence in the output
       # (beyond the ones that we emit ourselves around the flow JSON).
       # We check that user content containing ~~~ is neutralized.
-      # Strategy: between "Pedido do usuário:" and end-of-string there should be
+      # Strategy: between "User request:" and end-of-string there should be
       # no bare closing fence that matches our output contract.
-      [_, user_section] = String.split(msg, "Pedido do usuário:", parts: 2)
+      [_, user_section] = String.split(msg, "User request:", parts: 2)
       refute user_section =~ ~r/^~~~\s*$/m
     end
   end

@@ -55,13 +55,13 @@ defmodule Blackboex.PlaygroundAgent.CodePipeline do
         {:error, :not_configured}
 
       {:error, :no_code_block} ->
-        {:error, "resposta do modelo não continha bloco de código Elixir"}
+        {:error, "model response did not contain an Elixir code block"}
 
       {:error, reason} when is_binary(reason) ->
         {:error, reason}
 
       {:error, reason} ->
-        {:error, "falha do LLM: #{inspect(reason)}"}
+        {:error, "LLM failure: #{inspect(reason)}"}
     end
   end
 

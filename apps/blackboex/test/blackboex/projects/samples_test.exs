@@ -10,14 +10,14 @@ defmodule Blackboex.Projects.SamplesTest do
   alias Blackboex.Samples.Manifest
 
   describe "provision_for_org/2" do
-    test "creates the managed Exemplos project and all manifest samples" do
+    test "creates the managed Examples project and all manifest samples" do
       user = user_fixture()
       org = org_fixture(%{user: user, materialize_samples: true})
 
       # org_fixture already provisions the sample workspace through Organizations.
       project = Projects.get_default_project(org.id)
 
-      assert project.name == "Exemplos"
+      assert project.name == "Examples"
       assert project.sample_workspace == true
       assert project.sample_manifest_version == Manifest.version()
       assert project.sample_synced_at
@@ -53,13 +53,16 @@ defmodule Blackboex.Projects.SamplesTest do
       project = Projects.get_default_project(org.id)
 
       pages = Pages.list_pages(project.id)
-      child = Enum.find(pages, &(&1.title == "[Demo] Padrões de Código Elixir"))
-      parent = Enum.find(pages, &(&1.title == "[Demo] Guia de Formatação"))
+      child = Enum.find(pages, &(&1.title == "Create Your First API"))
+      parent = Enum.find(pages, &(&1.title == "Welcome to Blackboex"))
 
       assert child.parent_id == parent.id
 
       playground =
-        Enum.find(Playgrounds.list_playgrounds(project.id), &(&1.name =~ "Chamando Fluxo"))
+        Enum.find(
+          Playgrounds.list_playgrounds(project.id),
+          &(&1.name =~ "Calling a Project Flow")
+        )
 
       refute playground.code =~ "{{flow:"
       refute playground.code =~ "FLOW_TOKEN_NOT_FOUND"

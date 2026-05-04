@@ -347,44 +347,44 @@ defmodule Blackboex.PolicyTest do
   end
 
   describe "project creation permissions" do
-    test "org owner pode criar project" do
+    test "org owner can create project" do
       {scope, org, _project} = scope_with_org_role(:owner)
       assert Policy.authorize?(:project_create, scope, org)
     end
 
-    test "org admin pode criar project" do
+    test "org admin can create project" do
       {scope, org, _project} = scope_with_org_role(:admin)
       assert Policy.authorize?(:project_create, scope, org)
     end
 
-    test "org member pode criar project" do
+    test "org member can create project" do
       {scope, org, _project} = scope_with_org_role(:member)
       assert Policy.authorize?(:project_create, scope, org)
     end
   end
 
   describe "api permissions via project roles" do
-    test "project viewer NAO pode criar api" do
+    test "project viewer cannot create api" do
       {scope, org, _project} = scope_with_project_role(:viewer)
       refute Policy.authorize?(:api_create, scope, org)
     end
 
-    test "project editor pode criar api" do
+    test "project editor can create api" do
       {scope, org, _project} = scope_with_project_role(:editor)
       assert Policy.authorize?(:api_create, scope, org)
     end
 
-    test "project editor NAO pode deletar api" do
+    test "project editor cannot delete api" do
       {scope, org, _project} = scope_with_project_role(:editor)
       refute Policy.authorize?(:api_delete, scope, org)
     end
 
-    test "project admin pode deletar api" do
+    test "project admin can delete api" do
       {scope, org, _project} = scope_with_project_role(:admin)
       assert Policy.authorize?(:api_delete, scope, org)
     end
 
-    test "org owner pode tudo no project sem membership explicita" do
+    test "org owner can do everything in project without explicit membership" do
       {scope, org, _project} = scope_with_org_role(:owner)
       assert Policy.authorize?(:api_create, scope, org)
       assert Policy.authorize?(:api_read, scope, org)
@@ -392,7 +392,7 @@ defmodule Blackboex.PolicyTest do
       assert Policy.authorize?(:api_delete, scope, org)
     end
 
-    test "org admin pode tudo no project sem membership explicita" do
+    test "org admin can do everything in project without explicit membership" do
       {scope, org, _project} = scope_with_org_role(:admin)
       assert Policy.authorize?(:api_create, scope, org)
       assert Policy.authorize?(:api_read, scope, org)
@@ -402,17 +402,17 @@ defmodule Blackboex.PolicyTest do
   end
 
   describe "project membership management permissions" do
-    test "project admin pode adicionar membros ao project" do
+    test "project admin can add project members" do
       {scope, org, _project} = scope_with_project_role(:admin)
       assert Policy.authorize?(:project_membership_create, scope, org)
     end
 
-    test "project editor NAO pode adicionar membros" do
+    test "project editor cannot add members" do
       {scope, org, _project} = scope_with_project_role(:editor)
       refute Policy.authorize?(:project_membership_create, scope, org)
     end
 
-    test "project viewer NAO pode atualizar project" do
+    test "project viewer cannot update project" do
       {scope, org, _project} = scope_with_project_role(:viewer)
       refute Policy.authorize?(:project_update, scope, org)
     end

@@ -1,6 +1,6 @@
-defmodule Blackboex.Samples.ApiTemplates.JurosCompostos do
+defmodule Blackboex.Samples.ApiTemplates.CompoundInterest do
   @moduledoc """
-  Template: Calculadora de Juros Compostos
+  Template: Compound Interest Calculator
 
   Calculates compound interest, installment value and full amortization table.
   """
@@ -8,9 +8,9 @@ defmodule Blackboex.Samples.ApiTemplates.JurosCompostos do
   @spec template() :: Blackboex.Samples.ApiTemplates.template()
   def template do
     %{
-      id: "juros-compostos",
-      name: "Calculadora de Juros Compostos",
-      description: "Calcula juros compostos, parcelas e tabela de amortização",
+      id: "compound-interest",
+      name: "Compound Interest Calculator",
+      description: "Calculates compound interest, installments and amortization tables",
       category: "AI Agent Tools",
       template_type: "computation",
       icon: "chart-line",
@@ -24,26 +24,26 @@ defmodule Blackboex.Samples.ApiTemplates.JurosCompostos do
         readme: readme_content()
       },
       param_schema: %{
-        "valor_principal" => "number",
-        "taxa_mensal" => "number",
-        "num_parcelas" => "integer"
+        "principal_amount" => "number",
+        "monthly_rate" => "number",
+        "installment_count" => "integer"
       },
       example_request: %{
-        "valor_principal" => 10_000.0,
-        "taxa_mensal" => 1.5,
-        "num_parcelas" => 12
+        "principal_amount" => 10_000.0,
+        "monthly_rate" => 1.5,
+        "installment_count" => 12
       },
       example_response: %{
-        "valor_parcela" => 912.15,
-        "total_juros" => 945.8,
-        "total_pago" => 10_945.8,
-        "tabela_amortizacao" => [
+        "installment_amount" => 912.15,
+        "total_interest" => 945.8,
+        "total_paid" => 10_945.8,
+        "amortization_table" => [
           %{
-            "parcela" => 1,
-            "saldo_devedor" => 10_000.0,
-            "juros" => 150.0,
-            "amortizacao" => 762.15,
-            "saldo_restante" => 9_237.85
+            "installment" => 1,
+            "opening_balance" => 10_000.0,
+            "interest" => 150.0,
+            "principal_payment" => 762.15,
+            "remaining_balance" => 9_237.85
           }
         ]
       },
@@ -80,16 +80,16 @@ defmodule Blackboex.Samples.ApiTemplates.JurosCompostos do
 
         if changeset.valid? do
           data = Ecto.Changeset.apply_changes(changeset)
-          parcela = Helpers.installment(data.valor_principal, data.taxa_mensal, data.num_parcelas)
-          total_pago = Float.round(parcela * data.num_parcelas, 2)
-          total_juros = Float.round(total_pago - data.valor_principal, 2)
-          tabela = Helpers.amortization_table(data.valor_principal, data.taxa_mensal, parcela, data.num_parcelas)
+          installment = Helpers.installment(data.principal_amount, data.monthly_rate, data.installment_count)
+          total_paid = Float.round(installment * data.installment_count, 2)
+          total_interest = Float.round(total_paid - data.principal_amount, 2)
+          table = Helpers.amortization_table(data.principal_amount, data.monthly_rate, installment, data.installment_count)
 
           %{
-            valor_parcela: parcela,
-            total_juros: total_juros,
-            total_pago: total_pago,
-            tabela_amortizacao: tabela
+            installment_amount: installment,
+            total_interest: total_interest,
+            total_paid: total_paid,
+            amortization_table: table
           }
         else
           errors = Ecto.Changeset.traverse_errors(changeset, fn {msg, _opts} -> msg end)
@@ -107,13 +107,13 @@ defmodule Blackboex.Samples.ApiTemplates.JurosCompostos do
 
       @doc "Calculates the fixed monthly installment using the Price formula."
       @spec installment(float(), float(), integer()) :: float()
-      def installment(principal, taxa_mensal, num_parcelas) do
-        rate = taxa_mensal / 100.0
+      def installment(principal, monthly_rate, installment_count) do
+        rate = monthly_rate / 100.0
 
         if rate == 0.0 do
-          Float.round(principal / num_parcelas, 2)
+          Float.round(principal / installment_count, 2)
         else
-          factor = :math.pow(1 + rate, num_parcelas)
+          factor = :math.pow(1 + rate, installment_count)
           pmt = principal * rate * factor / (factor - 1)
           Float.round(pmt, 2)
         end
@@ -121,24 +121,24 @@ defmodule Blackboex.Samples.ApiTemplates.JurosCompostos do
 
       @doc "Builds a full amortization table for the loan."
       @spec amortization_table(float(), float(), float(), integer()) :: [map()]
-      def amortization_table(principal, taxa_mensal, parcela, num_parcelas) do
-        rate = taxa_mensal / 100.0
+      def amortization_table(principal, monthly_rate, installment, installment_count) do
+        rate = monthly_rate / 100.0
 
-        {_saldo, rows} =
-          Enum.reduce(1..num_parcelas, {principal, []}, fn i, {saldo, acc} ->
-            juros = Float.round(saldo * rate, 2)
-            amort = Float.round(parcela - juros, 2)
-            restante = max(0.0, Float.round(saldo - amort, 2))
+        {_balance, rows} =
+          Enum.reduce(1..installment_count, {principal, []}, fn i, {balance, acc} ->
+            interest = Float.round(balance * rate, 2)
+            principal_payment = Float.round(installment - interest, 2)
+            remaining = max(0.0, Float.round(balance - principal_payment, 2))
 
             row = %{
-              parcela: i,
-              saldo_devedor: Float.round(saldo, 2),
-              juros: juros,
-              amortizacao: amort,
-              saldo_restante: restante
+              installment: i,
+              opening_balance: Float.round(balance, 2),
+              interest: interest,
+              principal_payment: principal_payment,
+              remaining_balance: remaining
             }
 
-            {restante, [row | acc]}
+            {remaining, [row | acc]}
           end)
 
         Enum.reverse(rows)
@@ -154,20 +154,20 @@ defmodule Blackboex.Samples.ApiTemplates.JurosCompostos do
       use Blackboex.Schema
 
       embedded_schema do
-        field :valor_principal, :float
-        field :taxa_mensal, :float
-        field :num_parcelas, :integer
+        field :principal_amount, :float
+        field :monthly_rate, :float
+        field :installment_count, :integer
       end
 
       @doc "Validates and casts incoming parameters."
       @spec changeset(map()) :: Ecto.Changeset.t()
       def changeset(params) do
         %__MODULE__{}
-        |> cast(params, [:valor_principal, :taxa_mensal, :num_parcelas])
-        |> validate_required([:valor_principal, :taxa_mensal, :num_parcelas])
-        |> validate_number(:valor_principal, greater_than: 0)
-        |> validate_number(:taxa_mensal, greater_than_or_equal_to: 0)
-        |> validate_number(:num_parcelas, greater_than: 0)
+        |> cast(params, [:principal_amount, :monthly_rate, :installment_count])
+        |> validate_required([:principal_amount, :monthly_rate, :installment_count])
+        |> validate_number(:principal_amount, greater_than: 0)
+        |> validate_number(:monthly_rate, greater_than_or_equal_to: 0)
+        |> validate_number(:installment_count, greater_than: 0)
       end
     end
     """
@@ -180,10 +180,10 @@ defmodule Blackboex.Samples.ApiTemplates.JurosCompostos do
       use Blackboex.Schema
 
       embedded_schema do
-        field :valor_parcela, :float
-        field :total_juros, :float
-        field :total_pago, :float
-        field :tabela_amortizacao, {:array, :map}
+        field :installment_amount, :float
+        field :total_interest, :float
+        field :total_paid, :float
+        field :amortization_table, {:array, :map}
       end
     end
     """
@@ -196,9 +196,9 @@ defmodule Blackboex.Samples.ApiTemplates.JurosCompostos do
       use ExUnit.Case
 
       @valid_params %{
-        "valor_principal" => 10_000.0,
-        "taxa_mensal" => 1.5,
-        "num_parcelas" => 12
+        "principal_amount" => 10_000.0,
+        "monthly_rate" => 1.5,
+        "installment_count" => 12
       }
 
       describe "Request changeset validation" do
@@ -213,7 +213,7 @@ defmodule Blackboex.Samples.ApiTemplates.JurosCompostos do
         end
 
         test "rejects zero principal" do
-          changeset = Request.changeset(Map.put(@valid_params, "valor_principal", 0.0))
+          changeset = Request.changeset(Map.put(@valid_params, "principal_amount", 0.0))
           refute changeset.valid?
         end
       end
@@ -221,28 +221,28 @@ defmodule Blackboex.Samples.ApiTemplates.JurosCompostos do
       describe "successful computation" do
         test "returns installment and totals" do
           result = Handler.handle(@valid_params)
-          assert result.valor_parcela > 0
-          assert result.total_pago > 10_000.0
-          assert result.total_juros > 0
-          assert Float.round(result.total_juros + 10_000.0, 2) == result.total_pago
+          assert result.installment_amount > 0
+          assert result.total_paid > 10_000.0
+          assert result.total_interest > 0
+          assert Float.round(result.total_interest + 10_000.0, 2) == result.total_paid
         end
 
         test "amortization table has correct row count" do
           result = Handler.handle(@valid_params)
-          assert length(result.tabela_amortizacao) == 12
+          assert length(result.amortization_table) == 12
         end
 
         test "last row has near-zero balance" do
           result = Handler.handle(@valid_params)
-          last = List.last(result.tabela_amortizacao)
-          assert last.saldo_restante <= 1.0
+          last = List.last(result.amortization_table)
+          assert last.remaining_balance <= 1.0
         end
 
         test "zero rate means equal installments with no interest" do
-          params = Map.put(@valid_params, "taxa_mensal", 0.0)
+          params = Map.put(@valid_params, "monthly_rate", 0.0)
           result = Handler.handle(params)
-          assert abs(result.total_juros) < 0.1
-          assert abs(result.valor_parcela - Float.round(10_000.0 / 12, 2)) < 0.1
+          assert abs(result.total_interest) < 0.1
+          assert abs(result.installment_amount - Float.round(10_000.0 / 12, 2)) < 0.1
         end
       end
 
@@ -259,61 +259,61 @@ defmodule Blackboex.Samples.ApiTemplates.JurosCompostos do
 
   defp readme_content do
     """
-    # Calculadora de Juros Compostos
+    # Compound Interest Calculator
 
-    Calcula o valor da parcela mensal, total de juros pago e a tabela completa
-    de amortização pelo sistema Price (parcelas iguais) para qualquer financiamento.
+    Calculates the monthly installment amount, total interest paid and full
+    amortization table using the Price system for fixed-installment financing.
 
-    ## Parâmetros
+    ## Parameters
 
-    | Campo | Tipo | Obrigatório | Descrição |
+    | Field | Type | Required | Description |
     |-------|------|-------------|-----------|
-    | `valor_principal` | number | sim | Valor do empréstimo/financiamento em R$ |
-    | `taxa_mensal` | number | sim | Taxa de juros mensal em % (0 = sem juros) |
-    | `num_parcelas` | integer | sim | Número de parcelas mensais |
+    | `principal_amount` | number | yes | Loan or financing amount in BRL |
+    | `monthly_rate` | number | yes | Monthly interest rate as a percentage (0 = no interest) |
+    | `installment_count` | integer | yes | Number of monthly installments |
 
-    ## Exemplo de Requisição
+    ## Example Request
 
     ```bash
-    curl -X POST https://api.blackboex.com/api/minha-org/juros-compostos \\
+    curl -X POST https://api.blackboex.com/api/my-org/compound-interest \\
       -H "Content-Type: application/json" \\
       -d '{
-        "valor_principal": 10000.00,
-        "taxa_mensal": 1.5,
-        "num_parcelas": 12
+        "principal_amount": 10000.00,
+        "monthly_rate": 1.5,
+        "installment_count": 12
       }'
     ```
 
-    ## Exemplo de Resposta
+    ## Example Response
 
     ```json
     {
-      "valor_parcela": 912.15,
-      "total_juros": 945.80,
-      "total_pago": 10945.80,
-      "tabela_amortizacao": [
+      "installment_amount": 912.15,
+      "total_interest": 945.80,
+      "total_paid": 10945.80,
+      "amortization_table": [
         {
-          "parcela": 1,
-          "saldo_devedor": 10000.00,
-          "juros": 150.00,
-          "amortizacao": 762.15,
-          "saldo_restante": 9237.85
+          "installment": 1,
+          "opening_balance": 10000.00,
+          "interest": 150.00,
+          "principal_payment": 762.15,
+          "remaining_balance": 9237.85
         }
       ]
     }
     ```
 
-    ## Método de Cálculo
+    ## Calculation Method
 
-    Usa o **Sistema Price** (parcelas fixas):
-    - `PMT = PV × i / (1 − (1+i)^−n)`
-    - Cada parcela é dividida em juros (saldo × taxa) + amortização (PMT − juros)
+    Uses the **Price system** with fixed installments:
+    - `PMT = PV * i / (1 - (1+i)^-n)`
+    - Each installment is split into interest (`balance * rate`) and principal payment (`PMT - interest`).
 
-    ## Casos de Uso
+    ## Use Cases
 
-    - Simulador de financiamento imobiliário ou veicular
-    - Tool de agente de IA para análise de crédito
-    - Comparador de condições de empréstimo
+    - Real estate or vehicle financing simulator
+    - AI agent tool for credit analysis
+    - Loan terms comparison
     """
   end
 end

@@ -11,7 +11,7 @@ defmodule Blackboex.Samples.ApiTemplates.PaymentGateway do
     %{
       id: "payment-gateway",
       name: "Payment Gateway Mock",
-      description: "Simula criação de cobrança e consulta de status para testes de pagamento",
+      description: "Simulates charge creation and status lookup for payment tests",
       category: "Mocks",
       template_type: "computation",
       icon: "dollar-sign",
@@ -225,21 +225,21 @@ defmodule Blackboex.Samples.ApiTemplates.PaymentGateway do
     """
     # Payment Gateway Mock
 
-    Simula criação de cobrança e retorna um charge_id determinístico para testes
-    de fluxos de pagamento sem conectar a um processador real.
+    Simulates charge creation and returns a deterministic charge ID for payment
+    flow tests without connecting to a real processor.
 
-    ## Parâmetros
+    ## Parameters
 
-    | Campo | Tipo | Obrigatório | Descrição |
+    | Field | Type | Required | Description |
     |-------|------|-------------|-----------|
-    | `amount` | number | sim | Valor em centavos (ex: 2990 = R$29,90) |
-    | `currency` | string | sim | Moeda em formato ISO 4217 (ex: `BRL`, `USD`) |
-    | `customer_id` | string | sim | ID do cliente no sistema |
+    | `amount` | number | yes | Amount in cents (for example: 2990 = BRL 29.90) |
+    | `currency` | string | yes | ISO 4217 currency code (for example: `BRL`, `USD`) |
+    | `customer_id` | string | yes | Customer ID in the system |
 
-    ## Exemplo de Requisição
+    ## Example Request
 
     ```bash
-    curl -X POST https://api.blackboex.com/api/minha-org/payment-gateway \\
+    curl -X POST https://api.blackboex.com/api/my-org/payment-gateway \\
       -H "Content-Type: application/json" \\
       -d '{
         "amount": 2990,
@@ -248,7 +248,7 @@ defmodule Blackboex.Samples.ApiTemplates.PaymentGateway do
       }'
     ```
 
-    ## Exemplo de Resposta
+    ## Example Response
 
     ```json
     {
@@ -260,11 +260,11 @@ defmodule Blackboex.Samples.ApiTemplates.PaymentGateway do
     }
     ```
 
-    ## Notas
+    ## Notes
 
-    - O `charge_id` é determinístico: mesmo `customer_id` + `amount` geram o mesmo ID
-    - Status sempre retorna `succeeded` (mock)
-    - `amount` deve ser em centavos (inteiro)
+    - `charge_id` is deterministic: the same `customer_id` + `amount` produces the same ID
+    - Status always returns `succeeded` in this mock
+    - `amount` must be an integer in cents
     """
   end
 end

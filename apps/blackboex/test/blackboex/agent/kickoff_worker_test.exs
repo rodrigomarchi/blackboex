@@ -90,7 +90,7 @@ defmodule Blackboex.Agent.KickoffWorkerTest do
       assert run.trigger_message == "Generate a calculator API"
     end
 
-    test "propaga project_id ao criar run", %{user: user, org: org, api: api} do
+    test "propagates project_id when creating a run", %{user: user, org: org, api: api} do
       job = build_job(api.id, org.id, user.id, api.project_id)
       _result = KickoffWorker.perform(job)
 

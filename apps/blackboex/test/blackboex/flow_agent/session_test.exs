@@ -10,9 +10,16 @@ defmodule Blackboex.FlowAgent.SessionTest do
 
   alias Blackboex.FlowAgent.Session
   alias Blackboex.FlowConversations
+  alias Blackboex.LLM.CircuitBreaker
 
   setup :set_mox_global
   setup [:create_user_and_org]
+
+  setup do
+    CircuitBreaker.reset(:anthropic)
+    _ = CircuitBreaker.get_state(:anthropic)
+    :ok
+  end
 
   defp base_opts(%{user: user, org: org}) do
     flow = flow_fixture(%{user: user, org: org})
@@ -110,17 +117,17 @@ defmodule Blackboex.FlowAgent.SessionTest do
       Phoenix.PubSub.subscribe(Blackboex.PubSub, "flow_agent:run:#{opts.run_id}")
 
       Mox.stub(Blackboex.LLM.ClientMock, :stream_text, fn _p, _o ->
-        {:ok, Stream.map(["Resposta: esse fluxo é assim."], &{:token, &1})}
+        {:ok, Stream.map(["Answer: this flow works like this."], &{:token, &1})}
       end)
 
       Mox.stub(Blackboex.LLM.ClientMock, :generate_text, fn _p, _o ->
-        {:ok, %{content: "Resposta: esse fluxo é assim.", usage: %{}}}
+        {:ok, %{content: "Answer: this flow works like this.", usage: %{}}}
       end)
 
       {:ok, _pid} = Session.start(opts)
 
       assert_receive {:run_completed, %{kind: :explain, answer: answer}}, 3_000
-      assert answer =~ "esse fluxo"
+      assert answer =~ "this flow"
 
       reloaded_run = FlowConversations.get_run!(opts.run_id)
       assert reloaded_run.status == "completed"

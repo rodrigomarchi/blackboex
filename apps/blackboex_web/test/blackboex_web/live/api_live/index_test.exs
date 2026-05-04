@@ -319,23 +319,23 @@ defmodule BlackboexWeb.ApiLive.IndexTest do
       {:ok, view, _html} = live(conn, ~p"/apis")
       html = render_click(view, "open_create_modal")
 
-      assert html =~ "Cotação de Frete"
+      assert html =~ "Shipping Quote"
     end
 
     test "selecting a template pre-fills the name and shows template preview", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/apis")
       render_click(view, "open_create_modal")
 
-      html = render_click(view, "select_template", %{"id" => "cotacao-frete"})
+      html = render_click(view, "select_template", %{"id" => "shipping-quote"})
 
-      assert html =~ "Cotação de Frete"
+      assert html =~ "Shipping Quote"
     end
 
     test "clearing a selected template removes template preview", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/apis")
       render_click(view, "open_create_modal")
 
-      render_click(view, "select_template", %{"id" => "cotacao-frete"})
+      render_click(view, "select_template", %{"id" => "shipping-quote"})
       html = render_click(view, "clear_template")
 
       refute html =~ "phx-click=\"clear_template\""
@@ -364,10 +364,10 @@ defmodule BlackboexWeb.ApiLive.IndexTest do
       {:ok, view, _html} = live(conn, ~p"/apis")
       render_click(view, "open_create_modal")
 
-      render_click(view, "select_template", %{"id" => "cotacao-frete"})
+      render_click(view, "select_template", %{"id" => "shipping-quote"})
 
       view
-      |> form("form[phx-submit='create_api']", %{name: "My Frete API", description: ""})
+      |> form("form[phx-submit='create_api']", %{name: "My Shipping API", description: ""})
       |> render_submit()
 
       {path, _flash} = assert_redirect(view)
@@ -381,10 +381,10 @@ defmodule BlackboexWeb.ApiLive.IndexTest do
       {:ok, view, _html} = live(conn, ~p"/apis")
       render_click(view, "open_create_modal")
 
-      render_click(view, "select_template", %{"id" => "cotacao-frete"})
+      render_click(view, "select_template", %{"id" => "shipping-quote"})
 
       view
-      |> form("form[phx-submit='create_api']", %{name: "My Frete API", description: ""})
+      |> form("form[phx-submit='create_api']", %{name: "My Shipping API", description: ""})
       |> render_submit()
 
       {path, _flash} = assert_redirect(view)
@@ -394,7 +394,7 @@ defmodule BlackboexWeb.ApiLive.IndexTest do
       api = Blackboex.Apis.get_api(org.id, api_id)
 
       assert api.status == "compiled"
-      assert api.template_id == "cotacao-frete"
+      assert api.template_id == "shipping-quote"
     end
 
     test "sidebar renders SidebarTreeComponent in :app layout", %{conn: conn} do

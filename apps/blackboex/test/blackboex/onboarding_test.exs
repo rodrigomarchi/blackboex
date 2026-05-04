@@ -74,7 +74,7 @@ defmodule Blackboex.OnboardingTest do
       assert {:ok, %{project: project}} =
                Onboarding.complete_first_run(valid_attrs(%{project_name: "MyProj"}))
 
-      assert project.name == "Exemplos"
+      assert project.name == "Examples"
       assert project.sample_workspace == true
     end
 

@@ -278,8 +278,8 @@ const DrawflowEditor = {
       // pending changes, ask before replacing. They can still cancel.
       if (this._dataChanged) {
         const proceed = window.confirm(
-          "Você tem alterações não salvas no canvas. " +
-            "Aplicar a resposta do agente vai sobrescrevê-las. Continuar?",
+          "You have unsaved canvas changes. " +
+            "Applying the agent response will overwrite them. Continue?",
         );
         if (!proceed) return;
       }
@@ -329,7 +329,7 @@ const DrawflowEditor = {
   },
 
   /**
-   * Adds a DOM listener and records its matching remover for hook cleanup.
+   * Adds a DOM listener and records its matching cleanup callback for hook cleanup.
    * @param {EventTarget | null | undefined} target - DOM target.
    * @param {string} event - Event name.
    * @param {EventListener} handler - Listener callback.
@@ -343,7 +343,7 @@ const DrawflowEditor = {
   },
 
   /**
-   * Adds a Drawflow listener and records its remover when the vendor API exposes one.
+   * Adds a Drawflow listener and records its cleanup callback when the vendor API exposes one.
    * @param {string} event - Drawflow event name.
    * @param {Function} handler - Drawflow event handler.
    * @returns {void}

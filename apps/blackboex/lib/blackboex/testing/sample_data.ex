@@ -57,7 +57,7 @@ defmodule Blackboex.Testing.SampleData do
       "",
       nil,
       String.duplicate("a", 1001),
-      "café résumé naïve",
+      "unicode smoke test",
       "🎉🚀💯",
       "'; DROP TABLE users;--",
       "<script>alert('xss')</script>"

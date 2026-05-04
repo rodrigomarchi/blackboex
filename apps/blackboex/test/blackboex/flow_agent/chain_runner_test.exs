@@ -131,7 +131,7 @@ defmodule Blackboex.FlowAgent.ChainRunnerTest do
       :ok =
         ChainRunner.handle_chain_success(state, %{
           kind: :explain,
-          answer: "Esse fluxo valida evento e retorna status.",
+          answer: "This flow validates the event and returns status.",
           input_tokens: 5,
           output_tokens: 10
         })
@@ -140,14 +140,14 @@ defmodule Blackboex.FlowAgent.ChainRunnerTest do
       assert reloaded_run.status == "completed"
       # Edit did not happen — definition_after stays nil, flow unchanged
       assert reloaded_run.definition_after == nil
-      assert reloaded_run.run_summary =~ "valida evento"
+      assert reloaded_run.run_summary =~ "validates the event"
 
       # Flow definition remains the empty map that the fixture created
       reloaded_flow = Blackboex.Flows.get_flow(state.organization_id, flow.id)
       assert reloaded_flow.definition == %{}
 
       assert_receive {:run_completed, %{kind: :explain, answer: ans}}, 500
-      assert ans =~ "valida evento"
+      assert ans =~ "validates the event"
     end
   end
 
@@ -175,7 +175,7 @@ defmodule Blackboex.FlowAgent.ChainRunnerTest do
       :ok = ChainRunner.handle_chain_failure(state, {:crashed, :badarg})
 
       reloaded_run = FlowConversations.get_run!(run.id)
-      assert reloaded_run.error_message =~ "crashou"
+      assert reloaded_run.error_message =~ "crashed"
     end
 
     test "formats {:invalid_flow, reason} tuples", ctx do
@@ -184,7 +184,7 @@ defmodule Blackboex.FlowAgent.ChainRunnerTest do
       :ok = ChainRunner.handle_chain_failure(state, {:invalid_flow, "missing start node"})
 
       reloaded_run = FlowConversations.get_run!(run.id)
-      assert reloaded_run.error_message =~ "Fluxo inválido"
+      assert reloaded_run.error_message =~ "Invalid flow"
       assert reloaded_run.error_message =~ "missing start"
     end
   end
@@ -212,7 +212,7 @@ defmodule Blackboex.FlowAgent.ChainRunnerTest do
 
       reloaded_run = FlowConversations.get_run!(run.id)
       assert reloaded_run.status == "failed"
-      assert reloaded_run.error_message =~ "Circuit breaker"
+      assert reloaded_run.error_message =~ "circuit breaker"
     end
   end
 end

@@ -238,7 +238,7 @@ defmodule BlackboexWeb.PageLive.Edit do
   def handle_event("new_chat", _params, socket) do
     if socket.assigns.chat_loading do
       {:noreply,
-       put_flash(socket, :error, "Aguarde a resposta do agente antes de iniciar um novo chat.")}
+       put_flash(socket, :error, "Wait for the agent response before starting a new chat.")}
     else
       page = socket.assigns.page
 
@@ -251,12 +251,12 @@ defmodule BlackboexWeb.PageLive.Edit do
           {:noreply,
            socket
            |> assign(chat_messages: [], chat_input: "", current_stream: nil, current_run_id: nil)
-           |> put_flash(:info, "Novo chat iniciado.")}
+           |> put_flash(:info, "New chat started.")}
 
         {:error, reason} ->
           require Logger
           Logger.warning("PageConversations.start_new_conversation failed: #{inspect(reason)}")
-          {:noreply, put_flash(socket, :error, "Não foi possível iniciar novo chat.")}
+          {:noreply, put_flash(socket, :error, "Could not start a new chat.")}
       end
     end
   end
@@ -315,7 +315,7 @@ defmodule BlackboexWeb.PageLive.Edit do
     if socket.assigns.current_run_id == run_id do
       cancel_chat_slow_timer(socket)
       Logger.warning("PageAgent run #{run_id} failed: #{reason}")
-      failure_msg = %{role: "system", content: "Agente falhou. Tente novamente."}
+      failure_msg = %{role: "system", content: "Agent failed. Try again."}
 
       {:noreply,
        socket
@@ -326,7 +326,7 @@ defmodule BlackboexWeb.PageLive.Edit do
          current_stream: nil,
          chat_messages: cap_messages(socket.assigns.chat_messages ++ [failure_msg])
        )
-       |> put_flash(:error, "Agente falhou. Tente novamente.")}
+       |> put_flash(:error, "Agent failed. Try again.")}
     else
       {:noreply, socket}
     end
@@ -337,7 +337,7 @@ defmodule BlackboexWeb.PageLive.Edit do
     if socket.assigns.chat_loading do
       warning = %{
         role: "system",
-        content: "Agente está demorando mais que o esperado... aguarde (timeout: 3 min)."
+        content: "Agent is taking longer than expected... please wait (timeout: 3 min)."
       }
 
       {:noreply,
@@ -400,19 +400,19 @@ defmodule BlackboexWeb.PageLive.Edit do
   defp apply_send_chat_error(socket, :empty_message), do: {:noreply, socket}
 
   defp apply_send_chat_error(socket, :message_too_long),
-    do: {:noreply, put_flash(socket, :error, "Mensagem muito longa. Encurte e tente novamente.")}
+    do: {:noreply, put_flash(socket, :error, "Message is too long. Shorten it and try again.")}
 
   defp apply_send_chat_error(socket, :limit_exceeded),
-    do: {:noreply, put_flash(socket, :error, "Limite de gerações do plano atingido.")}
+    do: {:noreply, put_flash(socket, :error, "Plan generation limit reached.")}
 
   defp apply_send_chat_error(socket, :agent_busy),
     do:
       {:noreply,
-       put_flash(socket, :error, "Já há um pedido em andamento. Aguarde alguns segundos.")}
+       put_flash(socket, :error, "A request is already in progress. Wait a few seconds.")}
 
   defp apply_send_chat_error(socket, reason) do
     Logger.warning("PageAgent.start failed: #{inspect(reason)}")
-    {:noreply, put_flash(socket, :error, "Falha ao iniciar o agente. Tente novamente.")}
+    {:noreply, put_flash(socket, :error, "Failed to start the agent. Try again.")}
   end
 
   # Bound the in-memory chat history so very long sessions don't leak memory

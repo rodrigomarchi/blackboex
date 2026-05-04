@@ -70,7 +70,7 @@ defmodule BlackboexWeb.Components.Editor.ResponseViewer do
             </div>
           <% true -> %>
             <p class="text-muted-description text-center py-8">
-              Envie um request para ver a resposta
+              Send a request to see the response
             </p>
         <% end %>
       </div>

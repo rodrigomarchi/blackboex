@@ -1,6 +1,6 @@
-defmodule Blackboex.Samples.ApiTemplates.CalculadoraImpostos do
+defmodule Blackboex.Samples.ApiTemplates.BrazilianTaxCalculator do
   @moduledoc """
-  Template: Calculadora de Impostos BR
+  Template: Brazilian Tax Calculator
 
   Calculates ICMS, ISS, PIS/COFINS over a value and product type,
   considering origin and destination states.
@@ -9,9 +9,9 @@ defmodule Blackboex.Samples.ApiTemplates.CalculadoraImpostos do
   @spec template() :: Blackboex.Samples.ApiTemplates.template()
   def template do
     %{
-      id: "calculadora-impostos",
-      name: "Calculadora de Impostos BR",
-      description: "Calcula ICMS, ISS, PIS/COFINS sobre valor e tipo de produto/serviço",
+      id: "brazilian-tax-calculator",
+      name: "Brazilian Tax Calculator",
+      description: "Calculates ICMS, ISS and PIS/COFINS for Brazilian sales scenarios",
       category: "AI Agent Tools",
       template_type: "computation",
       icon: "calculator",
@@ -25,26 +25,26 @@ defmodule Blackboex.Samples.ApiTemplates.CalculadoraImpostos do
         readme: readme_content()
       },
       param_schema: %{
-        "valor" => "number",
-        "tipo_produto" => "string",
-        "uf_origem" => "string",
-        "uf_destino" => "string"
+        "amount" => "number",
+        "product_type" => "string",
+        "origin_state" => "string",
+        "destination_state" => "string"
       },
       example_request: %{
-        "valor" => 1000.0,
-        "tipo_produto" => "mercadoria",
-        "uf_origem" => "SP",
-        "uf_destino" => "RJ"
+        "amount" => 1000.0,
+        "product_type" => "goods",
+        "origin_state" => "SP",
+        "destination_state" => "RJ"
       },
       example_response: %{
-        "impostos" => %{
+        "taxes" => %{
           "icms" => 120.0,
           "iss" => 0.0,
           "pis" => 16.5,
           "cofins" => 76.0
         },
-        "total_impostos" => 212.5,
-        "valor_final" => 1212.5
+        "total_taxes" => 212.5,
+        "final_amount" => 1212.5
       },
       validation_report: %{
         "compilation" => "pass",
@@ -55,11 +55,11 @@ defmodule Blackboex.Samples.ApiTemplates.CalculadoraImpostos do
         "credo_issues" => [],
         "tests" => "pass",
         "test_results" => [
-          %{"name" => "mercadoria inter-estadual returns correct ICMS", "status" => "pass"},
-          %{"name" => "servico returns ISS not ICMS", "status" => "pass"},
+          %{"name" => "interstate goods returns correct ICMS", "status" => "pass"},
+          %{"name" => "service returns ISS not ICMS", "status" => "pass"},
           %{"name" => "missing required fields returns error", "status" => "pass"},
-          %{"name" => "invalid tipo_produto returns error", "status" => "pass"},
-          %{"name" => "invalid UF returns error", "status" => "pass"},
+          %{"name" => "invalid product_type returns error", "status" => "pass"},
+          %{"name" => "invalid state returns error", "status" => "pass"},
           %{"name" => "zero value returns error", "status" => "pass"}
         ],
         "overall" => "pass"
@@ -79,9 +79,9 @@ defmodule Blackboex.Samples.ApiTemplates.CalculadoraImpostos do
 
         if changeset.valid? do
           data = Ecto.Changeset.apply_changes(changeset)
-          impostos = Helpers.calculate(data.valor, data.tipo_produto, data.uf_origem, data.uf_destino)
-          total = Float.round(impostos.icms + impostos.iss + impostos.pis + impostos.cofins, 2)
-          %{impostos: impostos, total_impostos: total, valor_final: Float.round(data.valor + total, 2)}
+          taxes = Helpers.calculate(data.amount, data.product_type, data.origin_state, data.destination_state)
+          total = Float.round(taxes.icms + taxes.iss + taxes.pis + taxes.cofins, 2)
+          %{taxes: taxes, total_taxes: total, final_amount: Float.round(data.amount + total, 2)}
         else
           errors = Ecto.Changeset.traverse_errors(changeset, fn {msg, _opts} -> msg end)
           %{error: "Validation failed", details: errors}
@@ -122,31 +122,31 @@ defmodule Blackboex.Samples.ApiTemplates.CalculadoraImpostos do
 
       @doc "Calculates all applicable taxes for the given parameters."
       @spec calculate(float(), String.t(), String.t(), String.t()) :: map()
-      def calculate(valor, tipo, uf_origem, uf_destino) do
-        icms = calc_icms(valor, tipo, uf_origem, uf_destino)
-        iss = calc_iss(valor, tipo)
-        pis = Float.round(valor * @pis_rate, 2)
-        cofins = Float.round(valor * @cofins_rate, 2)
+      def calculate(amount, product_type, origin_state, destination_state) do
+        icms = calc_icms(amount, product_type, origin_state, destination_state)
+        iss = calc_iss(amount, product_type)
+        pis = Float.round(amount * @pis_rate, 2)
+        cofins = Float.round(amount * @cofins_rate, 2)
         %{icms: icms, iss: iss, pis: pis, cofins: cofins}
       end
 
       @spec calc_icms(float(), String.t(), String.t(), String.t()) :: float()
-      defp calc_icms(_valor, "servico", _uf_origem, _uf_destino), do: 0.0
+      defp calc_icms(_amount, "service", _origin_state, _destination_state), do: 0.0
 
-      defp calc_icms(valor, _tipo, uf_origem, uf_destino) do
+      defp calc_icms(amount, _product_type, origin_state, destination_state) do
         rate =
-          if uf_origem == uf_destino do
-            Map.get(@icms_intrastate, uf_origem, 0.17)
+          if origin_state == destination_state do
+            Map.get(@icms_intrastate, origin_state, 0.17)
           else
-            Map.get(@icms_interstate, uf_destino, 0.12)
+            Map.get(@icms_interstate, destination_state, 0.12)
           end
 
-        Float.round(valor * rate, 2)
+        Float.round(amount * rate, 2)
       end
 
       @spec calc_iss(float(), String.t()) :: float()
-      defp calc_iss(valor, "servico"), do: Float.round(valor * @iss_rate, 2)
-      defp calc_iss(_valor, _tipo), do: 0.0
+      defp calc_iss(amount, "service"), do: Float.round(amount * @iss_rate, 2)
+      defp calc_iss(_amount, _product_type), do: 0.0
     end
     """
   end
@@ -157,26 +157,26 @@ defmodule Blackboex.Samples.ApiTemplates.CalculadoraImpostos do
       @moduledoc "Input schema for the tax calculator API."
       use Blackboex.Schema
 
-      @valid_types ["mercadoria", "servico", "produto_industrializado", "importado"]
-      @valid_ufs ~w(AC AL AM AP BA CE DF ES GO MA MG MS MT PA PB PE PI PR RJ RN RO RR RS SC SE SP TO)
+      @valid_types ["goods", "service", "manufactured_product", "imported"]
+      @valid_states ~w(AC AL AM AP BA CE DF ES GO MA MG MS MT PA PB PE PI PR RJ RN RO RR RS SC SE SP TO)
 
       embedded_schema do
-        field :valor, :float
-        field :tipo_produto, :string
-        field :uf_origem, :string
-        field :uf_destino, :string
+        field :amount, :float
+        field :product_type, :string
+        field :origin_state, :string
+        field :destination_state, :string
       end
 
       @doc "Validates and casts incoming parameters."
       @spec changeset(map()) :: Ecto.Changeset.t()
       def changeset(params) do
         %__MODULE__{}
-        |> cast(params, [:valor, :tipo_produto, :uf_origem, :uf_destino])
-        |> validate_required([:valor, :tipo_produto, :uf_origem, :uf_destino])
-        |> validate_number(:valor, greater_than: 0)
-        |> validate_inclusion(:tipo_produto, @valid_types)
-        |> validate_inclusion(:uf_origem, @valid_ufs)
-        |> validate_inclusion(:uf_destino, @valid_ufs)
+        |> cast(params, [:amount, :product_type, :origin_state, :destination_state])
+        |> validate_required([:amount, :product_type, :origin_state, :destination_state])
+        |> validate_number(:amount, greater_than: 0)
+        |> validate_inclusion(:product_type, @valid_types)
+        |> validate_inclusion(:origin_state, @valid_states)
+        |> validate_inclusion(:destination_state, @valid_states)
       end
     end
     """
@@ -189,9 +189,9 @@ defmodule Blackboex.Samples.ApiTemplates.CalculadoraImpostos do
       use Blackboex.Schema
 
       embedded_schema do
-        field :impostos, :map
-        field :total_impostos, :float
-        field :valor_final, :float
+        field :taxes, :map
+        field :total_taxes, :float
+        field :final_amount, :float
       end
     end
     """
@@ -204,10 +204,10 @@ defmodule Blackboex.Samples.ApiTemplates.CalculadoraImpostos do
       use ExUnit.Case
 
       @valid_params %{
-        "valor" => 1000.0,
-        "tipo_produto" => "mercadoria",
-        "uf_origem" => "SP",
-        "uf_destino" => "RJ"
+        "amount" => 1000.0,
+        "product_type" => "goods",
+        "origin_state" => "SP",
+        "destination_state" => "RJ"
       }
 
       describe "Request changeset validation" do
@@ -221,41 +221,41 @@ defmodule Blackboex.Samples.ApiTemplates.CalculadoraImpostos do
           refute changeset.valid?
         end
 
-        test "rejects invalid tipo_produto" do
-          changeset = Request.changeset(Map.put(@valid_params, "tipo_produto", "invalido"))
+        test "rejects invalid product_type" do
+          changeset = Request.changeset(Map.put(@valid_params, "product_type", "invalid"))
           refute changeset.valid?
         end
 
-        test "rejects invalid UF" do
-          changeset = Request.changeset(Map.put(@valid_params, "uf_origem", "XX"))
+        test "rejects invalid state" do
+          changeset = Request.changeset(Map.put(@valid_params, "origin_state", "XX"))
           refute changeset.valid?
         end
       end
 
       describe "successful computation" do
-        test "mercadoria inter-estadual returns correct taxes" do
+        test "interstate goods returns correct taxes" do
           result = Handler.handle(@valid_params)
-          assert %{impostos: impostos, total_impostos: total, valor_final: final} = result
-          assert impostos.icms > 0
-          assert impostos.iss == 0.0
-          assert impostos.pis > 0
-          assert impostos.cofins > 0
+          assert %{taxes: taxes, total_taxes: total, final_amount: final} = result
+          assert taxes.icms > 0
+          assert taxes.iss == 0.0
+          assert taxes.pis > 0
+          assert taxes.cofins > 0
           assert total > 0
-          assert final > @valid_params["valor"]
+          assert final > @valid_params["amount"]
         end
 
-        test "servico returns ISS and zero ICMS" do
-          params = Map.put(@valid_params, "tipo_produto", "servico")
+        test "service returns ISS and zero ICMS" do
+          params = Map.put(@valid_params, "product_type", "service")
           result = Handler.handle(params)
-          assert result.impostos.icms == 0.0
-          assert result.impostos.iss > 0
+          assert result.taxes.icms == 0.0
+          assert result.taxes.iss > 0
         end
 
         test "intra-state uses higher intrastate rate" do
-          intra_params = Map.put(@valid_params, "uf_destino", "SP")
+          intra_params = Map.put(@valid_params, "destination_state", "SP")
           inter_result = Handler.handle(@valid_params)
           intra_result = Handler.handle(intra_params)
-          assert intra_result.impostos.icms > inter_result.impostos.icms
+          assert intra_result.taxes.icms > inter_result.taxes.icms
         end
       end
 
@@ -267,9 +267,9 @@ defmodule Blackboex.Samples.ApiTemplates.CalculadoraImpostos do
         end
 
         test "returns error for zero value" do
-          result = Handler.handle(Map.put(@valid_params, "valor", 0.0))
+          result = Handler.handle(Map.put(@valid_params, "amount", 0.0))
           assert %{error: "Validation failed", details: details} = result
-          assert Map.has_key?(details, :valor)
+          assert Map.has_key?(details, :amount)
         end
       end
     end
@@ -278,62 +278,61 @@ defmodule Blackboex.Samples.ApiTemplates.CalculadoraImpostos do
 
   defp readme_content do
     """
-    # Calculadora de Impostos BR
+    # Brazilian Tax Calculator
 
-    Calcula os principais impostos brasileiros (ICMS, ISS, PIS e COFINS) sobre
-    um valor de venda, considerando o tipo de produto/serviço e os estados de
-    origem e destino.
+    Calculates the main Brazilian taxes (ICMS, ISS, PIS and COFINS) for a sale,
+    based on product type and origin/destination states.
 
-    ## Parâmetros
+    ## Parameters
 
-    | Campo | Tipo | Obrigatório | Descrição |
+    | Field | Type | Required | Description |
     |-------|------|-------------|-----------|
-    | `valor` | number | sim | Valor base para cálculo (deve ser > 0) |
-    | `tipo_produto` | string | sim | Tipo: `mercadoria`, `servico`, `produto_industrializado`, `importado` |
-    | `uf_origem` | string | sim | UF de origem (ex: SP, RJ, MG) |
-    | `uf_destino` | string | sim | UF de destino (ex: SP, RJ, MG) |
+    | `amount` | number | yes | Base amount for calculation (must be > 0) |
+    | `product_type` | string | yes | Type: `goods`, `service`, `manufactured_product`, `imported` |
+    | `origin_state` | string | yes | Origin Brazilian state abbreviation (for example: SP, RJ, MG) |
+    | `destination_state` | string | yes | Destination Brazilian state abbreviation (for example: SP, RJ, MG) |
 
-    ## Exemplo de Requisição
+    ## Example Request
 
     ```bash
-    curl -X POST https://api.blackboex.com/api/minha-org/calculadora-impostos \\
+    curl -X POST https://api.blackboex.com/api/my-org/brazilian-tax-calculator \\
       -H "Content-Type: application/json" \\
       -d '{
-        "valor": 1000.00,
-        "tipo_produto": "mercadoria",
-        "uf_origem": "SP",
-        "uf_destino": "RJ"
+        "amount": 1000.00,
+        "product_type": "goods",
+        "origin_state": "SP",
+        "destination_state": "RJ"
       }'
     ```
 
-    ## Exemplo de Resposta
+    ## Example Response
 
     ```json
     {
-      "impostos": {
+      "taxes": {
         "icms": 120.00,
         "iss": 0.00,
         "pis": 16.50,
         "cofins": 76.00
       },
-      "total_impostos": 212.50,
-      "valor_final": 1212.50
+      "total_taxes": 212.50,
+      "final_amount": 1212.50
     }
     ```
 
-    ## Regras de Negócio
+    ## Business Rules
 
-    - **ICMS**: Para operações inter-estaduais, usa alíquota do estado de destino (geralmente 12%).
-      Para operações intra-estaduais, usa alíquota interna do estado (ex: SP=18%, RJ=20%).
-    - **ISS**: Aplicado somente para `tipo_produto = "servico"` (5%).
-    - **PIS**: 1,65% sobre o valor base.
-    - **COFINS**: 7,6% sobre o valor base.
+    - **ICMS**: Interstate operations use the destination state rate, usually 12%.
+      Intrastate operations use the state's internal rate (for example: SP=18%, RJ=20%).
+    - **ISS**: Applies only when `product_type = "service"` (5%).
+    - **PIS**: 1.65% over the base amount.
+    - **COFINS**: 7.6% over the base amount.
 
-    ## Casos de Uso
+    ## Use Cases
 
-    - Tool de agente de IA para precificação com impostos
-    - Simulador de nota fiscal
-    - Calculadora de custo real para e-commerce
+    - AI agent tool for tax-aware pricing
+    - Invoice simulation
+    - Real-cost calculator for e-commerce
     """
   end
 end

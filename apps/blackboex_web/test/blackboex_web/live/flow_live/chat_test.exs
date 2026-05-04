@@ -33,32 +33,32 @@ defmodule BlackboexWeb.FlowLive.ChatTest do
       refute has_element?(view, "#flow-chat-timeline")
     end
 
-    test "'Agente' button is visible in header", %{conn: conn, user: user} do
+    test "'Agent' button is visible in header", %{conn: conn, user: user} do
       %{flow: flow} = do_setup_flow(user)
       {:ok, _view, html} = live(conn, ~p"/flows/#{flow.id}/edit")
 
-      assert html =~ "Agente"
+      assert html =~ "Agent"
     end
   end
 
   describe "toggle_chat" do
-    test "clicking 'Agente' button opens the chat drawer", %{conn: conn, user: user} do
+    test "clicking 'Agent' button opens the chat drawer", %{conn: conn, user: user} do
       %{flow: flow} = do_setup_flow(user)
       {:ok, view, _html} = live(conn, ~p"/flows/#{flow.id}/edit")
 
-      view |> element("button", "Agente") |> render_click()
+      view |> element("button", "Agent") |> render_click()
 
       assert has_element?(view, "#flow-chat-timeline")
     end
 
-    test "clicking 'Agente' twice closes the chat drawer", %{conn: conn, user: user} do
+    test "clicking 'Agent' twice closes the chat drawer", %{conn: conn, user: user} do
       %{flow: flow} = do_setup_flow(user)
       {:ok, view, _html} = live(conn, ~p"/flows/#{flow.id}/edit")
 
-      view |> element("button", "Agente") |> render_click()
+      view |> element("button", "Agent") |> render_click()
       assert has_element?(view, "#flow-chat-timeline")
 
-      view |> element("button", "Agente") |> render_click()
+      view |> element("button", "Agent") |> render_click()
       refute has_element?(view, "#flow-chat-timeline")
     end
   end
@@ -67,7 +67,7 @@ defmodule BlackboexWeb.FlowLive.ChatTest do
     test "empty message is a noop (no Oban job enqueued)", %{conn: conn, user: user} do
       %{flow: flow} = do_setup_flow(user)
       {:ok, view, _html} = live(conn, ~p"/flows/#{flow.id}/edit")
-      view |> element("button", "Agente") |> render_click()
+      view |> element("button", "Agent") |> render_click()
 
       view
       |> form("form[phx-submit='send_chat']", %{"message" => "   "})
@@ -79,19 +79,19 @@ defmodule BlackboexWeb.FlowLive.ChatTest do
     test "valid message enqueues KickoffWorker and shows loading", %{conn: conn, user: user} do
       %{flow: flow} = do_setup_flow(user)
       {:ok, view, _html} = live(conn, ~p"/flows/#{flow.id}/edit")
-      view |> element("button", "Agente") |> render_click()
+      view |> element("button", "Agent") |> render_click()
 
       html =
         view
-        |> form("form[phx-submit='send_chat']", %{"message" => "crie um fluxo hello world"})
+        |> form("form[phx-submit='send_chat']", %{"message" => "create a hello world flow"})
         |> render_submit()
 
       # user message shown in the timeline
-      assert html =~ "crie um fluxo hello world"
+      assert html =~ "create a hello world flow"
 
       assert_enqueued(
         worker: Blackboex.FlowAgent.KickoffWorker,
-        args: %{"flow_id" => flow.id, "trigger_message" => "crie um fluxo hello world"}
+        args: %{"flow_id" => flow.id, "trigger_message" => "create a hello world flow"}
       )
     end
   end
@@ -112,7 +112,7 @@ defmodule BlackboexWeb.FlowLive.ChatTest do
 
       :timer.sleep(50)
       html = render(view)
-      assert html =~ "Agente pensando"
+      assert html =~ "Agent thinking"
     end
 
     test "{:explain_delta} streams markdown into the panel", %{conn: conn, user: user} do
@@ -132,14 +132,14 @@ defmodule BlackboexWeb.FlowLive.ChatTest do
       Phoenix.PubSub.broadcast(
         Blackboex.PubSub,
         "flow_agent:run:#{run_id}",
-        {:explain_delta, %{delta: "Esse fluxo **valida** eventos.", run_id: run_id}}
+        {:explain_delta, %{delta: "This flow **validates** events.", run_id: run_id}}
       )
 
       :timer.sleep(50)
       html = render(view)
 
       # Markdown is rendered — the bold tag must appear.
-      assert html =~ "<strong>valida</strong>"
+      assert html =~ "<strong>validates</strong>"
     end
 
     test "{:definition_delta} appends to the stream view", %{conn: conn, user: user} do
@@ -171,11 +171,11 @@ defmodule BlackboexWeb.FlowLive.ChatTest do
          %{conn: conn, user: user} do
       %{flow: flow} = do_setup_flow(user)
       {:ok, view, _html} = live(conn, ~p"/flows/#{flow.id}/edit")
-      view |> element("button", "Agente") |> render_click()
+      view |> element("button", "Agent") |> render_click()
 
       # Simulate a user having sent a message that's currently loading.
       view
-      |> form("form[phx-submit='send_chat']", %{"message" => "me explica o fluxo"})
+      |> form("form[phx-submit='send_chat']", %{"message" => "explain the flow"})
       |> render_submit()
 
       run_id = Ecto.UUID.generate()
@@ -191,14 +191,15 @@ defmodule BlackboexWeb.FlowLive.ChatTest do
       Phoenix.PubSub.broadcast(
         Blackboex.PubSub,
         "flow_agent:run:#{run_id}",
-        {:run_completed, %{kind: :explain, answer: "Esse fluxo valida o evento.", run_id: run_id}}
+        {:run_completed,
+         %{kind: :explain, answer: "This flow validates the event.", run_id: run_id}}
       )
 
       :timer.sleep(80)
       html = render(view)
 
-      assert html =~ "Esse fluxo valida o evento"
-      refute html =~ "Agente pensando"
+      assert html =~ "This flow validates the event"
+      refute html =~ "Agent thinking"
     end
 
     test "{:run_completed} updates flow and pushes 'flow_chat:reload_definition'",
@@ -253,7 +254,7 @@ defmodule BlackboexWeb.FlowLive.ChatTest do
       html = render(view)
 
       assert html =~ "criei o hello"
-      refute html =~ "Agente pensando"
+      refute html =~ "Agent thinking"
     end
 
     test "{:run_failed} shows system message", %{conn: conn, user: user} do
@@ -287,7 +288,7 @@ defmodule BlackboexWeb.FlowLive.ChatTest do
       %{flow: flow} = do_setup_flow(user)
       {:ok, view, _html} = live(conn, ~p"/flows/#{flow.id}/edit")
 
-      view |> element("button", "Agente") |> render_click()
+      view |> element("button", "Agent") |> render_click()
 
       assert_has(view, ~s([data-role="llm-not-configured-banner"]))
     end
@@ -302,7 +303,7 @@ defmodule BlackboexWeb.FlowLive.ChatTest do
       })
 
       {:ok, view, _html} = live(conn, ~p"/flows/#{flow.id}/edit")
-      view |> element("button", "Agente") |> render_click()
+      view |> element("button", "Agent") |> render_click()
 
       refute_has(view, ~s([data-role="llm-not-configured-banner"]))
     end
@@ -336,7 +337,7 @@ defmodule BlackboexWeb.FlowLive.ChatTest do
         FlowConversations.append_event(run, %{event_type: "user_message", content: "oi"})
 
       {:ok, view, _html} = live(conn, ~p"/flows/#{flow.id}/edit")
-      view |> element("button", "Agente") |> render_click()
+      view |> element("button", "Agent") |> render_click()
       assert render(view) =~ "oi"
 
       # Clicking "New conversation" archives the current thread.

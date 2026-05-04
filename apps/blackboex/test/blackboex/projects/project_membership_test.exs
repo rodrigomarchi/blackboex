@@ -5,25 +5,25 @@ defmodule ProjectMembershipTest do
   alias Repo
 
   describe "changeset/2" do
-    test "changeset valido com role :admin" do
+    test "valid changeset with role :admin" do
       attrs = %{project_id: Ecto.UUID.generate(), user_id: 1, role: :admin}
       changeset = ProjectMembership.changeset(%ProjectMembership{}, attrs)
       assert changeset.valid?
     end
 
-    test "changeset valido com role :editor" do
+    test "valid changeset with role :editor" do
       attrs = %{project_id: Ecto.UUID.generate(), user_id: 1, role: :editor}
       changeset = ProjectMembership.changeset(%ProjectMembership{}, attrs)
       assert changeset.valid?
     end
 
-    test "changeset valido com role :viewer" do
+    test "valid changeset with role :viewer" do
       attrs = %{project_id: Ecto.UUID.generate(), user_id: 1, role: :viewer}
       changeset = ProjectMembership.changeset(%ProjectMembership{}, attrs)
       assert changeset.valid?
     end
 
-    test "changeset com role invalida retorna erro" do
+    test "changeset with invalid role returns error" do
       attrs = %{project_id: Ecto.UUID.generate(), user_id: 1, role: :superadmin}
       changeset = ProjectMembership.changeset(%ProjectMembership{}, attrs)
       refute changeset.valid?
@@ -32,7 +32,7 @@ defmodule ProjectMembershipTest do
   end
 
   describe "unique constraints" do
-    test "user so pode ter uma membership por projeto" do
+    test "user can have only one membership per project" do
       user = user_fixture()
       org = org_fixture(%{user: user})
 
@@ -60,7 +60,7 @@ defmodule ProjectMembershipTest do
   end
 
   describe "cascade delete" do
-    test "deletar projeto deleta memberships" do
+    test "deleting project deletes memberships" do
       user = user_fixture()
       org = org_fixture(%{user: user})
 
@@ -79,7 +79,7 @@ defmodule ProjectMembershipTest do
       refute Repo.all(ProjectMembership) |> Enum.any?(&(&1.project_id == project.id))
     end
 
-    test "deletar user deleta memberships" do
+    test "deleting user deletes memberships" do
       user = user_fixture()
       org = org_fixture(%{user: user})
 

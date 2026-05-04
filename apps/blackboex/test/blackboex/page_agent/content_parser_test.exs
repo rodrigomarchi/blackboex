@@ -13,7 +13,7 @@ defmodule Blackboex.PageAgent.ContentParserTest do
       World
       ~~~
 
-      Resumo: feito.
+      Summary: done.
       """
 
       assert {:ok, "# Hello\nWorld"} = ContentParser.extract_content(input)
@@ -67,26 +67,26 @@ defmodule Blackboex.PageAgent.ContentParserTest do
   end
 
   describe "extract_summary/1" do
-    test "extracts line starting with 'Resumo:'" do
+    test "extracts line starting with 'Summary:'" do
       input = """
       ~~~markdown
       body
       ~~~
 
-      Resumo: adicionei intro.
+      Summary: added intro.
       """
 
-      assert ContentParser.extract_summary(input) == "adicionei intro."
+      assert ContentParser.extract_summary(input) == "added intro."
     end
 
-    test "returns default when no Resumo line" do
+    test "returns default when no Summary line" do
       assert ContentParser.extract_summary("~~~markdown\nx\n~~~") ==
-               "Conteúdo atualizado pelo agente"
+               "Content updated by the agent"
     end
 
     test "truncates very long summary to ~200 chars" do
       huge = String.duplicate("a", 500)
-      input = "~~~markdown\nx\n~~~\n\nResumo: #{huge}"
+      input = "~~~markdown\nx\n~~~\n\nSummary: #{huge}"
 
       result = ContentParser.extract_summary(input)
       assert String.length(result) <= 205

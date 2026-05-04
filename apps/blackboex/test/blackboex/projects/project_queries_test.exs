@@ -5,7 +5,7 @@ defmodule Blackboex.Projects.ProjectQueriesTest do
   alias Blackboex.Repo
 
   describe "for_organization/1" do
-    test "filtra projetos por org_id" do
+    test "filters projects by org_id" do
       user = user_fixture()
       org1 = org_fixture(%{user: user})
       org2 = org_fixture(%{user: user})
@@ -20,7 +20,7 @@ defmodule Blackboex.Projects.ProjectQueriesTest do
   end
 
   describe "by_org_and_slug/2" do
-    test "retorna projeto correto" do
+    test "returns the correct project" do
       user = user_fixture()
       org = org_fixture(%{user: user})
 
@@ -31,15 +31,15 @@ defmodule Blackboex.Projects.ProjectQueriesTest do
       assert result.id == project.id
     end
 
-    test "com slug inexistente retorna nil" do
+    test "returns nil for nonexistent slug" do
       org = org_fixture()
-      result = Repo.one(ProjectQueries.by_org_and_slug(org.id, "inexistente-abc123"))
+      result = Repo.one(ProjectQueries.by_org_and_slug(org.id, "nonexistent-abc123"))
       assert result == nil
     end
   end
 
   describe "for_user/2" do
-    test "retorna projetos onde user e membro" do
+    test "returns projects where user is member" do
       owner = user_fixture()
       org = org_fixture(%{user: owner})
       member = user_fixture()
@@ -52,7 +52,7 @@ defmodule Blackboex.Projects.ProjectQueriesTest do
       assert Enum.any?(results, &(&1.id == project.id))
     end
 
-    test "retorna todos projetos se user e org owner" do
+    test "returns all projects when user is org owner" do
       user = user_fixture()
       org = org_fixture(%{user: user})
       {:ok, %{project: project}} = Blackboex.Projects.create_project(org, user, %{name: "Proj"})
@@ -61,7 +61,7 @@ defmodule Blackboex.Projects.ProjectQueriesTest do
       assert Enum.any?(results, &(&1.id == project.id))
     end
 
-    test "retorna todos projetos se user e org admin" do
+    test "returns all projects when user is org admin" do
       owner = user_fixture()
       org = org_fixture(%{user: owner})
       admin = user_fixture()
@@ -72,7 +72,7 @@ defmodule Blackboex.Projects.ProjectQueriesTest do
       assert Enum.any?(results, &(&1.id == project.id))
     end
 
-    test "nao retorna projetos para org member sem project membership" do
+    test "does not return projects for org member without project membership" do
       owner = user_fixture()
       org = org_fixture(%{user: owner})
       member = user_fixture()
@@ -84,7 +84,7 @@ defmodule Blackboex.Projects.ProjectQueriesTest do
       refute Enum.any?(results, &(&1.id == project.id))
     end
 
-    test "with_member_count retorna contagem correta" do
+    test "with_member_count returns correct count" do
       owner = user_fixture()
       org = org_fixture(%{user: owner})
       {:ok, %{project: project}} = Blackboex.Projects.create_project(org, owner, %{name: "Proj"})

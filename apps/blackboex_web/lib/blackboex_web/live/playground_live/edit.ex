@@ -292,7 +292,7 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
   def handle_event("new_chat", _params, socket) do
     if socket.assigns.chat_loading do
       {:noreply,
-       put_flash(socket, :error, "Aguarde a resposta do agente antes de iniciar um novo chat.")}
+       put_flash(socket, :error, "Wait for the agent response before starting a new chat.")}
     else
       pg = socket.assigns.playground
 
@@ -305,11 +305,10 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
           {:noreply,
            socket
            |> assign(chat_messages: [], chat_input: "", current_stream: nil, current_run_id: nil)
-           |> put_flash(:info, "Novo chat iniciado.")}
+           |> put_flash(:info, "New chat started.")}
 
         {:error, reason} ->
-          {:noreply,
-           put_flash(socket, :error, "Não foi possível iniciar novo chat: #{inspect(reason)}")}
+          {:noreply, put_flash(socket, :error, "Could not start a new chat: #{inspect(reason)}")}
       end
     end
   end
@@ -351,10 +350,10 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
             {:noreply, socket}
 
           {:error, :limit_exceeded} ->
-            {:noreply, put_flash(socket, :error, "Limite de gerações do plano atingido.")}
+            {:noreply, put_flash(socket, :error, "Plan generation limit reached.")}
 
           {:error, reason} ->
-            {:noreply, put_flash(socket, :error, "Falha ao iniciar agente: #{inspect(reason)}")}
+            {:noreply, put_flash(socket, :error, "Failed to start agent: #{inspect(reason)}")}
         end
     end
   end
@@ -461,7 +460,7 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
   def handle_info({:run_failed, %{reason: reason, run_id: run_id}}, socket) do
     if socket.assigns.current_run_id == run_id do
       cancel_chat_slow_timer(socket)
-      failure_msg = %{role: "system", content: "Agente falhou: #{reason}"}
+      failure_msg = %{role: "system", content: "Agent failed: #{reason}"}
 
       {:noreply,
        socket
@@ -472,7 +471,7 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
          current_stream: nil,
          chat_messages: socket.assigns.chat_messages ++ [failure_msg]
        )
-       |> put_flash(:error, "Agente falhou: #{reason}")}
+       |> put_flash(:error, "Agent failed: #{reason}")}
     else
       {:noreply, socket}
     end
@@ -483,7 +482,7 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
     if socket.assigns.chat_loading do
       warning = %{
         role: "system",
-        content: "Agente está demorando mais que o esperado... aguarde (timeout: 3 min)."
+        content: "Agent is taking longer than expected... please wait (timeout: 3 min)."
       }
 
       {:noreply,
@@ -511,7 +510,7 @@ defmodule BlackboexWeb.PlaygroundLive.Edit do
     do: [%{role: "assistant", content: content || "", run_id: run_id}]
 
   defp event_to_message(%{event_type: "failed", content: content}),
-    do: [%{role: "system", content: "Agente falhou: #{content}"}]
+    do: [%{role: "system", content: "Agent failed: #{content}"}]
 
   defp event_to_message(_), do: []
 

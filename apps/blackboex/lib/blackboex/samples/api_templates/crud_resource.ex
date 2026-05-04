@@ -11,8 +11,8 @@ defmodule Blackboex.Samples.ApiTemplates.CrudResource do
     %{
       id: "crud-resource",
       name: "REST CRUD Resource",
-      description: "CRUD completo genérico para qualquer recurso (in-memory)",
-      category: "Protótipos",
+      description: "Generic full CRUD for any in-memory resource",
+      category: "Prototypes",
       template_type: "crud",
       icon: "table-cells",
       method: "POST",
@@ -286,40 +286,40 @@ defmodule Blackboex.Samples.ApiTemplates.CrudResource do
     """
     # REST CRUD Resource
 
-    Ponto de partida para qualquer recurso REST. Implementa as 5 operações
-    CRUD básicas sobre um store in-memory estático — ideal para prototipagem
-    rápida antes de conectar ao banco de dados real.
+    Starting point for any REST resource. Implements the 5 basic CRUD operations
+    over a static in-memory store, ideal for quick prototyping before connecting
+    to a real database.
 
-    ## Ações Disponíveis
+    ## Available Actions
 
-    | Ação | Descrição | Campos Necessários |
+    | Action | Description | Required Fields |
     |------|-----------|-------------------|
-    | `list` | Lista todos os recursos | — |
-    | `get` | Retorna um recurso por ID | `id` |
-    | `create` | Cria novo recurso | `data` |
-    | `update` | Atualiza campos do recurso | `id`, `data` |
-    | `delete` | Remove o recurso | `id` |
+    | `list` | Lists all resources | none |
+    | `get` | Returns a resource by ID | `id` |
+    | `create` | Creates a new resource | `data` |
+    | `update` | Updates resource fields | `id`, `data` |
+    | `delete` | Removes the resource | `id` |
 
-    ## Exemplo — Criar
+    ## Example - Create
 
     ```bash
-    curl -X POST https://api.blackboex.com/api/minha-org/crud-resource \\
+    curl -X POST https://api.blackboex.com/api/my-org/crud-resource \\
       -H "Content-Type: application/json" \\
       -d '{"action": "create", "data": {"name": "Item 1", "value": 42}}'
     ```
 
-    ## Exemplo — Listar
+    ## Example - List
 
     ```bash
-    curl -X POST https://api.blackboex.com/api/minha-org/crud-resource \\
+    curl -X POST https://api.blackboex.com/api/my-org/crud-resource \\
       -H "Content-Type: application/json" \\
       -d '{"action": "list"}'
     ```
 
-    ## Personalização
+    ## Customization
 
-    Substitua `@store` no módulo `Helpers` por chamadas reais ao banco de dados.
-    O contrato da API permanece idêntico.
+    Replace `@store` in the `Helpers` module with real database calls.
+    The API contract remains identical.
     """
   end
 end

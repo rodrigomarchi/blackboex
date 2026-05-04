@@ -45,19 +45,19 @@ defmodule Blackboex.PageAgent.StreamManagerTest do
       assert_receive {:content_delta, _}, 100
 
       cb.("\n~~~\n")
-      cb.("Resumo: did it.")
+      cb.("Summary: did it.")
 
-      # Drain any in-flight deltas but assert the Resumo text never leaks.
+      # Drain any in-flight deltas but assert the Summary text never leaks.
       Process.sleep(50)
 
-      received_resumo? =
+      received_summary? =
         receive do
-          {:content_delta, %{delta: delta}} -> String.contains?(delta, "Resumo")
+          {:content_delta, %{delta: delta}} -> String.contains?(delta, "Summary")
         after
           0 -> false
         end
 
-      refute received_resumo?
+      refute received_summary?
     end
 
     test "accepts ~~~md alias as opening fence", %{run_id: run_id} do
@@ -110,11 +110,11 @@ defmodule Blackboex.PageAgent.StreamManagerTest do
     test "does not emit after the fence has closed", %{run_id: run_id} do
       cb = StreamManager.build_token_callback(run_id)
       cb.("~~~markdown\nfoo\n~~~\n")
-      cb.("Resumo: ok")
+      cb.("Summary: ok")
       StreamManager.flush_remaining(run_id)
-      # Whatever we got was from inside the fence; Resumo must not appear.
+      # Whatever we got was from inside the fence; Summary must not appear.
       Process.sleep(20)
-      refute_receive {:content_delta, %{delta: "Resumo: ok"}}, 0
+      refute_receive {:content_delta, %{delta: "Summary: ok"}}, 0
     end
   end
 

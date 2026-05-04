@@ -1,42 +1,42 @@
 [
   {
     "id": "hello_world",
-    "message": "crie um fluxo hello world que recebe um campo 'name' obrigatório e retorna 'Hello, <name>!'"
+    "message": "create a hello world flow that receives a required 'name' field and returns 'Hello, <name>!'"
   },
   {
     "id": "rest_api_crud",
-    "message": "fluxo que faz POST em https://jsonplaceholder.typicode.com/posts com título e corpo recebidos no input, e depois GET em /posts/1 pra validar roundtrip"
+    "message": "flow that POSTs to https://jsonplaceholder.typicode.com/posts with title and body from input, then GETs /posts/1 to validate the roundtrip"
   },
   {
     "id": "approval_with_timeout",
-    "message": "fluxo de aprovação: recebe uma descrição, pausa em webhook_wait esperando o evento 'approval' com timeout de 1 hora, ramifica entre approved/denied e termina com um end em cada ramo"
+    "message": "approval flow: receives a description, pauses at webhook_wait waiting for the 'approval' event with a 1-hour timeout, branches between approved/denied and finishes with an end node in each branch"
   },
   {
     "id": "stripe_payment_router",
-    "message": "roteador de pagamento Stripe: recebe um payload de webhook, condiciona pelo método ('card', 'boleto', 'pix') em 3 ramos, cada ramo chama uma URL diferente"
+    "message": "Stripe payment router: receives a webhook payload, branches by method ('card', 'bank_slip', 'pix') into 3 paths, each path calls a different URL"
   },
   {
     "id": "lead_scoring",
-    "message": "enriquecimento de lead: recebe email, faz HTTP GET pra uma API de enriquecimento, calcula um score numérico em elixir_code e retorna {score, tier}"
+    "message": "lead enrichment: receives email, runs HTTP GET against an enrichment API, calculates a numeric score in elixir_code and returns {score, tier}"
   },
   {
     "id": "saga_compensation",
-    "message": "saga com compensação: reserva inventário, cobra cliente, e se falhar em qualquer step faz fail com mensagem explicando"
+    "message": "saga with compensation: reserves inventory, charges the customer, and if any step fails triggers fail with an explanatory message"
   },
   {
     "id": "notification_fanout",
-    "message": "recebe uma lista de contatos {email, phone}, usa for_each pra mandar notificação em cada canal, termina com um end que reporta quantos foram enviados"
+    "message": "receives a contact list {email, phone}, uses for_each to send a notification in each channel, finishes with an end node reporting how many were sent"
   },
   {
     "id": "async_poller",
-    "message": "fluxo que inicia um job remoto via POST, entra em loop com delay de 2s e condition pra testar status, retorna quando status=='completed' ou falha após 30 tentativas"
+    "message": "flow that starts a remote job via POST, loops with a 2s delay and a condition to test status, returns when status=='completed' or fails after 30 attempts"
   },
   {
     "id": "incident_alert",
-    "message": "pipeline de incidente: recebe severidade, se for crítico escala imediatamente via HTTP POST, se for alto aguarda aprovação via webhook_wait, caso contrário só loga debug"
+    "message": "incident pipeline: receives severity, immediately escalates critical incidents via HTTP POST, waits for approval via webhook_wait when high, otherwise only logs debug"
   },
   {
     "id": "llm_router",
-    "message": "LLM router: recebe uma categoria ('code', 'summary', 'translation'), roteia pro modelo apropriado via http_request e retorna a resposta"
+    "message": "LLM router: receives a category ('code', 'summary', 'translation'), routes to the appropriate model through http_request and returns the response"
   }
 ]

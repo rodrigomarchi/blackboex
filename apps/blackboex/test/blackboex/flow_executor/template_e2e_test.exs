@@ -40,13 +40,13 @@ defmodule Blackboex.FlowExecutor.TemplateE2eTest do
 
   describe "sync execution — email route" do
     test "routes to email when email is provided", %{flow: flow} do
-      input = %{"name" => "João", "email" => "joao@test.com"}
+      input = %{"name" => "John", "email" => "john@test.com"}
       assert {:ok, result} = FlowExecutor.execute_sync(flow, input)
 
       output = flow_output(result)
       assert output["channel"] == "email"
-      assert output["to"] == "joao@test.com"
-      assert output["message"] == "Hello, João!"
+      assert output["to"] == "john@test.com"
+      assert output["message"] == "Hello, John!"
       assert result.execution_id
       assert result.duration_ms >= 0
     end

@@ -11,7 +11,7 @@ defmodule Blackboex.PageAgent.PromptsTest do
       assert is_binary(prompt)
       assert String.length(prompt) > 0
       assert prompt =~ ~r/markdown/i
-      assert prompt =~ "página"
+      assert prompt =~ "page"
     end
 
     test ":edit prompt mentions preserving style/tone" do
@@ -31,43 +31,43 @@ defmodule Blackboex.PageAgent.PromptsTest do
 
   describe "user_message/4" do
     test ":generate without history contains the request and no current content block" do
-      msg = Prompts.user_message(:generate, "escreve sobre X", "", history: [])
-      assert msg =~ "escreve sobre X"
-      refute msg =~ "Conteúdo atual"
-      refute msg =~ "Histórico"
+      msg = Prompts.user_message(:generate, "write about X", "", history: [])
+      assert msg =~ "write about X"
+      refute msg =~ "Current content"
+      refute msg =~ "Conversation history"
     end
 
     test ":edit includes current content in a markdown block" do
-      msg = Prompts.user_message(:edit, "traduz", "# Título\n\ntexto", history: [])
-      assert msg =~ "Conteúdo atual"
+      msg = Prompts.user_message(:edit, "translate", "# Title\n\ntext", history: [])
+      assert msg =~ "Current content"
       assert msg =~ "~~~markdown"
-      assert msg =~ "# Título"
-      assert msg =~ "traduz"
+      assert msg =~ "# Title"
+      assert msg =~ "translate"
     end
 
     test "renders history block when history is not empty" do
       history = [
-        %{role: "user", content: "primeiro pedido"},
-        %{role: "assistant", content: "primeira resposta"}
+        %{role: "user", content: "first request"},
+        %{role: "assistant", content: "first response"}
       ]
 
-      msg = Prompts.user_message(:generate, "novo pedido", "", history: history)
-      assert msg =~ "Histórico"
-      assert msg =~ "primeiro pedido"
-      assert msg =~ "primeira resposta"
-      assert msg =~ "novo pedido"
+      msg = Prompts.user_message(:generate, "new request", "", history: history)
+      assert msg =~ "Conversation history"
+      assert msg =~ "first request"
+      assert msg =~ "first response"
+      assert msg =~ "new request"
     end
 
     test "omits history block when history is empty" do
       msg = Prompts.user_message(:generate, "x", "", history: [])
-      refute msg =~ "Histórico"
+      refute msg =~ "Conversation history"
     end
 
     test "truncates very long content_before" do
       huge = String.duplicate("a", 50_000)
-      msg = Prompts.user_message(:edit, "muda", huge, history: [])
+      msg = Prompts.user_message(:edit, "change", huge, history: [])
       assert String.length(msg) < 40_000
-      assert msg =~ "truncado"
+      assert msg =~ "truncated"
     end
 
     test ":generate ignores code_before" do

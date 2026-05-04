@@ -92,7 +92,7 @@ defmodule Blackboex.PlaygroundAgent.ChainRunner do
 
       {:error, reason} ->
         Logger.warning("record_ai_edit failed: #{inspect(reason)}")
-        handle_chain_failure(state, "falha ao aplicar edição: #{inspect(reason)}")
+        handle_chain_failure(state, "failed to apply edit: #{inspect(reason)}")
     end
   end
 
@@ -135,7 +135,7 @@ defmodule Blackboex.PlaygroundAgent.ChainRunner do
     conv && conv.project_id
   end
 
-  defp format_error({:crashed, reason}), do: "Processo do agente crashou: #{inspect(reason)}"
+  defp format_error({:crashed, reason}), do: "Agent process crashed: #{inspect(reason)}"
   defp format_error(err) when is_binary(err), do: err
   defp format_error(%{message: msg}) when is_binary(msg), do: msg
   defp format_error(err), do: inspect(err)

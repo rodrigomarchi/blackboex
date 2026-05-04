@@ -14,9 +14,9 @@ and applied atomically to `page.content`.
 | `PageAgent.Session` | GenServer — CircuitBreaker check → `Task.Supervisor.async_nolink` on `Blackboex.SandboxTaskSupervisor` → 3-minute timeout. Monitored via Registry `PageAgent.SessionRegistry`. |
 | `PageAgent.ChainRunner` | Runs the pipeline in the task; on success calls `Pages.record_ai_edit` to apply the edit and broadcasts `:run_completed`; on failure marks run failed and broadcasts `:run_failed`. |
 | `PageAgent.ContentPipeline` | Single LLM call via `Blackboex.LLM.Config.client()`. No validation/fix loops. Streams when a `token_callback` is provided. Extracts markdown via `ContentParser`. |
-| `PageAgent.ContentParser` | Extracts the first `~~~markdown` / `~~~md` / `~~~` (or backtick fallback) fence; picks up an optional `Resumo:` line for `summary`. Tilde fence avoids ambiguity with nested ` ```elixir ` code blocks inside the page content. |
+| `PageAgent.ContentParser` | Extracts the first `~~~markdown` / `~~~md` / `~~~` (or backtick fallback) fence; picks up an optional `Summary:` line for `summary`. Tilde fence avoids ambiguity with nested ` ```elixir ` code blocks inside the page content. |
 | `PageAgent.StreamManager` | Buffers LLM tokens in the process dictionary; flushes on 20+ chars or `\n` as `{:content_delta, %{delta, run_id}}` broadcasts. Also exposes `broadcast_run/2`, `broadcast_page/2`. |
-| `PageAgent.Prompts` | Dedicated system prompts (`:generate` and `:edit`) in Portuguese. Teaches the model to return CommonMark+GFM markdown, instructs preservation of tone/style on edit, truncates `content_before` at 30k chars. |
+| `PageAgent.Prompts` | Dedicated system prompts (`:generate` and `:edit`) in English. Teaches the model to return CommonMark+GFM markdown, instructs preservation of tone/style on edit, truncates `content_before` at 30k chars. |
 
 ## Public API
 
@@ -52,9 +52,9 @@ Tasks run under the shared `Blackboex.SandboxTaskSupervisor`.
 
 The LLM must respond with exactly one `~~~markdown ... ~~~` block (tilde fences
 allow nested ` ```language ` code blocks inside). Everything outside the fence
-is ignored for content extraction, but a `Resumo: ...` line (if present)
+is ignored for content extraction, but a `Summary: ...` line (if present)
 becomes the run's `run_summary`. Failing to emit a fence yields an error
-`"resposta do modelo não continha bloco markdown"` and marks the run failed.
+`"model response did not contain a markdown block"` and marks the run failed.
 
 ## Budgeting and safety
 

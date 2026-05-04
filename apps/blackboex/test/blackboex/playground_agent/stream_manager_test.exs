@@ -12,7 +12,7 @@ defmodule Blackboex.PlaygroundAgent.StreamManagerTest do
   describe "build_token_callback/1 (fence-aware)" do
     test "does not emit prose before the opening fence", %{run_id: run_id} do
       cb = StreamManager.build_token_callback(run_id)
-      cb.("Claro, aqui vai:\n")
+      cb.("Sure, here it is:\n")
       refute_receive {:code_delta, _}, 50
     end
 
@@ -21,7 +21,7 @@ defmodule Blackboex.PlaygroundAgent.StreamManagerTest do
 
       # Prose + opening fence + code
       Enum.each(
-        ["Claro, aqui vai:\n", "```elixir\n", "IO.puts(:ok)\n", "x = 1\n"],
+        ["Sure, here it is:\n", "```elixir\n", "IO.puts(:ok)\n", "x = 1\n"],
         &cb.(&1)
       )
 
@@ -34,7 +34,7 @@ defmodule Blackboex.PlaygroundAgent.StreamManagerTest do
 
       assert emitted =~ "IO.puts(:ok)"
       assert emitted =~ "x = 1"
-      refute emitted =~ "Claro"
+      refute emitted =~ "Sure"
       refute emitted =~ "```"
     end
 
@@ -46,7 +46,7 @@ defmodule Blackboex.PlaygroundAgent.StreamManagerTest do
           "```elixir\n",
           "IO.puts(:ok)\n",
           "```\n",
-          "Resumo: escreve ok\n"
+          "Summary: writes ok\n"
         ],
         &cb.(&1)
       )
@@ -55,7 +55,7 @@ defmodule Blackboex.PlaygroundAgent.StreamManagerTest do
 
       emitted = collect_deltas([]) |> Enum.join()
       assert emitted =~ "IO.puts(:ok)"
-      refute emitted =~ "Resumo"
+      refute emitted =~ "Summary"
       refute emitted =~ "```"
     end
 

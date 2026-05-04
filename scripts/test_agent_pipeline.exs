@@ -1,13 +1,13 @@
-# Script para testar o agent pipeline end-to-end com LLM real.
+# Script to test the agent pipeline end-to-end with a real LLM.
 #
-# Uso:
+# Usage:
 #   ANTHROPIC_API_KEY=sk-ant-... mix run scripts/test_agent_pipeline.exs
 #
-# Testa 4 cenarios de geracao de codigo:
-# 1. API simples de soma
-# 2. API com validacao de parametros
-# 3. API de conversao de temperatura
-# 4. Edit de API existente via chat
+# Tests 4 code generation scenarios:
+# 1. Simple addition API
+# 2. API with parameter validation
+# 3. Temperature conversion API
+# 4. Existing API edit through chat
 
 import Ecto.Query
 

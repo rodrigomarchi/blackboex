@@ -20,7 +20,7 @@ defmodule Blackboex.PageAgentTest do
     } do
       page = page_fixture(%{user: user, org: org, content: ""})
 
-      assert {:ok, %Oban.Job{}} = PageAgent.start(page, scope, "escreva algo")
+      assert {:ok, %Oban.Job{}} = PageAgent.start(page, scope, "write something")
 
       assert_enqueued(
         worker: Blackboex.PageAgent.KickoffWorker,
@@ -66,7 +66,7 @@ defmodule Blackboex.PageAgentTest do
       {_u2, org} = user_and_org_fixture()
       scope = %{user: user, organization: org}
 
-      assert {:error, :unauthorized} = PageAgent.start(other_page, scope, "olá")
+      assert {:error, :unauthorized} = PageAgent.start(other_page, scope, "hello")
     end
 
     test "job args include trigger_message and user_id (content read fresh by worker)", %{

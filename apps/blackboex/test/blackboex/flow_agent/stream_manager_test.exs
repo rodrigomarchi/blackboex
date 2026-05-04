@@ -19,7 +19,7 @@ defmodule Blackboex.FlowAgent.StreamManagerTest do
 
     test "tokens before opening fence are NOT broadcast", %{run_id: run_id} do
       cb = StreamManager.build_token_callback(run_id)
-      cb.("Pensando...")
+      cb.("Thinking...")
       cb.(" preparando JSON...")
 
       refute_receive {:definition_delta, _}, 100
@@ -49,7 +49,7 @@ defmodule Blackboex.FlowAgent.StreamManagerTest do
       cb.("~~~json\n{\"x\":1}\n~~~\n")
       # drain any pending delta
       _ = receive_all_deltas(100)
-      cb.("Resumo: feito")
+      cb.("Summary: done")
 
       refute_receive {:definition_delta, _}, 100
     end
@@ -91,26 +91,26 @@ defmodule Blackboex.FlowAgent.StreamManagerTest do
     test "emits :explain_delta once threshold reached with no fence", %{run_id: run_id} do
       cb = StreamManager.build_token_callback(run_id)
       # Push > 40 bytes of prose without a fence — manager commits to explain mode.
-      cb.("Resposta: esse fluxo recebe um evento e valida a assinatura.\n")
+      cb.("Answer: this flow receives an event and validates the signature.\n")
 
       assert_receive {:explain_delta, %{delta: delta, run_id: ^run_id}}, 500
-      # The `Resposta:` prefix is stripped.
-      refute delta =~ "Resposta:"
-      assert delta =~ "esse fluxo"
+      # The `Answer:` prefix is stripped.
+      refute delta =~ "Answer:"
+      assert delta =~ "this flow"
     end
 
-    test "emits :explain_delta for prose without Resposta: prefix", %{run_id: run_id} do
+    test "emits :explain_delta for prose without Answer: prefix", %{run_id: run_id} do
       cb = StreamManager.build_token_callback(run_id)
 
-      cb.("O fluxo simplesmente passa os dados recebidos adiante e retorna.\n")
+      cb.("The flow simply passes received data forward and returns.\n")
 
       assert_receive {:explain_delta, %{delta: delta}}, 500
-      assert delta =~ "passa os dados"
+      assert delta =~ "passes received data"
     end
 
     test "does not emit :explain_delta while under threshold", %{run_id: run_id} do
       cb = StreamManager.build_token_callback(run_id)
-      cb.("oi")
+      cb.("hi")
 
       refute_receive {:explain_delta, _}, 100
     end
@@ -118,14 +118,14 @@ defmodule Blackboex.FlowAgent.StreamManagerTest do
     test "does not emit :definition_delta in explain mode", %{run_id: run_id} do
       cb = StreamManager.build_token_callback(run_id)
 
-      cb.("Resposta: isso aqui é uma resposta em prosa de tamanho generoso.\n")
+      cb.("Answer: this is a prose response with a generous size.\n")
 
       refute_receive {:definition_delta, _}, 150
     end
 
     test "flush_remaining emits pending buffer in explain mode", %{run_id: run_id} do
       cb = StreamManager.build_token_callback(run_id)
-      cb.("Resposta: inicio da resposta muito longa para travessia.")
+      cb.("Answer: start of a very long response for traversal.")
       # drain anything flushed so far
       _ = receive_all_deltas(50)
 

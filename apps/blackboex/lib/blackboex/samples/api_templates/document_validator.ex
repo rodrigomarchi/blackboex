@@ -1,6 +1,6 @@
-defmodule Blackboex.Samples.ApiTemplates.ValidadorDocumentos do
+defmodule Blackboex.Samples.ApiTemplates.DocumentValidator do
   @moduledoc """
-  Template: Validador de Documentos
+  Template: Document Validator
 
   Validates CPF, CNPJ, email and Brazilian phone numbers,
   returning validity, formatted version and details.
@@ -9,9 +9,9 @@ defmodule Blackboex.Samples.ApiTemplates.ValidadorDocumentos do
   @spec template() :: Blackboex.Samples.ApiTemplates.template()
   def template do
     %{
-      id: "validador-documentos",
-      name: "Validador de Documentos",
-      description: "Valida CPF, CNPJ, email e telefone brasileiro com formatação",
+      id: "document-validator",
+      name: "Document Validator",
+      description: "Validates CPF, CNPJ, email and Brazilian phone numbers with formatting",
       category: "AI Agent Tools",
       template_type: "computation",
       icon: "shield-check",
@@ -25,19 +25,19 @@ defmodule Blackboex.Samples.ApiTemplates.ValidadorDocumentos do
         readme: readme_content()
       },
       param_schema: %{
-        "documento" => "string",
-        "tipo" => "string"
+        "document" => "string",
+        "type" => "string"
       },
       example_request: %{
-        "documento" => "11144477735",
-        "tipo" => "cpf"
+        "document" => "11144477735",
+        "type" => "cpf"
       },
       example_response: %{
-        "valido" => true,
-        "formatado" => "111.444.777-35",
-        "detalhes" => %{
-          "tipo" => "cpf",
-          "digitos_verificadores" => "corretos"
+        "valid" => true,
+        "formatted" => "111.444.777-35",
+        "details" => %{
+          "type" => "cpf",
+          "check_digits" => "correct"
         }
       },
       validation_report: %{
@@ -75,8 +75,8 @@ defmodule Blackboex.Samples.ApiTemplates.ValidadorDocumentos do
 
         if changeset.valid? do
           data = Ecto.Changeset.apply_changes(changeset)
-          {valido, formatado, detalhes} = Helpers.validate_document(data.documento, data.tipo)
-          %{valido: valido, formatado: formatado, detalhes: detalhes}
+          {valid, formatted, details} = Helpers.validate_document(data.document, data.type)
+          %{valid: valid, formatted: formatted, details: details}
         else
           errors = Ecto.Changeset.traverse_errors(changeset, fn {msg, _opts} -> msg end)
           %{error: "Validation failed", details: errors}
@@ -97,29 +97,29 @@ defmodule Blackboex.Samples.ApiTemplates.ValidadorDocumentos do
         digits = String.replace(doc, ~r/\D/, "")
         valid = valid_cpf?(digits)
         formatted = if valid, do: format_cpf(digits), else: digits
-        {valid, formatted, %{tipo: "cpf", digitos_verificadores: if(valid, do: "corretos", else: "incorretos")}}
+        {valid, formatted, %{type: "cpf", check_digits: if(valid, do: "correct", else: "incorrect")}}
       end
 
       def validate_document(doc, "cnpj") do
         digits = String.replace(doc, ~r/\D/, "")
         valid = valid_cnpj?(digits)
         formatted = if valid, do: format_cnpj(digits), else: digits
-        {valid, formatted, %{tipo: "cnpj", digitos_verificadores: if(valid, do: "corretos", else: "incorretos")}}
+        {valid, formatted, %{type: "cnpj", check_digits: if(valid, do: "correct", else: "incorrect")}}
       end
 
       def validate_document(doc, "email") do
         valid = Regex.match?(~r/^[^\s@]+@[^\s@]+\.[^\s@]+$/, doc)
-        {valid, doc, %{tipo: "email", formato: if(valid, do: "válido", else: "inválido")}}
+        {valid, doc, %{type: "email", format: if(valid, do: "valid", else: "invalid")}}
       end
 
-      def validate_document(doc, "telefone") do
+      def validate_document(doc, "phone") do
         digits = String.replace(doc, ~r/\D/, "")
         valid = String.length(digits) in [10, 11]
         formatted = if valid, do: format_phone(digits), else: digits
-        {valid, formatted, %{tipo: "telefone", ddd: if(valid, do: String.slice(digits, 0, 2), else: nil)}}
+        {valid, formatted, %{type: "phone", area_code: if(valid, do: String.slice(digits, 0, 2), else: nil)}}
       end
 
-      def validate_document(doc, _tipo), do: {false, doc, %{tipo: "desconhecido"}}
+      def validate_document(doc, _type), do: {false, doc, %{type: "unknown"}}
 
       @spec valid_cpf?(String.t()) :: boolean()
       defp valid_cpf?(digits) when byte_size(digits) != 11, do: false
@@ -199,21 +199,21 @@ defmodule Blackboex.Samples.ApiTemplates.ValidadorDocumentos do
       @moduledoc "Input schema for the document validator API."
       use Blackboex.Schema
 
-      @valid_types ["cpf", "cnpj", "email", "telefone"]
+      @valid_types ["cpf", "cnpj", "email", "phone"]
 
       embedded_schema do
-        field :documento, :string
-        field :tipo, :string
+        field :document, :string
+        field :type, :string
       end
 
       @doc "Validates and casts incoming parameters."
       @spec changeset(map()) :: Ecto.Changeset.t()
       def changeset(params) do
         %__MODULE__{}
-        |> cast(params, [:documento, :tipo])
-        |> validate_required([:documento, :tipo])
-        |> validate_inclusion(:tipo, @valid_types)
-        |> validate_length(:documento, min: 1, max: 200)
+        |> cast(params, [:document, :type])
+        |> validate_required([:document, :type])
+        |> validate_inclusion(:type, @valid_types)
+        |> validate_length(:document, min: 1, max: 200)
       end
     end
     """
@@ -226,9 +226,9 @@ defmodule Blackboex.Samples.ApiTemplates.ValidadorDocumentos do
       use Blackboex.Schema
 
       embedded_schema do
-        field :valido, :boolean
-        field :formatado, :string
-        field :detalhes, :map
+        field :valid, :boolean
+        field :formatted, :string
+        field :details, :map
       end
     end
     """
@@ -242,7 +242,7 @@ defmodule Blackboex.Samples.ApiTemplates.ValidadorDocumentos do
 
       describe "Request changeset validation" do
         test "accepts valid CPF input" do
-          changeset = Request.changeset(%{"documento" => "11144477735", "tipo" => "cpf"})
+          changeset = Request.changeset(%{"document" => "11144477735", "type" => "cpf"})
           assert changeset.valid?
         end
 
@@ -251,44 +251,44 @@ defmodule Blackboex.Samples.ApiTemplates.ValidadorDocumentos do
           refute changeset.valid?
         end
 
-        test "rejects invalid tipo" do
-          changeset = Request.changeset(%{"documento" => "abc", "tipo" => "rg"})
+        test "rejects invalid type" do
+          changeset = Request.changeset(%{"document" => "abc", "type" => "rg"})
           refute changeset.valid?
         end
       end
 
       describe "successful computation" do
         test "valid CPF returns true and formatted" do
-          result = Handler.handle(%{"documento" => "11144477735", "tipo" => "cpf"})
-          assert result.valido == true
-          assert result.formatado == "111.444.777-35"
+          result = Handler.handle(%{"document" => "11144477735", "type" => "cpf"})
+          assert result.valid == true
+          assert result.formatted == "111.444.777-35"
         end
 
         test "invalid CPF digits returns false" do
-          result = Handler.handle(%{"documento" => "11111111111", "tipo" => "cpf"})
-          assert result.valido == false
+          result = Handler.handle(%{"document" => "11111111111", "type" => "cpf"})
+          assert result.valid == false
         end
 
         test "valid CNPJ returns true and formatted with slash" do
-          result = Handler.handle(%{"documento" => "11222333000181", "tipo" => "cnpj"})
-          assert result.valido == true
-          assert String.contains?(result.formatado, "/")
+          result = Handler.handle(%{"document" => "11222333000181", "type" => "cnpj"})
+          assert result.valid == true
+          assert String.contains?(result.formatted, "/")
         end
 
         test "valid email returns true" do
-          result = Handler.handle(%{"documento" => "user@example.com", "tipo" => "email"})
-          assert result.valido == true
+          result = Handler.handle(%{"document" => "user@example.com", "type" => "email"})
+          assert result.valid == true
         end
 
         test "invalid email returns false" do
-          result = Handler.handle(%{"documento" => "not-an-email", "tipo" => "email"})
-          assert result.valido == false
+          result = Handler.handle(%{"document" => "not-an-email", "type" => "email"})
+          assert result.valid == false
         end
 
-        test "valid 11-digit phone returns formatted with DDD" do
-          result = Handler.handle(%{"documento" => "11987654321", "tipo" => "telefone"})
-          assert result.valido == true
-          assert String.starts_with?(result.formatado, "(11)")
+        test "valid 11-digit phone returns formatted with area code" do
+          result = Handler.handle(%{"document" => "11987654321", "type" => "phone"})
+          assert result.valid == true
+          assert String.starts_with?(result.formatted, "(11)")
         end
       end
 
@@ -305,51 +305,51 @@ defmodule Blackboex.Samples.ApiTemplates.ValidadorDocumentos do
 
   defp readme_content do
     """
-    # Validador de Documentos
+    # Document Validator
 
-    Valida documentos brasileiros (CPF, CNPJ) e formatos comuns (email, telefone),
-    retornando o resultado da validação, a versão formatada e detalhes sobre o documento.
+    Validates Brazilian documents (CPF, CNPJ) and common formats (email, phone),
+    returning the validation result, formatted value and document details.
 
-    ## Parâmetros
+    ## Parameters
 
-    | Campo | Tipo | Obrigatório | Descrição |
+    | Field | Type | Required | Description |
     |-------|------|-------------|-----------|
-    | `documento` | string | sim | O documento a ser validado |
-    | `tipo` | string | sim | Tipo: `cpf`, `cnpj`, `email`, `telefone` |
+    | `document` | string | yes | The document or value to validate |
+    | `type` | string | yes | Type: `cpf`, `cnpj`, `email`, `phone` |
 
-    ## Exemplo de Requisição
+    ## Example Request
 
     ```bash
-    curl -X POST https://api.blackboex.com/api/minha-org/validador-documentos \\
+    curl -X POST https://api.blackboex.com/api/my-org/document-validator \\
       -H "Content-Type: application/json" \\
-      -d '{"documento": "11144477735", "tipo": "cpf"}'
+      -d '{"document": "11144477735", "type": "cpf"}'
     ```
 
-    ## Exemplo de Resposta
+    ## Example Response
 
     ```json
     {
-      "valido": true,
-      "formatado": "111.444.777-35",
-      "detalhes": {
-        "tipo": "cpf",
-        "digitos_verificadores": "corretos"
+      "valid": true,
+      "formatted": "111.444.777-35",
+      "details": {
+        "type": "cpf",
+        "check_digits": "correct"
       }
     }
     ```
 
-    ## Algoritmos
+    ## Algorithms
 
-    - **CPF**: Validação completa com dois dígitos verificadores (módulo 11).
-    - **CNPJ**: Validação completa com dois dígitos verificadores.
-    - **Email**: Regex para formato user@domain.tld.
-    - **Telefone**: Aceita 10 dígitos (fixo) ou 11 dígitos (celular), extrai DDD.
+    - **CPF**: Full validation with two check digits (modulo 11).
+    - **CNPJ**: Full validation with two check digits.
+    - **Email**: Regex for user@domain.tld format.
+    - **Phone**: Accepts 10 digits for landline numbers or 11 digits for mobile numbers and extracts the area code.
 
-    ## Casos de Uso
+    ## Use Cases
 
-    - Validação de cadastro em formulários
-    - Tool de agente de IA para verificar dados de usuários
-    - Pipeline de limpeza e validação de dados
+    - Registration validation in forms
+    - AI agent tool for checking user data
+    - Data cleanup and validation pipeline
     """
   end
 end

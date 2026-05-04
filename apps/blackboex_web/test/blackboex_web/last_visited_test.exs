@@ -82,7 +82,7 @@ defmodule BlackboexWeb.LastVisitedTest do
       # Switching back to personal_org must NOT reuse the second org's project.
       assert {:ok, resolved} = LastVisited.resolve_project_for_org(user, personal_org)
       assert resolved.organization_id == personal_org.id
-      assert resolved.name == "Exemplos"
+      assert resolved.name == "Examples"
 
       # And switching to second_org must return the remembered project.
       assert {:ok, resolved2} = LastVisited.resolve_project_for_org(user, second_org)
@@ -94,7 +94,7 @@ defmodule BlackboexWeb.LastVisitedTest do
       personal_org: org
     } do
       assert {:ok, project} = LastVisited.resolve_project_for_org(user, org)
-      assert project.name == "Exemplos"
+      assert project.name == "Examples"
     end
   end
 

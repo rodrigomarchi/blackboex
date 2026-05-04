@@ -6,14 +6,11 @@
  */
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
 
-// Lazy-load mermaid from CDN — only downloaded when user creates a mermaid block.
+// Lazy-load bundled mermaid only when the user creates a mermaid block.
 let mermaidModule = null;
 let mermaidLoadPromise = null;
 let mermaidLoader = async () => {
-  const { default: mermaid } = await import(
-    /* webpackIgnore: true */
-    "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs"
-  );
+  const { default: mermaid } = await import("mermaid");
   return mermaid;
 };
 

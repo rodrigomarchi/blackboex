@@ -207,45 +207,51 @@ defmodule Blackboex.PolicyTest do
 
       # Attach a telemetry handler to verify emission
       ref = make_ref()
+      handler_id = "test-policy-denied-#{inspect(ref)}"
       test_pid = self()
 
       :telemetry.attach(
-        "test-policy-denied-#{inspect(ref)}",
+        handler_id,
         [:blackboex, :policy, :denied],
         fn _event, _measurements, metadata, _config ->
-          send(test_pid, {:telemetry_fired, metadata})
+          if metadata.action == :organization_delete do
+            send(test_pid, {:telemetry_fired, metadata})
+          end
         end,
         nil
       )
+
+      on_exit(fn -> :telemetry.detach(handler_id) end)
 
       Policy.authorize_and_track(:organization_delete, scope, org)
 
       assert_receive {:telemetry_fired, metadata}
       assert metadata.action == :organization_delete
-
-      :telemetry.detach("test-policy-denied-#{inspect(ref)}")
     end
 
     test "does not emit telemetry on allowed action" do
       {scope, org} = scope_with_role(:owner)
 
       ref = make_ref()
+      handler_id = "test-policy-allowed-#{inspect(ref)}"
       test_pid = self()
 
       :telemetry.attach(
-        "test-policy-allowed-#{inspect(ref)}",
+        handler_id,
         [:blackboex, :policy, :denied],
         fn _event, _measurements, metadata, _config ->
-          send(test_pid, {:telemetry_fired, metadata})
+          if metadata.action == :organization_read do
+            send(test_pid, {:telemetry_fired, metadata})
+          end
         end,
         nil
       )
 
+      on_exit(fn -> :telemetry.detach(handler_id) end)
+
       Policy.authorize_and_track(:organization_read, scope, org)
 
       refute_receive {:telemetry_fired, _}, 100
-
-      :telemetry.detach("test-policy-allowed-#{inspect(ref)}")
     end
   end
 

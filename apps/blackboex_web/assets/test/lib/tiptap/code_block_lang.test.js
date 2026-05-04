@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
 import {
   LANG_LABELS,
   enqueueRender,
@@ -8,6 +9,13 @@ import {
 } from "../../../js/lib/tiptap/code_block_lang";
 
 describe("code block language helpers", () => {
+  it("does not load mermaid from a runtime CDN", () => {
+    const source = readFileSync("js/lib/tiptap/code_block_lang.js", "utf8");
+
+    expect(source).not.toContain("cdn.jsdelivr");
+    expect(source).toContain('import("mermaid")');
+  });
+
   it("normalizes SVG dimensions for responsive mermaid previews", () => {
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.setAttribute("width", "320");

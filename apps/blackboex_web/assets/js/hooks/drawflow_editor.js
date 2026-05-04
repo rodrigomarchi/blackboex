@@ -22,9 +22,20 @@ import {
   fitView,
   updateZoomLabel,
 } from "../lib/flow/drawflow_layout";
+import {
+  createNodeFromDrop,
+  loadDrawflowDefinition,
+  setSidebarDragData,
+} from "../lib/flow/drawflow_interactions";
+import { wireDrawflowToolbar } from "../lib/flow/drawflow_toolbar";
 
 const DrawflowEditor = {
   mounted() {
+    this._cleanups = [];
+    this._timeouts = new Set();
+    this._frames = new Set();
+    this._destroyed = false;
+
     this.editor = new Drawflow(this.el);
     this.editor.reroute = true;
     this.editor.curvature = 0.5;
@@ -36,77 +47,26 @@ const DrawflowEditor = {
     // Bind to server-rendered toolbar (sibling of #drawflow-canvas)
     const toolbar = document.getElementById("df-canvas-toolbar");
     this._toolbar = toolbar;
-    if (toolbar) updateZoomLabel(this.editor, toolbar);
-
-    this.editor.on("zoom", () => updateZoomLabel(this.editor, toolbar));
-
-    toolbar.addEventListener("click", (e) => {
-      const btn = e.target.closest("[data-action]");
-      if (!btn) return;
-      e.stopPropagation();
-
-      switch (btn.dataset.action) {
-        case "zoom-in":
-          this.editor.zoom_in();
-          break;
-        case "zoom-out":
-          this.editor.zoom_out();
-          break;
-        case "zoom-reset":
-          this.editor.zoom = 1;
-          this.editor.canvas_x = 0;
-          this.editor.canvas_y = 0;
-          this.editor.precanvas.style.transform =
-            "translate(0px, 0px) scale(1)";
-          this.editor.dispatch("zoom", 1);
-          break;
-        case "fit-view":
-          fitView(this.editor);
-          break;
-        case "auto-layout":
-          autoLayout(this.editor);
-          requestAnimationFrame(() => fitView(this.editor));
-          break;
-        case "toggle-lock": {
-          const isEdit = this.editor.editor_mode === "edit";
-          this.editor.editor_mode = isEdit ? "fixed" : "edit";
-          btn.classList.toggle("df-toolbar-btn-active", !isEdit);
-          btn.title = isEdit ? "Unlock (view mode)" : "Toggle lock (edit/view)";
-          const wrap = btn.querySelector("[data-lock-icon]");
-          if (wrap) {
-            const icon = wrap.querySelector("span");
-            if (icon) {
-              icon.className = icon.className.replace(
-                /hero-lock-\w+/,
-                isEdit ? "hero-lock-closed" : "hero-lock-open",
-              );
-            }
-          }
-          break;
-        }
-      }
-    });
+    this.addCleanup(
+      wireDrawflowToolbar({
+        editor: this.editor,
+        toolbar,
+        autoLayout,
+        fitView,
+        updateZoomLabel,
+        requestFrame: (callback) => this.scheduleFrame(callback),
+      }),
+    );
 
     // Load existing definition (BlackboexFlow format from server)
-    const definition = this.el.dataset.definition;
-    if (definition) {
-      try {
-        const parsed = JSON.parse(definition);
-        if (parsed && parsed.version && parsed.nodes) {
-          // Convert BlackboexFlow → Drawflow for the editor
-          const drawflowData = blackboexToDrawflow(parsed, buildNodeHTML);
-          this.editor.import(drawflowData);
-        } else if (parsed && parsed.drawflow) {
-          // Legacy: raw Drawflow JSON (backwards compat during migration)
-          this.editor.import(parsed);
-        }
-      } catch {
-        // Empty or invalid definition — start fresh
-      }
-    }
+    loadDrawflowDefinition(
+      this.editor,
+      this.el.dataset.definition,
+      buildNodeHTML,
+    );
 
     // Render output labels on condition nodes after import
-    setTimeout(() => updateAllOutputLabels(this.editor), 100);
+    this.scheduleTimeout(() => updateAllOutputLabels(this.editor), 100);
 
     // ── Node selection → push to LiveView for properties drawer ──
     // Dirty flag — set by every mutation event Drawflow emits, cleared when
@@ -116,13 +76,13 @@ const DrawflowEditor = {
     const markDirty = () => {
       this._dataChanged = true;
     };
-    this.editor.on("nodeCreated", markDirty);
-    this.editor.on("nodeRemoved", markDirty);
-    this.editor.on("nodeMoved", markDirty);
-    this.editor.on("connectionCreated", markDirty);
-    this.editor.on("connectionRemoved", markDirty);
+    this.addEditorListener("nodeCreated", markDirty);
+    this.addEditorListener("nodeRemoved", markDirty);
+    this.addEditorListener("nodeMoved", markDirty);
+    this.addEditorListener("connectionCreated", markDirty);
+    this.addEditorListener("connectionRemoved", markDirty);
 
-    this.editor.on("nodeSelected", (nodeId) => {
+    this.addEditorListener("nodeSelected", (nodeId) => {
       const node = this.editor.getNodeFromId(nodeId);
       if (node) {
         this.pushEvent("node_selected", {
@@ -133,18 +93,13 @@ const DrawflowEditor = {
       }
     });
 
-    this.editor.on("nodeUnselected", () => {
+    this.addEditorListener("nodeUnselected", () => {
       this.pushEvent("node_deselected", {});
     });
 
     // When a node is removed, close the drawer
-    this.editor.on("nodeRemoved", () => {
+    this.addEditorListener("nodeRemoved", () => {
       this.pushEvent("node_deselected", {});
-    });
-
-    // Also close drawer when clicking empty canvas
-    this.editor.on("click", () => {
-      // Drawflow fires nodeUnselected separately, but this catches edge cases
     });
 
     // ── Server pushes updated data back to a node ──
@@ -172,7 +127,7 @@ const DrawflowEditor = {
     });
 
     // ── Condition node +/- buttons ──
-    this.el.addEventListener("click", (e) => {
+    this.addDomListener(this.el, "click", (e) => {
       const addBtn = e.target.closest(".df-btn-add-output");
       const removeBtn = e.target.closest(".df-btn-remove-output");
 
@@ -200,43 +155,18 @@ const DrawflowEditor = {
     });
 
     // ── Drag-drop from sidebar ──
-    this.el.addEventListener("drop", (e) => {
-      e.preventDefault();
-      const type = e.dataTransfer.getData("node-type");
-      const inputs = parseInt(e.dataTransfer.getData("node-inputs") || "1");
-      const outputs = parseInt(e.dataTransfer.getData("node-outputs") || "1");
-
-      if (type) {
-        const html = buildNodeHTML(type, outputs, {});
-        const rect = this.el.getBoundingClientRect();
-        const x =
-          (e.clientX -
-            rect.left -
-            this.editor.precanvas.getBoundingClientRect().left +
-            this.editor.canvas_x) /
-          this.editor.zoom;
-        const y =
-          (e.clientY -
-            rect.top -
-            this.editor.precanvas.getBoundingClientRect().top +
-            this.editor.canvas_y) /
-          this.editor.zoom;
-
-        this.editor.addNode(type, inputs, outputs, x, y, type, {}, html);
-      }
+    this.addDomListener(this.el, "drop", (e) => {
+      createNodeFromDrop(this.el, this.editor, e, buildNodeHTML);
     });
 
-    this.el.addEventListener("dragover", (e) => {
+    this.addDomListener(this.el, "dragover", (e) => {
       e.preventDefault();
     });
 
     // Set up drag data on sidebar items
     document.querySelectorAll("[data-node-type]").forEach((el) => {
-      el.addEventListener("dragstart", (e) => {
-        e.dataTransfer.setData("node-type", el.dataset.nodeType);
-        e.dataTransfer.setData("node-label", el.dataset.nodeLabel);
-        e.dataTransfer.setData("node-inputs", el.dataset.nodeInputs);
-        e.dataTransfer.setData("node-outputs", el.dataset.nodeOutputs);
+      this.addDomListener(el, "dragstart", (e) => {
+        setSidebarDragData(el, e);
       });
     });
 
@@ -272,6 +202,7 @@ const DrawflowEditor = {
         execOriginalData = null;
       }
     };
+    this.addCleanup(() => destroyExecutionCodeMirrorViews(execCmViews));
 
     this.handleEvent("load_execution_view", ({ definition, nodes }) => {
       if (!definition || !nodes || nodes.length === 0) return;
@@ -293,13 +224,15 @@ const DrawflowEditor = {
       this.editor.import(drawflowData);
 
       // Let Drawflow render the DOM so dagre can measure real node sizes
-      requestAnimationFrame(() => {
+      this.scheduleFrame(() => {
+        if (this._destroyed) return;
         autoLayout(this.editor, { nodesep: 80, ranksep: 180 });
 
         // Recalculate SVG connection paths — Drawflow needs a frame after
         // import to measure actual port positions in the DOM (issue #914)
         const ed = this.editor;
-        setTimeout(() => {
+        this.scheduleTimeout(() => {
+          if (this._destroyed) return;
           const homeData = ed.export().drawflow[ed.module].data;
           Object.keys(homeData).forEach((id) =>
             ed.updateConnectionNodes(`node-${id}`),
@@ -342,9 +275,11 @@ const DrawflowEditor = {
 
       // Drawflow needs a frame after import to measure actual port positions in
       // the DOM before connection SVG paths render correctly (issue #914).
-      requestAnimationFrame(() => {
+      this.scheduleFrame(() => {
+        if (this._destroyed) return;
         const ed = this.editor;
-        setTimeout(() => {
+        this.scheduleTimeout(() => {
+          if (this._destroyed) return;
           const homeData = ed.export().drawflow[ed.module].data;
           Object.keys(homeData).forEach((id) =>
             ed.updateConnectionNodes(`node-${id}`),
@@ -355,7 +290,59 @@ const DrawflowEditor = {
   },
 
   destroyed() {
-    if (this.editor) this.editor.clear();
+    this._destroyed = true;
+    this.cleanupResources();
+    if (this.editor) {
+      this.editor.clear();
+      this.editor = null;
+    }
+  },
+
+  addCleanup(cleanup) {
+    if (typeof cleanup === "function") this._cleanups.push(cleanup);
+  },
+
+  addDomListener(target, event, handler, options) {
+    if (!target) return;
+    target.addEventListener(event, handler, options);
+    this.addCleanup(() => target.removeEventListener(event, handler, options));
+  },
+
+  addEditorListener(event, handler) {
+    this.editor.on(event, handler);
+    this.addCleanup(() => {
+      if (this.editor?.removeListener)
+        this.editor.removeListener(event, handler);
+    });
+  },
+
+  scheduleTimeout(callback, delay) {
+    const id = setTimeout(() => {
+      this._timeouts.delete(id);
+      callback();
+    }, delay);
+    this._timeouts.add(id);
+    return id;
+  },
+
+  scheduleFrame(callback) {
+    const id = requestAnimationFrame(() => {
+      this._frames.delete(id);
+      callback();
+    });
+    this._frames.add(id);
+    return id;
+  },
+
+  cleanupResources() {
+    this._timeouts.forEach((id) => clearTimeout(id));
+    this._timeouts.clear();
+    this._frames.forEach((id) => cancelAnimationFrame(id));
+    this._frames.clear();
+    this._cleanups
+      .splice(0)
+      .reverse()
+      .forEach((cleanup) => cleanup());
   },
 };
 

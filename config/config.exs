@@ -46,13 +46,13 @@ config :esbuild,
   version: "0.25.4",
   blackboex_web: [
     args:
-      ~w(js/app.js --bundle --target=es2022 --outdir=../priv/static/assets/js --external:/fonts/* --external:/images/* --external:mermaid --alias:@=. --log-override:equals-new-object=silent),
+      ~w(js/app.js --bundle --target=es2022 --format=esm --splitting --chunk-names=chunks/[name]-[hash] --outdir=../priv/static/assets/js --external:/fonts/* --external:/images/* --alias:@=. --log-override:equals-new-object=silent),
     cd: Path.expand("../apps/blackboex_web/assets", __DIR__),
     env: %{"NODE_PATH" => [Path.expand("../deps", __DIR__), Mix.Project.build_path()]}
   ],
   blackboex_admin: [
     args:
-      ~w(js/admin.js --bundle --target=es2022 --outdir=../priv/static/assets/js --external:/fonts/* --external:/images/* --alias:@=.),
+      ~w(js/admin.js --bundle --target=es2022 --format=esm --splitting --chunk-names=chunks/[name]-[hash] --outdir=../priv/static/assets/js --external:/fonts/* --external:/images/* --alias:@=.),
     cd: Path.expand("../apps/blackboex_web/assets", __DIR__),
     env: %{"NODE_PATH" => [Path.expand("../deps", __DIR__), Mix.Project.build_path()]}
   ]

@@ -3,10 +3,17 @@ import { Socket } from "phoenix";
 import { LiveSocket } from "phoenix_live_view";
 import { Hooks as BackpexHooks } from "backpex";
 import topbar from "../vendor/topbar";
+import { buildAdminHooks } from "./lib/bootstrap/hook_maps";
+import { lazyHook } from "./lib/bootstrap/lazy_hook";
 import { buildLiveSocket } from "./lib/bootstrap/live_socket";
 import { installTopbar } from "./lib/bootstrap/topbar";
 
-const liveSocket = buildLiveSocket(LiveSocket, Socket, BackpexHooks);
+const hooks = buildAdminHooks({
+  codeEditor: lazyHook(() => import("./hooks/code_editor")),
+  backpexHooks: BackpexHooks,
+});
+
+const liveSocket = buildLiveSocket(LiveSocket, Socket, hooks);
 
 installTopbar(topbar, window, {
   barColors: { 0: "#29d" },

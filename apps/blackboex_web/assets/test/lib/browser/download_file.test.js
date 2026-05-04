@@ -1,5 +1,9 @@
 /**
- * @file Vitest coverage for download file library helpers.
+ * @file Verifies the browser download adapter used by LiveView events.
+ *
+ * Covers building Blob object URLs, clicking a temporary anchor, revoking the
+ * URL, rejecting incomplete payloads, and uninstalling both Phoenix-prefixed and
+ * raw `download_file` event listeners.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {

@@ -1,5 +1,5 @@
 /**
- * @file Shared JavaScript library helpers for tiptap behavior.
+ * @file Builds the lowlight registry used by Tiptap code blocks.
  */
 import { createLowlight } from "lowlight";
 import javascript from "highlight.js/lib/languages/javascript";
@@ -31,10 +31,7 @@ import markdown from "highlight.js/lib/languages/markdown";
 import plaintext from "highlight.js/lib/languages/plaintext";
 
 /**
- * Provides lowlight languages.
- */
-/**
- * Provides lowlight languages.
+ * Highlight.js language modules exposed to CodeBlockLowlight by language name.
  */
 export const LOWLIGHT_LANGUAGES = {
   javascript,
@@ -68,9 +65,9 @@ export const LOWLIGHT_LANGUAGES = {
 };
 
 /**
- * Provides build lowlight.
- * @param {unknown} languages - languages value.
- * @returns {unknown} Function result.
+ * Creates a lowlight instance and registers every configured language module.
+ * @param {Record<string, Function>} languages - Map of language names to highlight.js language definitions.
+ * @returns {object} Lowlight instance consumed by the Tiptap code block extension.
  */
 export function buildLowlight(languages = LOWLIGHT_LANGUAGES) {
   const lowlight = createLowlight();

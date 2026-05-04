@@ -1,5 +1,9 @@
 /**
- * @file Vitest coverage for drawflow interactions library helpers.
+ * @file Verifies Drawflow interaction contracts used by the canvas hook.
+ *
+ * Covers importing canonical BlackboexFlow definitions, translating browser drop
+ * coordinates into Drawflow canvas coordinates, and copying sidebar node metadata
+ * into `dataTransfer` so dragged node creation remains independent from DOM text.
  */
 import { describe, expect, it, vi } from "vitest";
 import {

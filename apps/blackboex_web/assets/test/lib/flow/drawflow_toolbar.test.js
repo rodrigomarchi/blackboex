@@ -1,5 +1,9 @@
 /**
- * @file Vitest coverage for drawflow toolbar library helpers.
+ * @file Verifies Drawflow toolbar wiring and editor state mutations.
+ *
+ * Covers the optional toolbar case, click listener cleanup, Drawflow zoom event
+ * unsubscription, zoom reset side effects, and lock button state changes used by
+ * the visual flow editor toolbar.
  */
 import { describe, expect, it, vi } from "vitest";
 import {

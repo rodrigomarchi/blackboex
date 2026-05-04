@@ -1,5 +1,5 @@
 /**
- * @file LiveView hook wiring for playground editor behavior.
+ * @file LiveView hook that mounts the Playground Elixir CodeMirror editor.
  */
 import { EditorState } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
@@ -15,7 +15,8 @@ import {
 import { syncCodeMirrorDocument } from "../lib/editor/code_editor";
 
 /**
- * LiveView hook for playground editor behavior.
+ * Wires the Playground editor to LiveView run/save/format events, debounced
+ * `update_code` sync, server-backed completions, and agent-driven replacements.
  */
 const PlaygroundEditor = {
   mounted() {
@@ -106,6 +107,6 @@ const PlaygroundEditor = {
 };
 
 /**
- * Exports the module default value.
+ * Playground CodeMirror hook registered as `PlaygroundEditor`.
  */
 export default PlaygroundEditor;

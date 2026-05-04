@@ -1,12 +1,13 @@
 /**
- * @file Shared JavaScript library helpers for bootstrap behavior.
+ * @file Hook map builders shared by Phoenix LiveSocket entrypoints.
  */
 /**
- * Provides build admin hooks.
+ * Builds the hook map used by the Backpex admin LiveSocket.
+ *
  * @param {object} root0 - Options object.
- * @param {unknown} root0.codeEditor - codeEditor option.
- * @param {unknown} root0.backpexHooks - backpexHooks option.
- * @returns {unknown} Function result.
+ * @param {object} root0.codeEditor - CodeEditor hook registered as `"CodeEditor"`.
+ * @param {object} root0.backpexHooks - Hooks exposed by Backpex.
+ * @returns {object} Combined admin hook map.
  */
 export function buildAdminHooks({ codeEditor, backpexHooks = {} }) {
   return {

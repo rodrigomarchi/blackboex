@@ -1,5 +1,9 @@
 /**
- * @file Vitest coverage for node catalog library helpers.
+ * @file Verifies the Drawflow node catalog rendering contract.
+ *
+ * Covers branded node HTML, condition branch controls, fallback rendering for
+ * custom node classes, output counting through the Drawflow API, and DOM label
+ * updates for condition branch ports.
  */
 import { describe, expect, it } from "vitest";
 import {

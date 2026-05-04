@@ -1,22 +1,22 @@
 /**
- * @file Shared JavaScript library helpers for bootstrap behavior.
+ * @file Phoenix LiveSocket construction helpers for browser entrypoints.
  */
 /**
- * Provides csrf token.
- * @param {unknown} doc - Document used for DOM lookup.
- * @returns {unknown} Function result.
+ * Reads the Phoenix CSRF token from the document meta tag.
+ * @param {Document} [doc=document] - Document to inspect.
+ * @returns {string | undefined} CSRF token when present.
  */
 export function csrfToken(doc = document) {
   return doc.querySelector("meta[name='csrf-token']")?.getAttribute("content");
 }
 
 /**
- * Provides build live socket.
- * @param {unknown} LiveSocket - LiveSocket value.
- * @param {unknown} Socket - Socket value.
- * @param {unknown} hooks - hooks value.
- * @param {unknown} opts - Optional configuration values.
- * @returns {unknown} Function result.
+ * Constructs a Phoenix LiveSocket with Blackboex defaults.
+ * @param {new (path: string, socket: Function, options: object) => object} LiveSocket - Phoenix LiveSocket constructor.
+ * @param {Function} Socket - Phoenix Socket constructor.
+ * @param {object} hooks - Hook map registered with LiveSocket.
+ * @param {{path?: string, params?: object, document?: Document}} [opts={}] - Testable construction overrides.
+ * @returns {object} Configured LiveSocket instance.
  */
 export function buildLiveSocket(LiveSocket, Socket, hooks, opts = {}) {
   return new LiveSocket(opts.path || "/live", Socket, {

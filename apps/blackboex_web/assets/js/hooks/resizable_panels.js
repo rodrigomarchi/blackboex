@@ -1,8 +1,8 @@
 /**
- * @file LiveView hook wiring for resizable panels behavior.
+ * @file LiveView hook for persisted drag-resizable playground/page panels.
  */
 /**
- * ResizablePanels hook — manages drag-to-resize for playground panels.
+ * ResizablePanels hook: manages drag-to-resize for playground and page editor panels.
  *
  * Looks for elements with [data-resize-handle] inside the hook element.
  * Each handle needs:
@@ -29,19 +29,31 @@ import {
 } from "../lib/ui/resizable_panels";
 
 /**
- * Exports the module default value.
+ * Panel resize hook registered as `ResizablePanels`.
  */
 export default {
+  /**
+   * Restores stored dimensions and registers every resize handle below the root.
+   * @returns {void}
+   */
   mounted() {
     this.handles = [];
     this.restoreSizes();
     this.setupHandles();
   },
 
+  /**
+   * Removes handle listeners and any active pointer-capture overlay.
+   * @returns {void}
+   */
   destroyed() {
     this.cleanup();
   },
 
+  /**
+   * Finds resize handles and creates drag state for each valid target panel.
+   * @returns {void}
+   */
   setupHandles() {
     const handles = this.el.querySelectorAll("[data-resize-handle]");
 
@@ -79,6 +91,12 @@ export default {
     });
   },
 
+  /**
+   * Starts a resize gesture and binds document-level move/end listeners.
+   * @param {MouseEvent | Touch} e - Pointer event that began the drag.
+   * @param {object} state - Resize state for one handle/target pair.
+   * @returns {void}
+   */
   startDrag(e, state) {
     e.preventDefault();
     state.dragging = true;
@@ -102,16 +120,36 @@ export default {
     document.addEventListener("touchend", onEnd);
   },
 
+  /**
+   * Applies the next clamped size while a resize gesture is active.
+   * @param {MouseEvent | Touch} e - Latest pointer event.
+   * @param {object} state - Resize state for one handle/target pair.
+   * @returns {void}
+   */
   onDrag(e, state) {
     if (!state.dragging) return;
 
     this.applySize(state, nextPanelSize(state, e));
   },
 
+  /**
+   * Writes a panel size through the shared lib helper.
+   * @param {object} state - Resize state for one handle/target pair.
+   * @param {number} size - Pixel size to apply.
+   * @returns {void}
+   */
   applySize(state, size) {
     applyPanelSize(state, size, document.documentElement);
   },
 
+  /**
+   * Ends a resize gesture, removes temporary document listeners, and persists sizes.
+   * @param {object} state - Resize state for one handle/target pair.
+   * @param {EventListener} onMouseMove - Document mousemove listener.
+   * @param {EventListener} onTouchMove - Document touchmove listener.
+   * @param {EventListener} onEnd - Shared gesture end listener.
+   * @returns {void}
+   */
   endDrag(state, onMouseMove, onTouchMove, onEnd) {
     state.dragging = false;
 
@@ -128,6 +166,10 @@ export default {
     this.saveSizes();
   },
 
+  /**
+   * Persists all registered panel dimensions, ignoring unavailable localStorage.
+   * @returns {void}
+   */
   saveSizes() {
     try {
       savePanelSizes(this.handles, localStorage);
@@ -136,6 +178,10 @@ export default {
     }
   },
 
+  /**
+   * Restores previously saved panel dimensions and reapplies current constraints.
+   * @returns {void}
+   */
   restoreSizes() {
     try {
       const sizes = loadPanelSizes(localStorage);
@@ -163,6 +209,10 @@ export default {
     }
   },
 
+  /**
+   * Runs all per-handle cleanups and removes the drag overlay if present.
+   * @returns {void}
+   */
   cleanup() {
     this.handles.forEach(({ cleanup }) => cleanup());
     this.handles = [];

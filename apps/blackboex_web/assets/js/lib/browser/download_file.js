@@ -1,5 +1,5 @@
 /**
- * @file Shared JavaScript library helpers for browser behavior.
+ * @file Browser adapter for LiveView file download events.
  */
 /**
  * @typedef {object} DownloadFilePayload
@@ -9,10 +9,10 @@
  * @typedef {CustomEvent<DownloadFilePayload>} DownloadFileEvent
  */
 /**
- * Provides download file from event.
- * @param {DownloadFileEvent} event - Browser or library event payload.
- * @param {unknown} opts - Optional configuration values.
- * @returns {unknown} Function result.
+ * Downloads a text file described by a LiveView event detail payload.
+ * @param {DownloadFileEvent} event - Event containing file content and filename.
+ * @param {{document?: Document, URL?: URL, Blob?: Blob}} [opts={}] - Browser API overrides for tests.
+ * @returns {boolean} True when a temporary link was clicked.
  */
 export function downloadFileFromEvent(event, opts = {}) {
   const { content, filename } = event.detail || {};
@@ -34,10 +34,10 @@ export function downloadFileFromEvent(event, opts = {}) {
 }
 
 /**
- * Provides install download file handler.
- * @param {unknown} target - Target event source or DOM element.
- * @param {unknown} opts - Optional configuration values.
- * @returns {unknown} Function result.
+ * Installs handlers for Phoenix-prefixed and plain file download events.
+ * @param {Window | EventTarget} [target=window] - Event target receiving download events.
+ * @param {object} [opts={}] - Adapter overrides forwarded to `downloadFileFromEvent`.
+ * @returns {() => void} Cleanup function that removes both listeners.
  */
 export function installDownloadFileHandler(target = window, opts = {}) {
   const handler = (event) => downloadFileFromEvent(event, opts);

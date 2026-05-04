@@ -1,16 +1,16 @@
 /**
- * @file Shared JavaScript library helpers for global behavior.
+ * @file Persists and restores sidebar collapsed state.
  */
 /**
- * Provides sidebar collapsed key.
+ * localStorage key used to remember whether the sidebar is collapsed.
  */
 export const SIDEBAR_COLLAPSED_KEY = "sidebar-collapsed";
 
 /**
- * Provides apply sidebar collapsed state.
- * @param {unknown} el - DOM element used by the helper.
- * @param {unknown} storage - Storage adapter used by the helper.
- * @returns {unknown} Function result.
+ * Applies persisted collapsed classes to the sidebar root.
+ * @param {Element} el - Sidebar root element.
+ * @param {Storage} [storage=localStorage] - Storage adapter.
+ * @returns {void}
  */
 export function applySidebarCollapsedState(el, storage = localStorage) {
   if (storage.getItem(SIDEBAR_COLLAPSED_KEY) === "true") {
@@ -20,10 +20,10 @@ export function applySidebarCollapsedState(el, storage = localStorage) {
 }
 
 /**
- * Provides persist sidebar collapsed state.
- * @param {unknown} el - DOM element used by the helper.
- * @param {unknown} storage - Storage adapter used by the helper.
- * @returns {unknown} Function result.
+ * Persists the sidebar root's current collapsed class state.
+ * @param {Element} el - Sidebar root element.
+ * @param {Storage} [storage=localStorage] - Storage adapter.
+ * @returns {void}
  */
 export function persistSidebarCollapsedState(el, storage = localStorage) {
   storage.setItem(

@@ -1,5 +1,8 @@
 /**
- * @file Vitest coverage for auto scroll hooks hook behavior.
+ * @file Verifies shared behavior across the chat and editor auto-scroll hooks.
+ *
+ * Covers ChatAutoScroll observer/poll cleanup and EditorAutoScroll's selection
+ * of the inner editor scroller, keeping the two hook variants tested together.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import ChatAutoScroll from "../../../js/hooks/global/chat_auto_scroll_hook";

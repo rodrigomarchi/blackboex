@@ -1,5 +1,9 @@
 /**
- * @file Vitest coverage for code editor hook behavior.
+ * @file Verifies the CodeEditor LiveView hook lifecycle.
+ *
+ * Covers mounting CodeMirror from `data-language`, `data-readonly`,
+ * `data-minimal`, and `data-value`, syncing later LiveView dataset patches, and
+ * destroying the EditorView on hook teardown.
  */
 import { afterEach, describe, expect, it } from "vitest";
 import CodeEditor from "../../js/hooks/code_editor";

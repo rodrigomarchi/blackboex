@@ -1,5 +1,8 @@
 /**
- * @file Vitest coverage for auto focus hook hook behavior.
+ * @file Verifies the AutoFocus hook after mount and LiveView patches.
+ *
+ * Covers immediate focus on mount and refocus after `updated()` so transient
+ * command palette inputs keep keyboard focus through LiveView DOM updates.
  */
 import { afterEach, describe, expect, it } from "vitest";
 import AutoFocus from "../../../js/hooks/global/auto_focus_hook";

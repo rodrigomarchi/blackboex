@@ -1,5 +1,5 @@
 /**
- * @file Shared JavaScript library helpers for js lib behavior.
+ * @file CodeMirror completion source for Elixir suggestions returned by LiveView.
  */
 /**
  * CodeMirror autocompletion source for Elixir, backed by server-side
@@ -8,8 +8,13 @@
 
 /**
  * Creates a CodeMirror completion source wired to the PlaygroundEditor hook.
- * @param {object} hook - The LiveView hook instance (provides pushEvent)
- * @returns {function} CodeMirror completion source function
+ *
+ * Suggestions are requested after `Module.`-style input or at least two typed
+ * characters. Function labels keep arity for display but strip arity for text
+ * insertion.
+ *
+ * @param {{pushEvent: (event: string, payload: object, callback: Function) => void}} hook - LiveView hook used to request completions.
+ * @returns {Function} CodeMirror completion source.
  */
 export function elixirCompletionSource(hook) {
   return async (context) => {

@@ -1,14 +1,18 @@
 /**
- * @file Shared JavaScript library helpers for flow behavior.
+ * @file Drawflow viewport fitting and dagre auto-layout helpers.
  */
 import dagre from "../../../vendor/dagre.min.js";
 import { updateAllOutputLabels } from "./node_catalog";
 
-// Fit canvas so all nodes are visible with padding
 /**
- * Provides fit view.
- * @param {unknown} editor - Editor instance used by the helper.
- * @returns {unknown} Function result.
+ * Fits the Drawflow canvas around every rendered node.
+ *
+ * Node dimensions are measured from the DOM when possible, then the editor pan
+ * and zoom are updated directly and a Drawflow `zoom` event is dispatched so
+ * toolbar UI can stay in sync.
+ *
+ * @param {object} editor - Drawflow editor instance with export/container/precanvas viewport state.
+ * @returns {void}
  */
 export function fitView(editor) {
   const data = editor.export();
@@ -54,12 +58,16 @@ export function fitView(editor) {
   editor.dispatch("zoom", clampedScale);
 }
 
-// Auto-layout using dagre (left-to-right hierarchy)
 /**
- * Provides auto layout.
- * @param {unknown} editor - Editor instance used by the helper.
- * @param {unknown} opts - Optional configuration values.
- * @returns {unknown} Function result.
+ * Applies a left-to-right dagre layout to the current Drawflow graph.
+ *
+ * Drawflow stores node coordinates in its exported JSON, so this mutates the
+ * exported payload, clears the editor, imports the new payload, then schedules
+ * condition branch labels to be rebuilt after Drawflow recreates the DOM.
+ *
+ * @param {object} editor - Drawflow editor instance.
+ * @param {{nodesep?: number, ranksep?: number}} [opts={}] - Dagre spacing overrides.
+ * @returns {void}
  */
 export function autoLayout(editor, opts = {}) {
   const data = editor.export();
@@ -110,10 +118,10 @@ export function autoLayout(editor, opts = {}) {
 }
 
 /**
- * Provides update zoom label.
- * @param {unknown} editor - Editor instance used by the helper.
- * @param {unknown} toolbar - toolbar value.
- * @returns {unknown} Function result.
+ * Updates the toolbar's zoom label from the editor zoom value.
+ * @param {{zoom: number}} editor - Drawflow editor viewport state.
+ * @param {Element} toolbar - Toolbar root containing `[data-zoom-label]`.
+ * @returns {void}
  */
 export function updateZoomLabel(editor, toolbar) {
   const label = toolbar.querySelector("[data-zoom-label]");

@@ -1,12 +1,12 @@
 /**
- * @file Shared JavaScript library helpers for bootstrap behavior.
+ * @file Topbar progress integration for Phoenix page loading events.
  */
 /**
- * Provides install topbar.
- * @param {unknown} topbar - topbar value.
- * @param {unknown} target - Target event source or DOM element.
- * @param {unknown} config - Configuration passed to the helper.
- * @returns {unknown} Function result.
+ * Wires Phoenix page-loading events to topbar show/hide calls.
+ * @param {{config: Function, show: Function, hide: Function}} topbar - Topbar adapter.
+ * @param {Window | EventTarget} [target=window] - Event target receiving Phoenix loading events.
+ * @param {object} [config={}] - Topbar configuration passed through unchanged.
+ * @returns {() => void} Cleanup function that removes both event listeners.
  */
 export function installTopbar(topbar, target = window, config = {}) {
   topbar.config(config);

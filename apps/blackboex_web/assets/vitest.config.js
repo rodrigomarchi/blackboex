@@ -4,7 +4,7 @@
 import { defineConfig } from "vitest/config";
 
 /**
- * Exports the module default value.
+ * Vitest config for jsdom-based hook and library tests under `assets/test`.
  */
 export default defineConfig({
   test: {

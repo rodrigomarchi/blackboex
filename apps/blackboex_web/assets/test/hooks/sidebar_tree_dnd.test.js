@@ -1,5 +1,8 @@
 /**
- * @file Vitest coverage for sidebar tree dnd hook behavior.
+ * @file Verifies the SidebarTreeDnD LiveView hook lifecycle.
+ *
+ * Covers creating Sortable instances for rendered `data-tree-list` containers
+ * and destroying those instances when the hook is torn down.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanupDOM, mountHook } from "../helpers/hook_helper";

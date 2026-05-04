@@ -7,7 +7,7 @@ import jsdoc from "eslint-plugin-jsdoc";
 import globals from "globals";
 
 /**
- * Exports the module default value.
+ * Flat ESLint configuration for browser assets, tests, and JSDoc enforcement.
  */
 export default [
   {

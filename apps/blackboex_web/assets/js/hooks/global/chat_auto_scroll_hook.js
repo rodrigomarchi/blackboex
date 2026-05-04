@@ -1,10 +1,13 @@
 /**
- * @file Global LiveView hook wiring for chat auto scroll hook behavior.
+ * @file Global LiveView hook that keeps chat timelines pinned while streaming.
  */
 import { isAtBottom, scrollChatToBottom } from "../../lib/global/auto_scroll";
 
 /**
- * LiveView hook for chat auto scroll behavior.
+ * Maintains bottom scroll for chat streams until the user intentionally scrolls up.
+ *
+ * Uses MutationObserver for inserted nodes and a short poll for text patches
+ * from LiveView streams that mutate existing nodes without adding children.
  */
 const ChatAutoScroll = {
   mounted() {
@@ -50,6 +53,6 @@ const ChatAutoScroll = {
 };
 
 /**
- * Exports the module default value.
+ * Chat timeline auto-scroll hook registered as `ChatAutoScroll`.
  */
 export default ChatAutoScroll;

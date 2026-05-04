@@ -1,5 +1,10 @@
 /**
- * @file Vitest coverage for drawflow editor hook behavior.
+ * @file Verifies the DrawflowEditor LiveView hook lifecycle and export bridge.
+ *
+ * Uses a fake Drawflow class to cover mounting without the optional toolbar,
+ * dirty-state listener registration, cleanup of vendor listeners and scheduled
+ * work on teardown, and conversion/export through the `save_definition`
+ * LiveView event.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanupDOM, mountHook, simulateEvent } from "../helpers/hook_helper";

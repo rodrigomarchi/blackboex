@@ -1,5 +1,5 @@
 /**
- * @file Global LiveView hook wiring for sidebar collapse hook behavior.
+ * @file Global LiveView hook that restores and persists sidebar collapsed state.
  */
 import {
   applySidebarCollapsedState,
@@ -7,7 +7,8 @@ import {
 } from "../../lib/global/sidebar_collapse";
 
 /**
- * LiveView hook for sidebar collapse behavior.
+ * Applies the saved sidebar state on mount and persists changes announced by
+ * the component through the `sidebar:toggled` DOM event.
  */
 const SidebarCollapse = {
   mounted() {
@@ -23,6 +24,6 @@ const SidebarCollapse = {
 };
 
 /**
- * Exports the module default value.
+ * Sidebar persistence hook registered as `SidebarCollapse`.
  */
 export default SidebarCollapse;

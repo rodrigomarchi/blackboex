@@ -1,5 +1,9 @@
 /**
- * @file Vitest coverage for playground editor hook behavior.
+ * @file Verifies the PlaygroundEditor LiveView hook lifecycle.
+ *
+ * Covers mounting the Elixir CodeMirror document from `data-value`, replacing
+ * the document from the server-pushed `formatted_code` event, and destroying the
+ * EditorView on teardown.
  */
 import { afterEach, describe, expect, it } from "vitest";
 import PlaygroundEditor from "../../js/hooks/playground_editor";

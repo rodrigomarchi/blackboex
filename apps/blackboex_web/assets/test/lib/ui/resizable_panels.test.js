@@ -1,5 +1,9 @@
 /**
- * @file Vitest coverage for resizable panels library helpers.
+ * @file Verifies drag-resizable panel sizing and persistence helpers.
+ *
+ * Covers vertical/horizontal size constraints, CSS property selection, writing
+ * either inline dimensions or root CSS variables, and saving/loading per-panel
+ * sizes through an injectable storage adapter.
  */
 import {
   applyPanelSize,

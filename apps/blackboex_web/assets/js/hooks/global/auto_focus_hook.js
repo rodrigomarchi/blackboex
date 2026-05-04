@@ -1,5 +1,8 @@
 /**
- * @file Global LiveView hook wiring for auto focus hook behavior.
+ * @file Global LiveView hook that focuses an element after LiveView patches.
+ */
+/**
+ * Focuses the mounted element and refocuses it after updates.
  */
 const AutoFocus = {
   mounted() {
@@ -12,6 +15,6 @@ const AutoFocus = {
 };
 
 /**
- * Exports the module default value.
+ * Focus helper hook registered as `AutoFocus`.
  */
 export default AutoFocus;

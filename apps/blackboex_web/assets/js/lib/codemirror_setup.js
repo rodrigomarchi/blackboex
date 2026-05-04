@@ -1,5 +1,5 @@
 /**
- * @file Shared JavaScript library helpers for js lib behavior.
+ * @file Builds reusable CodeMirror extension sets for Blackboex editor fields.
  */
 /**
  * @typedef {object} CodeMirrorExtensionOptions
@@ -25,9 +25,14 @@ import {
 import { blackboexEditorTheme } from "./codemirror_theme";
 
 /**
- * Provides build extensions.
- * @param {CodeMirrorExtensionOptions} options - Configuration values for the helper.
- * @returns {unknown} Function result.
+ * Builds the CodeMirror extension list for a requested editor mode.
+ *
+ * The common baseline includes keymaps, bracket helpers and the app theme.
+ * Language extensions, JSON linting, read-only state and compact UI are added
+ * based on the hook options.
+ *
+ * @param {CodeMirrorExtensionOptions} options - Language, read-only and UI options.
+ * @returns {Array<object>} CodeMirror extensions in initialization order.
  */
 export function buildExtensions({ language, readOnly, onBlur, minimal }) {
   const extensions = [

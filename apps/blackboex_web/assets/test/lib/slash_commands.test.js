@@ -1,5 +1,8 @@
 /**
- * @file Vitest coverage for slash commands library helpers.
+ * @file Verifies the compatibility re-export for Tiptap slash commands.
+ *
+ * Ensures legacy imports from `js/lib/slash_commands` receive the same command
+ * catalog object as the implementation under `js/lib/tiptap`.
  */
 import { describe, expect, it } from "vitest";
 import { COMMANDS } from "../../js/lib/slash_commands";

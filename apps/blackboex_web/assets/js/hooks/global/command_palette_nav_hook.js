@@ -1,5 +1,5 @@
 /**
- * @file Global LiveView hook wiring for command palette nav hook behavior.
+ * @file Global LiveView hook for keyboard navigation inside the command palette.
  */
 import {
   commandPaletteDirection,
@@ -7,7 +7,8 @@ import {
 } from "../../lib/global/command_palette";
 
 /**
- * LiveView hook for command palette nav behavior.
+ * Focuses the palette input, translates arrow keys to LiveView navigation
+ * events, and keeps the selected command visible after patches.
  */
 const CommandPaletteNav = {
   mounted() {
@@ -35,6 +36,6 @@ const CommandPaletteNav = {
 };
 
 /**
- * Exports the module default value.
+ * Command palette navigation hook registered as `CommandPaletteNav`.
  */
 export default CommandPaletteNav;

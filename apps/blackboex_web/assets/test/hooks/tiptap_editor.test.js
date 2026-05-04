@@ -1,5 +1,9 @@
 /**
- * @file Vitest coverage for tiptap editor hook behavior.
+ * @file Verifies the TiptapEditor LiveView hook factory and lifecycle.
+ *
+ * Covers dependency injection for tests, bubble menu element creation, extension
+ * and editorProps wiring, external Markdown replacement from LiveView dataset
+ * updates, and editor destruction.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createTiptapEditorHook } from "../../js/hooks/tiptap_editor";

@@ -1,5 +1,8 @@
 /**
- * @file Vitest coverage for clipboard library helpers.
+ * @file Verifies the browser clipboard adapter for LiveView copy events.
+ *
+ * Covers extracting `detail.text` from `phx:copy_to_clipboard` events and
+ * ignoring incomplete payloads so hooks can install the adapter globally.
  */
 import { copyTextFromEvent } from "../../../js/lib/browser/clipboard";
 

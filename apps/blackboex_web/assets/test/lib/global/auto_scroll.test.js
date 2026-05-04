@@ -1,5 +1,9 @@
 /**
- * @file Vitest coverage for auto scroll library helpers.
+ * @file Verifies shared scroll helpers used by chat and editor hooks.
+ *
+ * Covers bottom proximity detection with threshold tolerance, scrolling both
+ * chat roots and nested overflow panes, and locating the editor's inner
+ * `.overflow-y-auto` scroller before moving it to the bottom.
  */
 import { describe, expect, it } from "vitest";
 import {

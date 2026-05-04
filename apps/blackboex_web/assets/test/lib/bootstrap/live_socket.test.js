@@ -1,5 +1,8 @@
 /**
- * @file Vitest coverage for live socket library helpers.
+ * @file Verifies Phoenix LiveSocket construction shared by browser entrypoints.
+ *
+ * Covers CSRF token lookup from meta tags and the default `/live` path, Socket
+ * class, long-poll fallback, params, and hook map passed to `new LiveSocket`.
  */
 import { describe, expect, it } from "vitest";
 import {

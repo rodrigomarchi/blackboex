@@ -1,5 +1,8 @@
 /**
- * @file Vitest coverage for hook maps library helpers.
+ * @file Verifies admin LiveSocket hook map composition.
+ *
+ * Ensures the lazy CodeEditor hook is registered beside Backpex-provided hooks
+ * without changing the hook objects passed by the browser entrypoint.
  */
 import { describe, expect, it } from "vitest";
 import { buildAdminHooks } from "../../../js/lib/bootstrap/hook_maps";

@@ -1,11 +1,11 @@
 /**
- * @file Shared JavaScript library helpers for browser behavior.
+ * @file Browser adapter for LiveView clipboard copy events.
  */
 /**
- * Provides copy text from event.
- * @param {unknown} event - Browser or library event payload.
- * @param {unknown} opts - Optional configuration values.
- * @returns {Promise<unknown>} Function result.
+ * Copies text from a LiveView event detail payload to the clipboard.
+ * @param {CustomEvent<{text?: string}>} event - Event containing text in `detail.text`.
+ * @param {{clipboard?: {writeText: (text: string) => Promise<void>}}} [opts={}] - Clipboard adapter override for tests.
+ * @returns {Promise<boolean>} True when text was copied.
  */
 export async function copyTextFromEvent(event, opts = {}) {
   const clipboard = opts.clipboard || navigator.clipboard;
@@ -17,10 +17,10 @@ export async function copyTextFromEvent(event, opts = {}) {
 }
 
 /**
- * Provides install clipboard handler.
- * @param {unknown} target - Target event source or DOM element.
- * @param {unknown} opts - Optional configuration values.
- * @returns {unknown} Function result.
+ * Installs handlers for Phoenix-prefixed and plain clipboard events.
+ * @param {Window | EventTarget} [target=window] - Event target receiving copy events.
+ * @param {object} [opts={}] - Adapter overrides forwarded to `copyTextFromEvent`.
+ * @returns {() => void} Cleanup function that removes both listeners.
  */
 export function installClipboardHandler(target = window, opts = {}) {
   const handler = (event) => copyTextFromEvent(event, opts);

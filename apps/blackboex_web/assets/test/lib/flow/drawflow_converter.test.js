@@ -1,5 +1,11 @@
 /**
- * @file Vitest coverage for drawflow converter library helpers.
+ * @file Verifies the Drawflow/BlackboexFlow conversion contract.
+ *
+ * These tests pin the client-side graph interchange format used by LiveView:
+ * Drawflow numeric node ids become stable `n*` ids, port indexes become
+ * zero-based edge fields, edge ids are deterministic, and condition nodes
+ * imported back into Drawflow keep the minimum branch output shape required by
+ * the visual editor.
  */
 import {
   blackboexToDrawflow,

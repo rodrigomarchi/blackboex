@@ -1,10 +1,10 @@
 /**
- * @file Shared JavaScript library helpers for editor behavior.
+ * @file Pure helpers for the Playground Elixir CodeMirror LiveView hook.
  */
 /**
- * Provides playground event for key.
- * @param {unknown} action - action value.
- * @returns {unknown} Function result.
+ * Maps internal shortcut actions to Playground LiveView event names.
+ * @param {"run" | "save" | "format"} action - Shortcut action name.
+ * @returns {string | undefined} LiveView event name for the action.
  */
 export function playgroundEventForKey(action) {
   return {
@@ -15,10 +15,10 @@ export function playgroundEventForKey(action) {
 }
 
 /**
- * Provides replace document.
- * @param {unknown} view - CodeMirror editor view.
- * @param {unknown} code - code value.
- * @returns {unknown} Function result.
+ * Replaces the entire Playground editor document.
+ * @param {{state: {doc: {length: number}}, dispatch: Function} | null} view - CodeMirror EditorView or test double.
+ * @param {string} code - New Elixir source code.
+ * @returns {boolean} True when the editor was updated.
  */
 export function replaceDocument(view, code) {
   if (!view || typeof code !== "string") return false;
@@ -30,10 +30,10 @@ export function replaceDocument(view, code) {
 }
 
 /**
- * Provides resolve completion items.
- * @param {unknown} state - State object used by the helper.
- * @param {unknown} items - items value.
- * @returns {unknown} Function result.
+ * Resolves the pending server-backed completion request once.
+ * @param {{completionResolve: Function | null}} state - Completion state stored on the hook.
+ * @param {Array<object>} items - Completion items returned by LiveView.
+ * @returns {boolean} True when a pending resolver was called.
  */
 export function resolveCompletionItems(state, items) {
   if (!state.completionResolve) return false;
@@ -43,10 +43,10 @@ export function resolveCompletionItems(state, items) {
 }
 
 /**
- * Provides make debounced code sync.
- * @param {unknown} hook - LiveView hook instance or test double.
- * @param {unknown} delay - delay value.
- * @returns {unknown} Function result.
+ * Builds a CodeMirror update listener that debounces `"update_code"` pushes.
+ * @param {{pushEvent: (event: string, payload: object) => void}} hook - Playground LiveView hook.
+ * @param {number} [delay=300] - Debounce delay in milliseconds.
+ * @returns {(update: {docChanged: boolean, state: {doc: {toString: () => string}}}) => void} CodeMirror update listener.
  */
 export function makeDebouncedCodeSync(hook, delay = 300) {
   let debounceTimer = null;

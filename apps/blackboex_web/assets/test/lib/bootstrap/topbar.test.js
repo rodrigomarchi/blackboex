@@ -1,5 +1,8 @@
 /**
- * @file Vitest coverage for topbar library helpers.
+ * @file Verifies topbar integration with Phoenix page-loading events.
+ *
+ * Covers configuration, delayed `show(300)`, `hide()` on stop, and the uninstall
+ * function used by tests or future entrypoints that need to detach listeners.
  */
 import { describe, expect, it, vi } from "vitest";
 import { installTopbar } from "../../../js/lib/bootstrap/topbar";

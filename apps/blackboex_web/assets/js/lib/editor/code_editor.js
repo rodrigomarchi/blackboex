@@ -1,10 +1,10 @@
 /**
- * @file Shared JavaScript library helpers for editor behavior.
+ * @file Pure helpers for the generic CodeMirror LiveView hook.
  */
 /**
- * Provides build code editor options.
- * @param {unknown} el - DOM element used by the helper.
- * @returns {unknown} Function result.
+ * Parses `data-*` attributes from the CodeEditor hook root.
+ * @param {HTMLElement} el - Hook root carrying editor configuration in dataset fields.
+ * @returns {{language: string, readOnly: boolean, minimal: boolean, eventName: string | undefined, fieldName: string | undefined, initialValue: string}} CodeMirror hook options.
  */
 export function buildCodeEditorOptions(el) {
   return {
@@ -18,10 +18,13 @@ export function buildCodeEditorOptions(el) {
 }
 
 /**
- * Provides build blur handler.
- * @param {unknown} hook - LiveView hook instance or test double.
- * @param {unknown} options2 - options2 value.
- * @returns {unknown} Function result.
+ * Builds the CodeMirror blur handler that pushes document content to LiveView.
+ *
+ * Read-only editors and editors without `data-event` do not push on blur.
+ *
+ * @param {{pushEvent: (event: string, payload: object) => void}} hook - LiveView hook instance.
+ * @param {{readOnly: boolean, eventName?: string, fieldName?: string}} options - Blur push options.
+ * @returns {Function | null} CodeMirror DOM blur handler or null when disabled.
  */
 export function buildBlurHandler(hook, { readOnly, eventName, fieldName }) {
   if (readOnly || !eventName) return null;
@@ -34,20 +37,20 @@ export function buildBlurHandler(hook, { readOnly, eventName, fieldName }) {
 }
 
 /**
- * Provides should sync document.
- * @param {unknown} newValue - newValue value.
- * @param {unknown} currentValue - currentValue value.
- * @returns {unknown} Function result.
+ * Decides whether an external LiveView value should replace editor content.
+ * @param {string | undefined} newValue - Incoming value from `data-value`.
+ * @param {string} currentValue - Current CodeMirror document text.
+ * @returns {boolean} True when the incoming value is defined and different.
  */
 export function shouldSyncDocument(newValue, currentValue) {
   return newValue !== undefined && newValue !== currentValue;
 }
 
 /**
- * Provides sync code mirror document.
- * @param {unknown} view - CodeMirror editor view.
- * @param {unknown} newValue - newValue value.
- * @returns {unknown} Function result.
+ * Replaces the full CodeMirror document when LiveView sends changed content.
+ * @param {{state: {doc: {toString: () => string, length: number}}, dispatch: Function} | null} view - CodeMirror EditorView or test double.
+ * @param {string | undefined} newValue - Incoming document text.
+ * @returns {boolean} True when a CodeMirror transaction was dispatched.
  */
 export function syncCodeMirrorDocument(view, newValue) {
   if (!view) return false;

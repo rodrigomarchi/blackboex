@@ -1,5 +1,9 @@
 /**
- * @file Vitest coverage for elixir completion library helpers.
+ * @file Verifies the server-backed Elixir completion source for CodeMirror.
+ *
+ * Covers the minimum query threshold, the `"autocomplete"` LiveView payload,
+ * replacement ranges for dotted module calls, arity stripping for inserted text,
+ * and the timeout fallback when LiveView does not reply.
  */
 import { describe, expect, it, vi } from "vitest";
 import { elixirCompletionSource } from "../../js/lib/elixir_completion";

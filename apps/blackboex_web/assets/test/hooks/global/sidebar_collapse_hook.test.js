@@ -1,5 +1,9 @@
 /**
- * @file Vitest coverage for sidebar collapse hook hook behavior.
+ * @file Verifies SidebarCollapse restoration and DOM-event persistence.
+ *
+ * Covers applying the stored `sidebar-collapsed` state on mount and writing the
+ * latest class state back to localStorage when the component dispatches
+ * `sidebar:toggled`.
  */
 import { afterEach, describe, expect, it } from "vitest";
 import SidebarCollapse from "../../../js/hooks/global/sidebar_collapse_hook";

@@ -1,5 +1,5 @@
 /**
- * @file Global LiveView hook wiring for editor auto scroll hook behavior.
+ * @file Global LiveView hook that follows streamed editor output.
  */
 import {
   findEditorScroller,
@@ -8,7 +8,10 @@ import {
 } from "../../lib/global/auto_scroll";
 
 /**
- * LiveView hook for editor auto scroll behavior.
+ * Keeps the first `.overflow-y-auto` child pinned to bottom while AI output grows.
+ *
+ * The hook pauses after manual user scroll-up and resumes only when LiveView
+ * patches arrive while the user remains at the bottom.
  */
 const EditorAutoScroll = {
   mounted() {
@@ -53,6 +56,6 @@ const EditorAutoScroll = {
 };
 
 /**
- * Exports the module default value.
+ * Editor output auto-scroll hook registered as `EditorAutoScroll`.
  */
 export default EditorAutoScroll;

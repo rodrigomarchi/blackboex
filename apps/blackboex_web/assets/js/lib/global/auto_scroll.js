@@ -1,29 +1,29 @@
 /**
- * @file Shared JavaScript library helpers for global behavior.
+ * @file DOM scroll helpers shared by chat and editor LiveView hooks.
  */
 /**
- * Provides is at bottom.
- * @param {unknown} el - DOM element used by the helper.
- * @param {unknown} threshold - threshold value.
- * @returns {unknown} Function result.
+ * Checks whether a scroll container is near its bottom edge.
+ * @param {Element} el - Scroll container.
+ * @param {number} [threshold=80] - Pixel tolerance before treating the user as scrolled up.
+ * @returns {boolean} True when the scroll offset is within the threshold.
  */
 export function isAtBottom(el, threshold = 80) {
   return el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
 }
 
 /**
- * Provides scroll element to bottom.
- * @param {unknown} el - DOM element used by the helper.
- * @returns {unknown} Function result.
+ * Moves a scroll container to its maximum vertical scroll offset.
+ * @param {Element} el - Scroll container to mutate.
+ * @returns {void}
  */
 export function scrollElementToBottom(el) {
   el.scrollTop = el.scrollHeight;
 }
 
 /**
- * Provides scroll chat to bottom.
- * @param {unknown} el - DOM element used by the helper.
- * @returns {unknown} Function result.
+ * Scrolls the chat root and nested scroll panes to latest content.
+ * @param {Element} el - Chat root element.
+ * @returns {void}
  */
 export function scrollChatToBottom(el) {
   scrollElementToBottom(el);
@@ -33,9 +33,9 @@ export function scrollChatToBottom(el) {
 }
 
 /**
- * Provides find editor scroller.
- * @param {unknown} root - Root element or document used for lookup.
- * @returns {unknown} Function result.
+ * Finds the primary nested editor scroll pane inside a hook root.
+ * @param {ParentNode} root - Hook root or document to search.
+ * @returns {Element | null} First nested overflow container.
  */
 export function findEditorScroller(root) {
   return root.querySelector(".overflow-y-auto");

@@ -1,11 +1,9 @@
 /**
- * @file Shared JavaScript library helpers for tiptap behavior.
- */
-/**
- * Extends CodeBlockLowlight with:
- * 1. Language selector dropdown on every code block
- * 2. Mermaid diagram rendering (dual-mode: code when focused, SVG when blurred)
- *    with auto-fit and zoom controls
+ * @file Tiptap code block node view with language selection and Mermaid preview support.
+ *
+ * Extends CodeBlockLowlight with a per-block language selector. Mermaid blocks render
+ * as SVG previews when the selection leaves the block, but switch back to editable code
+ * when focused so the ProseMirror document remains the source of truth.
  */
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
 
@@ -18,9 +16,9 @@ let mermaidLoader = async () => {
 };
 
 /**
- * Provides set mermaid loader.
- * @param {unknown} loader - loader value.
- * @returns {unknown} Function result.
+ * Overrides the lazy Mermaid importer and clears cached state for deterministic tests.
+ * @param {Function} loader - Async function that resolves to the Mermaid module.
+ * @returns {void}
  */
 export function setMermaidLoader(loader) {
   mermaidModule = null;
@@ -29,8 +27,8 @@ export function setMermaidLoader(loader) {
 }
 
 /**
- * Provides get mermaid.
- * @returns {unknown} Function result.
+ * Loads Mermaid once, initializes it with editor-safe rendering options, and caches it.
+ * @returns {Promise<object>} Initialized Mermaid module.
  */
 export async function getMermaid() {
   if (mermaidModule) return mermaidModule;
@@ -60,10 +58,10 @@ export async function getMermaid() {
 let renderQueue = Promise.resolve();
 
 /**
- * Provides enqueue render.
- * @param {unknown} id - id value.
- * @param {unknown} text - text value.
- * @returns {unknown} Function result.
+ * Serializes Mermaid renders so concurrent node views do not race inside Mermaid.
+ * @param {string} id - Unique render id for Mermaid's generated SVG.
+ * @param {string} text - Mermaid diagram source.
+ * @returns {Promise<{svg: string}>} Mermaid render result.
  */
 export function enqueueRender(id, text) {
   const task = renderQueue.then(async () => {
@@ -74,11 +72,10 @@ export function enqueueRender(id, text) {
   return task;
 }
 
-// Make SVG responsive: ensure viewBox exists and remove fixed dimensions
 /**
- * Provides fit svg.
- * @param {unknown} svgEl - svgEl value.
- * @returns {unknown} Function result.
+ * Makes Mermaid SVG output responsive inside the editor preview container.
+ * @param {SVGElement | null} svgEl - Rendered Mermaid SVG element.
+ * @returns {void}
  */
 export function fitSvg(svgEl) {
   if (!svgEl) return;
@@ -95,7 +92,7 @@ export function fitSvg(svgEl) {
 }
 
 /**
- * Provides lang labels.
+ * Human-readable labels for the language selector, including virtual Mermaid mode.
  */
 export const LANG_LABELS = {
   plaintext: "Plain Text",
@@ -132,7 +129,10 @@ export const LANG_LABELS = {
 let mermaidIdCounter = 0;
 
 /**
- * Provides code block with lang.
+ * CodeBlockLowlight extension used by the rich editor.
+ *
+ * The node view owns toolbar DOM, preview DOM, selection tracking, delayed Mermaid
+ * renders, responsive SVG fitting, and cleanup of editor event subscriptions.
  */
 export const CodeBlockWithLang = CodeBlockLowlight.extend({
   addNodeView() {

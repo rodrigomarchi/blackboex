@@ -1,5 +1,5 @@
 /**
- * @file LiveView hook wiring for code editor behavior.
+ * @file LiveView hook that mounts CodeMirror for generic code editor fields.
  */
 /**
  * @typedef {object} LiveViewHook
@@ -17,7 +17,8 @@ import {
 } from "../lib/editor/code_editor";
 
 /**
- * LiveView hook for code editor behavior.
+ * Mounts a CodeMirror editor from `data-*` attributes and optionally pushes
+ * `{value}` or `{field, value}` to LiveView on blur when `data-event` is set.
  */
 const CodeEditor = {
   mounted() {
@@ -47,6 +48,6 @@ const CodeEditor = {
 };
 
 /**
- * Exports the module default value.
+ * Generic CodeMirror hook registered as `CodeEditor`.
  */
 export default CodeEditor;

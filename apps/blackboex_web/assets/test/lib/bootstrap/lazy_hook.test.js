@@ -1,5 +1,9 @@
 /**
- * @file Vitest coverage for lazy hook library helpers.
+ * @file Verifies lazy LiveView hook loading and lifecycle replay.
+ *
+ * Covers forwarding queued `updated` and `destroyed` calls to the real hook after
+ * dynamic import resolution, and preventing mount when the placeholder hook is
+ * destroyed before its module finishes loading.
  */
 import { describe, expect, it, vi } from "vitest";
 import { lazyHook } from "../../../js/lib/bootstrap/lazy_hook";

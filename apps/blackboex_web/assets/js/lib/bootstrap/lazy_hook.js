@@ -1,10 +1,11 @@
 /**
- * @file Shared JavaScript library helpers for bootstrap behavior.
+ * @file Lazy LiveView hook loader that preserves Phoenix hook lifecycle APIs.
  */
 /**
- * Provides bind live view api.
- * @param {unknown} source - source value.
- * @param {unknown} target - Target event source or DOM element.
+ * Copies Phoenix-provided hook APIs onto a lazily created hook instance.
+ * @param {object} source - Mounted LiveView hook shell supplied by Phoenix.
+ * @param {object} target - Hook object created from the loaded module.
+ * @returns {void}
  */
 function bindLiveViewApi(source, target) {
   target.el = source.el;
@@ -14,9 +15,14 @@ function bindLiveViewApi(source, target) {
 }
 
 /**
- * Provides lazy hook.
- * @param {unknown} loader - loader value.
- * @returns {unknown} Function result.
+ * Creates a hook proxy that imports its real implementation on first mount.
+ *
+ * `updated()` calls that arrive before the import resolves are replayed once
+ * the implementation is mounted. `destroyed()` prevents late mounts after the
+ * LiveView node has been removed.
+ *
+ * @param {() => Promise<object>} loader - Dynamic import returning a hook object or default export.
+ * @returns {object} LiveView hook proxy.
  */
 export function lazyHook(loader) {
   return {

@@ -1,5 +1,9 @@
 /**
- * @file Vitest coverage for bubble menu library helpers.
+ * @file Verifies Tiptap bubble menu DOM and link command behavior.
+ *
+ * Covers creation of mark/alignment buttons with `data-action` attributes and
+ * the link prompt flow that restores the original selection before applying a
+ * `_blank` link mark.
  */
 import {
   createBubbleMenuEl,

@@ -1,5 +1,8 @@
 /**
- * @file Vitest coverage for editor options library helpers.
+ * @file Verifies parsing of Tiptap hook options from element datasets.
+ *
+ * Covers initial Markdown content, read-only mode, LiveView event/field names,
+ * and the default slash-command placeholder when the server omits one.
  */
 import { describe, expect, it } from "vitest";
 import { tiptapDatasetOptions } from "../../../js/lib/tiptap/editor_options";

@@ -1,5 +1,9 @@
 /**
  * @file Main Phoenix LiveView browser entrypoint and hook registry.
+ *
+ * Owns the public web LiveSocket, combines colocated hooks, Backpex hooks, eager
+ * global hooks, and lazy editor hooks, then installs app-wide browser event
+ * adapters for topbar progress, clipboard copy, file download, and dev reload.
  */
 import "phoenix_html";
 import { Socket } from "phoenix";

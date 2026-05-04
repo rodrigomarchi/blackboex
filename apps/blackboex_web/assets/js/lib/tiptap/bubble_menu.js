@@ -1,8 +1,8 @@
 /**
- * @file Shared JavaScript library helpers for tiptap behavior.
+ * @file Builds and wires the floating Tiptap formatting bubble menu.
  */
 /**
- * Provides bubble buttons.
+ * Inline mark buttons shown when the user selects editable rich text.
  */
 export const BUBBLE_BUTTONS = [
   {
@@ -56,6 +56,9 @@ export const BUBBLE_BUTTONS = [
   },
 ];
 
+/**
+ * Text alignment buttons appended after the mark controls.
+ */
 const ALIGN_BUTTONS = [
   { label: "⬅", action: "align-left", title: "Align Left" },
   { label: "⬌", action: "align-center", title: "Align Center" },
@@ -63,9 +66,9 @@ const ALIGN_BUTTONS = [
 ];
 
 /**
- * Provides create bubble menu el.
- * @param {unknown} doc - Document used for DOM lookup.
- * @returns {unknown} Function result.
+ * Creates the DOM element passed to Tiptap's BubbleMenu extension.
+ * @param {Document} doc - Document used to create menu elements.
+ * @returns {HTMLDivElement} Detached bubble menu element.
  */
 export function createBubbleMenuEl(doc = document) {
   const menu = doc.createElement("div");
@@ -94,14 +97,14 @@ export function createBubbleMenuEl(doc = document) {
 }
 
 /**
- * Provides create bubble button.
- * @param {unknown} doc - Document used for DOM lookup.
- * @param {object} root1 - Secondary options object.
- * @param {unknown} root1.label - label option.
- * @param {unknown} root1.action - action option.
- * @param {unknown} root1.style - style option.
- * @param {unknown} root1.title - title option.
- * @returns {unknown} Function result.
+ * Creates a button with the dataset action consumed by `wireBubbleMenuButtons`.
+ * @param {Document} doc - Document used to create the button.
+ * @param {object} options - Button metadata.
+ * @param {string} options.label - Visible button label.
+ * @param {string} options.action - Formatting action stored in `data-action`.
+ * @param {string} options.style - Optional inline style for compact icon-like labels.
+ * @param {string} options.title - Browser tooltip text.
+ * @returns {HTMLButtonElement} Configured toolbar button.
  */
 function createBubbleButton(doc, { label, action, style, title }) {
   const button = doc.createElement("button");
@@ -114,11 +117,11 @@ function createBubbleButton(doc, { label, action, style, title }) {
 }
 
 /**
- * Provides wire bubble menu buttons.
- * @param {unknown} menu - menu value.
- * @param {unknown} editor - Editor instance used by the helper.
- * @param {unknown} prompt - prompt value.
- * @returns {unknown} Function result.
+ * Connects toolbar buttons to editor commands and keeps active state in sync.
+ * @param {HTMLElement} menu - Bubble menu returned by `createBubbleMenuEl`.
+ * @param {{on: Function}} editor - Tiptap editor instance.
+ * @param {Function} prompt - Prompt implementation used by link insertion.
+ * @returns {void}
  */
 export function wireBubbleMenuButtons(menu, editor, prompt = window.prompt) {
   menu.querySelectorAll("button[data-action]").forEach((button) => {
@@ -134,11 +137,11 @@ export function wireBubbleMenuButtons(menu, editor, prompt = window.prompt) {
 }
 
 /**
- * Provides handle bubble action.
- * @param {unknown} editor - Editor instance used by the helper.
- * @param {unknown} action - action value.
- * @param {unknown} prompt - prompt value.
- * @returns {unknown} Function result.
+ * Dispatches one bubble menu action to the corresponding Tiptap command chain.
+ * @param {{chain: Function}} editor - Tiptap editor instance.
+ * @param {string | undefined} action - Action read from the clicked button dataset.
+ * @param {Function} prompt - Prompt implementation used by link insertion.
+ * @returns {boolean} Tiptap command result, or false for unknown actions.
  */
 export function handleBubbleAction(editor, action, prompt = window.prompt) {
   switch (action) {
@@ -172,10 +175,10 @@ export function handleBubbleAction(editor, action, prompt = window.prompt) {
 }
 
 /**
- * Provides prompt for link.
- * @param {unknown} editor - Editor instance used by the helper.
- * @param {unknown} prompt - prompt value.
- * @returns {unknown} Function result.
+ * Toggles an active link off or prompts for a URL and applies it to the selection.
+ * @param {{isActive: Function, state: {selection: {from: number, to: number}}, chain: Function}} editor - Tiptap editor instance.
+ * @param {Function} prompt - Prompt implementation, injectable for tests.
+ * @returns {boolean} Tiptap command result.
  */
 export function promptForLink(editor, prompt = window.prompt) {
   if (editor.isActive("link")) {
@@ -198,10 +201,10 @@ export function promptForLink(editor, prompt = window.prompt) {
 }
 
 /**
- * Provides update bubble active state.
- * @param {unknown} menu - menu value.
- * @param {unknown} editor - Editor instance used by the helper.
- * @returns {unknown} Function result.
+ * Reflects editor mark/alignment state onto toolbar button classes.
+ * @param {HTMLElement} menu - Bubble menu containing `button[data-action]` elements.
+ * @param {{isActive: Function}} editor - Tiptap editor instance.
+ * @returns {void}
  */
 export function updateBubbleActiveState(menu, editor) {
   menu.querySelectorAll("button[data-action]").forEach((button) => {

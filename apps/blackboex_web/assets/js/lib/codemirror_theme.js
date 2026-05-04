@@ -1,5 +1,5 @@
 /**
- * @file Shared JavaScript library helpers for js lib behavior.
+ * @file CodeMirror theme and syntax highlighting for Blackboex editors.
  */
 import { EditorView } from "@codemirror/view";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
@@ -85,9 +85,6 @@ const highlightStyle = HighlightStyle.define([
 ]);
 
 /**
- * Provides blackboex editor theme.
- */
-/**
- * Provides blackboex editor theme.
+ * Shared CodeMirror theme extensions using Blackboex CSS variables.
  */
 export const blackboexEditorTheme = [theme, syntaxHighlighting(highlightStyle)];

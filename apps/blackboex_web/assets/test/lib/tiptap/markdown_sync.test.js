@@ -1,5 +1,8 @@
 /**
- * @file Vitest coverage for markdown sync library helpers.
+ * @file Verifies Markdown payload and external-content synchronization helpers.
+ *
+ * Covers field-aware LiveView payloads from Tiptap markdown storage and the
+ * guard that only calls `setContent` when server Markdown differs locally.
  */
 import {
   markdownPayload,

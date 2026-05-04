@@ -1,10 +1,10 @@
 /**
- * @file Shared JavaScript library helpers for ui behavior.
+ * @file Sortable.js helpers for moving nested sidebar tree nodes in LiveView.
  */
 /**
- * Provides build move node payload.
- * @param {unknown} evt - evt value.
- * @returns {unknown} Function result.
+ * Converts a Sortable drop event into the payload expected by the sidebar LiveView.
+ * @param {{item: HTMLElement, to: HTMLElement, newIndex: number}} evt - Sortable onEnd event.
+ * @returns {{node_id: string | undefined, node_type: string | undefined, new_parent_type: string | undefined, new_parent_id: string | undefined, new_index: number}} LiveView move payload.
  */
 export function buildMoveNodePayload(evt) {
   const item = evt.item;
@@ -20,11 +20,11 @@ export function buildMoveNodePayload(evt) {
 }
 
 /**
- * Provides create sortables.
- * @param {unknown} root - Root element or document used for lookup.
- * @param {unknown} Sortable - Sortable value.
- * @param {unknown} onMoveNode - onMoveNode value.
- * @returns {unknown} Function result.
+ * Attaches Sortable instances to every tree list inside a sidebar hook root.
+ * @param {ParentNode} root - Hook root that contains `[data-tree-list]` containers.
+ * @param {{create: Function}} Sortable - Sortable.js constructor namespace.
+ * @param {Function} onMoveNode - Callback that receives the normalized LiveView payload.
+ * @returns {Array<{destroy: Function}>} Sortable instances that must be destroyed with the hook.
  */
 export function createSortables(root, Sortable, onMoveNode) {
   const sortables = [];
@@ -43,9 +43,9 @@ export function createSortables(root, Sortable, onMoveNode) {
 }
 
 /**
- * Provides destroy sortables.
- * @param {unknown} sortables - sortables value.
- * @returns {unknown} Function result.
+ * Tears down all Sortable instances owned by the sidebar hook.
+ * @param {Array<{destroy: Function}>} sortables - Instances returned by `createSortables`.
+ * @returns {void}
  */
 export function destroySortables(sortables) {
   sortables.forEach((sortable) => sortable.destroy());

@@ -1,5 +1,8 @@
 /**
- * @file Vitest coverage for command palette nav hook hook behavior.
+ * @file Verifies CommandPaletteNav keyboard event forwarding.
+ *
+ * Covers ArrowDown and ArrowUp becoming `command_palette_navigate` LiveView
+ * pushes while unrelated keys, such as Enter, are ignored by the hook.
  */
 import { afterEach, describe, expect, it } from "vitest";
 import CommandPaletteNav from "../../../js/hooks/global/command_palette_nav_hook";

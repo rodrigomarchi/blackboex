@@ -1,5 +1,9 @@
 /**
- * @file Vitest coverage for code block lang library helpers.
+ * @file Verifies the Tiptap code block language and Mermaid helpers.
+ *
+ * Covers bundled Mermaid loading instead of CDN access, responsive SVG fitting,
+ * language selector labels, injected Mermaid module caching, initialization, and
+ * queued render output used by the rich editor node view.
  */
 import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";

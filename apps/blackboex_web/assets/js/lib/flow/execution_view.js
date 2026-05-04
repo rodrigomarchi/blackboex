@@ -1,15 +1,13 @@
 /**
- * @file Shared JavaScript library helpers for flow behavior.
+ * @file Renders flow execution overlays, status pills, and read-only JSON
+ * output viewers inside Drawflow nodes.
  */
 import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { buildExtensions } from "../codemirror_setup";
 
 /**
- * Provides exec status colors.
- */
-/**
- * Provides exec status colors.
+ * Hex colors used for execution status borders, dots, and CSS variables.
  */
 export const EXEC_STATUS_COLORS = {
   completed: "#10b981",
@@ -21,10 +19,7 @@ export const EXEC_STATUS_COLORS = {
 };
 
 /**
- * Provides exec status labels.
- */
-/**
- * Provides exec status labels.
+ * Human-readable labels rendered in execution status pills.
  */
 export const EXEC_STATUS_LABELS = {
   completed: "completed",
@@ -36,9 +31,9 @@ export const EXEC_STATUS_LABELS = {
 };
 
 /**
- * Provides format execution duration.
- * @param {unknown} ms - ms value.
- * @returns {unknown} Function result.
+ * Formats execution durations for compact node status pills.
+ * @param {number | null | undefined} ms - Duration in milliseconds.
+ * @returns {string} Empty string for absent durations, otherwise ms or seconds.
  */
 export function formatExecutionDuration(ms) {
   if (ms === null || ms === undefined) return "";
@@ -46,10 +41,18 @@ export function formatExecutionDuration(ms) {
 }
 
 /**
- * Provides build execution data node html.
- * @param {unknown} options - Configuration values for the helper.
- * @param {unknown} nodeKey - nodeKey value.
- * @returns {unknown} Function result.
+ * Builds Drawflow node HTML for a transient execution output data node.
+ *
+ * JSON output is base64 encoded into the DOM so Drawflow can import it as an
+ * HTML string and `mountExecutionCodeMirrorViews/1` can later mount a read-only
+ * CodeMirror viewer in place.
+ *
+ * @param {object} execution - Execution payload for a node.
+ * @param {string | undefined} execution.status - Node execution status.
+ * @param {object | Array<object> | string | number | boolean | null | undefined} execution.output - JSON-serializable node output.
+ * @param {string | object | null | undefined} execution.error - Error displayed above the output.
+ * @param {string} nodeKey - Stable key used as the CodeMirror mount identifier.
+ * @returns {string} Drawflow node HTML string.
  */
 export function buildExecutionDataNodeHtml({ status, output, error }, nodeKey) {
   const json =
@@ -65,9 +68,13 @@ export function buildExecutionDataNodeHtml({ status, output, error }, nodeKey) {
 }
 
 /**
- * Provides mount execution code mirror views.
- * @param {unknown} root - Root element or document used for lookup.
- * @returns {unknown} Function result.
+ * Mounts read-only JSON CodeMirror views into unmounted execution data nodes.
+ *
+ * Each placeholder is marked with `data-cm-mounted` so repeated calls do not
+ * double-mount editors after LiveView or Drawflow DOM updates.
+ *
+ * @param {ParentNode} [root=document] - Root used to find `.df-exec-dn-cm` placeholders.
+ * @returns {Array<{destroy: Function}>} Mounted CodeMirror views for cleanup.
  */
 export function mountExecutionCodeMirrorViews(root = document) {
   const views = [];
@@ -100,19 +107,23 @@ export function mountExecutionCodeMirrorViews(root = document) {
 }
 
 /**
- * Provides destroy execution code mirror views.
- * @param {unknown} views - views value.
- * @returns {unknown} Function result.
+ * Destroys CodeMirror views created for an execution overlay.
+ * @param {Array<{destroy: Function}>} views - Views returned by `mountExecutionCodeMirrorViews`.
+ * @returns {void}
  */
 export function destroyExecutionCodeMirrorViews(views) {
   views.forEach((view) => view.destroy());
 }
 
 /**
- * Provides apply execution highlights.
- * @param {unknown} nodes - nodes value.
- * @param {unknown} root - Root element or document used for lookup.
- * @returns {unknown} Function result.
+ * Adds status classes, color variables, and floating status pills to nodes.
+ *
+ * Flow execution ids use canonical `n123` ids while Drawflow DOM nodes use
+ * `#node-123`, so ids are normalized before lookup.
+ *
+ * @param {Array<{id: string, status: string, duration_ms?: number}>} nodes - Execution node summaries.
+ * @param {Document | Element} [root=document] - Root used to find Drawflow node elements.
+ * @returns {void}
  */
 export function applyExecutionHighlights(nodes, root = document) {
   nodes.forEach(({ id, status, duration_ms: durationMs }) => {

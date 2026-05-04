@@ -1,5 +1,8 @@
 /**
- * @file Vitest coverage for chat auto scroll hook hook behavior.
+ * @file Verifies ChatAutoScroll cleanup for streaming chat timelines.
+ *
+ * Covers disconnecting the MutationObserver and clearing the polling interval
+ * created to follow LiveView stream/text updates.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import ChatAutoScroll from "../../../js/hooks/global/chat_auto_scroll_hook";

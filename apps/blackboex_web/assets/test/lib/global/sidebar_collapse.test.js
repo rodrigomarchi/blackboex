@@ -1,5 +1,9 @@
 /**
- * @file Vitest coverage for sidebar collapse library helpers.
+ * @file Verifies sidebar collapsed-state persistence and class restoration.
+ *
+ * Covers reading the saved collapsed flag, swapping the expanded/collapsed
+ * Tailwind width classes, applying the marker class, and persisting the current
+ * state under the shared storage key.
  */
 import { describe, expect, it, vi } from "vitest";
 import {

@@ -1,5 +1,8 @@
 /**
- * @file Vitest coverage for keyboard shortcuts hook hook behavior.
+ * @file Verifies the KeyboardShortcuts window listener lifecycle.
+ *
+ * Covers translating a global Cmd/Ctrl+K keydown into `toggle_command_palette`,
+ * preventing the browser default, and removing the listener on hook teardown.
  */
 import { mountHook, cleanupDOM } from "../../helpers/hook_helper";
 import KeyboardShortcuts from "../../../js/hooks/global/keyboard_shortcuts_hook";

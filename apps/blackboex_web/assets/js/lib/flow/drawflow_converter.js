@@ -1,5 +1,6 @@
 /**
- * @file Shared JavaScript library helpers for flow behavior.
+ * @file Converts between Drawflow's internal graph JSON and the canonical
+ * BlackboexFlow definition persisted by the server.
  */
 /**
  * @typedef {object} FlowPosition
@@ -25,27 +26,15 @@
  * @property {BlackboexFlowEdge[]} edges
  */
 /**
- * Converts between Drawflow's internal JSON format and our canonical BlackboexFlow format.
+ * Converts Drawflow export data into the canonical BlackboexFlow shape.
  *
- * BlackboexFlow is the single source of truth — what gets stored in DB, exported, and imported.
- * Drawflow JSON is only used internally by the visual editor.
+ * Drawflow stores node ids as raw numeric strings and edge endpoints inside
+ * each node's output connections. BlackboexFlow normalizes those ids with an
+ * `n` prefix, stores zero-based source/target ports, and creates deterministic
+ * edge ids so repeated save/load cycles do not churn persisted JSON.
  *
- * BlackboexFlow format:
- * {
- *   version: "1.0",
- *   nodes: [{ id, type, position: {x, y}, data: {...} }, ...],
- *   edges: [{ id, source, source_port, target, target_port }, ...]
- * }
- */
-
-/**
- * Convert Drawflow export JSON → BlackboexFlow canonical format.
- * Called on save: drawflowToBlackboex(editor.export())
- */
-/**
- * Provides drawflow to blackboex.
- * @param {unknown} drawflowData - drawflowData value.
- * @returns {unknown} Function result.
+ * @param {object} drawflowData - Raw payload returned by `editor.export()`.
+ * @returns {BlackboexFlowDefinition} Persistable flow definition.
  */
 export function drawflowToBlackboex(drawflowData) {
   const nodes = [];
@@ -94,12 +83,16 @@ export function drawflowToBlackboex(drawflowData) {
 }
 
 /**
- * Convert BlackboexFlow canonical format → Drawflow import JSON.
- * Called on load: editor.import(blackboexToDrawflow(json))
+ * Converts canonical BlackboexFlow JSON into a Drawflow import payload.
  *
- * @param {object} blackboex - BlackboexFlow JSON
- * @param {function} buildHTML - function(type, outputCount) => HTML string for node rendering
- * @returns {object} Drawflow import payload.
+ * The converter rebuilds both output-side and input-side connection maps
+ * because Drawflow expects mirrored connection data. It also derives each
+ * node's input/output counts from node type defaults plus any persisted edges,
+ * preserving dynamic condition branches and boundary data-node edges.
+ *
+ * @param {BlackboexFlowDefinition | null | undefined} blackboex - Persisted flow definition.
+ * @param {(type: string, outputCount: number, data?: object) => string} buildHTML - Renderer for Drawflow node HTML.
+ * @returns {object} Payload accepted by `editor.import()`.
  */
 export function blackboexToDrawflow(blackboex, buildHTML) {
   if (!blackboex || !blackboex.nodes) {

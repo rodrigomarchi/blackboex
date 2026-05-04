@@ -1,5 +1,9 @@
 /**
- * @file Vitest coverage for editor config library helpers.
+ * @file Verifies Tiptap editor configuration helpers used by the LiveView hook.
+ *
+ * Covers bubble menu visibility rules, save/link keyboard shortcuts, field-aware
+ * Markdown payloads, debounce clearing, and delayed `pushEvent` synchronization
+ * after editor document updates.
  */
 import { describe, expect, it, vi } from "vitest";
 import {

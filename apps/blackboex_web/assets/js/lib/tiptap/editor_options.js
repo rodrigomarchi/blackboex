@@ -1,10 +1,10 @@
 /**
- * @file Shared JavaScript library helpers for tiptap behavior.
+ * @file Parses Tiptap LiveView hook options from data attributes.
  */
 /**
- * Provides tiptap dataset options.
- * @param {unknown} el - DOM element used by the helper.
- * @returns {unknown} Function result.
+ * Reads the editor boot payload embedded in the hook element dataset.
+ * @param {HTMLElement} el - Element mounted by the Tiptap LiveView hook.
+ * @returns {{content: string, readOnly: boolean, eventName: string | undefined, fieldName: string | undefined, placeholder: string}} Normalized editor options.
  */
 export function tiptapDatasetOptions(el) {
   return {

@@ -1,5 +1,9 @@
 /**
- * @file Vitest coverage for code editor library helpers.
+ * @file Verifies pure helpers behind the generic CodeMirror LiveView hook.
+ *
+ * Covers parsing `data-*` editor options, deciding whether a LiveView patch
+ * should replace the current document, and dispatching a full-document
+ * CodeMirror transaction without depending on a real EditorView instance.
  */
 import {
   buildCodeEditorOptions,

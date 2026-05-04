@@ -1,5 +1,5 @@
 /**
- * @file LiveView hook wiring for tiptap editor behavior.
+ * @file LiveView hook factory for the Markdown-backed Tiptap rich editor.
  */
 import { Editor } from "@tiptap/core";
 import {
@@ -14,12 +14,19 @@ import {
 import { tiptapDatasetOptions } from "../lib/tiptap/editor_options";
 import { syncMarkdownContent } from "../lib/tiptap/markdown_sync";
 
-// ── Editor Hook ─────────────────────────────────────────────
-
 /**
- * Provides create tiptap editor hook.
- * @param {unknown} options - Configuration values for the helper.
- * @returns {unknown} Function result.
+ * Builds a Tiptap LiveView hook with injectable constructors for tests.
+ *
+ * The hook parses editor options from `data-*`, creates the bubble menu,
+ * pushes debounced Markdown updates to the configured LiveView event, supports
+ * immediate Cmd/Ctrl+S saves, and suppresses echo updates caused by its own
+ * server round trip.
+ * @param {object} options - Hook dependency overrides.
+ * @param {typeof Editor} options.EditorClass - Tiptap Editor constructor.
+ * @param {Function} options.buildExtensions - Extension factory.
+ * @param {Function} options.buildEditorProps - editorProps factory.
+ * @param {Function} options.buildOnUpdate - Tiptap onUpdate callback factory.
+ * @returns {LiveViewHook} LiveView hook object.
  */
 export function createTiptapEditorHook({
   EditorClass = Editor,
@@ -88,6 +95,6 @@ export function createTiptapEditorHook({
 const TiptapEditor = createTiptapEditorHook();
 
 /**
- * Exports the module default value.
+ * Markdown-backed Tiptap hook registered as `TiptapEditor`.
  */
 export default TiptapEditor;

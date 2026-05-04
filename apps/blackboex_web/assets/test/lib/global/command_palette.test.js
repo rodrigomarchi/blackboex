@@ -1,5 +1,8 @@
 /**
- * @file Vitest coverage for command palette library helpers.
+ * @file Verifies command palette keyboard and DOM lookup helpers.
+ *
+ * Covers ArrowUp/ArrowDown translation to LiveView navigation directions and
+ * locating the server-rendered selected command item inside the palette list.
  */
 import {
   commandPaletteDirection,

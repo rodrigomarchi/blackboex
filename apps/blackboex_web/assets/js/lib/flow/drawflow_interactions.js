@@ -1,15 +1,21 @@
 /**
- * @file Shared JavaScript library helpers for flow behavior.
+ * @file Drawflow interaction helpers for loading definitions and creating
+ * canvas nodes from sidebar drag/drop metadata.
  */
 import { blackboexToDrawflow } from "./drawflow_converter";
 
 /**
- * Provides load drawflow definition.
- * @param {unknown} editor - Editor instance used by the helper.
- * @param {unknown} definition - definition value.
- * @param {unknown} htmlBuilder - htmlBuilder value.
- * @param {unknown} convert - convert value.
- * @returns {unknown} Function result.
+ * Imports a serialized flow definition into Drawflow.
+ *
+ * Current BlackboexFlow definitions are converted before import. Legacy raw
+ * Drawflow JSON is accepted unchanged so older persisted definitions can still
+ * load in the editor.
+ *
+ * @param {{import: Function}} editor - Drawflow editor instance.
+ * @param {string | null | undefined} definition - JSON string from the hook dataset.
+ * @param {(type: string, outputCount: number, data?: object) => string} htmlBuilder - Node HTML renderer used by the converter.
+ * @param {(definition: object, htmlBuilder: Function) => object} [convert=blackboexToDrawflow] - BlackboexFlow-to-Drawflow converter.
+ * @returns {boolean} True when a valid definition was imported.
  */
 export function loadDrawflowDefinition(
   editor,
@@ -37,11 +43,15 @@ export function loadDrawflowDefinition(
 }
 
 /**
- * Provides drawflow drop position.
- * @param {unknown} root - Root element or document used for lookup.
- * @param {unknown} editor - Editor instance used by the helper.
- * @param {unknown} event - Browser or library event payload.
- * @returns {unknown} Function result.
+ * Converts browser drop coordinates into Drawflow canvas coordinates.
+ *
+ * The calculation compensates for the root element position, the translated
+ * precanvas position, current pan offsets, and current zoom.
+ *
+ * @param {Element} root - Drawflow root element.
+ * @param {{precanvas: Element, canvas_x: number, canvas_y: number, zoom: number}} editor - Drawflow editor viewport state.
+ * @param {DragEvent} event - Drop event.
+ * @returns {{x: number, y: number}} Coordinates in Drawflow canvas space.
  */
 export function drawflowDropPosition(root, editor, event) {
   const rootRect = root.getBoundingClientRect();
@@ -58,12 +68,16 @@ export function drawflowDropPosition(root, editor, event) {
 }
 
 /**
- * Provides create node from drop.
- * @param {unknown} root - Root element or document used for lookup.
- * @param {unknown} editor - Editor instance used by the helper.
- * @param {unknown} event - Browser or library event payload.
- * @param {unknown} htmlBuilder - htmlBuilder value.
- * @returns {unknown} Function result.
+ * Creates a Drawflow node from sidebar drag metadata.
+ *
+ * Sidebar items provide node type and port counts through `dataTransfer`.
+ * Missing node type means the drop was unrelated and no editor mutation occurs.
+ *
+ * @param {Element} root - Drawflow root element.
+ * @param {{addNode: Function, precanvas: Element, canvas_x: number, canvas_y: number, zoom: number}} editor - Drawflow editor instance.
+ * @param {DragEvent} event - Drop event carrying node metadata.
+ * @param {(type: string, outputs: number, data: object) => string} htmlBuilder - Node HTML renderer.
+ * @returns {boolean} True when a node was added to the editor.
  */
 export function createNodeFromDrop(root, editor, event, htmlBuilder) {
   event.preventDefault();
@@ -91,10 +105,14 @@ export function createNodeFromDrop(root, editor, event, htmlBuilder) {
 }
 
 /**
- * Provides set sidebar drag data.
- * @param {unknown} element - element value.
- * @param {unknown} event - Browser or library event payload.
- * @returns {unknown} Function result.
+ * Copies sidebar node metadata into a dragstart event.
+ *
+ * The Drawflow drop handler reads these keys to decide which node type to
+ * create and how many input/output ports it should start with.
+ *
+ * @param {HTMLElement} element - Sidebar palette item with node dataset fields.
+ * @param {DragEvent} event - Dragstart event with a writable dataTransfer object.
+ * @returns {void}
  */
 export function setSidebarDragData(element, event) {
   event.dataTransfer.setData("node-type", element.dataset.nodeType);

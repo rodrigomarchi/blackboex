@@ -1,5 +1,9 @@
 /**
- * @file Vitest coverage for drawflow layout library helpers.
+ * @file Verifies Drawflow viewport helpers used by toolbar and execution layout.
+ *
+ * The tests pin zoom label formatting and the `fitView` behavior that measures
+ * rendered node dimensions, updates the precanvas transform, and dispatches a
+ * Drawflow zoom event after fitting the graph into the canvas container.
  */
 import { describe, expect, it, vi } from "vitest";
 import { fitView, updateZoomLabel } from "../../../js/lib/flow/drawflow_layout";

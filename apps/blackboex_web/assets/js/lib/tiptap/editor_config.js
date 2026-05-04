@@ -1,13 +1,13 @@
 /**
- * @file Shared JavaScript library helpers for tiptap behavior.
+ * @file Builds Tiptap extensions, editor props, and LiveView markdown update handlers.
  */
 /**
  * @typedef {object} TiptapEditorOptions
- * @property {HTMLElement} bubbleMenuEl
- * @property {string} placeholder
- * @property {string | undefined} eventName
- * @property {string | undefined} fieldName
- * @property {Function | undefined} pushEvent
+ * @property {HTMLElement} bubbleMenuEl - Detached menu element used by BubbleMenu.
+ * @property {string} placeholder - Placeholder text for empty editor documents.
+ * @property {string | undefined} eventName - LiveView event that receives markdown updates.
+ * @property {string | undefined} fieldName - Optional field name included in markdown payloads.
+ * @property {Function | undefined} pushEvent - LiveView pushEvent wrapper.
  */
 import StarterKit from "@tiptap/starter-kit";
 import { Markdown } from "tiptap-markdown";
@@ -39,9 +39,9 @@ import { markdownPayload } from "./markdown_sync";
 const lowlight = buildLowlight();
 
 /**
- * Provides should show bubble menu.
- * @param {unknown} options - Configuration values for the helper.
- * @returns {unknown} Function result.
+ * Allows the bubble menu only for non-empty text selections outside code/images.
+ * @param {{editor: {isActive: Function}, state: {selection: {empty: boolean}}}} options - Tiptap BubbleMenu visibility context.
+ * @returns {boolean} True when the floating formatting menu should be shown.
  */
 export function shouldShowBubbleMenu({ editor, state }) {
   if (editor.isActive("codeBlock") || editor.isActive("image")) {
@@ -51,9 +51,9 @@ export function shouldShowBubbleMenu({ editor, state }) {
 }
 
 /**
- * Provides build tiptap extensions.
- * @param {unknown} options - Configuration values for the helper.
- * @returns {unknown} Function result.
+ * Builds the complete extension set for the Blackboex rich markdown editor.
+ * @param {{bubbleMenuEl: HTMLElement, placeholder: string}} options - DOM and display options for extensions.
+ * @returns {Array<object | Function>} Configured Tiptap extensions for markdown, tables, tasks, slash commands, links, and code blocks.
  */
 export function buildTiptapExtensions({ bubbleMenuEl, placeholder }) {
   return [
@@ -107,9 +107,14 @@ export function buildTiptapExtensions({ bubbleMenuEl, placeholder }) {
 }
 
 /**
- * Provides build tiptap editor props.
- * @param {unknown} options - Configuration values for the helper.
- * @returns {unknown} Function result.
+ * Builds editor DOM props and keyboard shortcuts used by the LiveView hook.
+ * @param {object} options - Runtime callbacks supplied by the hook.
+ * @param {Function} options.getEditor - Returns the current Tiptap editor instance.
+ * @param {string | undefined} options.fieldName - Optional field name included in save payloads.
+ * @param {Function | undefined} options.pushEvent - LiveView pushEvent wrapper.
+ * @param {Function} options.clearDebounce - Clears a pending debounced markdown update.
+ * @param {Function} options.promptForLinkFn - Link prompt command, injectable for tests.
+ * @returns {{attributes: {class: string}, handleKeyDown: Function}} Tiptap editorProps object.
  */
 export function buildTiptapEditorProps({
   getEditor,
@@ -146,9 +151,13 @@ export function buildTiptapEditorProps({
 }
 
 /**
- * Provides build tiptap on update.
- * @param {unknown} options - Configuration values for the helper.
- * @returns {unknown} Function result.
+ * Creates the debounced markdown sync callback invoked by Tiptap after document changes.
+ * @param {object} options - LiveView sync options.
+ * @param {{_suppressNextOnUpdate?: boolean, _debounce?: number, _pushingUpdate?: boolean, pushEvent: Function}} options.hook - LiveView hook instance that owns debounce state.
+ * @param {string | undefined} options.eventName - LiveView event name for markdown changes.
+ * @param {string | undefined} options.fieldName - Optional field name included in payloads.
+ * @param {number} options.delay - Debounce delay in milliseconds.
+ * @returns {Function} Tiptap `onUpdate` callback.
  */
 export function buildTiptapOnUpdate({
   hook,

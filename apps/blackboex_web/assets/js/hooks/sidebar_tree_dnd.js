@@ -1,5 +1,5 @@
 /**
- * @file LiveView hook wiring for sidebar tree dnd behavior.
+ * @file LiveView hook for sidebar tree drag, reorder, and reparent operations.
  */
 import Sortable from "../../vendor/sortable.js";
 import {
@@ -8,24 +8,13 @@ import {
   destroySortables,
 } from "../lib/ui/sidebar_tree_dnd";
 
-// SidebarTreeDnD — enables drag-and-drop reordering and reparenting within the
-// sidebar navigation tree. Mounts one Sortable instance per `[data-tree-list]`
-// element found inside the hook root, with cross-list drag enabled via a shared
-// group name.
-//
-// DOM contract (set by sidebar_tree_component.ex):
-//   Hook root:  phx-hook="SidebarTreeDnD" on the <nav> element
-//   Each list:  data-tree-list data-parent-type="{type}" data-parent-id="{id}"
-//   Each item:  data-tree-item data-node-id="{id}" data-node-type="{type}"
-//
-// Server event pushed: "move_node" with payload:
-//   node_id, node_type, new_parent_type, new_parent_id, new_index
-//
-// Server event handled: "sidebar_tree:rollback" — re-initialises Sortable to
-//   snap the UI back to the server-authoritative state on a rejected move.
-
 /**
- * LiveView hook for sidebar tree dn d behavior.
+ * Sortable-backed hook for sidebar navigation trees.
+ *
+ * The server renders tree lists with `data-parent-*` and items with
+ * `data-node-*`. On drop the hook pushes `move_node` to the hook target, and on
+ * `sidebar_tree:rollback` it reinitializes Sortable after LiveView restores the
+ * server-authoritative order.
  */
 const SidebarTreeDnD = {
   mounted() {
@@ -63,7 +52,7 @@ const SidebarTreeDnD = {
 };
 
 /**
- * Exports the module default value.
+ * Sidebar tree drag-and-drop hook registered as `SidebarTreeDnD`.
  */
 export default SidebarTreeDnD;
 export { buildMoveNodePayload };

@@ -1,5 +1,8 @@
 /**
- * @file Vitest coverage for editor auto scroll hook hook behavior.
+ * @file Verifies EditorAutoScroll target lookup and teardown.
+ *
+ * Covers selecting the inner `.overflow-y-auto` pane used by streamed editor
+ * output and exercising hook destruction after interval/listener registration.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import EditorAutoScroll from "../../../js/hooks/global/editor_auto_scroll_hook";

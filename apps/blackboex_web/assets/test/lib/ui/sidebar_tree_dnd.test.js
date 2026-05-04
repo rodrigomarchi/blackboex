@@ -1,5 +1,8 @@
 /**
- * @file Vitest coverage for sidebar tree dnd library helpers.
+ * @file Verifies Sortable event normalization for sidebar tree moves.
+ *
+ * Covers the `move_node` payload assembled from dragged item `data-node-*`,
+ * destination list `data-parent-*`, and Sortable's new child index.
  */
 import { buildMoveNodePayload } from "../../../js/lib/ui/sidebar_tree_dnd";
 

@@ -1,5 +1,9 @@
 /**
- * @file Vitest coverage for execution view library helpers.
+ * @file Verifies execution overlay rendering for the Drawflow canvas.
+ *
+ * Covers duration formatting, base64-encoded JSON payloads for embedded
+ * CodeMirror data nodes, and status pill/highlight DOM mutations applied to
+ * original flow nodes after an execution run.
  */
 import { describe, expect, it } from "vitest";
 import {

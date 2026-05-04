@@ -3,19 +3,23 @@
  */
 /**
  * @typedef {object} PushedEvent
- * @property {string | undefined} target
- * @property {string} event
- * @property {object | undefined} payload
+ * @property {string | undefined} target - Optional pushEventTo target element.
+ * @property {string} event - LiveView event name.
+ * @property {object | undefined} payload - Payload passed by the hook.
  */
 if (!Element.prototype.scrollIntoView) {
   Element.prototype.scrollIntoView = function () {};
 }
 
 /**
- * Provides mount hook.
- * @param {unknown} hookDef - hookDef value.
- * @param {unknown} options - Configuration values for the helper.
- * @returns {unknown} Function result.
+ * Mounts a LiveView hook object against jsdom and records pushed events.
+ *
+ * The helper creates a hook instance with `el`, `pushEvent`, `pushEventTo`,
+ * and `handleEvent` stubs, then calls `mounted()` so hook tests can exercise
+ * lifecycle behavior without Phoenix LiveView.
+ * @param {object} hookDef - LiveView hook definition object.
+ * @param {Element | {tag?: string, html?: string, attrs?: Record<string, string>, parent?: HTMLElement}} options - Existing element or element creation options.
+ * @returns {object} Mounted hook instance with test-only event recording fields.
  */
 export function mountHook(hookDef, options = {}) {
   let el;
@@ -59,11 +63,11 @@ export function mountHook(hookDef, options = {}) {
 }
 
 /**
- * Provides simulate event.
- * @param {unknown} hook - LiveView hook instance or test double.
- * @param {unknown} event - Browser or library event payload.
- * @param {unknown} payload - Payload passed to the helper.
- * @returns {unknown} Function result.
+ * Invokes handlers registered through the hook's `handleEvent` stub.
+ * @param {{__eventHandlers: Record<string, Array<Function>>}} hook - Mounted hook from `mountHook`.
+ * @param {string} event - LiveView event name to simulate.
+ * @param {object} payload - Server payload to pass to registered handlers.
+ * @returns {void}
  */
 export function simulateEvent(hook, event, payload) {
   const handlers = hook.__eventHandlers[event] || [];
@@ -71,10 +75,10 @@ export function simulateEvent(hook, event, payload) {
 }
 
 /**
- * Provides get push events.
- * @param {unknown} hook - LiveView hook instance or test double.
- * @param {unknown} eventName - eventName value.
- * @returns {unknown} Function result.
+ * Returns payloads pushed for a specific LiveView event name.
+ * @param {{__pushEvents: Array<PushedEvent>}} hook - Mounted hook from `mountHook`.
+ * @param {string} eventName - LiveView event name to filter.
+ * @returns {Array<object | undefined>} Payloads pushed for the requested event.
  */
 export function getPushEvents(hook, eventName) {
   return hook.__pushEvents
@@ -83,8 +87,8 @@ export function getPushEvents(hook, eventName) {
 }
 
 /**
- * Provides cleanup dom.
- * @returns {unknown} Function result.
+ * Clears jsdom state and restores Vitest mocks between hook tests.
+ * @returns {void}
  */
 export function cleanupDOM() {
   document.body.innerHTML = "";
@@ -93,8 +97,8 @@ export function cleanupDOM() {
 }
 
 /**
- * Provides mock local storage.
- * @returns {unknown} Function result.
+ * Installs an in-memory localStorage mock with a `restore()` helper.
+ * @returns {Storage & {store: Record<string, string>, restore: Function}} Mock storage object.
  */
 export function mockLocalStorage() {
   const store = {};

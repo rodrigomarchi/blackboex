@@ -1,5 +1,9 @@
 /**
- * @file Vitest coverage for playground editor library helpers.
+ * @file Verifies Playground editor event mapping and completion handoff.
+ *
+ * Covers the keyboard shortcut to LiveView event names used by the hook and the
+ * one-shot resolver state that bridges server-pushed Elixir completion results
+ * back into CodeMirror's async completion source.
  */
 import {
   playgroundEventForKey,

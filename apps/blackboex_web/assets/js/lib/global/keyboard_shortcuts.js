@@ -1,11 +1,11 @@
 /**
- * @file Shared JavaScript library helpers for global behavior.
+ * @file Maps browser keyboard events to API editor LiveView shortcut events.
  */
 /**
- * Provides editor shortcut for event.
- * @param {unknown} event - Browser or library event payload.
- * @param {unknown} opts - Optional configuration values.
- * @returns {unknown} Function result.
+ * Converts a keydown event into the LiveView shortcut action it represents.
+ * @param {KeyboardEvent} event - Browser keydown event.
+ * @param {{paletteOpen?: boolean}} [opts={}] - Current UI shortcut context.
+ * @returns {{event: string, payload: object} | null} LiveView event payload or null.
  */
 export function editorShortcutForEvent(event, opts = {}) {
   const isMeta = event.metaKey || event.ctrlKey;
@@ -37,9 +37,9 @@ export function editorShortcutForEvent(event, opts = {}) {
 }
 
 /**
- * Provides is command palette open.
- * @param {unknown} doc - Document used for DOM lookup.
- * @returns {unknown} Function result.
+ * Checks whether the command palette is currently rendered.
+ * @param {Document} [doc=document] - Document to inspect.
+ * @returns {boolean} True when a command palette root is present.
  */
 export function isCommandPaletteOpen(doc = document) {
   return Boolean(doc.querySelector("[data-command-palette]"));

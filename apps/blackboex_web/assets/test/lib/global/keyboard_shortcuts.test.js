@@ -1,5 +1,9 @@
 /**
- * @file Vitest coverage for keyboard shortcuts library helpers.
+ * @file Verifies keyboard shortcut mapping for the API editor shell.
+ *
+ * Covers command palette priority, Escape behavior based on palette state, and
+ * the LiveView event names emitted for save, chat, bottom panel, config, and
+ * request execution shortcuts.
  */
 import { editorShortcutForEvent } from "../../../js/lib/global/keyboard_shortcuts";
 

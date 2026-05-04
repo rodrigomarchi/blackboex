@@ -1,5 +1,5 @@
 /**
- * @file Global LiveView hook wiring for keyboard shortcuts hook behavior.
+ * @file Global LiveView hook for editor-shell keyboard shortcuts.
  */
 import {
   editorShortcutForEvent,
@@ -7,7 +7,10 @@ import {
 } from "../../lib/global/keyboard_shortcuts";
 
 /**
- * LiveView hook for keyboard shortcuts behavior.
+ * Converts browser keydown events into named LiveView editor-shell actions.
+ *
+ * The helper checks whether the command palette is open so Escape and Cmd/Ctrl+K
+ * map to the correct server event for the current UI state.
  */
 const KeyboardShortcuts = {
   mounted() {
@@ -30,6 +33,6 @@ const KeyboardShortcuts = {
 };
 
 /**
- * Exports the module default value.
+ * Editor-shell keyboard shortcut hook registered as `KeyboardShortcuts`.
  */
 export default KeyboardShortcuts;

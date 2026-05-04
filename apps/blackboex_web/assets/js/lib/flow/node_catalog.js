@@ -1,12 +1,9 @@
 /**
- * @file Shared JavaScript library helpers for flow behavior.
+ * @file Visual catalog and DOM helpers for Drawflow node rendering.
  */
-// Node type visual config
+
 /**
- * Provides node config.
- */
-/**
- * Provides node config.
+ * Visual metadata for every node type shown in the flow editor palette/canvas.
  */
 export const nodeConfig = {
   start: {
@@ -78,10 +75,10 @@ export const nodeConfig = {
 };
 
 /**
- * Provides count outputs.
- * @param {unknown} editor - Editor instance used by the helper.
- * @param {unknown} nodeId - nodeId value.
- * @returns {unknown} Function result.
+ * Counts output ports for a Drawflow node.
+ * @param {{getNodeFromId: (nodeId: string | number) => {outputs: object} | null}} editor - Drawflow editor API.
+ * @param {string | number} nodeId - Drawflow internal node id.
+ * @returns {number} Number of output ports, or 0 when the node is missing.
  */
 export function countOutputs(editor, nodeId) {
   const node = editor.getNodeFromId(nodeId);
@@ -89,11 +86,16 @@ export function countOutputs(editor, nodeId) {
 }
 
 /**
- * Provides build node html.
- * @param {unknown} type - type value.
- * @param {unknown} outputs - outputs value.
- * @param {unknown} data - data value.
- * @returns {unknown} Function result.
+ * Renders the HTML body Drawflow stores for a node.
+ *
+ * Condition nodes include branch add/remove controls and a branch count badge.
+ * Unknown node types intentionally fall back to simple labeled HTML so old or
+ * experimental persisted flows remain visible instead of crashing the editor.
+ *
+ * @param {string} type - Flow node type.
+ * @param {number} outputs - Current output count used by condition controls.
+ * @param {{name?: string} | undefined} data - Node data with an optional display name.
+ * @returns {string} Drawflow node HTML.
  */
 export function buildNodeHTML(type, outputs, data) {
   const cfg = nodeConfig[type];
@@ -124,10 +126,15 @@ export function buildNodeHTML(type, outputs, data) {
 }
 
 /**
- * Provides update output labels.
- * @param {unknown} editor - Editor instance used by the helper.
- * @param {unknown} nodeId - nodeId value.
- * @returns {unknown} Function result.
+ * Rebuilds condition branch labels next to Drawflow output ports.
+ *
+ * Branch labels are stored on node data as zero-based string keys. Existing
+ * label elements are removed first because Drawflow can preserve port DOM
+ * between updates.
+ *
+ * @param {object} editor - Drawflow editor API.
+ * @param {string | number} nodeId - Drawflow internal node id.
+ * @returns {void}
  */
 export function updateOutputLabels(editor, nodeId) {
   const node = editor.getNodeFromId(nodeId);
@@ -155,9 +162,9 @@ export function updateOutputLabels(editor, nodeId) {
 }
 
 /**
- * Provides update all output labels.
- * @param {unknown} editor - Editor instance used by the helper.
- * @returns {unknown} Function result.
+ * Refreshes condition branch labels for every node in the Home module.
+ * @param {{export: Function}} editor - Drawflow editor API.
+ * @returns {void}
  */
 export function updateAllOutputLabels(editor) {
   const data = editor.export();
@@ -169,10 +176,10 @@ export function updateAllOutputLabels(editor) {
 }
 
 /**
- * Provides update condition label.
- * @param {unknown} editor - Editor instance used by the helper.
- * @param {unknown} nodeId - nodeId value.
- * @returns {unknown} Function result.
+ * Updates visible condition branch count controls after port count changes.
+ * @param {object} editor - Drawflow editor API.
+ * @param {string | number} nodeId - Drawflow internal node id.
+ * @returns {void}
  */
 export function updateConditionLabel(editor, nodeId) {
   const count = countOutputs(editor, nodeId);

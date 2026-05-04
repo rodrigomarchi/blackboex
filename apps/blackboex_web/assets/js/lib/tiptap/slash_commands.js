@@ -1,14 +1,14 @@
 /**
- * @file Shared JavaScript library helpers for tiptap behavior.
+ * @file Tiptap slash command catalog and suggestion menu renderer.
  */
 import { Extension } from "@tiptap/core";
 import Suggestion from "@tiptap/suggestion";
 
 /**
- * Provides commands.
- */
-/**
- * Provides commands.
+ * Commands exposed after typing `/` in the rich editor.
+ *
+ * Each command deletes the trigger query range before applying a Tiptap block,
+ * inline mark, alignment, media, table, or Mermaid insertion command.
  */
 export const COMMANDS = [
   // ── Text ──────────────────────────────────────────────────
@@ -199,12 +199,11 @@ const SlashCommands = Extension.create({
 });
 
 /**
- * Provides create slash suggestion.
- * @returns {unknown} Function result.
- */
-/**
- * Provides create slash suggestion.
- * @returns {unknown} Function result.
+ * Creates the Suggestion configuration that filters commands and owns menu DOM.
+ *
+ * The renderer positions a fixed menu at the slash trigger coordinates, supports
+ * mouse hover/click and keyboard navigation, and removes the menu on exit.
+ * @returns {object} Tiptap Suggestion configuration for slash commands.
  */
 function createSlashSuggestion() {
   let menuEl = null;

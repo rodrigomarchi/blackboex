@@ -1,5 +1,9 @@
 /**
- * @file Vitest coverage for resizable panels hook behavior.
+ * @file Verifies the ResizablePanels LiveView hook lifecycle.
+ *
+ * Covers restoring persisted panel sizes from `playground-panel-sizes`, applying
+ * them to target elements, registering `[data-resize-handle]` controls, and
+ * removing handle state during hook teardown.
  */
 import { afterEach, describe, expect, it } from "vitest";
 import ResizablePanels from "../../js/hooks/resizable_panels";

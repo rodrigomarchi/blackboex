@@ -1,9 +1,10 @@
 /**
- * @file Shared JavaScript library helpers for flow behavior.
+ * @file Drawflow toolbar actions for zooming, fitting, auto-layout and edit locks.
  */
 /**
- * Provides reset zoom.
- * @param {unknown} editor - Editor instance used by the helper.
+ * Resets Drawflow pan and zoom to the default viewport.
+ * @param {object} editor - Drawflow editor instance.
+ * @returns {void}
  */
 export function resetZoom(editor) {
   editor.zoom = 1;
@@ -14,10 +15,14 @@ export function resetZoom(editor) {
 }
 
 /**
- * Provides toggle lock.
- * @param {unknown} editor - Editor instance used by the helper.
- * @param {unknown} btn - btn value.
- * @returns {unknown} Function result.
+ * Toggles Drawflow between edit and fixed view modes.
+ *
+ * The active class, title and Heroicon lock class are updated to mirror the new
+ * state in the toolbar button.
+ *
+ * @param {object} editor - Drawflow editor instance.
+ * @param {HTMLButtonElement} btn - Toolbar lock button.
+ * @returns {void}
  */
 export function toggleLock(editor, btn) {
   const isEdit = editor.editor_mode === "edit";
@@ -35,9 +40,19 @@ export function toggleLock(editor, btn) {
 }
 
 /**
- * Provides wire drawflow toolbar.
- * @param {unknown} options - Configuration values for the helper.
- * @returns {unknown} Function result.
+ * Wires toolbar button clicks to Drawflow viewport actions.
+ *
+ * The returned cleanup removes both the DOM click handler and the Drawflow
+ * `zoom` listener registered for keeping the label current.
+ *
+ * @param {object} options - Toolbar dependencies.
+ * @param {object} options.editor - Drawflow editor instance.
+ * @param {Element | null} options.toolbar - Toolbar root; null returns a no-op cleanup.
+ * @param {Function} options.autoLayout - Auto-layout callback.
+ * @param {Function} options.fitView - Fit-view callback.
+ * @param {Function} options.updateZoomLabel - Zoom label refresh callback.
+ * @param {(callback: FrameRequestCallback) => number} [options.requestFrame=requestAnimationFrame] - Frame scheduler.
+ * @returns {() => void} Cleanup callback.
  */
 export function wireDrawflowToolbar({
   editor,

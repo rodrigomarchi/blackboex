@@ -1,5 +1,8 @@
 /**
  * @file Backpex admin Phoenix LiveView browser entrypoint.
+ *
+ * Uses the same LiveSocket/bootstrap helpers as the public app but registers
+ * only Backpex hooks plus the lazy CodeEditor needed by admin form fields.
  */
 import "phoenix_html";
 import { Socket } from "phoenix";

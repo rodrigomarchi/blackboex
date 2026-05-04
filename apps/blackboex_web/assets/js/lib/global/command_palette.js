@@ -1,10 +1,10 @@
 /**
- * @file Shared JavaScript library helpers for global behavior.
+ * @file Keyboard and DOM helpers for command palette navigation.
  */
 /**
- * Provides command palette direction.
- * @param {unknown} key - key value.
- * @returns {unknown} Function result.
+ * Converts arrow key names into command palette navigation directions.
+ * @param {string} key - KeyboardEvent key value.
+ * @returns {"up" | "down" | null} Navigation direction for handled keys.
  */
 export function commandPaletteDirection(key) {
   if (key === "ArrowDown") return "down";
@@ -13,9 +13,9 @@ export function commandPaletteDirection(key) {
 }
 
 /**
- * Provides find selected command.
- * @param {unknown} doc - Document used for DOM lookup.
- * @returns {unknown} Function result.
+ * Finds the currently highlighted command palette item.
+ * @param {Document} [doc=document] - Document containing the palette list.
+ * @returns {Element | null} Selected command element.
  */
 export function findSelectedCommand(doc = document) {
   return (
@@ -26,9 +26,9 @@ export function findSelectedCommand(doc = document) {
 }
 
 /**
- * Provides scroll selected command into view.
- * @param {unknown} doc - Document used for DOM lookup.
- * @returns {unknown} Function result.
+ * Keeps the highlighted command visible after keyboard navigation or patches.
+ * @param {Document} [doc=document] - Document containing the palette list.
+ * @returns {void}
  */
 export function scrollSelectedCommandIntoView(doc = document) {
   const selected = findSelectedCommand(doc);

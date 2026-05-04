@@ -1,5 +1,5 @@
 /**
- * @file LiveView hook wiring for drawflow editor behavior.
+ * @file LiveView hook that owns the visual flow canvas and execution overlay.
  */
 import Drawflow from "../../vendor/drawflow.min.js";
 import {
@@ -33,9 +33,19 @@ import {
 import { wireDrawflowToolbar } from "../lib/flow/drawflow_toolbar";
 
 /**
- * LiveView hook for drawflow editor behavior.
+ * Drawflow canvas hook for the flow editor.
+ *
+ * The hook imports server definitions, sends node selection and serialized
+ * BlackboexFlow definitions back to LiveView, manages toolbar/drop/sidebar DOM
+ * listeners, protects unsaved canvas edits before AI replacement, and swaps the
+ * editable graph for a read-only execution view with CodeMirror JSON previews.
  */
 const DrawflowEditor = {
+  /**
+   * Starts Drawflow, loads the server definition, and wires canvas, toolbar,
+   * sidebar drag/drop, export, execution, and AI reload events.
+   * @returns {void}
+   */
   mounted() {
     this._cleanups = [];
     this._timeouts = new Set();
@@ -295,6 +305,11 @@ const DrawflowEditor = {
     });
   },
 
+  /**
+   * Cancels pending async work, removes listeners, destroys execution editors,
+   * and clears the Drawflow instance.
+   * @returns {void}
+   */
   destroyed() {
     this._destroyed = true;
     this.cleanupResources();
@@ -304,16 +319,35 @@ const DrawflowEditor = {
     }
   },
 
+  /**
+   * Registers a cleanup callback to run in reverse order on destroy.
+   * @param {Function | undefined} cleanup - Resource cleanup callback.
+   * @returns {void}
+   */
   addCleanup(cleanup) {
     if (typeof cleanup === "function") this._cleanups.push(cleanup);
   },
 
+  /**
+   * Adds a DOM listener and records its matching remover for hook cleanup.
+   * @param {EventTarget | null | undefined} target - DOM target.
+   * @param {string} event - Event name.
+   * @param {EventListener} handler - Listener callback.
+   * @param {AddEventListenerOptions | boolean | undefined} options - Listener options.
+   * @returns {void}
+   */
   addDomListener(target, event, handler, options) {
     if (!target) return;
     target.addEventListener(event, handler, options);
     this.addCleanup(() => target.removeEventListener(event, handler, options));
   },
 
+  /**
+   * Adds a Drawflow listener and records its remover when the vendor API exposes one.
+   * @param {string} event - Drawflow event name.
+   * @param {Function} handler - Drawflow event handler.
+   * @returns {void}
+   */
   addEditorListener(event, handler) {
     this.editor.on(event, handler);
     this.addCleanup(() => {
@@ -322,6 +356,12 @@ const DrawflowEditor = {
     });
   },
 
+  /**
+   * Schedules a timeout that is automatically cancelled if the hook is destroyed.
+   * @param {Function} callback - Function to run after the delay.
+   * @param {number} delay - Delay in milliseconds.
+   * @returns {number} Timeout id.
+   */
   scheduleTimeout(callback, delay) {
     const id = setTimeout(() => {
       this._timeouts.delete(id);
@@ -331,6 +371,11 @@ const DrawflowEditor = {
     return id;
   },
 
+  /**
+   * Schedules an animation frame that is automatically cancelled on destroy.
+   * @param {Function} callback - Function to run in the next animation frame.
+   * @returns {number} Animation frame id.
+   */
   scheduleFrame(callback) {
     const id = requestAnimationFrame(() => {
       this._frames.delete(id);
@@ -340,6 +385,10 @@ const DrawflowEditor = {
     return id;
   },
 
+  /**
+   * Cancels timers/frames and runs all registered listener cleanup callbacks.
+   * @returns {void}
+   */
   cleanupResources() {
     this._timeouts.forEach((id) => clearTimeout(id));
     this._timeouts.clear();
@@ -353,6 +402,6 @@ const DrawflowEditor = {
 };
 
 /**
- * Exports the module default value.
+ * Flow canvas hook registered as `DrawflowEditor`.
  */
 export default DrawflowEditor;

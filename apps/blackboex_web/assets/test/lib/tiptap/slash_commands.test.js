@@ -1,5 +1,9 @@
 /**
- * @file Vitest coverage for slash commands library helpers.
+ * @file Verifies Tiptap slash command catalog filtering and menu behavior.
+ *
+ * Covers returning the full command catalog, filtering by title, description, or
+ * category, creating the floating menu, keyboard navigation, command selection,
+ * and cleanup on Escape.
  */
 import { describe, expect, it } from "vitest";
 import {

@@ -1,16 +1,13 @@
 /**
- * @file Shared JavaScript library helpers for ui behavior.
+ * @file State helpers for persisted drag-resizable editor panel dimensions.
  */
 /**
- * Provides storage key.
+ * localStorage key used by the LiveView hooks that remember editor panel sizes.
  */
 export const STORAGE_KEY = "playground-panel-sizes";
 
 /**
- * Provides panel constraints.
- */
-/**
- * Provides panel constraints.
+ * Pixel bounds for the two resize axes supported by the playground/page layouts.
  */
 export const PANEL_CONSTRAINTS = {
   vertical: { min: 100, max: 600 },
@@ -18,10 +15,10 @@ export const PANEL_CONSTRAINTS = {
 };
 
 /**
- * Provides clamp panel size.
- * @param {unknown} direction - direction value.
- * @param {unknown} size - size value.
- * @returns {unknown} Function result.
+ * Restricts a requested panel size to the configured range for its axis.
+ * @param {"vertical" | "horizontal"} direction - Resize axis selected by the handle.
+ * @param {number} size - Requested pixel size.
+ * @returns {number} Clamped pixel size.
  */
 export function clampPanelSize(direction, size) {
   const constraints = PANEL_CONSTRAINTS[direction];
@@ -29,19 +26,19 @@ export function clampPanelSize(direction, size) {
 }
 
 /**
- * Provides panel size property.
- * @param {unknown} direction - direction value.
- * @returns {unknown} Function result.
+ * Maps a resize axis to the CSS property that stores the panel dimension.
+ * @param {"vertical" | "horizontal"} direction - Resize axis selected by the handle.
+ * @returns {"height" | "width"} Inline style property to update.
  */
 export function panelSizeProperty(direction) {
   return direction === "vertical" ? "height" : "width";
 }
 
 /**
- * Provides drag start position.
- * @param {unknown} direction - direction value.
- * @param {unknown} event - Browser or library event payload.
- * @returns {unknown} Function result.
+ * Reads the pointer coordinate used to compare a drag event against its origin.
+ * @param {"vertical" | "horizontal"} direction - Resize axis selected by the handle.
+ * @param {MouseEvent | Touch} event - Pointer-like event object from mouse or touch handling.
+ * @returns {number} Y coordinate for vertical resizing, X coordinate for horizontal resizing.
  */
 export function dragStartPosition(direction, event) {
   return direction === "vertical"
@@ -50,20 +47,20 @@ export function dragStartPosition(direction, event) {
 }
 
 /**
- * Provides drag start size.
- * @param {unknown} direction - direction value.
- * @param {unknown} target - Target event source or DOM element.
- * @returns {unknown} Function result.
+ * Captures the current rendered panel dimension before drag deltas are applied.
+ * @param {"vertical" | "horizontal"} direction - Resize axis selected by the handle.
+ * @param {HTMLElement} target - Panel element being resized.
+ * @returns {number} Current panel height or width in pixels.
  */
 export function dragStartSize(direction, target) {
   return direction === "vertical" ? target.offsetHeight : target.offsetWidth;
 }
 
 /**
- * Provides next panel size.
- * @param {unknown} state - State object used by the helper.
- * @param {unknown} event - Browser or library event payload.
- * @returns {unknown} Function result.
+ * Computes the next panel size from the drag origin, current pointer position, and limits.
+ * @param {{direction: "vertical" | "horizontal", startPos: number, startSize: number}} state - Drag state captured on pointer down.
+ * @param {MouseEvent | Touch} event - Latest pointer-like event.
+ * @returns {number} Clamped next panel size in pixels.
  */
 export function nextPanelSize(state, event) {
   const current = dragStartPosition(state.direction, event);
@@ -72,11 +69,11 @@ export function nextPanelSize(state, event) {
 }
 
 /**
- * Provides apply panel size.
- * @param {unknown} state - State object used by the helper.
- * @param {unknown} size - size value.
- * @param {unknown} root - Root element or document used for lookup.
- * @returns {unknown} Function result.
+ * Applies a persisted or in-progress size through either a CSS variable or inline style.
+ * @param {{direction: "vertical" | "horizontal", target: HTMLElement, cssVar?: string}} state - Resize target and optional CSS variable binding.
+ * @param {number} size - Pixel size to write.
+ * @param {HTMLElement} root - Element that receives CSS variable updates.
+ * @returns {void}
  */
 export function applyPanelSize(state, size, root = document.documentElement) {
   const prop = panelSizeProperty(state.direction);
@@ -88,10 +85,10 @@ export function applyPanelSize(state, size, root = document.documentElement) {
 }
 
 /**
- * Provides save panel sizes.
- * @param {unknown} handles - handles value.
- * @param {unknown} storage - Storage adapter used by the helper.
- * @returns {unknown} Function result.
+ * Persists the rendered size for every registered resize handle by target element id.
+ * @param {Array<{state: {direction: "vertical" | "horizontal", target: HTMLElement}}>} handles - Active handles managed by the hook.
+ * @param {Storage} storage - Storage adapter, injectable for tests.
+ * @returns {void}
  */
 export function savePanelSizes(handles, storage = localStorage) {
   const sizes = {};
@@ -104,9 +101,9 @@ export function savePanelSizes(handles, storage = localStorage) {
 }
 
 /**
- * Provides load panel sizes.
- * @param {unknown} storage - Storage adapter used by the helper.
- * @returns {unknown} Function result.
+ * Loads the last saved panel size map from storage.
+ * @param {Storage} storage - Storage adapter, injectable for tests.
+ * @returns {Record<string, number> | null} Saved target id to pixel size map, or null when unset.
  */
 export function loadPanelSizes(storage = localStorage) {
   const stored = storage.getItem(STORAGE_KEY);

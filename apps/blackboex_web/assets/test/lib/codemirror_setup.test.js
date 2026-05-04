@@ -1,5 +1,8 @@
 /**
- * @file Vitest coverage for codemirror setup library helpers.
+ * @file Verifies CodeMirror extension assembly for editor hook variants.
+ *
+ * Covers the full editor setup with language support and the intentionally
+ * smaller minimal read-only configuration used for compact embedded previews.
  */
 import { describe, expect, it } from "vitest";
 import { buildExtensions } from "../../js/lib/codemirror_setup";

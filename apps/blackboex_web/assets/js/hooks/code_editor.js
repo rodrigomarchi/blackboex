@@ -1,52 +1,37 @@
-import { EditorState } from "@codemirror/state"
-import { EditorView } from "@codemirror/view"
-import { buildExtensions } from "../lib/codemirror_setup"
+import { EditorState } from "@codemirror/state";
+import { EditorView } from "@codemirror/view";
+import { buildExtensions } from "../lib/codemirror_setup";
+import {
+  buildBlurHandler,
+  buildCodeEditorOptions,
+  syncCodeMirrorDocument,
+} from "../lib/editor/code_editor";
 
 const CodeEditor = {
   mounted() {
-    const language = this.el.dataset.language || "text"
-    const readOnly = this.el.dataset.readonly === "true"
-    const minimal = this.el.dataset.minimal === "true"
-    const eventName = this.el.dataset.event
-    const fieldName = this.el.dataset.field
-    const initialValue = this.el.dataset.value || ""
+    const options = buildCodeEditorOptions(this.el);
+    const onBlur = buildBlurHandler(this, options);
 
-    const onBlur = (!readOnly && eventName)
-      ? (_event, view) => {
-          const value = view.state.doc.toString()
-          const payload = fieldName ? { field: fieldName, value } : { value }
-          this.pushEvent(eventName, payload)
-        }
-      : null
-
-    const extensions = buildExtensions({ language, readOnly, onBlur, minimal })
+    const extensions = buildExtensions({ ...options, onBlur });
 
     const state = EditorState.create({
-      doc: initialValue,
+      doc: options.initialValue,
       extensions,
-    })
+    });
 
-    this.view = new EditorView({ state, parent: this.el })
+    this.view = new EditorView({ state, parent: this.el });
   },
 
   updated() {
-    const newValue = this.el.dataset.value
-    if (newValue !== undefined && this.view) {
-      const currentValue = this.view.state.doc.toString()
-      if (newValue !== currentValue) {
-        this.view.dispatch({
-          changes: { from: 0, to: this.view.state.doc.length, insert: newValue },
-        })
-      }
-    }
+    syncCodeMirrorDocument(this.view, this.el.dataset.value);
   },
 
   destroyed() {
     if (this.view) {
-      this.view.destroy()
-      this.view = null
+      this.view.destroy();
+      this.view = null;
     }
   },
-}
+};
 
-export default CodeEditor
+export default CodeEditor;

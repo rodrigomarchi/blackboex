@@ -1,4 +1,9 @@
-import Sortable from "../../vendor/sortable.js"
+import Sortable from "../../vendor/sortable.js";
+import {
+  buildMoveNodePayload,
+  createSortables,
+  destroySortables,
+} from "../lib/ui/sidebar_tree_dnd";
 
 // SidebarTreeDnD — enables drag-and-drop reordering and reparenting within the
 // sidebar navigation tree. Mounts one Sortable instance per `[data-tree-list]`
@@ -18,62 +23,38 @@ import Sortable from "../../vendor/sortable.js"
 
 const SidebarTreeDnD = {
   mounted() {
-    this.sortables = []
-    this.initSortables()
+    this.sortables = [];
+    this.initSortables();
 
     this.handleEvent("sidebar_tree:rollback", () => {
       // The LiveView will have already re-rendered with the correct order;
       // destroy and reinitialise so Sortable picks up the new DOM state.
-      this.destroySortables()
+      this.destroySortables();
       // Wait one animation frame for LiveView morphdom patch to settle
-      requestAnimationFrame(() => this.initSortables())
-    })
+      requestAnimationFrame(() => this.initSortables());
+    });
   },
 
   updated() {
-    this.destroySortables()
-    this.initSortables()
+    this.destroySortables();
+    this.initSortables();
   },
 
   destroyed() {
-    this.destroySortables()
+    this.destroySortables();
   },
 
   initSortables() {
-    const lists = this.el.querySelectorAll("[data-tree-list]")
-    lists.forEach(list => {
-      const s = Sortable.create(list, {
-        group: "sidebar-tree",
-        delay: 150,
-        delayOnTouchOnly: true,
-        animation: 120,
-        draggable: "[data-tree-item]",
-        onEnd: (evt) => {
-          const item = evt.item
-          const nodeId = item.dataset.nodeId
-          const nodeType = item.dataset.nodeType
-          const newList = evt.to
-          const newParentType = newList.dataset.parentType
-          const newParentId = newList.dataset.parentId
-          const newIndex = evt.newIndex
-
-          this.pushEventTo(this.el, "move_node", {
-            node_id: nodeId,
-            node_type: nodeType,
-            new_parent_type: newParentType,
-            new_parent_id: newParentId,
-            new_index: newIndex
-          })
-        }
-      })
-      this.sortables.push(s)
-    })
+    this.sortables = createSortables(this.el, Sortable, (payload) => {
+      this.pushEventTo(this.el, "move_node", payload);
+    });
   },
 
   destroySortables() {
-    this.sortables.forEach(s => s.destroy())
-    this.sortables = []
-  }
-}
+    destroySortables(this.sortables);
+    this.sortables = [];
+  },
+};
 
-export default SidebarTreeDnD
+export default SidebarTreeDnD;
+export { buildMoveNodePayload };

@@ -146,7 +146,7 @@ plug Plug.Parsers,
 
 **Purpose:** Gates browser traffic on first-run setup. Until `Blackboex.Settings.setup_completed?/0` returns `true`, all browser requests are redirected to `/setup`. Once setup is complete, any `/setup*` path returns HTTP 404 so the wizard cannot be re-entered.
 
-**Position:** Last plug of the `:browser` pipeline in the router (after `:fetch_current_scope_for_user`, before `EditorBundle`).
+**Position:** Last plug of the `:browser` pipeline in the router (after `:fetch_current_scope_for_user`).
 
 **`init/1` options:** None.
 

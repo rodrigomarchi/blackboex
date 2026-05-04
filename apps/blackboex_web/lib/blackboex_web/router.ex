@@ -13,7 +13,6 @@ defmodule BlackboexWeb.Router do
     plug :put_secure_browser_headers
     plug :fetch_current_scope_for_user
     plug BlackboexWeb.Plugs.RequireSetup
-    plug BlackboexWeb.Plugs.EditorBundle
   end
 
   pipeline :api do

@@ -1,120 +1,102 @@
-import { EditorState } from "@codemirror/state"
-import { EditorView, keymap } from "@codemirror/view"
-import { autocompletion } from "@codemirror/autocomplete"
-import { buildExtensions } from "../lib/codemirror_setup"
-import { elixirCompletionSource } from "../lib/elixir_completion"
+import { EditorState } from "@codemirror/state";
+import { EditorView, keymap } from "@codemirror/view";
+import { autocompletion } from "@codemirror/autocomplete";
+import { buildExtensions } from "../lib/codemirror_setup";
+import { elixirCompletionSource } from "../lib/elixir_completion";
+import {
+  makeDebouncedCodeSync,
+  playgroundEventForKey,
+  replaceDocument,
+  resolveCompletionItems,
+} from "../lib/editor/playground_editor";
+import { syncCodeMirrorDocument } from "../lib/editor/code_editor";
 
 const PlaygroundEditor = {
   mounted() {
-    const initialValue = this.el.dataset.value || ""
+    const initialValue = this.el.dataset.value || "";
 
     const extensions = buildExtensions({
       language: "elixir",
       readOnly: false,
       onBlur: null,
       minimal: false,
-    })
+    });
 
     // Keyboard shortcuts for playground actions
     const playgroundKeymap = keymap.of([
       {
         key: "Mod-Enter",
         run: () => {
-          this.pushEvent("run", {})
-          return true
+          this.pushEvent(playgroundEventForKey("run"), {});
+          return true;
         },
       },
       {
         key: "Mod-s",
         run: () => {
-          this.pushEvent("save_code", {})
-          return true
+          this.pushEvent(playgroundEventForKey("save"), {});
+          return true;
         },
       },
       {
         key: "Mod-Shift-f",
         run: () => {
-          this.pushEvent("format_code", {})
-          return true
+          this.pushEvent(playgroundEventForKey("format"), {});
+          return true;
         },
       },
-    ])
+    ]);
 
     // Debounced code sync on every change
-    let debounceTimer = null
-    const updateListener = EditorView.updateListener.of((update) => {
-      if (update.docChanged) {
-        clearTimeout(debounceTimer)
-        debounceTimer = setTimeout(() => {
-          const value = update.state.doc.toString()
-          this.pushEvent("update_code", { value })
-        }, 300)
-      }
-    })
+    const updateListener = EditorView.updateListener.of(
+      makeDebouncedCodeSync(this),
+    );
 
     // Server-driven code completion
     const completionExt = autocompletion({
       override: [elixirCompletionSource(this)],
       activateOnTyping: true,
-    })
+    });
 
     const state = EditorState.create({
       doc: initialValue,
-      extensions: [...extensions, playgroundKeymap, updateListener, completionExt],
-    })
+      extensions: [
+        ...extensions,
+        playgroundKeymap,
+        updateListener,
+        completionExt,
+      ],
+    });
 
-    this.view = new EditorView({ state, parent: this.el })
+    this.view = new EditorView({ state, parent: this.el });
 
     // Handle server-pushed formatted code
     this.handleEvent("formatted_code", ({ code }) => {
-      if (this.view) {
-        this.view.dispatch({
-          changes: {
-            from: 0,
-            to: this.view.state.doc.length,
-            insert: code,
-          },
-        })
-      }
-    })
+      replaceDocument(this.view, code);
+    });
 
     // Handle server-pushed completion results (wired in Phase 3)
-    this._completionResolve = null
+    this._completionState = { completionResolve: null };
     this.handleEvent("completion_results", ({ items }) => {
-      if (this._completionResolve) {
-        this._completionResolve(items)
-        this._completionResolve = null
-      }
-    })
+      resolveCompletionItems(this._completionState, items);
+    });
 
     // Handle AI agent replacing the whole document after a chat run completes
     this.handleEvent("playground_editor:set_value", ({ code }) => {
-      if (this.view && typeof code === "string") {
-        this.view.dispatch({
-          changes: { from: 0, to: this.view.state.doc.length, insert: code },
-        })
-      }
-    })
+      replaceDocument(this.view, code);
+    });
   },
 
   updated() {
-    const newValue = this.el.dataset.value
-    if (newValue !== undefined && this.view) {
-      const currentValue = this.view.state.doc.toString()
-      if (newValue !== currentValue) {
-        this.view.dispatch({
-          changes: { from: 0, to: this.view.state.doc.length, insert: newValue },
-        })
-      }
-    }
+    syncCodeMirrorDocument(this.view, this.el.dataset.value);
   },
 
   destroyed() {
     if (this.view) {
-      this.view.destroy()
-      this.view = null
+      this.view.destroy();
+      this.view = null;
     }
   },
-}
+};
 
-export default PlaygroundEditor
+export default PlaygroundEditor;

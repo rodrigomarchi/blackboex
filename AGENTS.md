@@ -76,6 +76,8 @@ infra/                — Docker, deployment
 - `apps/blackboex/lib/blackboex/testing/AGENTS.md` — TestRunner, TestingQueries
 - `apps/blackboex/lib/blackboex/audit/AGENTS.md` — ExAudit, AuditQueries
 - `apps/blackboex_web/AGENTS.md` — Web layer, routing, auth flow
+- `apps/blackboex_web/assets/AGENTS.md` — JavaScript assets, hooks/lib split, Vitest contracts
+- `apps/blackboex_web/assets/js/hooks/AGENTS.md` — JavaScript LiveView hook catalog
 - `apps/blackboex_web/lib/blackboex_web/components/AGENTS.md` — **FULL component catalog** (read before ANY UI work)
 - `apps/blackboex_web/lib/blackboex_web/live/AGENTS.md` — LiveView patterns + catalog
 - `apps/blackboex_web/lib/blackboex_web/admin/AGENTS.md` — Backpex admin panel
@@ -92,6 +94,8 @@ make lint         # format + credo --strict + dialyzer
 make precommit    # compile + format + test
 make test.domain  # Domain app only
 make test.web     # Web app only
+make test.js      # JavaScript tests (Vitest/jsdom)
+make lint.js      # JavaScript ESLint + format check
 ```
 
 ## Critical Rules
@@ -104,8 +108,9 @@ make test.web     # Web app only
 6. **Mox for external services** — `ClientMock` (LLM)
 7. **Oban for background jobs** — never spawn unsupervised processes for business logic
 8. **TDD mandatory** — write tests FIRST, see them fail, then implement. No exceptions.
-9. **Always run `make test` + `make lint` after changes** — fix ALL issues including pre-existing ones
-10. **Keep AGENTS.md in sync** — update when adding/changing modules, functions, components, or patterns
+9. **JavaScript hooks/libs MUST be tested** — hooks in `assets/test/hooks/**`, libs in `assets/test/lib/**`
+10. **Always run `make test` + `make lint` after changes** — fix ALL issues including pre-existing ones
+11. **Keep AGENTS.md in sync** — update when adding/changing modules, functions, components, or patterns
 
 ## Inter-Context Dependencies
 

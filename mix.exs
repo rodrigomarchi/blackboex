@@ -80,7 +80,13 @@ defmodule Blackboex.Umbrella.MixProject do
         "ecto.migrate --quiet",
         "test"
       ],
-      precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"]
+      precommit: [
+        "compile --warnings-as-errors",
+        "deps.unlock --unused",
+        "format",
+        "cmd npm test --prefix apps/blackboex_web/assets",
+        "test"
+      ]
     ]
   end
 end

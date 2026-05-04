@@ -46,7 +46,7 @@ config :esbuild,
   version: "0.25.4",
   blackboex_web: [
     args:
-      ~w(js/app.js js/editor_tiptap.js js/editor_code.js js/editor_flow.js --bundle --target=es2022 --outdir=../priv/static/assets/js --external:/fonts/* --external:/images/* --external:mermaid --alias:@=. --log-override:equals-new-object=silent),
+      ~w(js/app.js --bundle --target=es2022 --outdir=../priv/static/assets/js --external:/fonts/* --external:/images/* --external:mermaid --alias:@=. --log-override:equals-new-object=silent),
     cd: Path.expand("../apps/blackboex_web/assets", __DIR__),
     env: %{"NODE_PATH" => [Path.expand("../deps", __DIR__), Mix.Project.build_path()]}
   ],

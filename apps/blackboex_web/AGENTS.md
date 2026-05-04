@@ -6,6 +6,11 @@ Phoenix web layer. LiveViews, admin panel, dynamic API routing, components.
 
 Each directory has its own AGENTS.md — **read it before generating code in that area.**
 
+For JavaScript work, read `assets/AGENTS.md` and `assets/js/hooks/AGENTS.md`.
+The web asset rule is strict: LiveView hooks only wire DOM/LiveView lifecycle,
+while calculations, parsing, payload builders, editor setup, browser adapters,
+and persistent state live in `assets/js/lib/**` with Vitest coverage.
+
 ## Routing Map
 
 ### Public (no auth)
@@ -138,6 +143,18 @@ def handle_info({:run_completed, run}, socket), do: ...
 | `Logo` | Logo component |
 
 **Base:** SaladUI components in `ui/` directory (button, input, label, card, badge, avatar, separator, dropdown_menu, sheet, sidebar, tabs, tooltip, skeleton) + TwMerge for Tailwind class merging + Heroicons
+
+## JavaScript Assets
+
+| Area | Purpose |
+|------|---------|
+| `assets/js/app.js` | User-facing LiveSocket bootstrap; imports every public hook used by the main layout before `LiveSocket` is created |
+| `assets/js/admin.js` | Backpex/admin LiveSocket bootstrap |
+| `assets/js/hooks/**` | Hook wiring only: DOM listeners, lifecycle, `pushEvent`, `handleEvent` |
+| `assets/js/lib/**` | Testable logic for bootstrap, browser adapters, editors, flow, Tiptap, UI helpers |
+| `assets/test/**` | Vitest/jsdom tests mirroring hooks and libs |
+
+Use `make test.js` for Vitest and `make lint.js` for ESLint plus Prettier checks.
 
 ## Layouts
 

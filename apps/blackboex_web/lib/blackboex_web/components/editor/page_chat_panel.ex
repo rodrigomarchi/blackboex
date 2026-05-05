@@ -15,11 +15,8 @@ defmodule BlackboexWeb.Components.Editor.PageChatPanel do
 
   use BlackboexWeb, :html
 
-  import BlackboexWeb.Components.Editor.Chat.ChatMessage, only: [render_message_step: 1]
-  import BlackboexWeb.Components.Editor.Chat.CodeBlocks, only: [render_streaming_code: 1]
-  import BlackboexWeb.Components.Shared.LlmNotConfiguredBanner
-  import BlackboexWeb.Components.UI.InlineInput
-  import BlackboexWeb.Components.UI.SectionHeading
+  import BlackboexWeb.Components.Editor.Chat.Panel,
+    only: [agent_chat_panel: 1, basic_timeline: 1]
 
   @type message :: %{
           required(:role) => String.t(),
@@ -37,112 +34,39 @@ defmodule BlackboexWeb.Components.Editor.PageChatPanel do
 
   @spec page_chat_panel(map()) :: Phoenix.LiveView.Rendered.t()
   def page_chat_panel(assigns) do
+    assigns =
+      Map.put(
+        assigns,
+        :timeline_empty,
+        assigns.messages == [] and assigns.current_stream in [nil, ""] and not assigns.loading
+      )
+
     ~H"""
-    <div class="flex flex-col h-full overflow-hidden">
-      <%!-- Header --%>
-      <div class="flex items-center justify-between border-b px-4 py-2 shrink-0 bg-card">
-        <.section_heading icon="hero-sparkles" icon_class="size-4 text-primary">
-          Page Assistant
-        </.section_heading>
-        <.button
-          variant="ghost-muted"
-          size="compact"
-          phx-click="new_chat"
-          disabled={@loading || @messages == []}
-          class="px-0"
-        >
-          New conversation
-        </.button>
-      </div>
-
-      <%!-- Scrollable timeline area --%>
-      <div
-        class="flex-1 min-h-0 overflow-y-auto"
-        id="page-chat-timeline"
-        phx-hook="ChatAutoScroll"
-      >
-        <div :if={!@llm_configured?} class="px-3 pt-3">
-          <.llm_not_configured_banner project_url={@configure_url} />
-        </div>
-        <%= if @messages == [] and @current_stream in [nil, ""] and not @loading do %>
-          <p class="text-muted-description text-center py-12 px-4">
-            Ask the agent to write or edit this page content.
-          </p>
-        <% else %>
-          <div class="relative ml-7 mr-4 my-3 pl-4 border-l border-border">
-            <%= for msg <- @messages do %>
-              <%= case msg.role do %>
-                <% role when role in ["user", "assistant"] -> %>
-                  <.render_message_step event={message_to_event(msg)} />
-                <% "system" -> %>
-                  <.render_system_step content={msg.content} />
-                <% _ -> %>
-              <% end %>
-            <% end %>
-
-            <%= if @loading and is_binary(@current_stream) and @current_stream != "" do %>
-              <div class="relative pb-2 pt-1">
-                <div class="timeline-dot top-3 border-info animate-pulse">
-                  <div class="size-[5px] rounded-full bg-info" />
-                </div>
-                <div class="ml-2">
-                  <.render_streaming_code code={@current_stream} />
-                </div>
-              </div>
-            <% end %>
-
-            <%= if @loading and (is_nil(@current_stream) or @current_stream == "") do %>
-              <div class="relative py-2">
-                <div class="absolute -left-[7px] top-[11px] size-[9px] rounded-full bg-info animate-pulse" />
-                <span class="text-muted-caption animate-pulse ml-2">Agent thinking...</span>
-              </div>
-            <% end %>
-          </div>
-        <% end %>
-
-        <div class="h-4" />
-      </div>
-
-      <%!-- Input --%>
-      <div class="border-t p-3 shrink-0 bg-card">
-        <.form
-          for={%{}}
-          as={:chat}
-          phx-submit="send_chat"
-          phx-change="chat_input_change"
-          class="flex gap-2"
-        >
-          <.inline_input
-            name="message"
-            value={@input}
-            placeholder="Ask: rewrite the intro, add an installation section, translate to English..."
-            class="flex-1 rounded-md"
-            autocomplete="off"
-            disabled={@loading}
-          />
-          <.button type="submit" variant="primary" disabled={@loading} class="rounded-md">
-            Send
-          </.button>
-        </.form>
-      </div>
-    </div>
-    """
-  end
-
-  defp message_to_event(msg) do
-    %{role: msg.role, content: msg.content, timestamp: Map.get(msg, :timestamp)}
-  end
-
-  attr :content, :string, required: true
-
-  defp render_system_step(assigns) do
-    ~H"""
-    <div class="relative pb-3 pt-1">
-      <div class="timeline-dot-sm top-3 border-warning" />
-      <div class="rounded-md px-3 py-2 text-xs ml-2 bg-warning/10 border border-warning/20 text-warning-foreground">
-        {@content}
-      </div>
-    </div>
+    <.agent_chat_panel
+      title="Page Assistant"
+      icon="hero-sparkles"
+      timeline_id="page-chat-timeline"
+      empty_description="Ask the agent to write or edit this page content."
+      timeline_empty={@timeline_empty}
+      loading={@loading}
+      llm_configured?={@llm_configured?}
+      configure_url={@configure_url}
+      input={@input}
+      input_name="message"
+      input_placeholder="Ask: rewrite the intro, add an installation section, translate to English..."
+      input_disabled={@loading}
+      submit_disabled={@loading}
+      new_conversation_disabled={@loading || @messages == []}
+    >
+      <:timeline>
+        <.basic_timeline
+          messages={@messages}
+          loading={@loading}
+          current_stream={@current_stream}
+          current_stream_mode={nil}
+        />
+      </:timeline>
+    </.agent_chat_panel>
     """
   end
 end

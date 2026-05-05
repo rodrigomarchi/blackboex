@@ -288,7 +288,9 @@ defmodule Blackboex.ProjectAgent.Planner do
          req_opts =
            llm_opts
            |> Keyword.merge(max_tokens: 4096, temperature: 0.2)
-           |> Keyword.update(:provider_options, [anthropic_structured_output_mode: :tool_strict],
+           |> Keyword.update(
+             :provider_options,
+             [anthropic_structured_output_mode: :tool_strict],
              fn po -> Keyword.put(po, :anthropic_structured_output_mode, :tool_strict) end
            ),
          {:ok, response} <-

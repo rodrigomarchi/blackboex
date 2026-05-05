@@ -24,9 +24,14 @@ defmodule BlackboexWeb.Components.Editor.ProjectAgentChatPanel do
 
   use BlackboexWeb, :html
 
-  import BlackboexWeb.Components.Shared.LlmNotConfiguredBanner
-  import BlackboexWeb.Components.UI.InlineInput
-  import BlackboexWeb.Components.UI.SectionHeading
+  import BlackboexWeb.Components.Badge
+
+  import BlackboexWeb.Components.Editor.Chat.Panel,
+    only: [agent_chat_panel: 1, message_step: 1, thinking_step: 1]
+
+  import BlackboexWeb.Components.Shared.Panel
+  import BlackboexWeb.Components.UI.AlertBanner
+  import BlackboexWeb.Components.UI.StatusDot
 
   @typedoc """
   An entry in the chat timeline. Every entry has an `:id` (used for
@@ -52,81 +57,38 @@ defmodule BlackboexWeb.Components.Editor.ProjectAgentChatPanel do
 
   @spec project_agent_chat_panel(map()) :: Phoenix.LiveView.Rendered.t()
   def project_agent_chat_panel(assigns) do
+    assigns = Map.put(assigns, :timeline_empty, assigns.events == [] and not assigns.loading)
+
     ~H"""
-    <div class="flex flex-col h-full overflow-hidden bg-background">
-      <%!-- Header --%>
-      <div class="flex items-center justify-between border-b px-4 py-2 shrink-0 bg-card">
-        <.section_heading icon="hero-sparkles" icon_class="size-4 text-primary">
-          Project Agent
-        </.section_heading>
-      </div>
-
-      <%!-- Scrollable timeline area --%>
-      <div
-        class="flex-1 min-h-0 overflow-y-auto"
-        id="project-agent-chat-timeline"
-        phx-hook="ChatAutoScroll"
-      >
-        <div :if={!@llm_configured?} class="px-3 pt-3">
-          <.llm_not_configured_banner project_url={@configure_url} />
-        </div>
-
-        <%= if @events == [] and not @loading do %>
-          <div class="text-center py-12 px-4 max-w-md mx-auto">
-            <p class="text-muted-description text-sm">
-              Describe what you want to build. The agent will draft a multi-step plan
-              touching APIs, flows, pages, or playgrounds — you review and approve before
-              any code runs.
-            </p>
-          </div>
-        <% else %>
-          <div class="px-4 py-3 space-y-3">
-            <%= for entry <- @events do %>
-              <.entry_step entry={entry} plan={@plan} loading={@loading} />
-            <% end %>
-
-            <%= if @loading do %>
-              <div class="flex items-center gap-2 px-2 py-1">
-                <div class="size-2 rounded-full bg-info animate-pulse" />
-                <span class="text-xs text-muted-foreground animate-pulse">
-                  Agent thinking...
-                </span>
-              </div>
-            <% end %>
-          </div>
-        <% end %>
-
-        <div class="h-4" />
-      </div>
-
-      <%!-- Composer --%>
-      <div class="border-t p-3 shrink-0 bg-card">
-        <.form
-          for={%{}}
-          as={:chat}
-          phx-submit="send_chat"
-          phx-change="chat_input_change"
-          class="flex gap-2"
+    <.agent_chat_panel
+      title="Project Agent"
+      icon="hero-sparkles"
+      timeline_id="project-agent-chat-timeline"
+      empty_description="Describe what you want to build. The agent will draft a multi-step plan touching APIs, flows, pages, or playgrounds — you review and approve before any code runs."
+      timeline_empty={@timeline_empty}
+      loading={@loading}
+      llm_configured?={@llm_configured?}
+      configure_url={@configure_url}
+      input={@input}
+      input_name="message"
+      input_placeholder="Describe the change you want — the agent will plan it first."
+      input_disabled={@loading or not @llm_configured?}
+      submit_disabled={@loading or not @llm_configured?}
+      show_new_conversation?={false}
+    >
+      <:timeline>
+        <div
+          data-component="agent-chat-timeline"
+          class="relative ml-7 mr-4 my-3 border-l border-border pl-4"
         >
-          <.inline_input
-            name="message"
-            value={@input}
-            placeholder="Describe the change you want — the agent will plan it first."
-            class="flex-1 rounded-md"
-            autocomplete="off"
-            disabled={@loading or not @llm_configured?}
-          />
-          <.button
-            type="submit"
-            variant="primary"
-            disabled={@loading or not @llm_configured?}
-            class="rounded-md"
-          >
-            Send
-          </.button>
-        </.form>
-      </div>
-    </div>
+          <%= for entry <- @events do %>
+            <.entry_step entry={entry} plan={@plan} loading={@loading} />
+          <% end %>
+
+          <.thinking_step :if={@loading} label="Agent thinking..." />
+        </div>
+      </:timeline>
+    </.agent_chat_panel>
     """
   end
 
@@ -150,11 +112,7 @@ defmodule BlackboexWeb.Components.Editor.ProjectAgentChatPanel do
 
   defp user_bubble(assigns) do
     ~H"""
-    <div class="flex justify-end" data-role="chat-user">
-      <div class="rounded-2xl rounded-tr-sm bg-primary text-primary-foreground px-3 py-2 max-w-[80%] text-sm whitespace-pre-wrap break-words">
-        {@entry.content}
-      </div>
-    </div>
+    <.message_step message={entry_message(@entry, "user")} />
     """
   end
 
@@ -162,11 +120,7 @@ defmodule BlackboexWeb.Components.Editor.ProjectAgentChatPanel do
 
   defp assistant_bubble(assigns) do
     ~H"""
-    <div class="flex" data-role="chat-assistant">
-      <div class="rounded-2xl rounded-tl-sm bg-muted px-3 py-2 max-w-[80%] text-sm whitespace-pre-wrap break-words">
-        {@entry.content}
-      </div>
-    </div>
+    <.message_step message={entry_message(@entry, "assistant")} />
     """
   end
 
@@ -182,8 +136,9 @@ defmodule BlackboexWeb.Components.Editor.ProjectAgentChatPanel do
       |> assign(:plan_title, (plan && plan.title) || assigns.entry[:content] || "Plan drafted")
 
     ~H"""
-    <div
-      class="rounded-lg border border-primary/40 bg-primary/5 p-4 space-y-3"
+    <.panel
+      variant="default"
+      class="space-y-3 border-primary/40 bg-primary/5"
       data-role="plan-card"
     >
       <div class="flex items-start justify-between gap-3">
@@ -196,12 +151,9 @@ defmodule BlackboexWeb.Components.Editor.ProjectAgentChatPanel do
           </div>
           <h3 class="text-sm font-semibold text-foreground">{@plan_title}</h3>
         </div>
-        <span class={[
-          "shrink-0 rounded-full px-2 py-0.5 text-2xs font-medium",
-          plan_status_class(@plan_status)
-        ]}>
+        <.badge variant="status" size="xs" class={"shrink-0 #{plan_status_class(@plan_status)}"}>
           {humanize_status(@plan_status)}
-        </span>
+        </.badge>
       </div>
 
       <%= if @plan_tasks != [] do %>
@@ -220,12 +172,9 @@ defmodule BlackboexWeb.Components.Editor.ProjectAgentChatPanel do
                   </span>
                 </div>
               </div>
-              <span class={[
-                "shrink-0 rounded px-1.5 py-0.5 text-2xs",
-                task_status_class(task.status)
-              ]}>
+              <.badge variant="status" size="xs" class={"shrink-0 #{task_status_class(task.status)}"}>
                 {task.status}
-              </span>
+              </.badge>
             </li>
           <% end %>
         </ol>
@@ -244,7 +193,7 @@ defmodule BlackboexWeb.Components.Editor.ProjectAgentChatPanel do
           </.button>
         </div>
       <% end %>
-    </div>
+    </.panel>
     """
   end
 
@@ -252,9 +201,11 @@ defmodule BlackboexWeb.Components.Editor.ProjectAgentChatPanel do
 
   defp task_running(assigns) do
     ~H"""
-    <div class="flex items-center gap-2 text-xs text-muted-foreground" data-role="task-running">
-      <div class="size-2 rounded-full bg-info animate-pulse shrink-0" />
-      <span>{@entry.content}</span>
+    <div class="relative pb-2 pt-1" data-role="task-running">
+      <div class="timeline-dot-sm top-3 border-info" />
+      <div class="ml-2">
+        <.status_dot status="running" label={@entry.content} pulse class="max-w-full" />
+      </div>
     </div>
     """
   end
@@ -263,9 +214,11 @@ defmodule BlackboexWeb.Components.Editor.ProjectAgentChatPanel do
 
   defp task_done(assigns) do
     ~H"""
-    <div class="flex items-center gap-2 text-xs text-success-foreground" data-role="task-done">
-      <.icon name="hero-check-circle" class="size-4 text-success shrink-0" />
-      <span>{@entry.content}</span>
+    <div class="relative pb-2 pt-1" data-role="task-done">
+      <div class="timeline-dot-sm top-3 border-success" />
+      <.alert_banner variant="success" icon="hero-check-circle" class="ml-2 px-3 py-2 text-xs">
+        {@entry.content}
+      </.alert_banner>
     </div>
     """
   end
@@ -277,17 +230,18 @@ defmodule BlackboexWeb.Components.Editor.ProjectAgentChatPanel do
     assigns = assign(assigns, :error, error)
 
     ~H"""
-    <div
-      class="rounded-md border border-destructive/40 bg-destructive/5 p-2.5 text-xs space-y-1"
-      data-role="task-failed"
-    >
-      <div class="flex items-center gap-2 font-medium text-destructive">
-        <.icon name="hero-x-circle" class="size-4 shrink-0" />
-        <span>{@entry.content}</span>
-      </div>
-      <p :if={@error not in [nil, ""]} class="text-2xs text-destructive/80 ml-6 font-mono">
-        {@error}
-      </p>
+    <div class="relative pb-2 pt-1" data-role="task-failed">
+      <div class="timeline-dot-sm top-3 border-destructive" />
+      <.alert_banner
+        variant="destructive"
+        icon="hero-x-circle"
+        class="ml-2 space-y-1 px-3 py-2 text-xs"
+      >
+        <span class="font-medium">{@entry.content}</span>
+        <p :if={@error not in [nil, ""]} class="mt-1 font-mono text-2xs text-destructive/80">
+          {@error}
+        </p>
+      </.alert_banner>
     </div>
     """
   end
@@ -296,12 +250,15 @@ defmodule BlackboexWeb.Components.Editor.ProjectAgentChatPanel do
 
   defp plan_completed(assigns) do
     ~H"""
-    <div
-      class="rounded-md border border-success/40 bg-success/5 p-3 text-xs flex items-center gap-2 font-medium text-success-foreground"
-      data-role="plan-completed"
-    >
-      <.icon name="hero-check-badge" class="size-4 text-success shrink-0" />
-      <span>{@entry.content}</span>
+    <div class="relative pb-2 pt-1" data-role="plan-completed">
+      <div class="timeline-dot-sm top-3 border-success" />
+      <.alert_banner
+        variant="success"
+        icon="hero-check-badge"
+        class="ml-2 px-3 py-2 text-xs font-medium"
+      >
+        {@entry.content}
+      </.alert_banner>
     </div>
     """
   end
@@ -316,27 +273,28 @@ defmodule BlackboexWeb.Components.Editor.ProjectAgentChatPanel do
       |> assign(:can_continue?, plan && plan.status in ["partial", "failed"])
 
     ~H"""
-    <div
-      class="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-xs space-y-2"
-      data-role="plan-halted"
-    >
-      <div class="flex items-center gap-2 font-medium text-destructive">
-        <.icon name="hero-exclamation-triangle" class="size-4 shrink-0" />
-        <span>{@entry.content}</span>
-      </div>
-      <%= if @can_continue? do %>
-        <div class="flex justify-end">
-          <.button
-            type="button"
-            variant="outline"
-            size="compact"
-            phx-click="continue_from_partial"
-            class="rounded-md"
-          >
-            Continue from where you stopped
-          </.button>
-        </div>
-      <% end %>
+    <div class="relative pb-2 pt-1" data-role="plan-halted">
+      <div class="timeline-dot-sm top-3 border-destructive" />
+      <.alert_banner
+        variant="destructive"
+        icon="hero-exclamation-triangle"
+        class="ml-2 space-y-2 px-3 py-2 text-xs"
+      >
+        <span class="font-medium">{@entry.content}</span>
+        <%= if @can_continue? do %>
+          <div class="flex justify-end">
+            <.button
+              type="button"
+              variant="outline"
+              size="compact"
+              phx-click="continue_from_partial"
+              class="rounded-md"
+            >
+              Continue from where you stopped
+            </.button>
+          </div>
+        <% end %>
+      </.alert_banner>
     </div>
     """
   end
@@ -366,6 +324,14 @@ defmodule BlackboexWeb.Components.Editor.ProjectAgentChatPanel do
   defp task_status_class("failed"), do: "bg-destructive/15 text-destructive"
   defp task_status_class("skipped"), do: "bg-muted text-muted-foreground italic"
   defp task_status_class(_), do: "bg-muted text-muted-foreground"
+
+  defp entry_message(entry, role) do
+    %{
+      role: role,
+      content: entry.content,
+      timestamp: Map.get(entry, :timestamp)
+    }
+  end
 
   @doc """
   Translates a `ProjectEvent` row into a chat-timeline entry. Used by

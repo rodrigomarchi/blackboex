@@ -78,6 +78,7 @@ Violation of this rule creates inconsistent UI, breaks dark mode, bypasses seman
 | Playground list sidebar | `<.playground_tree>` | `editor/playground_tree.ex` |
 | Auto-save state indicator | `<.save_indicator>` | `editor/save_indicator.ex` |
 | Playground AI chat | `<.playground_chat_panel>` | `editor/playground_chat_panel.ex` |
+| Unified agent chat shell + timeline | `<.agent_chat_panel>` / `<.basic_timeline>` | `editor/chat/panel.ex` |
 | Unified nav tree | `<SidebarTreeComponent>` (live_component) | `sidebar_tree_component.ex` |
 | Plan markdown editor (Project Agent) | `<.live_component module={BlackboexWeb.ProjectAgentLive.PlanEditorComponent}>` | `live/project_agent_live/plan_editor_component.ex` |
 | Plan task row (Project Agent) | `<.live_component module={BlackboexWeb.ProjectAgentLive.TaskRowComponent}>` | `live/project_agent_live/task_row_component.ex` |
@@ -109,6 +110,9 @@ All from `BlackboexWeb.Components.*`.
 
 **Editor function components** (import `BlackboexWeb.Components.Editor.*`):
 `Toolbar` → `<.editor_toolbar>`, `CommandPalette` → `<.command_palette>`, `ValidationDashboard` → `<.validation_dashboard>`, `StatusBar` → `<.status_bar>`, `RightPanel` → `<.right_panel>`, `BottomPanel` → `<.bottom_panel>`, `CodeViewer` → `<.code_viewer>`, `CodeLabel` → `<.code_label>`, `PageHeader` → `<.editor_page_header>`, `PlaygroundTree` → `<.playground_tree>`, `SaveIndicator` → `<.save_indicator>`, `PlaygroundChatPanel` → `<.playground_chat_panel>`
+
+**Agent chat UI rule**:
+All user-facing AI chat surfaces (API, Page, Playground, Flow, Project Agent) MUST compose `BlackboexWeb.Components.Editor.Chat.Panel` (`<.agent_chat_panel>`, `<.basic_timeline>`, and common timeline steps). Agent-specific chat modules are adapters only: they may map domain events and preserve LiveView event contracts, but they must not duplicate shell, composer, empty state, message bubble, streaming, or thinking markup.
 
 **Editor LiveComponents** (use `<.live_component module={...}>`):
 `Editor.ChatPanel`, `Editor.RequestBuilder`, `Editor.ResponseViewer`

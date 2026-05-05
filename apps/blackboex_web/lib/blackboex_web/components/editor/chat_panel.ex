@@ -8,8 +8,9 @@ defmodule BlackboexWeb.Components.Editor.ChatPanel do
   use BlackboexWeb, :live_component
 
   import BlackboexWeb.Components.UI.AlertBanner
-  import BlackboexWeb.Components.UI.InlineInput
-  import BlackboexWeb.Components.UI.SectionHeading
+
+  import BlackboexWeb.Components.Editor.Chat.Panel,
+    only: [agent_chat_panel: 1, streaming_step: 1, thinking_step: 1]
 
   import BlackboexWeb.Components.Editor.Chat.ChatMessage, only: [render_message_step: 1]
 
@@ -20,8 +21,6 @@ defmodule BlackboexWeb.Components.Editor.ChatPanel do
       render_standalone_result: 1,
       render_status_step: 1
     ]
-
-  import BlackboexWeb.Components.Editor.Chat.CodeBlocks, only: [render_streaming_code: 1]
 
   import BlackboexWeb.Components.Editor.ChatPanelHelpers,
     only: [
@@ -38,123 +37,92 @@ defmodule BlackboexWeb.Components.Editor.ChatPanel do
 
   @impl true
   def render(assigns) do
-    assigns = assign(assigns, :grouped_events, group_events(assigns.events))
+    grouped_events = group_events(assigns.events)
+
+    assigns =
+      assigns
+      |> assign(:grouped_events, grouped_events)
+      |> assign(
+        :timeline_empty,
+        grouped_events == [] and assigns.pending_edit == nil and assigns.streaming_tokens == "" and
+          not assigns.loading
+      )
 
     ~H"""
-    <div class="flex flex-col h-full overflow-hidden">
-      <%!-- Header --%>
-      <div class="flex items-center justify-between border-b px-4 py-2 shrink-0 bg-card">
-        <.section_heading icon="hero-bolt" icon_class="size-4 text-primary">
-          Agent Timeline
-        </.section_heading>
-        <.button
-          variant="ghost-muted"
-          size="compact"
-          phx-click="request_confirm"
-          phx-value-action="clear_conversation"
-          class="px-0"
-        >
-          New conversation
-        </.button>
-      </div>
-
-      <%!-- Scrollable timeline area --%>
-      <div class="flex-1 min-h-0 overflow-y-auto" id="chat-messages" phx-hook="ChatAutoScroll">
-        <%= if @grouped_events == [] and @pending_edit == nil and @streaming_tokens == "" and not @loading do %>
-          <p class="text-muted-description text-center py-12 px-4">
-            Describe what you want the agent to build or change.
-          </p>
-        <% else %>
-          <%!-- Timeline with vertical line --%>
-          <div class="relative ml-7 mr-4 my-3 pl-4 border-l border-border">
-            <%= for entry <- @grouped_events do %>
-              <%= case entry do %>
-                <% {:message, event} -> %>
-                  <.render_message_step event={event} />
-                <% {:tool_group, call, result} -> %>
-                  <.render_tool_step call={call} result={result} streaming_tokens="" />
-                <% {:tool_call, call} -> %>
-                  <.render_tool_step call={call} result={nil} streaming_tokens={@streaming_tokens} />
-                <% {:tool_result, result} -> %>
-                  <.render_standalone_result result={result} />
-                <% {:status, event} -> %>
-                  <.render_status_step event={event} />
+    <div class="h-full">
+      <.agent_chat_panel
+        title="Agent Timeline"
+        icon="hero-bolt"
+        timeline_id="chat-messages"
+        empty_description="Describe what you want the agent to build or change."
+        timeline_empty={@timeline_empty}
+        loading={@loading}
+        input={@input}
+        input_name="chat_input"
+        input_placeholder="Describe the changes..."
+        input_disabled={@loading}
+        submit_disabled={@loading}
+        change_event={nil}
+        new_conversation_event="request_confirm"
+        new_conversation_value_action="clear_conversation"
+      >
+        <:timeline>
+          <%= if @grouped_events != [] or @loading or @streaming_tokens != "" or @run do %>
+            <div class="relative ml-7 mr-4 my-3 border-l border-border pl-4">
+              <%= for entry <- @grouped_events do %>
+                <%= case entry do %>
+                  <% {:message, event} -> %>
+                    <.render_message_step event={event} />
+                  <% {:tool_group, call, result} -> %>
+                    <.render_tool_step call={call} result={result} streaming_tokens="" />
+                  <% {:tool_call, call} -> %>
+                    <.render_tool_step call={call} result={nil} streaming_tokens={@streaming_tokens} />
+                  <% {:tool_result, result} -> %>
+                    <.render_standalone_result result={result} />
+                  <% {:status, event} -> %>
+                    <.render_status_step event={event} />
+                <% end %>
               <% end %>
-            <% end %>
 
-            <%!-- Streaming tokens fallback (when streaming before first tool step) --%>
-            <%= if @loading and not has_active_tool_call?(@grouped_events) and @streaming_tokens != "" do %>
-              <div class="relative pb-2 pt-1">
-                <div class="timeline-dot top-3 border-info animate-pulse">
-                  <div class="size-[5px] rounded-full bg-info" />
-                </div>
-                <div class="ml-2">
-                  <.render_streaming_code code={@streaming_tokens} />
-                </div>
-              </div>
-            <% end %>
+              <.streaming_step
+                :if={
+                  @loading and not has_active_tool_call?(@grouped_events) and @streaming_tokens != ""
+                }
+                content={@streaming_tokens}
+              />
+              <.thinking_step
+                :if={
+                  @loading and not has_active_tool_call?(@grouped_events) and @streaming_tokens == ""
+                }
+                label="Thinking..."
+              />
 
-            <%!-- Thinking indicator (when loading but no active tool step and no tokens yet) --%>
-            <%= if @loading and not has_active_tool_call?(@grouped_events) and @streaming_tokens == "" do %>
-              <div class="relative py-2">
-                <div class="absolute -left-[7px] top-[11px] size-[9px] rounded-full bg-info animate-pulse" />
-                <span class="text-muted-caption animate-pulse ml-2">Thinking...</span>
-              </div>
-            <% end %>
-
-            <%!-- Run summary (last item in timeline) --%>
-            <%= if @run && !@loading do %>
-              <.render_run_summary run={@run} />
-            <% end %>
-          </div>
-
-          <%!-- Pending edit (outside timeline line, inside scroll) --%>
-          <%= if @pending_edit do %>
-            <div class="px-4 pb-4">
-              <.render_pending_edit pending_edit={@pending_edit} />
+              <.render_run_summary :if={@run && !@loading} run={@run} />
             </div>
           <% end %>
-        <% end %>
 
-        <%!-- Bottom spacer --%>
-        <div class="h-4" />
-      </div>
+          <div :if={@pending_edit} class="px-4 pb-4">
+            <.render_pending_edit pending_edit={@pending_edit} />
+          </div>
+        </:timeline>
 
-      <%!-- Quick actions + input (pinned at bottom) --%>
-      <div class="border-t p-3 space-y-2 shrink-0 bg-card">
-        <div class="flex flex-wrap gap-1">
-          <%= for action <- quick_actions(@template_type) do %>
-            <.button
-              type="button"
-              variant="outline"
-              size="pill"
-              phx-click="quick_action"
-              phx-value-text={action}
-              class="text-2xs text-muted-foreground"
-            >
-              {action}
-            </.button>
-          <% end %>
-        </div>
-        <.form for={%{}} as={:chat} phx-submit="send_chat" class="flex gap-2">
-          <.inline_input
-            name="chat_input"
-            value={@input}
-            placeholder="Describe the changes..."
-            class="flex-1 rounded-md"
-            autocomplete="off"
-            disabled={@loading}
-          />
-          <.button
-            type="submit"
-            variant="primary"
-            disabled={@loading}
-            class="rounded-md"
-          >
-            Send
-          </.button>
-        </.form>
-      </div>
+        <:composer_before>
+          <div class="flex flex-wrap gap-1">
+            <%= for action <- quick_actions(@template_type) do %>
+              <.button
+                type="button"
+                variant="outline"
+                size="pill"
+                phx-click="quick_action"
+                phx-value-text={action}
+                class="text-2xs text-muted-foreground"
+              >
+                {action}
+              </.button>
+            <% end %>
+          </div>
+        </:composer_before>
+      </.agent_chat_panel>
     </div>
     """
   end

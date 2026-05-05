@@ -19,6 +19,8 @@ Each context has its own AGENTS.md — **read it before generating code in that 
 | **Projects** | `Blackboex.Projects` | Project, ProjectMembership | `ProjectQueries` |
 | **Samples** | `Blackboex.Samples.Manifest` | — | — |
 | **Conversations** | `Blackboex.Conversations` | Conversation, Run, Event | `ConversationQueries` |
+| **ProjectConversations** | `Blackboex.ProjectConversations` | ProjectConversation, ProjectRun, ProjectEvent | `ProjectConversationQueries` |
+| **Plans** | `Blackboex.Plans` | Plan, PlanTask | `PlanQueries` |
 | **Agent** | `Blackboex.Agent` | — | — |
 | **CodeGen** | `Blackboex.CodeGen` | — | — |
 | **Billing** | `Blackboex.Billing` | Subscription, UsageEvent, DailyUsage | `BillingQueries` |
@@ -85,6 +87,38 @@ defdelegate create_version(api, attrs), to: Blackboex.Apis.Versions
 ### Conversations
 - `get_or_create_conversation/2`, `create_run/1`, `complete_run/2`
 - `touch_run/1`, `list_stale_runs/1`, `append_event/1`, `next_sequence/1`
+
+### ProjectAgent (M5)
+- `start_planning/3 :: (Project.t(), User.t(), String.t()) -> {:ok, ProjectConversation.t(), ProjectRun.t()} | {:error, term()}` — opens a `ProjectConversation` + `ProjectRun` (`run_type: "plan"`), enqueues `ProjectAgent.KickoffWorker` on `:project_orchestration`.
+- `approve_and_run/3 :: (Plan.t(), User.t(), %{markdown_body}) -> {:ok, Plan.t()} | {:error, term()}` — re-validates the markdown via `Plans.approve_plan/3`, transitions `:draft → :approved`, enqueues `PlanRunnerWorker`. Surfaces `{:error, :concurrent_active_plan}` for the partial-unique loser.
+- Sub-modules (NOT for direct external use): `Planner` (typed emission via `ReqLLM.Generation.generate_object/4` behind a test seam), `ProjectIndex` (ETS-cached project metadata digest), `KickoffWorker` (creates plan + tasks), `PlanRunnerWorker` (callback-driven advancement on `:project_orchestration`), `BroadcastAdapter` (uniform contract: `subscribe/2`, `handle_terminal/4`, `translate_message/2`, `topic_for/1`).
+- Listener pattern: M5 ships **option (b) — Poll-only / runner re-entry** with the `subscribe/2` seam pre-built so an option-(c) per-task GenServer can land later without contract changes. See `lib/blackboex/project_agent/AGENTS.md`.
+
+### Features (M6)
+- `project_agent_enabled?/1 :: (Project.t()) -> boolean()` — canonical feature-flag facade. Resolution order, first-wins:
+  1. Per-project `Blackboex.ProjectEnvVars` override (`name = "FEATURE_PROJECT_AGENT"`, value `"true"` / `"false"`).
+  2. Application config default — `:blackboex, :features` keyword list, key `:project_agent`.
+  3. Hard-coded conservative default (`false`).
+- Default in `config/dev.exs` and `config/test.exs`: `project_agent: true`. Default in `config/prod.exs`: `project_agent: false`.
+- This is the canonical pattern for any new feature flag — keep the module thin (<30 LOC of logic) and add one resolver per flag.
+
+### Plans (Project Agent — M2)
+- `list_plans_for_project/2`, `get_plan!/1`, `get_active_plan/1`, `list_tasks/1`, `get_task!/1`
+- `create_draft_plan/3` — atomic insert of `Plan` + `PlanTask` rows in `:draft`
+- `approve_plan/3` — validates markdown via `MarkdownParser.parse_and_validate/2`; transitions `:draft → :approved`. Translates partial-unique violations as `{:error, :concurrent_active_plan}`. Returns `{:error, {:invalid_markdown_edit, [violation]}}` on edit violations.
+- State machine: `mark_plan_running/1`, `mark_plan_done/1`, `mark_plan_partial/2`, `mark_plan_failed/2`
+- Task transitions: `mark_task_running/2`, `mark_task_done/1`, `mark_task_failed/2` — `:skipped` is creation-time-only and has no transition function
+- `start_continuation/2` — re-plan from a `:partial` or `:failed` parent; copies `:done` tasks as `:skipped` rows on the child; returns `{:error, :parent_still_active}` for non-terminal parents
+
+### MarkdownRenderer / MarkdownParser
+- `MarkdownRenderer.render/1 :: Plan.t() -> String.t()` — pure
+- `MarkdownParser.parse_and_validate/2 :: (String.t(), Plan.t()) -> {:ok, %{title, tasks}} | {:error, [violation]}`
+- Allowed edits: `acceptance_criteria`, `params`, task `title`, reordering. Forbidden: `:invalid_artifact_type`, `:invalid_action`, `:target_artifact_changed`, `:structural_field_renamed`.
+
+### ProjectConversations (M1)
+- `get_or_create_active_conversation/2`, `start_new_conversation/2`, `archive_active_conversation/1`
+- Run lifecycle: `create_run/1`, `mark_run_running/1`, `complete_run/2`, `fail_run/2`
+- Events: `append_event/2`, `list_events/2`, `list_active_conversation_events/2`
 
 ### Billing
 - `get_subscription/1`, `create_or_update_subscription/1`

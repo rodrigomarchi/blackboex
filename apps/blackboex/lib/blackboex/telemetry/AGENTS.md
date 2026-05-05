@@ -43,6 +43,7 @@ Infrastructure-level events emitted directly via `:telemetry.execute/3` (both ha
 |---|---|---|
 | `BlackboexWeb.Telemetry.measure_beam_stats/0` | `[:blackboex, :beam, :stats]` | `process_count`, `memory_bytes`, `run_queue_length` |
 | `BlackboexWeb.BeamMonitor` | `[:blackboex, :beam, :high_message_queue]` | `queue_len` |
+| `Blackboex.LLM.record_usage/1` | `[:blackboex, :llm, :tokens_by_tier]` | `input_tokens`, `output_tokens` (metadata: `project_id`, `tier`, `plan_id`) — fires only when `:tier` was recorded; cardinality bounded at `(project_id, tier)` |
 
 ## Event Naming Convention
 

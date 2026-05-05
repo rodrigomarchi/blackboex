@@ -11,9 +11,7 @@ defmodule Blackboex.LLM do
 
   @spec record_usage(map()) :: {:ok, Usage.t()} | {:error, Ecto.Changeset.t()}
   def record_usage(attrs) do
-    %Usage{}
-    |> Usage.changeset(attrs)
-    |> Repo.insert()
+    %Usage{} |> Usage.changeset(attrs) |> Repo.insert()
   end
 
   # ── Circuit Breaker ─────────────────────────────────────────

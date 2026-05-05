@@ -55,7 +55,7 @@ defmodule BlackboexWeb.Components.SidebarTreeComponent do
 
   import BlackboexWeb.Components.Modal
 
-  alias Blackboex.{Accounts, Apis, Flows, Pages, Playgrounds, Projects}
+  alias Blackboex.{Accounts, Apis, Features, Flows, Pages, Playgrounds, Projects}
   alias Blackboex.Policy
 
   # Whitelist map: resource type string → LetMe policy action atom.
@@ -191,6 +191,8 @@ defmodule BlackboexWeb.Components.SidebarTreeComponent do
           </li>
         </ul>
       <% end %>
+
+      <.new_project_link :if={new_project_url(@current_scope)} url={new_project_url(@current_scope)} />
 
       <.modal
         :if={@create_modal != nil}
@@ -426,6 +428,14 @@ defmodule BlackboexWeb.Components.SidebarTreeComponent do
             icon="hero-cog-6-tooth-micro"
             label="Settings"
             url={project_action_url(@current_scope, @project, "settings")}
+            current_path={@current_path}
+          />
+        </li>
+        <li :if={Features.project_agent_enabled?(@project)}>
+          <.project_action_link
+            icon="hero-sparkles-micro"
+            label="Agent"
+            url={project_action_url(@current_scope, @project, "agent")}
             current_path={@current_path}
           />
         </li>
@@ -1179,6 +1189,29 @@ defmodule BlackboexWeb.Components.SidebarTreeComponent do
   defp project_action_url(scope, project, action) do
     "/orgs/#{scope.organization.slug}/projects/#{project.slug}/#{action}"
   end
+
+  attr :url, :string, required: true
+
+  defp new_project_link(assigns) do
+    ~H"""
+    <div class="px-2 pt-1">
+      <.link
+        navigate={@url}
+        data-testid="sidebar-new-project"
+        class="flex items-center gap-1.5 rounded px-2 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+      >
+        <.icon name="hero-plus-micro" class="size-3 shrink-0 text-accent-emerald" />
+        <span class="truncate">New project</span>
+      </.link>
+    </div>
+    """
+  end
+
+  @spec new_project_url(map() | nil) :: String.t() | nil
+  defp new_project_url(%{organization: %{slug: slug}}) when is_binary(slug),
+    do: "/orgs/#{slug}/projects/new"
+
+  defp new_project_url(_), do: nil
 
   defp active_path?(nil, _url), do: false
   defp active_path?(current_path, url), do: String.starts_with?(current_path, url)

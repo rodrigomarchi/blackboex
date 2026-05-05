@@ -110,9 +110,12 @@ defmodule Blackboex.PageConversations do
 
   # ── Runs ───────────────────────────────────────────────────────
 
-  @spec create_run(map()) :: {:ok, PageRun.t()} | {:error, Ecto.Changeset.t()}
-  def create_run(attrs) do
-    %PageRun{}
+  @spec create_run(map(), Ecto.UUID.t() | nil) ::
+          {:ok, PageRun.t()} | {:error, Ecto.Changeset.t()}
+  def create_run(attrs, pre_id \\ nil) do
+    base = if pre_id, do: %PageRun{id: pre_id}, else: %PageRun{}
+
+    base
     |> PageRun.changeset(attrs)
     |> Repo.insert()
   end

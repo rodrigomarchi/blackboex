@@ -22,5 +22,10 @@ config :blackboex_web, BlackboexWeb.Endpoint,
 # Do not print debug messages in production
 config :logger, level: :info
 
+# Feature flags (default OFF in prod — see `Blackboex.Features`).
+# Per-project override via `ProjectEnvVars` (kind = "env",
+# name = "FEATURE_PROJECT_AGENT", value "true"/"false") takes precedence.
+config :blackboex, :features, project_agent: false
+
 # Runtime production configuration, including reading
 # of environment variables, is done on config/runtime.exs.

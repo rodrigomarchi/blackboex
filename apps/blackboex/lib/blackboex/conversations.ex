@@ -54,9 +54,12 @@ defmodule Blackboex.Conversations do
 
   # ── Runs ───────────────────────────────────────────────────────
 
-  @spec create_run(map()) :: {:ok, Run.t()} | {:error, Ecto.Changeset.t()}
-  def create_run(attrs) do
-    %Run{}
+  @spec create_run(map(), Ecto.UUID.t() | nil) ::
+          {:ok, Run.t()} | {:error, Ecto.Changeset.t()}
+  def create_run(attrs, pre_id \\ nil) do
+    base = if pre_id, do: %Run{id: pre_id}, else: %Run{}
+
+    base
     |> Run.changeset(attrs)
     |> Repo.insert()
   end

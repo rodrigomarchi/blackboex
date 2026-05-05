@@ -62,6 +62,11 @@ defmodule Blackboex.MixProject do
       {:ex_json_schema, "~> 0.11"},
       {:ymlr, "~> 5.1"},
       {:mox, "~> 1.0", only: :test},
+      # Required so the custom Credo check
+      # `Credo.Check.Custom.AnthropicCacheTtl` (under
+      # `lib/blackboex/credo_checks/`) can compile in this app. Credo is
+      # also declared at the umbrella root for the `mix credo` task.
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:langchain, "~> 0.6.2"},
       {:reactor, "~> 1.0"},
       {:nanoid, "~> 2.1"},

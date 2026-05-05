@@ -44,6 +44,8 @@ defmodule BlackboexWeb.ConnCase do
       import Blackboex.PlaygroundExecutionsFixtures
       import Blackboex.PlaygroundConversationsFixtures
       import Blackboex.PageConversationsFixtures
+      import Blackboex.PlansFixtures
+      import Blackboex.ProjectConversationsFixtures
       import Blackboex.LlmFixtures
       import Blackboex.ProjectEnvVarsFixtures
       import Blackboex.InstanceSettingsFixtures

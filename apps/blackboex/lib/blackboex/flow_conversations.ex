@@ -118,9 +118,12 @@ defmodule Blackboex.FlowConversations do
 
   # ── Runs ───────────────────────────────────────────────────────
 
-  @spec create_run(map()) :: {:ok, FlowRun.t()} | {:error, Ecto.Changeset.t()}
-  def create_run(attrs) do
-    %FlowRun{}
+  @spec create_run(map(), Ecto.UUID.t() | nil) ::
+          {:ok, FlowRun.t()} | {:error, Ecto.Changeset.t()}
+  def create_run(attrs, pre_id \\ nil) do
+    base = if pre_id, do: %FlowRun{id: pre_id}, else: %FlowRun{}
+
+    base
     |> FlowRun.changeset(attrs)
     |> Repo.insert()
   end

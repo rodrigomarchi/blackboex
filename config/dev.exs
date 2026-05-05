@@ -76,5 +76,8 @@ config :salad_ui,
 # Use real LLM client in dev
 config :blackboex, :llm_client, Blackboex.LLM.ReqLLMClient
 
+# Feature flags (default ON in dev — see `Blackboex.Features`)
+config :blackboex, :features, project_agent: true
+
 # OpenTelemetry: disable export in dev (no collector running by default)
 config :opentelemetry, traces_exporter: :none

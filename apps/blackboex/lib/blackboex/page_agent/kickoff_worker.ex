@@ -38,6 +38,7 @@ defmodule Blackboex.PageAgent.KickoffWorker do
     } = args
 
     run_type = Map.get(@run_types, run_type_str, :edit)
+    pre_run_id = Map.get(args, "run_id")
 
     # Read content fresh from the DB (not from Oban args) so we always see
     # the latest content even if the job sat in the queue.
@@ -55,7 +56,8 @@ defmodule Blackboex.PageAgent.KickoffWorker do
           run_type: run_type,
           run_type_str: run_type_str,
           trigger_message: trigger_message,
-          content_before: page.content || ""
+          content_before: page.content || "",
+          pre_run_id: pre_run_id
         })
     end
   end
@@ -68,16 +70,19 @@ defmodule Blackboex.PageAgent.KickoffWorker do
              ctx.project_id
            ),
          {:ok, run} <-
-           PageConversations.create_run(%{
-             conversation_id: conversation.id,
-             page_id: ctx.page_id,
-             organization_id: ctx.organization_id,
-             user_id: ctx.user_id,
-             run_type: ctx.run_type_str,
-             status: "pending",
-             trigger_message: ctx.trigger_message,
-             content_before: ctx.content_before
-           }),
+           PageConversations.create_run(
+             %{
+               conversation_id: conversation.id,
+               page_id: ctx.page_id,
+               organization_id: ctx.organization_id,
+               user_id: ctx.user_id,
+               run_type: ctx.run_type_str,
+               status: "pending",
+               trigger_message: ctx.trigger_message,
+               content_before: ctx.content_before
+             },
+             Map.get(ctx, :pre_run_id)
+           ),
          {:ok, _event} <-
            PageConversations.append_event(run, %{
              sequence: 0,

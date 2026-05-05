@@ -93,9 +93,12 @@ defmodule Blackboex.PlaygroundConversations do
 
   # ── Runs ───────────────────────────────────────────────────────
 
-  @spec create_run(map()) :: {:ok, PlaygroundRun.t()} | {:error, Ecto.Changeset.t()}
-  def create_run(attrs) do
-    %PlaygroundRun{}
+  @spec create_run(map(), Ecto.UUID.t() | nil) ::
+          {:ok, PlaygroundRun.t()} | {:error, Ecto.Changeset.t()}
+  def create_run(attrs, pre_id \\ nil) do
+    base = if pre_id, do: %PlaygroundRun{id: pre_id}, else: %PlaygroundRun{}
+
+    base
     |> PlaygroundRun.changeset(attrs)
     |> Repo.insert()
   end

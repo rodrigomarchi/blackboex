@@ -36,29 +36,33 @@ defmodule Blackboex.Agent.KickoffWorker do
 
     current_code = Map.get(args, "current_code")
     current_tests = Map.get(args, "current_tests")
+    pre_run_id = Map.get(args, "run_id")
 
     # 1. Get or create conversation
     {:ok, conversation} =
       Conversations.get_or_create_conversation(api_id, organization_id, project_id)
 
-    # 2. Create run record
+    # 2. Create run record, using pre-supplied run_id if provided by PlanRunnerWorker.
     {:ok, run} =
-      Conversations.create_run(%{
-        conversation_id: conversation.id,
-        api_id: api_id,
-        user_id: user_id,
-        organization_id: organization_id,
-        project_id: project_id,
-        run_type: run_type,
-        status: "pending",
-        trigger_message: trigger_message,
-        config: %{
-          "max_iterations" => 15,
-          "max_time_ms" => 300_000,
-          "max_cost_cents" => 50
+      Conversations.create_run(
+        %{
+          conversation_id: conversation.id,
+          api_id: api_id,
+          user_id: user_id,
+          organization_id: organization_id,
+          project_id: project_id,
+          run_type: run_type,
+          status: "pending",
+          trigger_message: trigger_message,
+          config: %{
+            "max_iterations" => 15,
+            "max_time_ms" => 300_000,
+            "max_cost_cents" => 50
+          },
+          model: "claude-sonnet-4-20250514"
         },
-        model: "claude-sonnet-4-20250514"
-      })
+        pre_run_id
+      )
 
     # 3. Persist initial user message event
     {:ok, _event} =

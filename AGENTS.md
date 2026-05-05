@@ -67,6 +67,10 @@ infra/                — Docker, deployment
 - `apps/blackboex/lib/blackboex/playground_conversations/AGENTS.md` — Persisted chat conversations/runs/events for the Playground agent
 - `apps/blackboex/lib/blackboex/page_agent/AGENTS.md` — AI chat pipeline for Pages (markdown editor agent: Session, ChainRunner, ContentPipeline, Prompts)
 - `apps/blackboex/lib/blackboex/page_conversations/AGENTS.md` — Persisted chat conversations/runs/events for the Page agent
+- `apps/blackboex/lib/blackboex/project_conversations/AGENTS.md` — Persisted chat conversations/runs/events for the Project-level agent
+- `apps/blackboex/lib/blackboex/plans/AGENTS.md` — `Plan` and `PlanTask` schemas for the Project Agent's typed multi-step plans
+- `apps/blackboex/lib/blackboex/project_agent/AGENTS.md` — Project-level orchestrator. Composes per-artifact agents via `KickoffWorker` / `PlanRunnerWorker` / `BroadcastAdapter`; never generates code itself
+- `apps/blackboex/lib/blackboex/features.ex` — Canonical feature-flag facade (`Blackboex.Features.project_agent_enabled?/1`); per-project `ProjectEnvVars` override → instance config default
 - `apps/blackboex/lib/blackboex/flow_executions/AGENTS.md` — FlowExecution + NodeExecution schemas, status state machine, execution lifecycle API
 - `apps/blackboex/lib/blackboex/project_env_vars/AGENTS.md` — Project-scoped env vars and LLM integration keys (replaces FlowSecrets)
 - `apps/blackboex/lib/blackboex/projects/AGENTS.md` — Project grouping within orgs, ProjectMembership roles, access rules

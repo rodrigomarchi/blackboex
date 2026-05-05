@@ -72,6 +72,30 @@ defmodule BlackboexWeb.Components.SidebarTreeComponentTest do
       %{scope: scoped(user, org)}
     end
 
+    test "renders New project link in empty state when scope has org but no projects", %{
+      user: user
+    } do
+      {:ok, %{organization: org}} =
+        Blackboex.Organizations.create_organization(user, %{name: "Empty Org"})
+
+      Blackboex.Projects.list_projects(org.id)
+      |> Enum.each(&Blackboex.Projects.delete_project/1)
+
+      empty_scope = scoped(user, org)
+
+      html =
+        render_component(SidebarTreeComponent,
+          id: "tree-empty-cta",
+          current_scope: empty_scope,
+          current_path: "/",
+          collapsed: false
+        )
+
+      assert html =~ "No projects yet"
+      assert html =~ "/orgs/#{org.slug}/projects/new"
+      assert html =~ ~s(data-testid="sidebar-new-project")
+    end
+
     test "renders 'No projects yet.' when scope has no organization", %{user: user} do
       # A scope with organization: nil has no projects to show
       no_org_scope = Scope.for_user(user)
@@ -99,6 +123,20 @@ defmodule BlackboexWeb.Components.SidebarTreeComponentTest do
       assert html =~ project.name
     end
 
+    test "renders New project link below project list", %{scope: scope} do
+      html =
+        render_component(SidebarTreeComponent,
+          id: "tree-new-project",
+          current_scope: scope,
+          current_path: "/",
+          collapsed: false
+        )
+
+      assert html =~ ~s(data-testid="sidebar-new-project")
+      assert html =~ "/orgs/#{scope.organization.slug}/projects/new"
+      assert html =~ "New project"
+    end
+
     test "shows APIs group label in expanded project", %{scope: scope, project: project} do
       html =
         render_component(SidebarTreeComponent,
@@ -114,6 +152,59 @@ defmodule BlackboexWeb.Components.SidebarTreeComponentTest do
       assert html =~ "APIs"
       assert html =~ "Flows"
       assert html =~ "Playgrounds"
+    end
+
+    test "renders Agent link in expanded project when feature flag is on", %{
+      scope: scope,
+      project: project
+    } do
+      previous = Application.get_env(:blackboex, :features, [])
+
+      try do
+        Application.put_env(:blackboex, :features, project_agent: true)
+
+        html =
+          render_component(SidebarTreeComponent,
+            id: "tree-agent-on",
+            current_scope: scope,
+            current_path: "/",
+            collapsed: false,
+            expanded: ["project:#{project.id}"],
+            tree_children: %{}
+          )
+
+        assert html =~ "Agent"
+
+        assert html =~
+                 "/orgs/#{scope.organization.slug}/projects/#{project.slug}/agent"
+      after
+        Application.put_env(:blackboex, :features, previous)
+      end
+    end
+
+    test "hides Agent link in expanded project when feature flag is off", %{
+      scope: scope,
+      project: project
+    } do
+      previous = Application.get_env(:blackboex, :features, [])
+
+      try do
+        Application.put_env(:blackboex, :features, project_agent: false)
+
+        html =
+          render_component(SidebarTreeComponent,
+            id: "tree-agent-off",
+            current_scope: scope,
+            current_path: "/",
+            collapsed: false,
+            expanded: ["project:#{project.id}"],
+            tree_children: %{}
+          )
+
+        refute html =~ ~s(href="/orgs/#{scope.organization.slug}/projects/#{project.slug}/agent")
+      after
+        Application.put_env(:blackboex, :features, previous)
+      end
     end
 
     test "leaf node link contains org_slug and project_slug for api", %{

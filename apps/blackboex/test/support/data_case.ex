@@ -40,6 +40,8 @@ defmodule Blackboex.DataCase do
       import Blackboex.PlaygroundConversationsFixtures
       import Blackboex.PageConversationsFixtures
       import Blackboex.FlowConversationsFixtures
+      import Blackboex.PlansFixtures
+      import Blackboex.ProjectConversationsFixtures
       import Blackboex.LlmFixtures
       import Blackboex.InstanceSettingsFixtures
       import Blackboex.OrgInvitationsFixtures

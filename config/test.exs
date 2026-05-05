@@ -44,6 +44,9 @@ config :phoenix,
 # Use mock LLM client in tests
 config :blackboex, :llm_client, Blackboex.LLM.ClientMock
 
+# Feature flags (default ON in tests — see `Blackboex.Features`)
+config :blackboex, :features, project_agent: true
+
 # Oban: manual testing mode (jobs don't auto-execute)
 config :blackboex, Oban, testing: :manual
 

@@ -128,6 +128,8 @@ Every schema that needs to be inserted in a test MUST use a fixture function —
 | `PlaygroundConversationsFixtures` | `playground_conversation_fixture/1`, `playground_run_fixture/1`, `playground_event_fixture/1` | PlaygroundConversation, PlaygroundRun, PlaygroundEvent |
 | `PageConversationsFixtures` | `page_conversation_fixture/1`, `page_run_fixture/1`, `page_event_fixture/1` | PageConversation, PageRun, PageEvent |
 | `FlowConversationsFixtures` | `flow_conversation_fixture/1`, `flow_run_fixture/1`, `flow_event_fixture/1` | FlowConversation, FlowRun, FlowEvent |
+| `ProjectConversationsFixtures` | `project_conversation_fixture/1`, `project_run_fixture/1`, `project_event_fixture/1` | ProjectConversation, ProjectRun, ProjectEvent |
+| `PlansFixtures` | `plan_fixture/1`, `plan_task_fixture/1`, `approved_plan_fixture/1`, `partial_plan_fixture/1` | Plan, PlanTask |
 | `TestingFixtures` | `test_suite_fixture/1` | TestSuite |
 | `MockDefaults` | `stub_llm_client/1` | — |
 
@@ -159,6 +161,10 @@ Available named setups:
 - `:create_page` — creates page for existing user + org (optionally uses `:project` from context), returns `%{page}`
 - `:create_page_tree` — creates root + 2 children + 1 grandchild pages for existing user + org + project, returns `%{root_page, child_1, child_2, grandchild}`
 - `:create_playground` — creates playground for existing user + org (optionally uses `:project` from context), returns `%{playground}`
+- `:create_project_conversation` — creates an active ProjectConversation for the existing `:project` in context, returns `%{project_conversation}`
+- `:create_plan` — creates a draft `Plan` for the existing `:project` in context, returns `%{plan}`
+- `:create_plan_task` — creates a `PlanTask` (and a `Plan` if needed) for the existing context, returns `%{plan_task}` (and `%{plan}` if it had to create one)
+- `:create_partial_plan` — creates a `Plan` in `:partial` state with one `:done` and one `:failed` task for the existing `:project`, returns `%{partial_plan}`
 - `:stub_llm_client` — stubs LLM mock with safe defaults
 
 ### Test Structure Rules

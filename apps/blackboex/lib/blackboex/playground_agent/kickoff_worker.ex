@@ -35,6 +35,7 @@ defmodule Blackboex.PlaygroundAgent.KickoffWorker do
     } = args
 
     code_before = Map.get(args, "code_before", "")
+    pre_run_id = Map.get(args, "run_id")
 
     with {:ok, conversation} <-
            PlaygroundConversations.get_or_create_active_conversation(
@@ -43,16 +44,19 @@ defmodule Blackboex.PlaygroundAgent.KickoffWorker do
              project_id
            ),
          {:ok, run} <-
-           PlaygroundConversations.create_run(%{
-             conversation_id: conversation.id,
-             playground_id: playground_id,
-             organization_id: organization_id,
-             user_id: user_id,
-             run_type: run_type,
-             status: "pending",
-             trigger_message: trigger_message,
-             code_before: code_before
-           }),
+           PlaygroundConversations.create_run(
+             %{
+               conversation_id: conversation.id,
+               playground_id: playground_id,
+               organization_id: organization_id,
+               user_id: user_id,
+               run_type: run_type,
+               status: "pending",
+               trigger_message: trigger_message,
+               code_before: code_before
+             },
+             pre_run_id
+           ),
          {:ok, _event} <-
            PlaygroundConversations.append_event(run, %{
              sequence: 0,

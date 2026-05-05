@@ -71,7 +71,28 @@ SecurityConfig.prohibited_modules() :: [String.t()]
 | `Prompts` | System prompts and generation prompt builders (composes from PromptFragments) |
 | `EditPrompts` | SEARCH/REPLACE diff format for conversational editing |
 | `StreamHandler` | Fire-and-forget streaming task |
-| `Usage` | Schema for `llm_usage` table |
+| `Usage` | Schema for `llm_usage` table (now includes `tier` column) |
+| `PromptCache` | Sole sanctioned constructor for Anthropic `cache_control` segments. `stable_segment/2` defaults to `ttl: "1h"`; `volatile_segment/1` is non-cached. Enforced by `Credo.Check.Custom.AnthropicCacheTtl` |
+
+## Prompt cache discipline (Δ2 — M4)
+
+All Project Agent LLM calls MUST construct `cache_control:` segments via
+`Blackboex.LLM.PromptCache.stable_segment/2`. The custom Credo check
+`Credo.Check.Custom.AnthropicCacheTtl` (registered in `.credo.exs` and
+located at `apps/blackboex/lib/blackboex/credo_checks/anthropic_cache_ttl.ex`)
+enforces two rules at every `make lint`:
+
+1. **Outside the sanctioned scope** (anything not in
+   `lib/blackboex/llm/prompt_cache.ex` or `lib/blackboex/project_agent/`):
+   any literal `cache_control:` key in a map or keyword list is an issue.
+2. **Inside the sanctioned scope**: every `cache_control:` map literal
+   must include `ttl:` whose value is a literal binary string
+   (`"5m"` or `"1h"`).
+
+Rationale: Anthropic prompt cache silently defaults to the 5-minute TTL
+when omitted, making cost projections unstable for orchestration
+workloads. The 1-hour TTL pays back after a single reuse and must be
+explicit at every call site.
 
 ## CircuitBreaker States
 
@@ -83,11 +104,83 @@ Caller is responsible for `allow?` before and `record_success/failure` after eve
 
 ## Rate Limits
 
+### Aggregate (no `:tier` opt — backward-compatible default)
+
 | Plan | Requests/hour |
 |------|--------------|
 | `:free` | 10 |
 | `:pro` | 100 |
 | `:enterprise` | 1_000 |
+
+### Per-tier (independent counters)
+
+`RateLimiter.check_rate(user_id, plan, tier: :planner | :executor | :navigation)`
+maintains a separate ExRated bucket per tier. Tiers do **not** share budget
+with each other or with the aggregate counter (they are independent
+counters, not slices of a shared cap).
+
+| Plan | Planner | Executor | Navigation |
+|------|---------|----------|------------|
+| `:free` | 2/h | 10/h | 50/h |
+| `:pro` | 20/h | 100/h | 500/h |
+| `:enterprise` | 200/h | 1_000/h | 5_000/h |
+
+Omitting the `:tier` opt preserves the existing aggregate semantics so
+all current callers (`apps/blackboex/lib/blackboex/playgrounds/executor.ex`,
+`apps/blackboex_web/lib/blackboex_web/plugs/rate_limiter.ex`, etc.) are
+unaffected.
+
+## Three-tier model routing
+
+`Blackboex.LLM.Config.client_for_project(project_id, opts \\ [])` accepts
+a `:tier` option (`:planner | :executor | :navigation`) that selects the
+model from `config :blackboex, :llm_models`:
+
+```elixir
+config :blackboex, :llm_models, %{
+  planner:    "anthropic:claude-opus-4-7",
+  executor:   "anthropic:claude-sonnet-4-6",
+  navigation: "anthropic:claude-haiku-4-5"
+}
+```
+
+When the caller does **not** pass an explicit `:tier` opt (arity-1
+`client_for_project/1` or arity-2 with no tier in opts), the resolver
+emits `[api_key: …]` only — neither `:model` nor `:tier` is injected.
+This preserves byte-for-byte backward compatibility for every existing
+caller and lets `ReqLLMClient` fall back to its native default model.
+
+When the caller does pass `tier:`, the resolver emits
+`[api_key: key, model: model_for_tier(tier), tier: tier]`. `ReqLLM`
+honors the `:model` opt; the `:tier` value is forwarded so
+`LLM.record_usage/1` can persist it on the `llm_usage.tier` column for
+per-tier telemetry (M7).
+
+Invalid tiers return `{:error, :invalid_tier}`.
+
+## `LLM.Usage.tier` column
+
+Every `Blackboex.LLM.Usage` row carries a `tier` field with canonical
+values `"planner" | "executor" | "navigation"` (default `"executor"`,
+validated via `validate_inclusion/3`). Callers thread `:tier` through
+`LLM.record_usage/1` attrs; the changeset casts it directly. M7
+telemetry consumes this column to emit `:llm_tokens_by_tier` events
+without re-counting at the call site.
+
+## Telemetry events (M7)
+
+`LLM.record_usage/1` emits `[:blackboex, :llm, :tokens_by_tier]` AFTER
+the `Usage` row is persisted, but ONLY when the caller passed `:tier`
+(or `"tier"`) in attrs. This preserves backward compat: existing
+non-tier-aware callers see no behavior change.
+
+| Event | Measurements | Metadata |
+|---|---|---|
+| `[:blackboex, :llm, :tokens_by_tier]` | `%{input_tokens, output_tokens}` | `%{project_id, tier, plan_id}` (`plan_id` is `nil` if not provided) |
+
+Cardinality is bounded at `(project_id, tier)` — three series per
+project — so the event is safe for Prometheus exporters per
+`feedback_phase10_gotchas.md` ("metric cardinality").
 
 ## Gotchas
 

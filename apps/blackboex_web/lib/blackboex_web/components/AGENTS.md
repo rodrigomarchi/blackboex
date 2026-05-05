@@ -79,6 +79,8 @@ Violation of this rule creates inconsistent UI, breaks dark mode, bypasses seman
 | Auto-save state indicator | `<.save_indicator>` | `editor/save_indicator.ex` |
 | Playground AI chat | `<.playground_chat_panel>` | `editor/playground_chat_panel.ex` |
 | Unified nav tree | `<SidebarTreeComponent>` (live_component) | `sidebar_tree_component.ex` |
+| Plan markdown editor (Project Agent) | `<.live_component module={BlackboexWeb.ProjectAgentLive.PlanEditorComponent}>` | `live/project_agent_live/plan_editor_component.ex` |
+| Plan task row (Project Agent) | `<.live_component module={BlackboexWeb.ProjectAgentLive.TaskRowComponent}>` | `live/project_agent_live/task_row_component.ex` |
 
 ### CSS Utilities (defined in `assets/css/app.css`)
 
@@ -1600,3 +1602,5 @@ One-time API key display banner with copy-friendly code block and dismiss button
   - **Children loading:** uses `Apis.list_for_project/1`, `Flows.list_for_project/1`, `Pages.list_page_tree/1`, `Playgrounds.list_for_project/1`; Pages render recursively inside this single sidebar tree.
   - **Persistence:** expanded state written asynchronously via `Task.Supervisor.start_child(Blackboex.TaskSupervisor, ...)`
   - **Wired in:** `app_sidebar.ex` — the WORK group renders this component when `collapsed: false`. When `collapsed: true` the original flat icon-strip items are shown unchanged (editor layout). The component `id` is derived as `"#{sidebar_id}-tree"` to avoid duplicate-ID errors.
+  - **Project-scoped actions (M6):** when a project is expanded, the subtree includes a "Settings" link and — when `Blackboex.Features.project_agent_enabled?/1` returns true for that project — an "Agent" link pointing to `/orgs/:org_slug/projects/:project_slug/agent`. The Agent entry is hidden silently when the flag is off so navigation never exposes a non-functional surface.
+  - **Project creation entry point:** below the project list (or below the "No projects yet." empty-state message) the tree renders a `New project` link to `/orgs/:org_slug/projects/new` with `data-testid="sidebar-new-project"`. The link is computed by `new_project_url/1` and is the canonical UI surface for project creation — there is intentionally no separate "+ Project" button in the sidebar header or org switcher dropdown.

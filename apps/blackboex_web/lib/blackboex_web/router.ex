@@ -228,6 +228,7 @@ defmodule BlackboexWeb.Router do
       live "/env-vars", ProjectLive.EnvVars, :index
       live "/integrations", ProjectLive.LlmIntegrations, :index
       live "/members", ProjectMemberLive.Index, :index
+      live "/agent", ProjectAgentLive.Index, :index
     end
 
     live_session :project_editor,

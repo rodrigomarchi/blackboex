@@ -36,6 +36,7 @@ defmodule Blackboex.FlowAgent.KickoffWorker do
     } = args
 
     definition_before = Map.get(args, "definition_before", %{})
+    pre_run_id = Map.get(args, "run_id")
 
     with {:ok, conversation} <-
            FlowConversations.get_or_create_active_conversation(
@@ -44,16 +45,19 @@ defmodule Blackboex.FlowAgent.KickoffWorker do
              project_id
            ),
          {:ok, run} <-
-           FlowConversations.create_run(%{
-             conversation_id: conversation.id,
-             flow_id: flow_id,
-             organization_id: organization_id,
-             user_id: user_id,
-             run_type: run_type,
-             status: "pending",
-             trigger_message: trigger_message,
-             definition_before: definition_before
-           }),
+           FlowConversations.create_run(
+             %{
+               conversation_id: conversation.id,
+               flow_id: flow_id,
+               organization_id: organization_id,
+               user_id: user_id,
+               run_type: run_type,
+               status: "pending",
+               trigger_message: trigger_message,
+               definition_before: definition_before
+             },
+             pre_run_id
+           ),
          {:ok, _event} <-
            FlowConversations.append_event(run, %{
              sequence: 0,

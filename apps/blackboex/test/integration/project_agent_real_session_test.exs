@@ -189,7 +189,7 @@ defmodule Blackboex.Integration.ProjectAgentRealSessionTest do
               "max_time_ms" => 300_000,
               "max_cost_cents" => 50
             },
-            model: "claude-sonnet-4-20250514"
+            model: "claude-sonnet-4-5-20250929"
           },
           task_running.child_run_id
         )

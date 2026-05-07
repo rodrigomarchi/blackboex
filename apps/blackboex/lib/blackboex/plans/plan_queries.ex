@@ -8,6 +8,7 @@ defmodule Blackboex.Plans.PlanQueries do
 
   alias Blackboex.Plans.Plan
   alias Blackboex.Plans.PlanTask
+  alias Blackboex.ProjectConversations.ProjectRun
 
   @active_statuses ~w(approved running)
 
@@ -33,6 +34,36 @@ defmodule Blackboex.Plans.PlanQueries do
   def active_for_project(project_id) do
     from(p in Plan,
       where: p.project_id == ^project_id and p.status in ^@active_statuses,
+      limit: 1
+    )
+  end
+
+  @spec for_conversation(Ecto.UUID.t(), keyword()) :: Ecto.Query.t()
+  def for_conversation(conversation_id, opts \\ []) do
+    limit = Keyword.get(opts, :limit, 50)
+
+    base =
+      from(p in Plan,
+        join: r in ProjectRun,
+        on: r.id == p.run_id,
+        where: r.conversation_id == ^conversation_id,
+        order_by: [desc: p.inserted_at],
+        limit: ^limit
+      )
+
+    case Keyword.get(opts, :status) do
+      nil -> base
+      status when is_binary(status) -> from([p, _r] in base, where: p.status == ^status)
+      statuses when is_list(statuses) -> from([p, _r] in base, where: p.status in ^statuses)
+    end
+  end
+
+  @spec active_for_conversation(Ecto.UUID.t()) :: Ecto.Query.t()
+  def active_for_conversation(conversation_id) do
+    from(p in Plan,
+      join: r in ProjectRun,
+      on: r.id == p.run_id,
+      where: r.conversation_id == ^conversation_id and p.status in ^@active_statuses,
       limit: 1
     )
   end

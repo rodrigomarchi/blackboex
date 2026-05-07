@@ -48,6 +48,20 @@ defmodule Blackboex.Plans.Plans do
     |> Repo.one()
   end
 
+  @spec list_plans_for_conversation(Ecto.UUID.t(), keyword()) :: [Plan.t()]
+  def list_plans_for_conversation(conversation_id, opts \\ []) do
+    conversation_id
+    |> PlanQueries.for_conversation(opts)
+    |> Repo.all()
+  end
+
+  @spec get_active_plan_for_conversation(Ecto.UUID.t()) :: Plan.t() | nil
+  def get_active_plan_for_conversation(conversation_id) do
+    conversation_id
+    |> PlanQueries.active_for_conversation()
+    |> Repo.one()
+  end
+
   @spec list_tasks(Plan.t()) :: [PlanTask.t()]
   def list_tasks(%Plan{id: id}) do
     id

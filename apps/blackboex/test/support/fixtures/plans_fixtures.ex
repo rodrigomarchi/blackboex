@@ -4,8 +4,10 @@ defmodule Blackboex.PlansFixtures do
   directly so fixtures do not couple to the (M2) `Plans` facade.
   """
 
+  alias Blackboex.AccountsFixtures
   alias Blackboex.Plans.Plan
   alias Blackboex.Plans.PlanTask
+  alias Blackboex.ProjectConversations
   alias Blackboex.Repo
 
   @doc """
@@ -37,12 +39,48 @@ defmodule Blackboex.PlansFixtures do
       model_tier_caps: %{}
     }
 
+    # Match production: every Plan is linked to a ProjectRun on a
+    # ProjectConversation. Fixtures auto-wire one when `:run_id` isn't
+    # explicitly provided so the LV's conversation-scoped lookups find
+    # the plan.
+    final_attrs = Map.merge(base, extra) |> ensure_run_id(project, attrs)
+
     {:ok, plan} =
       %Plan{}
-      |> Plan.changeset(Map.merge(base, extra))
+      |> Plan.changeset(final_attrs)
       |> Repo.insert()
 
     plan
+  end
+
+  @spec ensure_run_id(map(), Blackboex.Projects.Project.t(), map()) :: map()
+  defp ensure_run_id(%{run_id: id} = attrs, _project, _input) when is_binary(id), do: attrs
+
+  defp ensure_run_id(attrs, project, input) do
+    user_id =
+      case input[:user] do
+        %{id: id} -> id
+        _ -> AccountsFixtures.user_fixture().id
+      end
+
+    {:ok, conv} =
+      ProjectConversations.get_or_create_active_conversation(
+        project.id,
+        project.organization_id
+      )
+
+    {:ok, run} =
+      ProjectConversations.create_run(%{
+        conversation_id: conv.id,
+        project_id: project.id,
+        organization_id: project.organization_id,
+        user_id: user_id,
+        run_type: "plan",
+        status: "completed",
+        trigger_message: "fixture"
+      })
+
+    Map.put(attrs, :run_id, run.id)
   end
 
   @doc """

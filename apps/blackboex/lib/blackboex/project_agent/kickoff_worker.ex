@@ -44,7 +44,7 @@ defmodule Blackboex.ProjectAgent.KickoffWorker do
          {:ok, user} <- fetch_user(user_id),
          {:ok, conversation} <- open_conversation(project, organization_id),
          {:ok, run} <-
-           open_run(conversation, project, organization_id, user_id, user_message),
+           ensure_run(args, conversation, project, organization_id, user_id, user_message),
          {:ok, _event} <-
            ProjectConversations.append_event(run, %{
              event_type: "user_message",
@@ -198,14 +198,30 @@ defmodule Blackboex.ProjectAgent.KickoffWorker do
     ProjectConversations.get_or_create_active_conversation(project.id, organization_id)
   end
 
-  @spec open_run(
+  @spec ensure_run(
+          map(),
           Blackboex.ProjectConversations.ProjectConversation.t(),
           Blackboex.Projects.Project.t(),
           Ecto.UUID.t(),
-          Ecto.UUID.t(),
+          Ecto.UUID.t() | integer(),
           String.t()
-        ) :: {:ok, Blackboex.ProjectConversations.ProjectRun.t()} | {:error, Ecto.Changeset.t()}
-  defp open_run(conversation, project, organization_id, user_id, user_message) do
+        ) :: {:ok, Blackboex.ProjectConversations.ProjectRun.t()} | {:error, term()}
+  defp ensure_run(
+         %{"run_id" => run_id},
+         _conversation,
+         _project,
+         _org_id,
+         _user_id,
+         _user_message
+       )
+       when is_binary(run_id) do
+    case ProjectConversations.get_run(run_id) do
+      nil -> {:error, :run_not_found}
+      run -> {:ok, run}
+    end
+  end
+
+  defp ensure_run(_args, conversation, project, organization_id, user_id, user_message) do
     ProjectConversations.create_run(%{
       conversation_id: conversation.id,
       project_id: project.id,

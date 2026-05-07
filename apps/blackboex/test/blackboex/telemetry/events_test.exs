@@ -59,7 +59,7 @@ defmodule Blackboex.Telemetry.EventsTest do
         input_tokens: 100,
         output_tokens: 200,
         provider: "anthropic",
-        model: "claude-sonnet-4-20250514"
+        model: "claude-sonnet-4-5-20250929"
       })
 
       assert_receive {:telemetry, [:blackboex, :llm, :call], measurements, metadata}
@@ -67,7 +67,7 @@ defmodule Blackboex.Telemetry.EventsTest do
       assert measurements.input_tokens == 100
       assert measurements.output_tokens == 200
       assert metadata.provider == "anthropic"
-      assert metadata.model == "claude-sonnet-4-20250514"
+      assert metadata.model == "claude-sonnet-4-5-20250929"
     end
 
     test "defaults missing tokens to 0", ctx do

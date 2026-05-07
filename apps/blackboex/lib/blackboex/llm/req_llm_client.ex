@@ -98,6 +98,6 @@ defmodule Blackboex.LLM.ReqLLMClient do
   defp map_error(other), do: other
 
   defp default_model do
-    Application.get_env(:blackboex, :llm_default_model, "anthropic:claude-sonnet-4-20250514")
+    Application.get_env(:blackboex, :llm_default_model, "anthropic:claude-sonnet-4-5-20250929")
   end
 end

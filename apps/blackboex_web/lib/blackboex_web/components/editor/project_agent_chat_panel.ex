@@ -57,7 +57,10 @@ defmodule BlackboexWeb.Components.Editor.ProjectAgentChatPanel do
 
   @spec project_agent_chat_panel(map()) :: Phoenix.LiveView.Rendered.t()
   def project_agent_chat_panel(assigns) do
-    assigns = Map.put(assigns, :timeline_empty, assigns.events == [] and not assigns.loading)
+    assigns =
+      assigns
+      |> Map.put(:timeline_empty, assigns.events == [] and not assigns.loading)
+      |> Map.put(:new_chat_disabled, new_chat_disabled?(assigns))
 
     ~H"""
     <.agent_chat_panel
@@ -74,7 +77,9 @@ defmodule BlackboexWeb.Components.Editor.ProjectAgentChatPanel do
       input_placeholder="Describe the change you want — the agent will plan it first."
       input_disabled={@loading or not @llm_configured?}
       submit_disabled={@loading or not @llm_configured?}
-      show_new_conversation?={false}
+      show_new_conversation?={true}
+      new_conversation_event="new_chat"
+      new_conversation_disabled={@new_chat_disabled}
     >
       <:timeline>
         <div
@@ -157,13 +162,13 @@ defmodule BlackboexWeb.Components.Editor.ProjectAgentChatPanel do
       </div>
 
       <%= if @plan_tasks != [] do %>
-        <ol class="space-y-1.5 text-xs">
+        <ol class="space-y-2 text-xs">
           <%= for task <- Enum.sort_by(@plan_tasks, & &1.order) do %>
             <li class="flex items-start gap-2">
               <span class="shrink-0 mt-0.5 inline-flex size-5 items-center justify-center rounded-full bg-background text-2xs font-mono text-muted-foreground border">
                 {task.order + 1}
               </span>
-              <div class="min-w-0 flex-1">
+              <div class="min-w-0 flex-1 space-y-1">
                 <div class="text-xs font-medium text-foreground">{task.title}</div>
                 <div class="text-2xs text-muted-foreground">
                   {String.upcase(task.action)} {task.artifact_type}
@@ -171,6 +176,13 @@ defmodule BlackboexWeb.Components.Editor.ProjectAgentChatPanel do
                     · {String.slice(task.target_artifact_id, 0, 8)}
                   </span>
                 </div>
+                <ul
+                  :if={(task.acceptance_criteria || []) != []}
+                  class="ml-1 list-disc space-y-0.5 pl-4 text-2xs text-muted-foreground"
+                  data-role="task-criteria"
+                >
+                  <li :for={criterion <- task.acceptance_criteria}>{criterion}</li>
+                </ul>
               </div>
               <.badge variant="status" size="xs" class={"shrink-0 #{task_status_class(task.status)}"}>
                 {task.status}
@@ -306,6 +318,17 @@ defmodule BlackboexWeb.Components.Editor.ProjectAgentChatPanel do
   end
 
   # ── Helpers ──────────────────────────────────────────────────────
+
+  # Disable "New conversation" only while the plan is actively executing — at
+  # that point archiving the conversation would orphan the running plan_runner.
+  # Draft/partial/failed/done plans (and no-plan states) are safe to discard.
+  @spec new_chat_disabled?(map()) :: boolean()
+  defp new_chat_disabled?(%{loading: true}), do: true
+
+  defp new_chat_disabled?(%{plan: %{status: status}}) when status in ["approved", "running"],
+    do: true
+
+  defp new_chat_disabled?(_), do: false
 
   defp plan_status_class("draft"), do: "bg-primary/15 text-primary"
   defp plan_status_class("approved"), do: "bg-info/15 text-info-foreground"

@@ -65,7 +65,8 @@ defmodule BlackboexWeb.ProjectAgentLive.Index do
           Phoenix.PubSub.subscribe(Blackboex.PubSub, project_topic(project.id))
         end
 
-        plan = Plans.get_active_plan(project.id) || most_recent_plan(project.id)
+        active_conv = ProjectConversations.get_active_conversation(project.id)
+        plan = plan_for_active_conversation(active_conv)
         socket = subscribe_to_plan(socket, plan)
 
         {:ok,
@@ -152,6 +153,27 @@ defmodule BlackboexWeb.ProjectAgentLive.Index do
     end
   end
 
+  def handle_event("new_chat", _params, socket) do
+    plan = socket.assigns.plan
+
+    cond do
+      socket.assigns.planning == :enqueued ->
+        {:noreply,
+         put_flash(socket, :error, "Wait for the planner to finish before starting a new chat.")}
+
+      plan != nil and plan.status in ["approved", "running"] ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           "A plan is currently executing. Wait for it to finish before starting a new chat."
+         )}
+
+      true ->
+        do_new_chat(socket)
+    end
+  end
+
   def handle_event("continue_from_partial", _params, socket) do
     plan = socket.assigns.plan
     user = socket.assigns.current_scope.user
@@ -232,12 +254,19 @@ defmodule BlackboexWeb.ProjectAgentLive.Index do
     socket
   end
 
-  @spec most_recent_plan(Ecto.UUID.t()) :: Plans.Plan.t() | nil
-  defp most_recent_plan(project_id) do
-    case Plans.list_plans_for_project(project_id, limit: 1) do
-      [plan | _] -> plan
-      [] -> nil
-    end
+  # Plan lookup is scoped to the *active* conversation so that starting a new
+  # chat (which archives the active conversation) returns nil even though older
+  # plans linger in the DB.
+  @spec plan_for_active_conversation(ProjectConversations.ProjectConversation.t() | nil) ::
+          Plans.Plan.t() | nil
+  defp plan_for_active_conversation(nil), do: nil
+
+  defp plan_for_active_conversation(%{id: conv_id}) do
+    Plans.get_active_plan_for_conversation(conv_id) ||
+      case Plans.list_plans_for_conversation(conv_id, limit: 1) do
+        [plan | _] -> plan
+        [] -> nil
+      end
   end
 
   # The chat timeline is sourced from `ProjectEvent` rows. The most
@@ -324,7 +353,9 @@ defmodule BlackboexWeb.ProjectAgentLive.Index do
 
   @spec refresh_plan_from_assign(Phoenix.LiveView.Socket.t()) :: Plans.Plan.t() | nil
   defp refresh_plan_from_assign(%{assigns: %{plan: nil, project: project}}) do
-    most_recent_plan(project.id)
+    project.id
+    |> ProjectConversations.get_active_conversation()
+    |> plan_for_active_conversation()
   end
 
   defp refresh_plan_from_assign(%{assigns: %{plan: %{id: id}}}) do
@@ -409,6 +440,24 @@ defmodule BlackboexWeb.ProjectAgentLive.Index do
         require Logger
         Logger.warning("ProjectAgent.approve_and_run failed: #{inspect(reason)}")
         {:noreply, put_flash(socket, :error, "Failed to approve the plan. Please try again.")}
+    end
+  end
+
+  @spec do_new_chat(Phoenix.LiveView.Socket.t()) :: {:noreply, Phoenix.LiveView.Socket.t()}
+  defp do_new_chat(socket) do
+    project = socket.assigns.project
+
+    case ProjectConversations.start_new_conversation(project.id, project.organization_id) do
+      {:ok, _new_conv} ->
+        {:noreply,
+         socket
+         |> assign(plan: nil, planning: nil, message_input: "", events: [])
+         |> put_flash(:info, "New chat started.")}
+
+      {:error, reason} ->
+        require Logger
+        Logger.warning("ProjectConversations.start_new_conversation failed: #{inspect(reason)}")
+        {:noreply, put_flash(socket, :error, "Could not start a new chat.")}
     end
   end
 

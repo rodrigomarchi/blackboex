@@ -287,15 +287,14 @@ defmodule Blackboex.ProjectAgent.PlanRunnerWorker do
            artifact_type: "api",
            action: action,
            target_artifact_id: artifact_id,
-           params: params,
            title: title
-         },
+         } = task,
          child_run_id,
          ctx
        ) do
     # Agent.KickoffWorker uses "generation" (not "generate") for create runs.
     run_type = if action == "edit", do: "edit", else: "generation"
-    trigger = build_trigger(params)
+    trigger = build_trigger(task)
 
     with {:ok, api_id} <- resolve_artifact_id(:api, artifact_id, action, title, ctx) do
       args = %{
@@ -319,14 +318,13 @@ defmodule Blackboex.ProjectAgent.PlanRunnerWorker do
            artifact_type: "flow",
            action: action,
            target_artifact_id: artifact_id,
-           params: params,
            title: title
-         },
+         } = task,
          child_run_id,
          ctx
        ) do
     run_type = if action == "edit", do: "edit", else: "generate"
-    trigger = build_trigger(params)
+    trigger = build_trigger(task)
 
     with {:ok, flow_id} <- resolve_artifact_id(:flow, artifact_id, action, title, ctx) do
       args = %{
@@ -352,13 +350,13 @@ defmodule Blackboex.ProjectAgent.PlanRunnerWorker do
            target_artifact_id: artifact_id,
            params: params,
            title: title
-         },
+         } = task,
          child_run_id,
          ctx
        ) do
     org_id = Map.get(params || %{}, "organization_id") || ctx.organization_id
     run_type = if action == "edit", do: "edit", else: "generate"
-    trigger = build_trigger(params)
+    trigger = build_trigger(task)
 
     with {:ok, page_id} <-
            resolve_artifact_id(:page, artifact_id, action, title, %{ctx | organization_id: org_id}) do
@@ -383,14 +381,13 @@ defmodule Blackboex.ProjectAgent.PlanRunnerWorker do
            artifact_type: "playground",
            action: action,
            target_artifact_id: artifact_id,
-           params: params,
            title: title
-         },
+         } = task,
          child_run_id,
          ctx
        ) do
     run_type = if action == "edit", do: "edit", else: "generate"
-    trigger = build_trigger(params)
+    trigger = build_trigger(task)
 
     with {:ok, playground_id} <- resolve_artifact_id(:playground, artifact_id, action, title, ctx) do
       args = %{
@@ -481,12 +478,39 @@ defmodule Blackboex.ProjectAgent.PlanRunnerWorker do
     end
   end
 
-  @spec build_trigger(map() | nil) :: String.t()
-  defp build_trigger(nil), do: "Project Agent automated task"
+  # The trigger_message is consumed by per-artifact agents as the natural-language
+  # description of what to build. We pack the task's title plus its
+  # acceptance_criteria so the artifact agent has the same spec the Planner
+  # produced — without these, the agent only sees a generic placeholder.
+  @spec build_trigger(PlanTask.t()) :: String.t()
+  defp build_trigger(%PlanTask{title: title, acceptance_criteria: criteria, params: params}) do
+    override =
+      params
+      |> case do
+        m when is_map(m) -> Map.get(m, "trigger_message") || Map.get(m, :trigger_message)
+        _ -> nil
+      end
 
-  defp build_trigger(params) when is_map(params) do
-    Map.get(params, "trigger_message") ||
-      Map.get(params, :trigger_message) ||
-      "Project Agent automated task"
+    case override do
+      msg when is_binary(msg) and msg != "" ->
+        msg
+
+      _ ->
+        criteria_block =
+          (criteria || [])
+          |> Enum.map(&"- #{&1}")
+          |> Enum.join("\n")
+
+        cond do
+          is_binary(title) and title != "" and criteria_block != "" ->
+            "#{title}\n\nAcceptance criteria:\n#{criteria_block}"
+
+          is_binary(title) and title != "" ->
+            title
+
+          true ->
+            "Project Agent automated task"
+        end
+    end
   end
 end

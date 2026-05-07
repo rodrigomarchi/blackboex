@@ -38,8 +38,10 @@ defmodule Blackboex.Plans do
   # ── Plan lookups & lists ───────────────────────────────────────
 
   defdelegate list_plans_for_project(project_id, opts \\ []), to: Plans
+  defdelegate list_plans_for_conversation(conversation_id, opts \\ []), to: Plans
   defdelegate get_plan!(id), to: Plans
   defdelegate get_active_plan(project_id), to: Plans
+  defdelegate get_active_plan_for_conversation(conversation_id), to: Plans
   defdelegate list_tasks(plan), to: Plans
   defdelegate get_task!(id), to: Plans
   defdelegate list_running_tasks(), to: Plans

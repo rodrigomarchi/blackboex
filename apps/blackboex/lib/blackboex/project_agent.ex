@@ -45,7 +45,7 @@ defmodule Blackboex.ProjectAgent do
              status: "pending",
              trigger_message: user_message
            }),
-         {:ok, _} <- enqueue_kickoff(project, user, user_message) do
+         {:ok, _} <- enqueue_kickoff(project, user, user_message, run) do
       {:ok, conversation, run}
     end
   end
@@ -73,14 +73,15 @@ defmodule Blackboex.ProjectAgent do
     end
   end
 
-  @spec enqueue_kickoff(Project.t(), User.t(), String.t()) ::
+  @spec enqueue_kickoff(Project.t(), User.t(), String.t(), ProjectRun.t()) ::
           {:ok, Oban.Job.t()} | {:error, Ecto.Changeset.t()}
-  defp enqueue_kickoff(project, user, user_message) do
+  defp enqueue_kickoff(project, user, user_message, run) do
     %{
       "project_id" => project.id,
       "organization_id" => project.organization_id,
       "user_id" => user.id,
-      "user_message" => user_message
+      "user_message" => user_message,
+      "run_id" => run.id
     }
     |> KickoffWorker.new()
     |> Oban.insert()

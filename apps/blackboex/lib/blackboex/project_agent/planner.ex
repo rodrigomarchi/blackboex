@@ -56,12 +56,22 @@ defmodule Blackboex.ProjectAgent.Planner do
         }
 
   @system_prompt """
-  You are the Project Agent Planner. Your job is to decompose a user's
-  natural-language request into a small ordered set of tasks, where each
-  task targets exactly one of four artifact types: api, flow, page, or
-  playground. Output a typed plan with concrete acceptance criteria. Do
-  NOT generate code. The per-artifact agents (Agent / FlowAgent /
-  PageAgent / PlaygroundAgent) handle code generation.
+  You are the Project Agent Planner. Your job is to translate a user's
+  natural-language request into the **smallest possible** ordered set of
+  tasks, where each task targets exactly one of four artifact types:
+  api, flow, page, or playground.
+
+  Hard rules:
+    * Emit ONE task per logical artifact. Never emit two tasks that
+      describe the same artifact, even if their wording differs.
+    * If the request fits in a single artifact, return exactly one task.
+    * Do not split a single API/flow/page/playground into multiple tasks.
+    * Every task MUST include 2–5 concrete `acceptance_criteria` bullets
+      describing the observable behavior the per-artifact agent must
+      satisfy (inputs, outputs, validation, edge cases).
+    * Do NOT generate code. The per-artifact agents (Agent / FlowAgent /
+      PageAgent / PlaygroundAgent) handle code generation from the
+      acceptance criteria you write.
   """
 
   @tool_description """
@@ -71,9 +81,13 @@ defmodule Blackboex.ProjectAgent.Planner do
     - page: a free-form Markdown page. Action: create | edit.
     - playground: a code snippet. Action: create | edit.
 
-  Use `acceptance_criteria` for any artifact-specific details
-  (template type, page title, expected behavior, etc.). The per-artifact
-  agents read these criteria and produce concrete code/content.
+  `acceptance_criteria` is REQUIRED and must contain 2–5 concrete bullets
+  per task — input/output shape, validation rules, expected behavior,
+  edge cases. The per-artifact agents read these criteria verbatim, so
+  vague bullets produce vague code.
+
+  Each (artifact_type, action, title) tuple must be unique within the
+  plan. Duplicates will be rejected.
   """
 
   @doc """
@@ -308,7 +322,7 @@ defmodule Blackboex.ProjectAgent.Planner do
     Application.get_env(
       :blackboex,
       :llm_default_model,
-      "anthropic:claude-sonnet-4-20250514"
+      "anthropic:claude-sonnet-4-5-20250929"
     )
   end
 
@@ -345,12 +359,32 @@ defmodule Blackboex.ProjectAgent.Planner do
 
     with true <- is_binary(title) and String.length(title) > 0,
          true <- is_list(raw_tasks) do
-      tasks = Enum.map(raw_tasks, &normalize_raw_task/1)
+      tasks = raw_tasks |> Enum.map(&normalize_raw_task/1) |> dedup_tasks()
       {:ok, %{title: title, tasks: tasks}}
     else
       _ -> {:error, {:invalid_emission, object}}
     end
   end
+
+  @spec dedup_tasks([map()]) :: [map()]
+  defp dedup_tasks(tasks) do
+    tasks
+    |> Enum.reduce({[], MapSet.new()}, fn task, {acc, seen} ->
+      key = {task.artifact_type, task.action, normalize_title(task.title)}
+
+      if MapSet.member?(seen, key) do
+        {acc, seen}
+      else
+        {[task | acc], MapSet.put(seen, key)}
+      end
+    end)
+    |> elem(0)
+    |> Enum.reverse()
+  end
+
+  @spec normalize_title(String.t() | nil) :: String.t()
+  defp normalize_title(nil), do: ""
+  defp normalize_title(title), do: title |> String.trim() |> String.downcase()
 
   @spec normalize_raw_task(map()) :: map()
   defp normalize_raw_task(t) when is_map(t) do

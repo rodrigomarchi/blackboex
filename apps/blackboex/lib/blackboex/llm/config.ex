@@ -17,7 +17,7 @@ defmodule Blackboex.LLM.Config do
   @providers_data [
     [
       name: :anthropic,
-      model: "anthropic:claude-sonnet-4-20250514",
+      model: "anthropic:claude-sonnet-4-5-20250929",
       api_key_env: "ANTHROPIC_API_KEY"
     ],
     [name: :openai, model: "openai:gpt-4o", api_key_env: "OPENAI_API_KEY"]

@@ -14,7 +14,7 @@ defmodule Blackboex.LLM.UsageTest do
         organization_id: org.id,
         project_id: Blackboex.Projects.get_default_project(org.id).id,
         provider: "anthropic",
-        model: "anthropic:claude-sonnet-4-20250514",
+        model: "anthropic:claude-sonnet-4-5-20250929",
         input_tokens: 100,
         output_tokens: 200,
         cost_cents: 5,

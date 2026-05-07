@@ -16,6 +16,7 @@ defmodule Blackboex.Agent.Pipeline.Validation do
   alias Blackboex.CodeGen.Compiler
   alias Blackboex.CodeGen.DiffEngine
   alias Blackboex.CodeGen.Linter
+  alias Blackboex.LLM.PromptFragments
   alias Blackboex.Testing.TestRunner
 
   @max_fix_attempts 3
@@ -616,6 +617,20 @@ defmodule Blackboex.Agent.Pipeline.Validation do
     system = """
     You are fixing compilation errors in a multi-file Elixir project.
     The project has #{length(files)} source files.
+
+    #{PromptFragments.handler_rules()}
+    #{PromptFragments.allowed_and_prohibited_modules()}
+
+    Common fixes (do NOT repeat past mistakes — read the errors carefully):
+    - "blocked function: String.to_atom" / "String.to_existing_atom" / "List.to_atom" →
+      These are PERMANENTLY blocked by the security validator. NEVER substitute one
+      for another. Replace with a Map lookup or pattern matching.
+      WRONG: `String.to_existing_atom(key)`, `String.to_atom(key)`, `List.to_atom(chars)`
+      RIGHT: `case key do "foo" -> :foo; "bar" -> :bar; _ -> :unknown end`
+      RIGHT: `Map.get(%{"foo" => :foo, "bar" => :bar}, key, :unknown)`
+    - "defines disallowed module" → only Request, Response, Params allowed; inline the rest.
+    - "uses json()" / "references conn" → handler returns plain maps; no Plug helpers.
+    - "elsif" → does not exist in Elixir; use `cond do ... end` or pattern matching.
 
     Return fixes using path-annotated SEARCH/REPLACE blocks:
 
